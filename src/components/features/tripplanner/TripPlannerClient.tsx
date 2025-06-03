@@ -22,6 +22,112 @@ const tripPlannerSchema = z.object({
   fuelPrice: z.coerce.number().positive("Fuel price must be a positive number (per liter)"),
 });
 
+interface GooglePlacesAutocompleteInputProps {
+  control: Control<TripPlannerFormValues>;
+  name: "startLocation" | "endLocation";
+  label: string;
+  placeholder?: string;
+  errors: FieldErrors<TripPlannerFormValues>;
+  setValue: UseFormSetValue<TripPlannerFormValues>;
+  mapServicesReady: boolean;
+}
+
+const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps> = ({
+  control,
+  name,
+  label,
+  placeholder,
+  errors,
+  setValue,
+  mapServicesReady,
+}) => {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+
+  useEffect(() => {
+    if (!mapServicesReady || !inputRef.current || typeof window.google === 'undefined' || !window.google.maps.places) {
+      return;
+    }
+
+    if (autocompleteRef.current) {
+      // Already initialized
+      return;
+    }
+
+    const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
+      fields: ["formatted_address", "geometry", "name"],
+      types: ["geocode"],
+    });
+    autocompleteRef.current = autocomplete;
+
+    autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      if (place && place.formatted_address) {
+        setValue(name, place.formatted_address, { shouldValidate: true, shouldDirty: true });
+      } else if (inputRef.current) {
+        setValue(name, inputRef.current.value, { shouldValidate: true, shouldDirty: true });
+      }
+    });
+    
+    const onKeyDown = (event: KeyboardEvent) => {
+        // Check if the Pacman container (autocomplete dropdown) is visible
+        const pacContainer = document.querySelector('.pac-container');
+        if (event.key === 'Enter' && pacContainer && getComputedStyle(pacContainer).display !== 'none') {
+          event.preventDefault();
+        }
+      };
+  
+      const currentInputRef = inputRef.current;
+      if (currentInputRef) {
+        currentInputRef.addEventListener('keydown', onKeyDown);
+      }
+  
+      return () => {
+        if (currentInputRef) {
+          currentInputRef.removeEventListener('keydown', onKeyDown);
+        }
+        // Clean up Google Maps event listeners if autocomplete was initialized
+        if (autocompleteRef.current && typeof window.google !== 'undefined') {
+          window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+        }
+      };
+
+  }, [name, setValue, mapServicesReady]);
+
+  return (
+    <div>
+      <Label htmlFor={name} className="font-body">
+        {label}
+      </Label>
+      <Controller
+        name={name}
+        control={control}
+        render={({ field }) => (
+          <Input
+            id={name}
+            ref={(el) => {
+              field.ref(el);
+              inputRef.current = el;
+            }}
+            onChange={(e) => field.onChange(e.target.value)}
+            onBlur={field.onBlur}
+            value={field.value || ''}
+            placeholder={placeholder}
+            className="font-body"
+            autoComplete="off" // Important for Google Places Autocomplete to work correctly
+          />
+        )}
+      />
+      {errors[name] && (
+        <p className="text-sm text-destructive font-body mt-1">
+          {errors[name]?.message}
+        </p>
+      )}
+    </div>
+  );
+};
+
+
 export function TripPlannerClient() {
   const { control, handleSubmit, formState: { errors }, setValue } = useForm<TripPlannerFormValues>({
     resolver: zodResolver(tripPlannerSchema),
@@ -41,10 +147,11 @@ export function TripPlannerClient() {
   const [mapCenter, setMapCenter] = useState<google.maps.LatLngLiteral>({ lat: -33.8688, lng: 151.2093 });
   const [mapZoom, setMapZoom] = useState<number>(6);
 
-  const map = useMap();
+  const map = useMap(); // Get map instance
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.DirectionsService) {
+    // Check if Google Maps API, DirectionsService and PlacesService are available
+    if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.DirectionsService && window.google.maps.places) {
       setMapServicesReady(true);
     }
   }, []);
@@ -147,47 +254,31 @@ export function TripPlannerClient() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div>
-              <Label htmlFor="startLocation" className="font-body">Start Location</Label>
-              <Controller
-                name="startLocation"
-                control={control}
-                render={({ field }) => (
-                  <Input 
-                    id="startLocation" 
-                    {...field} 
-                    placeholder="e.g., Sydney, NSW" 
-                    className="font-body" 
-                    autoComplete="off"
-                  />
-                )}
-              />
-              {errors.startLocation && <p className="text-sm text-destructive font-body mt-1">{errors.startLocation.message}</p>}
-            </div>
-            <div>
-              <Label htmlFor="endLocation" className="font-body">End Location</Label>
-              <Controller
-                name="endLocation"
-                control={control}
-                render={({ field }) => (
-                  <Input 
-                    id="endLocation" 
-                    {...field} 
-                    placeholder="e.g., Melbourne, VIC" 
-                    className="font-body" 
-                    autoComplete="off"
-                  />
-                )}
-              />
-              {errors.endLocation && <p className="text-sm text-destructive font-body mt-1">{errors.endLocation.message}</p>}
-            </div>
+            <GooglePlacesAutocompleteInput
+              control={control}
+              name="startLocation"
+              label="Start Location"
+              placeholder="e.g., Sydney, NSW"
+              errors={errors}
+              setValue={setValue}
+              mapServicesReady={mapServicesReady}
+            />
+            <GooglePlacesAutocompleteInput
+              control={control}
+              name="endLocation"
+              label="End Location"
+              placeholder="e.g., Melbourne, VIC"
+              errors={errors}
+              setValue={setValue}
+              mapServicesReady={mapServicesReady}
+            />
             <div>
               <Label htmlFor="fuelEfficiency" className="font-body">Vehicle Fuel Efficiency (L/100km)</Label>
               <Controller
                 name="fuelEfficiency"
                 control={control}
                 render={({ field }) => (
-                   <Input id="fuelEfficiency" type="number" step="0.1" {...field} className="font-body" />
+                   <Input id="fuelEfficiency" type="number" step="0.1" {...field} value={field.value || ''} className="font-body" />
                 )}
               />
               {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
@@ -198,7 +289,7 @@ export function TripPlannerClient() {
                 name="fuelPrice"
                 control={control}
                 render={({ field }) => (
-                  <Input id="fuelPrice" type="number" step="0.01" {...field} className="font-body" />
+                  <Input id="fuelPrice" type="number" step="0.01" {...field} value={field.value || ''} className="font-body" />
                 )}
               />
               {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
@@ -221,7 +312,7 @@ export function TripPlannerClient() {
             {mapServicesReady && map ? (
               <div style={{ height: mapHeight }} className="bg-muted rounded-b-lg overflow-hidden">
                 <Map
-                  map={map}
+                  map={map} // Pass the map instance here
                   defaultCenter={mapCenter}
                   defaultZoom={mapZoom}
                   gestureHandling={'greedy'}

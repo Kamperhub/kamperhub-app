@@ -14,7 +14,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8 pb-24 sm:pb-8"> {/* Add padding-bottom for bottom nav space */}
         {apiKey ? (
-          <APIProvider apiKey={apiKey} solutionChannel="GMP_visgl_rgm_reactfirebase_v1">
+          <APIProvider 
+            apiKey={apiKey} 
+            solutionChannel="GMP_visgl_rgm_reactfirebase_v1"
+            libraries={['places', 'routes']} // Added 'places' and 'routes'
+          >
             {children}
           </APIProvider>
         ) : (
