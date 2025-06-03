@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
@@ -34,7 +35,7 @@ export function MapView() {
           defaultZoom={13}
           gestureHandling={'greedy'}
           disableDefaultUI={true}
-          // mapId="kamperhub-map" // Removed as a troubleshooting step
+          mapId="DEMO_MAP_ID" // Added DEMO_MAP_ID
           className="h-full w-full"
         >
           <AdvancedMarker position={center}>
