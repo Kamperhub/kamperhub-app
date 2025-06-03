@@ -29,7 +29,6 @@ interface GooglePlacesAutocompleteInputProps {
   placeholder?: string;
   errors: FieldErrors<TripPlannerFormValues>;
   setValue: UseFormSetValue<TripPlannerFormValues>;
-  mapServicesReady: boolean;
 }
 
 const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps> = ({
@@ -39,19 +38,17 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
   placeholder,
   errors,
   setValue,
-  mapServicesReady,
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
-    if (!mapServicesReady || !inputRef.current || typeof window.google === 'undefined' || !window.google.maps.places) {
+    if (!inputRef.current || typeof window.google === 'undefined' || !window.google.maps.places) {
       return;
     }
 
     if (autocompleteRef.current) {
-      // Already initialized
-      return;
+      return; 
     }
 
     const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
@@ -70,7 +67,6 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
     });
     
     const onKeyDown = (event: KeyboardEvent) => {
-        // Check if the Pacman container (autocomplete dropdown) is visible
         const pacContainer = document.querySelector('.pac-container');
         if (event.key === 'Enter' && pacContainer && getComputedStyle(pacContainer).display !== 'none') {
           event.preventDefault();
@@ -86,13 +82,11 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
         if (currentInputRef) {
           currentInputRef.removeEventListener('keydown', onKeyDown);
         }
-        // Clean up Google Maps event listeners if autocomplete was initialized
-        if (autocompleteRef.current && typeof window.google !== 'undefined') {
+        if (autocompleteRef.current && typeof window.google !== 'undefined' && window.google.maps && window.google.maps.event) {
           window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
         }
       };
-
-  }, [name, setValue, mapServicesReady]);
+  }, [name, setValue]);
 
   return (
     <div>
@@ -114,7 +108,7 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
             value={field.value || ''}
             placeholder={placeholder}
             className="font-body"
-            autoComplete="off" // Important for Google Places Autocomplete to work correctly
+            autoComplete="off" 
           />
         )}
       />
@@ -143,21 +137,13 @@ export function TripPlannerClient() {
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [fuelEstimate, setFuelEstimate] = useState<FuelEstimate | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [mapServicesReady, setMapServicesReady] = useState(false);
   const [mapCenter, setMapCenter] = useState<google.maps.LatLngLiteral>({ lat: -33.8688, lng: 151.2093 });
   const [mapZoom, setMapZoom] = useState<number>(6);
 
-  const map = useMap(); // Get map instance
+  const map = useMap(); 
 
   useEffect(() => {
-    // Check if Google Maps API, DirectionsService and PlacesService are available
-    if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.DirectionsService && window.google.maps.places) {
-      setMapServicesReady(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (map && routeDetails?.startLocation && routeDetails.endLocation) {
+    if (map && routeDetails?.startLocation && routeDetails.endLocation && typeof window.google !== 'undefined' && window.google.maps) {
       const bounds = new window.google.maps.LatLngBounds();
       bounds.extend(routeDetails.startLocation);
       bounds.extend(routeDetails.endLocation);
@@ -179,7 +165,7 @@ export function TripPlannerClient() {
 
 
   const onSubmit: SubmitHandler<TripPlannerFormValues> = async (data) => {
-    if (!mapServicesReady || !map) {
+    if (!map || typeof window.google === 'undefined' || !window.google.maps || !window.google.maps.DirectionsService) {
       setError("Map service is not fully available. Please try again shortly.");
       return;
     }
@@ -261,7 +247,6 @@ export function TripPlannerClient() {
               placeholder="e.g., Sydney, NSW"
               errors={errors}
               setValue={setValue}
-              mapServicesReady={mapServicesReady}
             />
             <GooglePlacesAutocompleteInput
               control={control}
@@ -270,7 +255,6 @@ export function TripPlannerClient() {
               placeholder="e.g., Melbourne, VIC"
               errors={errors}
               setValue={setValue}
-              mapServicesReady={mapServicesReady}
             />
             <div>
               <Label htmlFor="fuelEfficiency" className="font-body">Vehicle Fuel Efficiency (L/100km)</Label>
@@ -294,11 +278,11 @@ export function TripPlannerClient() {
               />
               {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
             </div>
-            <Button type="submit" disabled={isLoading || !mapServicesReady || !map} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body">
+            <Button type="submit" disabled={isLoading || !map} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLoading ? 'Calculating...' : 'Plan Trip'}
             </Button>
-            {(!mapServicesReady || !map) && <p className="text-sm text-muted-foreground text-center font-body mt-2">Map services loading...</p>}
+            {!map && <p className="text-sm text-muted-foreground text-center font-body mt-2">Map services loading...</p>}
           </form>
         </CardContent>
       </Card>
@@ -309,10 +293,8 @@ export function TripPlannerClient() {
             <CardTitle className="font-headline flex items-center"><MapPin className="mr-2 h-6 w-6 text-primary" /> Route Map</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {mapServicesReady && map ? (
-              <div style={{ height: mapHeight }} className="bg-muted rounded-b-lg overflow-hidden">
+            <div style={{ height: mapHeight }} className="bg-muted rounded-b-lg overflow-hidden relative">
                 <Map
-                  map={map} // Pass the map instance here
                   defaultCenter={mapCenter}
                   defaultZoom={mapZoom}
                   gestureHandling={'greedy'}
@@ -339,13 +321,13 @@ export function TripPlannerClient() {
                     </AdvancedMarker>
                   )}
                 </Map>
+                {!map && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm rounded-b-lg">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="ml-2 font-body">Initializing Map...</p>
+                    </div>
+                )}
               </div>
-            ) : (
-              <div style={{ height: mapHeight }} className="flex items-center justify-center bg-muted rounded-b-lg">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                 <p className="ml-2 font-body">Loading map...</p>
-              </div>
-            )}
           </CardContent>
         </Card>
         
@@ -392,3 +374,4 @@ export function TripPlannerClient() {
     </div>
   );
 }
+
