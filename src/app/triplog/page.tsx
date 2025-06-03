@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { TRIP_LOG_STORAGE_KEY, RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import { TripLogItem } from '@/components/features/triplog/TripLogItem';
-import { Button } from '@/components/ui/button';
+// import { Button } from '@/components/ui/button'; // No longer needed for clear all
 import { useToast } from '@/hooks/use-toast';
 import { AlertTriangle, History } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';

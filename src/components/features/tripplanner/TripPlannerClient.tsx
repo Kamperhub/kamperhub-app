@@ -1,25 +1,45 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useForm, type SubmitHandler, Controller, type Control, type UseFormSetValue, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { TripPlannerFormValues, RouteDetails, FuelEstimate } from '@/types/tripplanner';
+import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip } from '@/types/tripplanner';
+import { TRIP_LOG_STORAGE_KEY, RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
-import { Loader2, RouteIcon, Fuel, MapPin } from 'lucide-react';
+import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { format, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const tripPlannerSchema = z.object({
   startLocation: z.string().min(3, "Start location is required (min 3 chars)"),
   endLocation: z.string().min(3, "End location is required (min 3 chars)"),
   fuelEfficiency: z.coerce.number().positive("Fuel efficiency must be a positive number (L/100km)"),
   fuelPrice: z.coerce.number().positive("Fuel price must be a positive number (per liter)"),
+  plannedStartDate: z.date().optional().nullable(),
+  plannedEndDate: z.date().optional().nullable(),
+}).refine(data => {
+  if (data.plannedStartDate && data.plannedEndDate) {
+    return data.plannedEndDate >= data.plannedStartDate;
+  }
+  return true;
+}, {
+  message: "End date cannot be before start date",
+  path: ["plannedEndDate"],
 });
 
 interface GooglePlacesAutocompleteInputProps {
@@ -45,40 +65,19 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
-    console.log(`[KamperHub Autocomplete ${name}] useEffect triggered. isGoogleApiReady: ${isGoogleApiReady}, inputRef.current: ${!!inputRef.current}`);
-
     if (!isGoogleApiReady || !inputRef.current) {
-      if (!isGoogleApiReady) console.log(`[KamperHub Autocomplete ${name}] Google API not ready yet.`);
-      if (!inputRef.current) console.log(`[KamperHub Autocomplete ${name}] Input ref not available yet.`);
       return;
     }
-    
-    console.log('[KamperHub Autocomplete] Checking Google Maps API objects:');
-    console.log('  window.google:', typeof window.google);
-    if (typeof window.google !== 'undefined') {
-      console.log('  window.google.maps:', typeof window.google.maps);
-      if (typeof window.google.maps !== 'undefined') {
-        console.log('  window.google.maps.places:', typeof window.google.maps.places);
-        if (typeof window.google.maps.places !== 'undefined') {
-          console.log('  window.google.maps.places.Autocomplete:', typeof window.google.maps.places.Autocomplete);
-        }
-      }
-    }
-
     if (typeof window.google === 'undefined' || !window.google.maps || !window.google.maps.places || typeof window.google.maps.places.Autocomplete === 'undefined') {
-        console.error('[KamperHub Autocomplete] Google Places Autocomplete service constructor is not available. Ensure "Places API" is enabled and the library (places) is loaded correctly via APIProvider.');
-        return;
+      console.error('[KamperHub Autocomplete] Google Places Autocomplete service constructor is not available.');
+      return;
     }
 
-    if (autocompleteRef.current) {
-      console.log(`[KamperHub Autocomplete ${name}] Autocomplete instance already exists. Clearing listeners.`);
-       if (typeof window.google.maps.event !== 'undefined' && autocompleteRef.current) {
-           window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
-       }
+    if (autocompleteRef.current && typeof window.google.maps.event !== 'undefined') {
+       window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
     }
 
     try {
-      console.log(`[KamperHub Autocomplete ${name}] Initializing Google Places Autocomplete.`);
       const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
         fields: ["formatted_address", "geometry", "name"],
         types: ["geocode"], 
@@ -87,15 +86,12 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
 
       autocomplete.addListener('place_changed', () => {
         const place = autocomplete.getPlace();
-        console.log(`[KamperHub Autocomplete ${name}] Place changed:`, place);
         if (place && place.formatted_address) {
           setValue(name, place.formatted_address, { shouldValidate: true, shouldDirty: true });
         } else if (inputRef.current) {
           setValue(name, inputRef.current.value, { shouldValidate: true, shouldDirty: true });
         }
       });
-      console.log(`[KamperHub Autocomplete ${name}] Autocomplete initialized and listener added.`);
-
     } catch (error) {
       console.error(`[KamperHub Autocomplete ${name}] Error initializing Google Places Autocomplete:`, error);
     }
@@ -113,12 +109,10 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
     }
 
     return () => {
-      console.log(`[KamperHub Autocomplete ${name}] Cleanup effect.`);
       if (currentInputRef) {
         currentInputRef.removeEventListener('keydown', onKeyDown);
       }
        if (autocompleteRef.current && typeof window.google !== 'undefined' && window.google.maps && window.google.maps.event) {
-         console.log(`[KamperHub Autocomplete ${name}] Clearing instance listeners on cleanup.`);
          window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
        }
        autocompleteRef.current = null; 
@@ -158,15 +152,66 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
   );
 };
 
+interface DatePickerProps {
+  control: Control<TripPlannerFormValues>;
+  name: "plannedStartDate" | "plannedEndDate";
+  label: string;
+  errors: FieldErrors<TripPlannerFormValues>;
+}
+
+const FormDatePicker: React.FC<DatePickerProps> = ({ control, name, label, errors }) => {
+  return (
+    <div>
+      <Label htmlFor={name} className="font-body">{label}</Label>
+      <Controller
+        name={name}
+        control={control}
+        render={({ field }) => (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                id={name}
+                className={cn(
+                  "w-full justify-start text-left font-normal font-body",
+                  !field.value && "text-muted-foreground"
+                )}
+              >
+                <CalendarDays className="mr-2 h-4 w-4" />
+                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={field.value || undefined}
+                onSelect={(date) => field.onChange(date || null)}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        )}
+      />
+      {errors[name] && (
+        <p className="text-sm text-destructive font-body mt-1">
+          {errors[name]?.message}
+        </p>
+      )}
+    </div>
+  );
+};
+
 
 export function TripPlannerClient() {
-  const { control, handleSubmit, formState: { errors }, setValue } = useForm<TripPlannerFormValues>({
+  const { control, handleSubmit, formState: { errors }, setValue, getValues, reset } = useForm<TripPlannerFormValues>({
     resolver: zodResolver(tripPlannerSchema),
     defaultValues: {
       startLocation: '',
       endLocation: '',
       fuelEfficiency: 10,
       fuelPrice: 1.80,
+      plannedStartDate: null,
+      plannedEndDate: null,
     }
   });
 
@@ -175,14 +220,49 @@ export function TripPlannerClient() {
   const [fuelEstimate, setFuelEstimate] = useState<FuelEstimate | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
+  const { toast } = useToast();
   
   const map = useMap(); 
   const polylineRef = useRef<google.maps.Polyline | null>(null);
   const isGoogleApiReady = !!map && typeof window.google !== 'undefined' && !!window.google.maps?.places && !!window.google.maps?.DirectionsService;
 
+
   useEffect(() => {
-    console.log(`[KamperHub TripPlannerClient] isGoogleApiReady status: ${isGoogleApiReady}`);
-  }, [isGoogleApiReady]);
+    // Load recalled trip data from localStorage if available
+    if (typeof window !== 'undefined') {
+      try {
+        const recalledTripJson = localStorage.getItem(RECALLED_TRIP_DATA_KEY);
+        if (recalledTripJson) {
+          const recalledTrip: LoggedTrip = JSON.parse(recalledTripJson);
+          reset({
+            startLocation: recalledTrip.startLocationDisplay,
+            endLocation: recalledTrip.endLocationDisplay,
+            fuelEfficiency: recalledTrip.fuelEfficiency,
+            fuelPrice: recalledTrip.fuelPrice,
+            plannedStartDate: recalledTrip.plannedStartDate ? parseISO(recalledTrip.plannedStartDate) : null,
+            plannedEndDate: recalledTrip.plannedEndDate ? parseISO(recalledTrip.plannedEndDate) : null,
+          });
+          setRouteDetails(recalledTrip.routeDetails);
+          setFuelEstimate(recalledTrip.fuelEstimate);
+          // Trigger route calculation if possible or display stored data
+          // For simplicity, we're just populating form and summary for now. 
+          // Full route re-calc would require re-calling onSubmit or similar.
+          // For now, let's set directionsResponse if it allows to draw pins at least.
+          // Actual polyline requires a new DirectionsService call.
+          if(recalledTrip.routeDetails.startLocation && recalledTrip.routeDetails.endLocation) {
+            // This is a simplified way to show pins. Ideally, we'd re-fetch.
+          }
+
+          localStorage.removeItem(RECALLED_TRIP_DATA_KEY); // Clear after loading
+          toast({ title: "Trip Recalled", description: `"${recalledTrip.name}" loaded into planner.` });
+        }
+      } catch (e) {
+        console.error("Error loading recalled trip data:", e);
+        toast({ title: "Error", description: "Could not load recalled trip data.", variant: "destructive" });
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reset, toast]); // Only run on mount (after reset is stable)
 
 
   useEffect(() => {
@@ -218,8 +298,8 @@ export function TripPlannerClient() {
       }
     } else if (routeDetails?.startLocation && routeDetails.endLocation && window.google && window.google.maps) {
       const bounds = new window.google.maps.LatLngBounds();
-      bounds.extend(routeDetails.startLocation);
-      bounds.extend(routeDetails.endLocation);
+      if(routeDetails.startLocation) bounds.extend(routeDetails.startLocation);
+      if(routeDetails.endLocation) bounds.extend(routeDetails.endLocation);
       map.fitBounds(bounds);
       const currentZoom = map.getZoom();
       if (currentZoom && currentZoom > 15) {
@@ -248,7 +328,6 @@ export function TripPlannerClient() {
   const onSubmit: SubmitHandler<TripPlannerFormValues> = async (data) => {
     if (!map || typeof window.google === 'undefined' || !window.google.maps || !window.google.maps.DirectionsService) {
       setError("Map service is not fully available for routing. Please try again shortly.");
-      console.error("[KamperHub TripPlannerClient] DirectionsService not available for onSubmit.");
       return;
     }
     
@@ -257,7 +336,6 @@ export function TripPlannerClient() {
     setRouteDetails(null);
     setFuelEstimate(null);
     setDirectionsResponse(null); 
-    console.log("[KamperHub TripPlannerClient] Attempting to calculate route using DirectionsService for:", data);
 
     const directionsService = new window.google.maps.DirectionsService();
 
@@ -267,8 +345,6 @@ export function TripPlannerClient() {
         destination: data.endLocation,
         travelMode: window.google.maps.TravelMode.DRIVING,
       });
-
-      console.log("[KamperHub TripPlannerClient] DirectionsService response:", results);
 
       if (results.routes && results.routes.length > 0) {
         const route = results.routes[0];
@@ -298,11 +374,9 @@ export function TripPlannerClient() {
           }
         } else {
            setError("Could not find a valid leg for the route.");
-           console.warn("[KamperHub TripPlannerClient] No legs found in the route:", route);
         }
       } else {
         setError("No routes found. Please check your locations.");
-        console.warn("[KamperHub TripPlannerClient] No routes found in DirectionsService response:", results);
       }
     } catch (e: any) {
       console.error("[KamperHub TripPlannerClient] Directions request failed:", e);
@@ -315,6 +389,41 @@ export function TripPlannerClient() {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSaveTrip = () => {
+    if (!routeDetails || !isGoogleApiReady) {
+      toast({ title: "Cannot Save", description: "No trip details to save or map not ready.", variant: "destructive" });
+      return;
+    }
+
+    const tripName = window.prompt("Enter a name for this trip:", `Trip to ${getValues("endLocation")}`);
+    if (!tripName) return; // User cancelled or entered nothing
+
+    const currentFormData = getValues();
+    const newLoggedTrip: LoggedTrip = {
+      id: Date.now().toString(),
+      name: tripName,
+      timestamp: new Date().toISOString(),
+      startLocationDisplay: currentFormData.startLocation,
+      endLocationDisplay: currentFormData.endLocation,
+      fuelEfficiency: currentFormData.fuelEfficiency,
+      fuelPrice: currentFormData.fuelPrice,
+      routeDetails: routeDetails,
+      fuelEstimate: fuelEstimate,
+      plannedStartDate: currentFormData.plannedStartDate ? currentFormData.plannedStartDate.toISOString() : null,
+      plannedEndDate: currentFormData.plannedEndDate ? currentFormData.plannedEndDate.toISOString() : null,
+    };
+
+    try {
+      const existingTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
+      const existingTrips: LoggedTrip[] = existingTripsJson ? JSON.parse(existingTripsJson) : [];
+      localStorage.setItem(TRIP_LOG_STORAGE_KEY, JSON.stringify([...existingTrips, newLoggedTrip]));
+      toast({ title: "Trip Saved!", description: `"${tripName}" has been added to your Trip Log.` });
+    } catch (error) {
+      console.error("Error saving trip to localStorage:", error);
+      toast({ title: "Error Saving Trip", description: "Could not save trip.", variant: "destructive" });
     }
   };
 
@@ -348,6 +457,18 @@ export function TripPlannerClient() {
               errors={errors}
               setValue={setValue}
               isGoogleApiReady={isGoogleApiReady}
+            />
+            <FormDatePicker
+              control={control}
+              name="plannedStartDate"
+              label="Planned Start Date"
+              errors={errors}
+            />
+            <FormDatePicker
+              control={control}
+              name="plannedEndDate"
+              label="Planned End Date"
+              errors={errors}
             />
             <div>
               <Label htmlFor="fuelEfficiency" className="font-body">Vehicle Fuel Efficiency (L/100km)</Label>
@@ -447,8 +568,11 @@ export function TripPlannerClient() {
 
         {routeDetails && (
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="font-headline flex items-center"><Fuel className="mr-2 h-6 w-6 text-primary" /> Trip Summary</CardTitle>
+              <Button onClick={handleSaveTrip} variant="outline" size="sm" className="font-body">
+                <Save className="mr-2 h-4 w-4" /> Save Trip
+              </Button>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="font-body"><strong>Distance:</strong> {routeDetails.distance}</div>
@@ -460,6 +584,12 @@ export function TripPlannerClient() {
                   <div className="font-body"><strong>Est. Fuel Needed:</strong> {fuelEstimate.fuelNeeded}</div>
                   <div className="font-body"><strong>Est. Fuel Cost:</strong> {fuelEstimate.estimatedCost}</div>
                 </>
+              )}
+              {getValues("plannedStartDate") && (
+                <div className="font-body"><strong>Planned Start:</strong> {format(getValues("plannedStartDate")!, "PPP")}</div>
+              )}
+              {getValues("plannedEndDate") && (
+                <div className="font-body"><strong>Planned End:</strong> {format(getValues("plannedEndDate")!, "PPP")}</div>
               )}
             </CardContent>
           </Card>

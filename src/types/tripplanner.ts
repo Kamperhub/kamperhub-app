@@ -4,6 +4,8 @@ export interface TripPlannerFormValues {
   endLocation: string;
   fuelEfficiency: number; // L/100km
   fuelPrice: number; // Price per liter
+  plannedStartDate?: Date | null;
+  plannedEndDate?: Date | null;
 }
 
 export interface RouteDetails {
@@ -31,9 +33,8 @@ export interface LoggedTrip {
   fuelPrice: number;
   routeDetails: RouteDetails;
   fuelEstimate: FuelEstimate | null;
-  // We store the display names and core data separately from the full geocoded routeDetails
-  // to ensure we can re-populate the form accurately.
-  // The startLocation and endLocation within routeDetails are geocoded LatLng.
+  plannedStartDate?: string | null; // Stored as ISO string
+  plannedEndDate?: string | null; // Stored as ISO string
 }
 
 // Key for localStorage
