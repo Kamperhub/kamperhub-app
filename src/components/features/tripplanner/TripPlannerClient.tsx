@@ -72,7 +72,6 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
 
     if (autocompleteRef.current) {
       console.log(`[KamperHub Autocomplete ${name}] Autocomplete instance already exists. Clearing listeners.`);
-      // Clear previous listeners if any, before re-initializing.
        if (typeof window.google.maps.event !== 'undefined' && autocompleteRef.current) {
            window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
        }
@@ -82,7 +81,7 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
       console.log(`[KamperHub Autocomplete ${name}] Initializing Google Places Autocomplete.`);
       const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
         fields: ["formatted_address", "geometry", "name"],
-        types: ["geocode"], // You can customize types, e.g., ['address'], ['(cities)']
+        types: ["geocode"], 
       });
       autocompleteRef.current = autocomplete;
 
@@ -92,7 +91,6 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
         if (place && place.formatted_address) {
           setValue(name, place.formatted_address, { shouldValidate: true, shouldDirty: true });
         } else if (inputRef.current) {
-          // Fallback to current input value if place is not complete, though usually not recommended
           setValue(name, inputRef.current.value, { shouldValidate: true, shouldDirty: true });
         }
       });
@@ -102,10 +100,8 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
       console.error(`[KamperHub Autocomplete ${name}] Error initializing Google Places Autocomplete:`, error);
     }
     
-    // Cleanup function
-    const currentInputRef = inputRef.current; // Capture for cleanup
+    const currentInputRef = inputRef.current; 
     const onKeyDown = (event: KeyboardEvent) => {
-      // Prevent form submission if user presses Enter while an autocomplete suggestion is active
       const pacContainer = document.querySelector('.pac-container');
       if (event.key === 'Enter' && pacContainer && getComputedStyle(pacContainer).display !== 'none') {
         event.preventDefault();
@@ -121,15 +117,13 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
       if (currentInputRef) {
         currentInputRef.removeEventListener('keydown', onKeyDown);
       }
-      // The Autocomplete instance is automatically cleaned up by Google Maps API when the input is removed from DOM.
-      // However, explicitly clearing listeners is good practice if re-initializing on the same input.
        if (autocompleteRef.current && typeof window.google !== 'undefined' && window.google.maps && window.google.maps.event) {
          console.log(`[KamperHub Autocomplete ${name}] Clearing instance listeners on cleanup.`);
          window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
        }
-       autocompleteRef.current = null; // Reset ref on cleanup
+       autocompleteRef.current = null; 
     };
-  }, [isGoogleApiReady, name, setValue]); // inputRef is stable, no need to add as dependency
+  }, [isGoogleApiReady, name, setValue]); 
 
   return (
     <div>
@@ -143,15 +137,15 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
           <Input
             id={name}
             ref={(el) => {
-              field.ref(el); // For react-hook-form
-              inputRef.current = el; // For Google Autocomplete
+              field.ref(el); 
+              inputRef.current = el; 
             }}
-            onChange={(e) => field.onChange(e.target.value)} // Let react-hook-form handle changes
+            onChange={(e) => field.onChange(e.target.value)} 
             onBlur={field.onBlur}
-            value={field.value || ''} // Ensure it's always controlled
+            value={field.value || ''} 
             placeholder={placeholder}
             className="font-body"
-            autoComplete="off" // Important to prevent browser's own autocomplete conflicting
+            autoComplete="off" 
           />
         )}
       />
@@ -182,7 +176,6 @@ export function TripPlannerClient() {
   const [error, setError] = useState<string | null>(null);
   
   const map = useMap(); 
-  // isGoogleApiReady now checks for places specifically as that's what autocomplete needs
   const isGoogleApiReady = !!map && typeof window.google !== 'undefined' && !!window.google.maps?.places && !!window.google.maps?.DirectionsService;
 
   useEffect(() => {
@@ -218,7 +211,7 @@ export function TripPlannerClient() {
       console.error("[KamperHub TripPlannerClient] DirectionsService not available for onSubmit.");
       return;
     }
-
+    console.log("[KamperHub TripPlannerClient] Attempting to calculate route using DirectionsService for:", data);
     setIsLoading(true);
     setError(null);
     setRouteDetails(null);
