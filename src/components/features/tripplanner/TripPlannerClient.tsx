@@ -45,55 +45,91 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
-    if (!isGoogleApiReady || !inputRef.current || autocompleteRef.current) {
+    console.log(`[KamperHub Autocomplete ${name}] useEffect triggered. isGoogleApiReady: ${isGoogleApiReady}, inputRef.current: ${!!inputRef.current}`);
+
+    if (!isGoogleApiReady || !inputRef.current) {
+      if (!isGoogleApiReady) console.log(`[KamperHub Autocomplete ${name}] Google API not ready yet.`);
+      if (!inputRef.current) console.log(`[KamperHub Autocomplete ${name}] Input ref not available yet.`);
       return;
     }
     
-    if (typeof window.google === 'undefined' || !window.google.maps || !window.google.maps.places) {
-        return;
-    }
-
-    if (typeof window.google.maps.places.Autocomplete === 'undefined') {
-        console.error('[KamperHub] Google Places Autocomplete service constructor is not available. Ensure "Places API" is enabled and the library (places) is loaded correctly.');
-        return;
-    }
-
-    const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
-      fields: ["formatted_address", "geometry", "name"],
-      types: ["geocode"],
-    });
-    autocompleteRef.current = autocomplete;
-
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace();
-      if (place && place.formatted_address) {
-        setValue(name, place.formatted_address, { shouldValidate: true, shouldDirty: true });
-      } else if (inputRef.current) {
-        setValue(name, inputRef.current.value, { shouldValidate: true, shouldDirty: true });
+    console.log('[KamperHub Autocomplete] Checking Google Maps API objects:');
+    console.log('  window.google:', typeof window.google);
+    if (typeof window.google !== 'undefined') {
+      console.log('  window.google.maps:', typeof window.google.maps);
+      if (typeof window.google.maps !== 'undefined') {
+        console.log('  window.google.maps.places:', typeof window.google.maps.places);
+        if (typeof window.google.maps.places !== 'undefined') {
+          console.log('  window.google.maps.places.Autocomplete:', typeof window.google.maps.places.Autocomplete);
+        }
       }
-    });
+    }
+
+    if (typeof window.google === 'undefined' || !window.google.maps || !window.google.maps.places || typeof window.google.maps.places.Autocomplete === 'undefined') {
+        console.error('[KamperHub Autocomplete] Google Places Autocomplete service constructor is not available. Ensure "Places API" is enabled and the library (places) is loaded correctly via APIProvider.');
+        return;
+    }
+
+    if (autocompleteRef.current) {
+      console.log(`[KamperHub Autocomplete ${name}] Autocomplete instance already exists. Clearing listeners.`);
+      // Clear previous listeners if any, before re-initializing.
+       if (typeof window.google.maps.event !== 'undefined' && autocompleteRef.current) {
+           window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+       }
+    }
+
+    try {
+      console.log(`[KamperHub Autocomplete ${name}] Initializing Google Places Autocomplete.`);
+      const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
+        fields: ["formatted_address", "geometry", "name"],
+        types: ["geocode"], // You can customize types, e.g., ['address'], ['(cities)']
+      });
+      autocompleteRef.current = autocomplete;
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        console.log(`[KamperHub Autocomplete ${name}] Place changed:`, place);
+        if (place && place.formatted_address) {
+          setValue(name, place.formatted_address, { shouldValidate: true, shouldDirty: true });
+        } else if (inputRef.current) {
+          // Fallback to current input value if place is not complete, though usually not recommended
+          setValue(name, inputRef.current.value, { shouldValidate: true, shouldDirty: true });
+        }
+      });
+      console.log(`[KamperHub Autocomplete ${name}] Autocomplete initialized and listener added.`);
+
+    } catch (error) {
+      console.error(`[KamperHub Autocomplete ${name}] Error initializing Google Places Autocomplete:`, error);
+    }
     
+    // Cleanup function
+    const currentInputRef = inputRef.current; // Capture for cleanup
     const onKeyDown = (event: KeyboardEvent) => {
-        const pacContainer = document.querySelector('.pac-container');
-        if (event.key === 'Enter' && pacContainer && getComputedStyle(pacContainer).display !== 'none') {
-          event.preventDefault();
-        }
-      };
-  
-      const currentInputRef = inputRef.current;
-      if (currentInputRef) {
-        currentInputRef.addEventListener('keydown', onKeyDown);
+      // Prevent form submission if user presses Enter while an autocomplete suggestion is active
+      const pacContainer = document.querySelector('.pac-container');
+      if (event.key === 'Enter' && pacContainer && getComputedStyle(pacContainer).display !== 'none') {
+        event.preventDefault();
       }
-  
-      return () => {
-        if (currentInputRef) {
-          currentInputRef.removeEventListener('keydown', onKeyDown);
-        }
-        if (autocompleteRef.current && typeof window.google !== 'undefined' && window.google.maps && window.google.maps.event) {
-          window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
-        }
-      };
-  }, [isGoogleApiReady, name, setValue]);
+    };
+
+    if (currentInputRef) {
+      currentInputRef.addEventListener('keydown', onKeyDown);
+    }
+
+    return () => {
+      console.log(`[KamperHub Autocomplete ${name}] Cleanup effect.`);
+      if (currentInputRef) {
+        currentInputRef.removeEventListener('keydown', onKeyDown);
+      }
+      // The Autocomplete instance is automatically cleaned up by Google Maps API when the input is removed from DOM.
+      // However, explicitly clearing listeners is good practice if re-initializing on the same input.
+       if (autocompleteRef.current && typeof window.google !== 'undefined' && window.google.maps && window.google.maps.event) {
+         console.log(`[KamperHub Autocomplete ${name}] Clearing instance listeners on cleanup.`);
+         window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+       }
+       autocompleteRef.current = null; // Reset ref on cleanup
+    };
+  }, [isGoogleApiReady, name, setValue]); // inputRef is stable, no need to add as dependency
 
   return (
     <div>
@@ -107,15 +143,15 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
           <Input
             id={name}
             ref={(el) => {
-              field.ref(el);
-              inputRef.current = el;
+              field.ref(el); // For react-hook-form
+              inputRef.current = el; // For Google Autocomplete
             }}
-            onChange={(e) => field.onChange(e.target.value)}
+            onChange={(e) => field.onChange(e.target.value)} // Let react-hook-form handle changes
             onBlur={field.onBlur}
-            value={field.value || ''}
+            value={field.value || ''} // Ensure it's always controlled
             placeholder={placeholder}
             className="font-body"
-            autoComplete="off" 
+            autoComplete="off" // Important to prevent browser's own autocomplete conflicting
           />
         )}
       />
@@ -146,7 +182,12 @@ export function TripPlannerClient() {
   const [error, setError] = useState<string | null>(null);
   
   const map = useMap(); 
-  const isGoogleApiReady = !!map && typeof window.google !== 'undefined' && !!window.google.maps?.places;
+  // isGoogleApiReady now checks for places specifically as that's what autocomplete needs
+  const isGoogleApiReady = !!map && typeof window.google !== 'undefined' && !!window.google.maps?.places && !!window.google.maps?.DirectionsService;
+
+  useEffect(() => {
+    console.log(`[KamperHub TripPlannerClient] isGoogleApiReady status: ${isGoogleApiReady}`);
+  }, [isGoogleApiReady]);
 
 
   useEffect(() => {
@@ -173,7 +214,8 @@ export function TripPlannerClient() {
 
   const onSubmit: SubmitHandler<TripPlannerFormValues> = async (data) => {
     if (!map || typeof window.google === 'undefined' || !window.google.maps || !window.google.maps.DirectionsService) {
-      setError("Map service is not fully available. Please try again shortly.");
+      setError("Map service is not fully available for routing. Please try again shortly.");
+      console.error("[KamperHub TripPlannerClient] DirectionsService not available for onSubmit.");
       return;
     }
 
@@ -223,10 +265,10 @@ export function TripPlannerClient() {
         setError("No routes found. Please check your locations.");
       }
     } catch (e: any) {
-      console.error("Directions request failed:", e);
-      if (e.code === google.maps.DirectionsStatus.ZERO_RESULTS) {
+      console.error("[KamperHub TripPlannerClient] Directions request failed:", e);
+      if (e.code && typeof google !== 'undefined' && google.maps && google.maps.DirectionsStatus && e.code === google.maps.DirectionsStatus.ZERO_RESULTS) {
         setError("No routes found for the specified locations. Please try different addresses.");
-      } else if (e.code === google.maps.DirectionsStatus.NOT_FOUND) {
+      } else if (e.code && typeof google !== 'undefined' && google.maps && google.maps.DirectionsStatus && e.code === google.maps.DirectionsStatus.NOT_FOUND) {
         setError("One or both locations could not be geocoded. Please check the addresses.");
       } else {
         setError(`Error calculating route: ${e.message || 'Unknown error'}`);
@@ -289,12 +331,12 @@ export function TripPlannerClient() {
               />
               {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
             </div>
-            <Button type="submit" disabled={isLoading || !map} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body">
+            <Button type="submit" disabled={isLoading || !isGoogleApiReady} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLoading ? 'Calculating...' : 'Plan Trip'}
             </Button>
             {!map && <p className="text-sm text-muted-foreground text-center font-body mt-2">Map services loading...</p>}
-            {!isGoogleApiReady && map && <p className="text-sm text-muted-foreground text-center font-body mt-2">Places API services loading...</p>}
+            {map && !isGoogleApiReady && <p className="text-sm text-muted-foreground text-center font-body mt-2">Places/Directions API services loading...</p>}
           </form>
         </CardContent>
       </Card>
@@ -386,4 +428,3 @@ export function TripPlannerClient() {
     </div>
   );
 }
-
