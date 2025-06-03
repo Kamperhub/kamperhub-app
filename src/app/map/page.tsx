@@ -1,11 +1,12 @@
+
 import { GoogleMapsPlaceholder } from '@/components/features/map/GoogleMapsPlaceholder';
 // When API key is available, you would use:
-// import { MapView } from '@/components/features/map/MapView';
-// import { APIProvider } from '@vis.gl/react-google-maps';
+import { MapView } from '@/components/features/map/MapView';
+import { APIProvider } from '@vis.gl/react-google-maps';
 
 
 export default function MapPage() {
-  // const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   return (
     <div className="space-y-8">
@@ -16,17 +17,13 @@ export default function MapPage() {
         </p>
       </div>
       
-      {/* 
-        Once API Key is set up, replace GoogleMapsPlaceholder with:
-        {apiKey ? (
-          <APIProvider apiKey={apiKey}>
-            <MapView />
-          </APIProvider>
-        ) : (
-          <GoogleMapsPlaceholder />
-        )}
-      */}
-      <GoogleMapsPlaceholder />
+      {apiKey ? (
+        <APIProvider apiKey={apiKey}>
+          <MapView />
+        </APIProvider>
+      ) : (
+        <GoogleMapsPlaceholder />
+      )}
 
     </div>
   );
