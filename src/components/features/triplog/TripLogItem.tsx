@@ -4,17 +4,17 @@
 import type { LoggedTrip } from '@/types/tripplanner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, Repeat, Route, Fuel, CalendarDays as CalendarIconLucide } from 'lucide-react'; // Renamed to avoid conflict
+import { Trash2, Repeat, Route, Fuel, CalendarDays as CalendarIconLucide, CalendarPlus } from 'lucide-react'; // Renamed to avoid conflict
 import { format, parseISO } from 'date-fns';
 
 interface TripLogItemProps {
   trip: LoggedTrip;
   onDelete: (id: string) => void;
   onRecall: (trip: LoggedTrip) => void;
-  // onAddToCalendar: (trip: LoggedTrip) => void; // To be added in next phase
+  onAddToCalendar: (trip: LoggedTrip) => void;
 }
 
-export function TripLogItem({ trip, onDelete, onRecall }: TripLogItemProps) {
+export function TripLogItem({ trip, onDelete, onRecall, onAddToCalendar }: TripLogItemProps) {
   const renderDateRange = () => {
     if (trip.plannedStartDate && trip.plannedEndDate) {
       const startDate = format(parseISO(trip.plannedStartDate), "PP");
@@ -67,9 +67,9 @@ export function TripLogItem({ trip, onDelete, onRecall }: TripLogItemProps) {
         </div>
       </CardContent>
       <CardFooter className="flex justify-end gap-2 border-t pt-4">
-        {/* <Button variant="ghost" size="sm" onClick={() => onAddToCalendar(trip)} className="font-body text-primary">
+        <Button variant="ghost" size="sm" onClick={() => onAddToCalendar(trip)} className="font-body text-primary" disabled={!trip.plannedStartDate}>
           <CalendarPlus className="mr-2 h-4 w-4" /> Calendar
-        </Button> */}
+        </Button>
         <Button variant="outline" size="sm" onClick={() => onRecall(trip)} className="font-body">
           <Repeat className="mr-2 h-4 w-4" /> Recall
         </Button>

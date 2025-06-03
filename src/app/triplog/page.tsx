@@ -6,10 +6,10 @@ import { useRouter } from 'next/navigation';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { TRIP_LOG_STORAGE_KEY, RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import { TripLogItem } from '@/components/features/triplog/TripLogItem';
-// import { Button } from '@/components/ui/button'; // No longer needed for clear all
 import { useToast } from '@/hooks/use-toast';
 import { AlertTriangle, History } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { format, parseISO, addDays } from 'date-fns';
 
 export default function TripLogPage() {
   const [loggedTrips, setLoggedTrips] = useState<LoggedTrip[]>([]);
@@ -69,6 +69,46 @@ export default function TripLogPage() {
     }
   }, [router, toast, isLocalStorageReady]);
 
+  const handleAddToCalendar = useCallback((trip: LoggedTrip) => {
+    if (!trip.plannedStartDate) {
+      toast({
+        title: "Cannot Add to Calendar",
+        description: "This trip does not have a planned start date.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const title = encodeURIComponent(trip.name);
+    const details = encodeURIComponent(`Trip from ${trip.startLocationDisplay} to ${trip.endLocationDisplay}.\nDistance: ${trip.routeDetails.distance}, Duration: ${trip.routeDetails.duration}.`);
+    const location = encodeURIComponent(trip.endLocationDisplay);
+
+    // Format dates for Google Calendar URL (YYYYMMDD/YYYYMMDD)
+    // For all-day events, the end date in the URL should be the day *after* the actual end date.
+    const startDateFormatted = format(parseISO(trip.plannedStartDate), "yyyyMMdd");
+    let endDateFormatted: string;
+
+    if (trip.plannedEndDate) {
+      // If there's an end date, the event spans from start date to end date (inclusive).
+      // Google Calendar needs the day *after* the end date for an inclusive all-day range.
+      const actualEndDate = parseISO(trip.plannedEndDate);
+      endDateFormatted = format(addDays(actualEndDate, 1), "yyyyMMdd");
+    } else {
+      // If no end date, it's a single all-day event on the start date.
+      // Google Calendar needs the day *after* the start date for a single all-day event.
+      endDateFormatted = format(addDays(parseISO(trip.plannedStartDate), 1), "yyyyMMdd");
+    }
+    
+    const dates = `${startDateFormatted}/${endDateFormatted}`;
+    
+    const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}`;
+    
+    window.open(calendarUrl, '_blank');
+    toast({ title: "Opening Google Calendar", description: "Check the new tab to add the event."});
+
+  }, [toast]);
+
+
   if (!isLocalStorageReady) {
     return (
       <div className="space-y-8">
@@ -87,7 +127,7 @@ export default function TripLogPage() {
           <History className="mr-3 h-8 w-8" /> Trip Log
         </h1>
         <p className="text-muted-foreground font-body mb-6">
-          Review your saved trips. You can recall them to the Trip Planner or delete them.
+          Review your saved trips. You can recall them to the Trip Planner, add them to your calendar, or delete them.
         </p>
         <Alert variant="default" className="mb-6 bg-primary/10 border-primary/30">
           <AlertTriangle className="h-4 w-4 text-primary" />
@@ -110,6 +150,7 @@ export default function TripLogPage() {
               trip={trip}
               onDelete={handleDeleteTrip}
               onRecall={handleRecallTrip}
+              onAddToCalendar={handleAddToCalendar}
             />
           ))}
         </div>
