@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,7 +34,7 @@ export default function DashboardPage() {
                   </p>
                   <div className="mt-4">
                     <Image 
-                      src={`https://placehold.co/600x400.png?bg=386641&fc=faf8f1`}
+                      src="https://placehold.co/600x400.png"
                       alt={`${feature.label} placeholder image`}
                       width={600}
                       height={400}
