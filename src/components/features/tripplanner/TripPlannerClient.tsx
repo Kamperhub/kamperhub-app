@@ -95,7 +95,6 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
         if (place && place.formatted_address) {
           setValue(name, place.formatted_address, { shouldValidate: true, shouldDirty: true });
         } else if (inputRef.current) {
-           // Fallback to input value if place is not well-formed, e.g. user just types and hits enter
           setValue(name, inputRef.current.value, { shouldValidate: true, shouldDirty: true });
         }
       });
@@ -107,7 +106,7 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
     const onKeyDown = (event: KeyboardEvent) => {
       const pacContainer = document.querySelector('.pac-container');
       if (event.key === 'Enter' && pacContainer && getComputedStyle(pacContainer).display !== 'none') {
-        event.preventDefault(); // Prevent form submission if user presses Enter while selecting from dropdown
+        event.preventDefault(); 
       }
     };
 
@@ -119,7 +118,6 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
       if (currentInputRef) {
         currentInputRef.removeEventListener('keydown', onKeyDown);
       }
-       // Clean up Autocomplete instance and listeners
        if (autocompleteRef.current && typeof window.google !== 'undefined' && window.google.maps && window.google.maps.event) {
          window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
        }
@@ -259,9 +257,8 @@ export function TripPlannerClient() {
           });
           setRouteDetails(recalledTrip.routeDetails);
           setFuelEstimate(recalledTrip.fuelEstimate);
-          if(recalledTrip.routeDetails.startLocation && recalledTrip.routeDetails.endLocation) {
-            // Future: if DirectionsResult was stored, could setDirectionsResponse here.
-          }
+          // Future: if DirectionsResult was stored, could setDirectionsResponse here for immediate polyline.
+          // For now, user would need to replan to see polyline.
 
           localStorage.removeItem(RECALLED_TRIP_DATA_KEY);
           toast({ title: "Trip Recalled", description: `"${recalledTrip.name}" loaded into planner.` });
@@ -272,12 +269,13 @@ export function TripPlannerClient() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reset, toast]);
+  }, [reset, toast]); // setValue / getValues are stable, map is not part of recalled data directly
 
 
   useEffect(() => {
     if (!map) return;
   
+    // Clear existing polyline
     if (polylineRef.current) {
       polylineRef.current.setMap(null);
       polylineRef.current = null;
@@ -289,35 +287,38 @@ export function TripPlannerClient() {
       if (route.overview_path && route.overview_path.length > 0 && window.google && window.google.maps) {
         const newPolyline = new window.google.maps.Polyline({
           path: route.overview_path,
-          strokeColor: 'hsl(var(--primary))',
+          strokeColor: 'hsl(var(--primary))', // Using theme color
           strokeOpacity: 0.8,
           strokeWeight: 6,
         });
         newPolyline.setMap(map);
-        polylineRef.current = newPolyline;
+        polylineRef.current = newPolyline; // Store reference to the new polyline
       }
   
+      // Fit map to route bounds
       if (route.bounds) {
         map.fitBounds(route.bounds);
+        // Adjust zoom if it's too close for a long route, or too far for a short one
         const currentZoom = map.getZoom();
-        if (currentZoom && route.legs.reduce((acc, leg) => acc + (leg.distance?.value || 0), 0) > 50000 && currentZoom > 12) {
-          map.setZoom(12);
+        if (currentZoom && route.legs.reduce((acc, leg) => acc + (leg.distance?.value || 0), 0) > 50000 && currentZoom > 12) { // Over 50km
+          map.setZoom(12); 
         } else if (currentZoom && currentZoom > 15) {
           map.setZoom(15);
         }
       }
     } else if (routeDetails?.startLocation && routeDetails.endLocation && window.google && window.google.maps) {
+      // If no directionsResponse (e.g., recalled trip without full route object), fit to start/end markers
       const bounds = new window.google.maps.LatLngBounds();
       if(routeDetails.startLocation) bounds.extend(routeDetails.startLocation);
       if(routeDetails.endLocation) bounds.extend(routeDetails.endLocation);
       map.fitBounds(bounds);
       const currentZoom = map.getZoom();
-      if (currentZoom && currentZoom > 15) {
-         map.setZoom(15);
-      } else if (currentZoom && currentZoom < 3) {
+       if (currentZoom && currentZoom > 15) {
+         map.setZoom(15); // Don't zoom in too far
+      } else if (currentZoom && currentZoom < 3 ) { // Avoid zooming out too much
          map.setZoom(3);
       } else if (currentZoom) {
-         map.setZoom(Math.max(2, currentZoom -1));
+         map.setZoom(Math.max(2, currentZoom -1)); // Zoom out slightly from tight bounds
       }
 
     } else if (routeDetails?.startLocation) {
@@ -328,12 +329,13 @@ export function TripPlannerClient() {
         map.setZoom(12);
     }
   
+    // Cleanup function to remove polyline when component unmounts or dependencies change
     return () => {
       if (polylineRef.current) {
         polylineRef.current.setMap(null);
       }
     };
-  }, [map, directionsResponse, routeDetails]);
+  }, [map, directionsResponse, routeDetails]); // Rerun when map, directionsResponse, or basic routeDetails change
 
 
   const onSubmit: SubmitHandler<TripPlannerFormValues> = async (data) => {
@@ -348,10 +350,10 @@ export function TripPlannerClient() {
     setError(null);
     setRouteDetails(null);
     setFuelEstimate(null);
-    setDirectionsResponse(null);
+    setDirectionsResponse(null); // Clear previous full response
+    console.log("[KamperHub TripPlannerClient] Attempting to call DirectionsService.route..."); // Legacy API check log
 
     const directionsService = new window.google.maps.DirectionsService();
-    console.log("[KamperHub TripPlannerClient] Attempting to call DirectionsService.route...");
 
     try {
       const results = await directionsService.route({
@@ -372,11 +374,11 @@ export function TripPlannerClient() {
             distanceValue: distanceValue,
             startAddress: leg.start_address,
             endAddress: leg.end_address,
-            startLocation: leg.start_location?.toJSON(),
-            endLocation: leg.end_location?.toJSON()
+            startLocation: leg.start_location?.toJSON(), // Store as LatLngLiteral
+            endLocation: leg.end_location?.toJSON() // Store as LatLngLiteral
           };
           setRouteDetails(currentRouteDetails);
-          setDirectionsResponse(results);
+          setDirectionsResponse(results); // Store the full response for polyline and bounds
           
           if (distanceValue > 0 && data.fuelEfficiency > 0) {
             const distanceKm = distanceValue / 1000;
@@ -397,12 +399,16 @@ export function TripPlannerClient() {
       }
     } catch (e: any) {
       console.error("[KamperHub TripPlannerClient] Directions request failed:", e);
+      // Check for specific Google Maps API error codes if possible
       const mapsStatus = typeof google !== 'undefined' && google.maps && google.maps.DirectionsStatus;
       if (mapsStatus && e.code === mapsStatus.ZERO_RESULTS) {
         setError("No routes found for the specified locations. Please try different addresses.");
       } else if (mapsStatus && e.code === mapsStatus.NOT_FOUND) {
         setError("One or both locations could not be geocoded. Please check the addresses.");
-      } else {
+      } else if (e.message && e.message.includes("Legacy API")) { // Check for legacy API error text
+        setError("Error: You’re calling a legacy API, which is not enabled for your project. Please enable Places API (New) or Routes API in your Google Cloud Console.");
+      }
+      else {
         setError(`Error calculating route: ${e.message || 'Unknown error'}`);
       }
     } finally {
@@ -439,7 +445,7 @@ export function TripPlannerClient() {
       endLocationDisplay: currentFormData.endLocation,
       fuelEfficiency: currentFormData.fuelEfficiency,
       fuelPrice: currentFormData.fuelPrice,
-      routeDetails: routeDetails,
+      routeDetails: routeDetails, // This includes LatLngLiteral for start/end
       fuelEstimate: fuelEstimate,
       plannedStartDate: currentFormData.plannedStartDate ? currentFormData.plannedStartDate.toISOString() : null,
       plannedEndDate: currentFormData.plannedEndDate ? currentFormData.plannedEndDate.toISOString() : null,
@@ -459,8 +465,9 @@ export function TripPlannerClient() {
   };
 
   const mapHeight = "400px";
-  const defaultMapCenter = { lat: -33.8688, lng: 151.2093 };
+  const defaultMapCenter = { lat: -33.8688, lng: 151.2093 }; // Sydney
   const defaultMapZoom = 6;
+
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -545,7 +552,7 @@ export function TripPlannerClient() {
                   defaultZoom={defaultMapZoom}
                   gestureHandling={'greedy'}
                   disableDefaultUI={true}
-                  mapId={'DEMO_MAP_ID'}
+                  mapId={'DEMO_MAP_ID'} // Ensure you have a Map ID or remove this prop for default map
                   className="h-full w-full"
                 >
                   {routeDetails?.startLocation && (
@@ -566,8 +573,9 @@ export function TripPlannerClient() {
                       />
                     </AdvancedMarker>
                   )}
+                  {/* Polyline is now drawn via useEffect and native Google Maps API */}
                 </Map>
-                {!map && (
+                {!map && ( // Show loader if map instance isn't ready
                     <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm rounded-b-lg">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         <p className="ml-2 font-body">Initializing Map...</p>
@@ -584,7 +592,7 @@ export function TripPlannerClient() {
           </Alert>
         )}
 
-        {isLoading && !routeDetails && (
+        {isLoading && !routeDetails && ( // Show skeleton when loading and no details yet
           <Card>
             <CardHeader>
               <CardTitle className="font-headline">Trip Summary</CardTitle>
@@ -601,7 +609,16 @@ export function TripPlannerClient() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="font-headline flex items-center"><Fuel className="mr-2 h-6 w-6 text-primary" /> Trip Summary</CardTitle>
-              <Button onClick={handleSaveTrip} variant="outline" size="sm" className="font-body">
+              <Button 
+                onClick={() => {
+                  console.log('[KamperHub Button Click Test] Save Trip button clicked directly inline.');
+                  // If the above log appears, then we can be more confident handleSaveTrip will be called.
+                  handleSaveTrip(); 
+                }}
+                variant="outline" 
+                size="sm" 
+                className="font-body"
+              >
                 <Save className="mr-2 h-4 w-4" /> Save Trip
               </Button>
             </CardHeader>
