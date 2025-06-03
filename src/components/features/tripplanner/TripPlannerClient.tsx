@@ -35,36 +35,35 @@ export function TripPlannerClient() {
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [fuelEstimate, setFuelEstimate] = useState<FuelEstimate | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [mapReady, setMapReady] = useState(false);
+  const [mapServicesReady, setMapServicesReady] = useState(false); // Renamed for clarity
   const [mapCenter, setMapCenter] = useState<google.maps.LatLngLiteral>({ lat: -33.8688, lng: 151.2093 }); // Default to Sydney
   const [mapZoom, setMapZoom] = useState<number>(6);
 
-  const map = useMap();
+  const map = useMap(); // Get map instance
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && typeof window.google !== 'undefined') {
-      setMapReady(true);
+    // Check if Google Maps API is loaded
+    if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.DirectionsService) {
+      setMapServicesReady(true);
     }
   }, []);
 
   useEffect(() => {
-    if (routeDetails?.startLocation && routeDetails?.endLocation && map) {
+    if (map && routeDetails?.startLocation && routeDetails.endLocation) {
       const bounds = new window.google.maps.LatLngBounds();
       bounds.extend(routeDetails.startLocation);
       bounds.extend(routeDetails.endLocation);
       map.fitBounds(bounds);
-      // Adjust zoom if points are too close
       const currentZoom = map.getZoom();
       if (currentZoom && currentZoom > 15) {
         map.setZoom(15);
       } else if (currentZoom) {
-        map.setZoom(Math.max(2, currentZoom -1)); // Zoom out slightly to ensure visibility
+         map.setZoom(Math.max(2, currentZoom -1)); 
       }
-
-    } else if (routeDetails?.startLocation && map) {
+    } else if (map && routeDetails?.startLocation) {
         map.setCenter(routeDetails.startLocation);
         map.setZoom(12);
-    } else if (routeDetails?.endLocation && map) {
+    } else if (map && routeDetails?.endLocation) {
         map.setCenter(routeDetails.endLocation);
         map.setZoom(12);
     }
@@ -72,8 +71,8 @@ export function TripPlannerClient() {
 
 
   const onSubmit: SubmitHandler<TripPlannerFormValues> = async (data) => {
-    if (!mapReady || !window.google || !window.google.maps || !window.google.maps.DirectionsService) {
-      setError("Map service is not available. Please try again shortly.");
+    if (!mapServicesReady || !map) { // Also check if map instance is available
+      setError("Map service is not fully available. Please try again shortly.");
       return;
     }
 
@@ -107,7 +106,6 @@ export function TripPlannerClient() {
           };
           setRouteDetails(currentRouteDetails);
           
-          // Calculate fuel
           if (distanceValue > 0 && data.fuelEfficiency > 0) {
             const distanceKm = distanceValue / 1000;
             const fuelNeededLitres = (distanceKm / 100) * data.fuelEfficiency;
@@ -168,11 +166,11 @@ export function TripPlannerClient() {
               <Input id="fuelPrice" type="number" step="0.01" {...register("fuelPrice")} className="font-body" />
               {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
             </div>
-            <Button type="submit" disabled={isLoading || !mapReady} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body">
+            <Button type="submit" disabled={isLoading || !mapServicesReady || !map} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLoading ? 'Calculating...' : 'Plan Trip'}
             </Button>
-            {!mapReady && <p className="text-sm text-muted-foreground text-center font-body mt-2">Map services loading...</p>}
+            {(!mapServicesReady || !map) && <p className="text-sm text-muted-foreground text-center font-body mt-2">Map services loading...</p>}
           </form>
         </CardContent>
       </Card>
@@ -183,14 +181,15 @@ export function TripPlannerClient() {
             <CardTitle className="font-headline flex items-center"><MapPin className="mr-2 h-6 w-6 text-primary" /> Route Map</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {mapReady ? (
+            {mapServicesReady && map ? (
               <div style={{ height: mapHeight }} className="bg-muted rounded-b-lg overflow-hidden">
                 <Map
+                  map={map} // Pass the map instance
                   defaultCenter={mapCenter}
                   defaultZoom={mapZoom}
                   gestureHandling={'greedy'}
                   disableDefaultUI={true}
-                  mapId={'DEMO_MAP_ID'} // Required for AdvancedMarker
+                  mapId={'DEMO_MAP_ID'}
                   className="h-full w-full"
                 >
                   {routeDetails?.startLocation && (
