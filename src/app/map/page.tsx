@@ -1,3 +1,4 @@
+"use client";
 
 import { GoogleMapsPlaceholder } from '@/components/features/map/GoogleMapsPlaceholder';
 // When API key is available, you would use:
