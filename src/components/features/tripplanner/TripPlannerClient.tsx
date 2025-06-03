@@ -10,8 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps'; // Removed useAutocomplete
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
 import { Loader2, RouteIcon, Fuel, MapPin } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -22,12 +22,12 @@ const tripPlannerSchema = z.object({
   fuelPrice: z.coerce.number().positive("Fuel price must be a positive number (per liter)"),
 });
 
-// Removed AutocompleteInput component as useAutocomplete import is failing
-
 export function TripPlannerClient() {
   const { control, handleSubmit, formState: { errors }, setValue } = useForm<TripPlannerFormValues>({
     resolver: zodResolver(tripPlannerSchema),
     defaultValues: {
+      startLocation: '',
+      endLocation: '',
       fuelEfficiency: 10,
       fuelPrice: 1.80,
     }
