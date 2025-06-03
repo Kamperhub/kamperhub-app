@@ -1,0 +1,19 @@
+import type { LucideIcon } from 'lucide-react';
+import { Home, CarFront, Backpack, ListChecks, MapPin, BookOpen, MessageCircle } from 'lucide-react';
+
+export interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  keywords?: string; // For AI hint on placeholder images
+}
+
+export const navItems: NavItem[] = [
+  { href: '/', label: 'Dashboard', icon: Home, keywords: 'dashboard overview' },
+  { href: '/vehicles', label: 'Vehicles', icon: CarFront, keywords: 'caravan tow' },
+  { href: '/inventory', label: 'Inventory', icon: Backpack, keywords: 'camping gear' },
+  { href: '/checklists', label: 'Checklists', icon: ListChecks, keywords: 'travel list' },
+  { href: '/map', label: 'Map', icon: MapPin, keywords: 'road trip' },
+  { href: '/learn', label: 'Learn', icon: BookOpen, keywords: 'guide tutorial' },
+  { href: '/chatbot', label: 'Chatbot', icon: MessageCircle, keywords: 'support help' },
+];
