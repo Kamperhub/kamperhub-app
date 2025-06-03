@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
@@ -25,18 +24,17 @@ export function MapView() {
         }
       );
     }
-  }, []);
+  }, []); // Empty dependency array means this runs once on mount
 
   return (
     <Card className="shadow-xl">
       <CardContent className="p-0 h-[600px] w-full rounded-lg overflow-hidden">
         <Map
-          defaultCenter={center}
           center={center}
           defaultZoom={13}
           gestureHandling={'greedy'}
           disableDefaultUI={true}
-          mapId="kamperhub-map" // Optional: for cloud-based map styling
+          // mapId="kamperhub-map" // Removed as a troubleshooting step
           className="h-full w-full"
         >
           <AdvancedMarker position={center}>
