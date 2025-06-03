@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
+import { Map, AdvancedMarker, Pin, useMap, Polyline } from '@vis.gl/react-google-maps';
 import { Loader2, RouteIcon, Fuel, MapPin } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -174,6 +174,7 @@ export function TripPlannerClient() {
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [fuelEstimate, setFuelEstimate] = useState<FuelEstimate | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
   
   const map = useMap(); 
   const isGoogleApiReady = !!map && typeof window.google !== 'undefined' && !!window.google.maps?.places && !!window.google.maps?.DirectionsService;
@@ -184,7 +185,21 @@ export function TripPlannerClient() {
 
 
   useEffect(() => {
-    if (map && routeDetails?.startLocation && routeDetails.endLocation && typeof window.google !== 'undefined' && window.google.maps) {
+    if (!map) return;
+
+    if (directionsResponse && directionsResponse.routes && directionsResponse.routes.length > 0) {
+        const route = directionsResponse.routes[0];
+        if (route.bounds) {
+            map.fitBounds(route.bounds);
+             const currentZoom = map.getZoom();
+             // Ensure zoom is not too close for long routes after fitting bounds
+             if (currentZoom && route.legs.reduce((acc, leg) => acc + (leg.distance?.value || 0), 0) > 50000 && currentZoom > 12) { // >50km
+                map.setZoom(12);
+             } else if (currentZoom && currentZoom > 15) {
+                map.setZoom(15);
+             }
+        }
+    } else if (routeDetails?.startLocation && routeDetails.endLocation && window.google && window.google.maps) {
       const bounds = new window.google.maps.LatLngBounds();
       bounds.extend(routeDetails.startLocation);
       bounds.extend(routeDetails.endLocation);
@@ -192,17 +207,19 @@ export function TripPlannerClient() {
       const currentZoom = map.getZoom();
       if (currentZoom && currentZoom > 15) {
         map.setZoom(15);
+      } else if (currentZoom && currentZoom < 3) { // Avoid too zoomed out for single points
+         map.setZoom(12); // A reasonable default if bounds are too tight
       } else if (currentZoom) {
          map.setZoom(Math.max(2, currentZoom -1)); 
       }
-    } else if (map && routeDetails?.startLocation) {
+    } else if (routeDetails?.startLocation) {
         map.setCenter(routeDetails.startLocation);
         map.setZoom(12);
-    } else if (map && routeDetails?.endLocation) {
+    } else if (routeDetails?.endLocation) {
         map.setCenter(routeDetails.endLocation);
         map.setZoom(12);
     }
-  }, [routeDetails, map]);
+  }, [map, routeDetails, directionsResponse]);
 
 
   const onSubmit: SubmitHandler<TripPlannerFormValues> = async (data) => {
@@ -211,11 +228,13 @@ export function TripPlannerClient() {
       console.error("[KamperHub TripPlannerClient] DirectionsService not available for onSubmit.");
       return;
     }
-    console.log("[KamperHub TripPlannerClient] Attempting to calculate route using DirectionsService for:", data);
+    
     setIsLoading(true);
     setError(null);
     setRouteDetails(null);
     setFuelEstimate(null);
+    setDirectionsResponse(null); 
+    console.log("[KamperHub TripPlannerClient] Attempting to calculate route using DirectionsService for:", data);
 
     const directionsService = new window.google.maps.DirectionsService();
 
@@ -241,6 +260,7 @@ export function TripPlannerClient() {
             endLocation: leg.end_location?.toJSON()
           };
           setRouteDetails(currentRouteDetails);
+          setDirectionsResponse(results);
           
           if (distanceValue > 0 && data.fuelEfficiency > 0) {
             const distanceKm = distanceValue / 1000;
@@ -352,20 +372,28 @@ export function TripPlannerClient() {
                   {routeDetails?.startLocation && (
                     <AdvancedMarker position={routeDetails.startLocation} title={`Start: ${routeDetails.startAddress || ''}`}>
                       <Pin
-                        background={'var(--accent)'}
-                        borderColor={'var(--accent)'}
-                        glyphColor={'white'}
+                        background={'hsl(var(--accent))'} 
+                        borderColor={'hsl(var(--accent))'}
+                        glyphColor={'hsl(var(--accent-foreground))'}
                       />
                     </AdvancedMarker>
                   )}
                   {routeDetails?.endLocation && (
                     <AdvancedMarker position={routeDetails.endLocation} title={`End: ${routeDetails.endAddress || ''}`}>
                       <Pin
-                        background={'var(--primary)'}
-                        borderColor={'var(--primary)'}
-                        glyphColor={'white'}
+                        background={'hsl(var(--primary))'}
+                        borderColor={'hsl(var(--primary))'}
+                        glyphColor={'hsl(var(--primary-foreground))'}
                       />
                     </AdvancedMarker>
+                  )}
+                  {directionsResponse && directionsResponse.routes && directionsResponse.routes.length > 0 && (
+                    <Polyline
+                        path={directionsResponse.routes[0].overview_path}
+                        strokeColor={'hsl(var(--primary))'}
+                        strokeOpacity={0.8}
+                        strokeWeight={6}
+                    />
                   )}
                 </Map>
                 {!map && (
@@ -421,3 +449,4 @@ export function TripPlannerClient() {
     </div>
   );
 }
+
