@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { MountainSnow } from 'lucide-react'; // Using MountainSnow as a placeholder logo icon
+import { MountainSnow, Home } from 'lucide-react'; // Added Home icon
+import { Button } from '@/components/ui/button'; // Added Button
 
 export function Header() {
   return (
@@ -9,7 +10,12 @@ export function Header() {
           <MountainSnow className="h-8 w-8 text-accent" />
           <h1 className="text-3xl font-headline tracking-tight">KamperHub</h1>
         </Link>
-        {/* Placeholder for potential future elements like user profile or settings */}
+        
+        <Link href="/" passHref>
+          <Button variant="ghost" size="icon" aria-label="Go to Homepage">
+            <Home className="h-6 w-6" />
+          </Button>
+        </Link>
       </div>
     </header>
   );
