@@ -1,3 +1,8 @@
+
+// This component is no longer used as the Trip Planner functionality
+// has been implemented in TripPlannerClient.tsx and tripplanner/page.tsx.
+// It can be safely deleted.
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Route, Construction } from 'lucide-react';
 
