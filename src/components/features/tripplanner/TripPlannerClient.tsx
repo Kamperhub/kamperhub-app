@@ -29,7 +29,7 @@ interface GooglePlacesAutocompleteInputProps {
   placeholder?: string;
   errors: FieldErrors<TripPlannerFormValues>;
   setValue: UseFormSetValue<TripPlannerFormValues>;
-  isGoogleApiReady: boolean; // New prop to signal API readiness
+  isGoogleApiReady: boolean;
 }
 
 const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps> = ({
@@ -39,19 +39,22 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
   placeholder,
   errors,
   setValue,
-  isGoogleApiReady, // Use the new prop
+  isGoogleApiReady,
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
-    // Guard against API not ready, input ref not set, or already initialized
     if (!isGoogleApiReady || !inputRef.current || autocompleteRef.current) {
       return;
     }
     
-    // Check again for window.google.maps.places as isGoogleApiReady is a proxy
     if (typeof window.google === 'undefined' || !window.google.maps || !window.google.maps.places) {
+        return;
+    }
+
+    if (typeof window.google.maps.places.Autocomplete === 'undefined') {
+        console.error('[KamperHub] Google Places Autocomplete service constructor is not available. Ensure "Places API" is enabled and the library (places) is loaded correctly.');
         return;
     }
 
@@ -90,7 +93,7 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
           window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
         }
       };
-  }, [isGoogleApiReady, name, setValue]); // Added isGoogleApiReady to dependencies
+  }, [isGoogleApiReady, name, setValue]);
 
   return (
     <div>
@@ -291,6 +294,7 @@ export function TripPlannerClient() {
               {isLoading ? 'Calculating...' : 'Plan Trip'}
             </Button>
             {!map && <p className="text-sm text-muted-foreground text-center font-body mt-2">Map services loading...</p>}
+            {!isGoogleApiReady && map && <p className="text-sm text-muted-foreground text-center font-body mt-2">Places API services loading...</p>}
           </form>
         </CardContent>
       </Card>
@@ -382,3 +386,4 @@ export function TripPlannerClient() {
     </div>
   );
 }
+
