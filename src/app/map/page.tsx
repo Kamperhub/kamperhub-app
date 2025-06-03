@@ -1,9 +1,10 @@
+
 "use client";
 
 import { GoogleMapsPlaceholder } from '@/components/features/map/GoogleMapsPlaceholder';
 // When API key is available, you would use:
 import { MapView } from '@/components/features/map/MapView';
-import { APIProvider } from '@vis.gl/react-google-maps';
+// APIProvider is now in AppShell
 
 
 export default function MapPage() {
@@ -19,9 +20,7 @@ export default function MapPage() {
       </div>
       
       {apiKey ? (
-        <APIProvider apiKey={apiKey}>
-          <MapView />
-        </APIProvider>
+        <MapView />
       ) : (
         <GoogleMapsPlaceholder />
       )}

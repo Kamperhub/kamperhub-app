@@ -2,7 +2,7 @@
 "use client"; 
 
 import { TripPlannerClient } from '@/components/features/tripplanner/TripPlannerClient';
-import { APIProvider } from '@vis.gl/react-google-maps';
+// APIProvider is now in AppShell
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from 'lucide-react';
 
@@ -19,9 +19,7 @@ export default function TripPlannerPage() {
       </div>
       
       {apiKey ? (
-        <APIProvider apiKey={apiKey} solutionChannel="GMP_visgl_rgm_reactfirebase_v1">
-          <TripPlannerClient />
-        </APIProvider>
+        <TripPlannerClient />
       ) : (
         <Alert variant="destructive" className="mt-6">
           <AlertTriangle className="h-4 w-4" />
