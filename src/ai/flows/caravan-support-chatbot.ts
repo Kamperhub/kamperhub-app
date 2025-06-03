@@ -18,7 +18,7 @@ export type CaravanSupportChatbotInput = z.infer<typeof CaravanSupportChatbotInp
 
 const CaravanSupportChatbotOutputSchema = z.object({
   answer: z.string().describe('The answer to the user question.'),
-  youtubeLink: z.string().optional().describe('An optional YouTube link that provides more information about the answer.'),
+  youtubeLink: z.string().optional().nullable().describe('An optional YouTube link that provides more information about the answer.'),
 });
 export type CaravanSupportChatbotOutput = z.infer<typeof CaravanSupportChatbotOutputSchema>;
 
@@ -68,3 +68,4 @@ const caravanSupportChatbotFlow = ai.defineFlow(
     return output!;
   }
 );
+
