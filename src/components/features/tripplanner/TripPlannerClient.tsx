@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { useForm, type SubmitHandler } from 'react-hook-form';
+import React, { useState, useEffect, useRef } from 'react';
+import { useForm, type SubmitHandler, Controller, type Control, type UseFormSetValue, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { TripPlannerFormValues, RouteDetails, FuelEstimate } from '@/types/tripplanner';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
+import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps'; // Removed useAutocomplete
 import { Loader2, RouteIcon, Fuel, MapPin } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -22,12 +22,14 @@ const tripPlannerSchema = z.object({
   fuelPrice: z.coerce.number().positive("Fuel price must be a positive number (per liter)"),
 });
 
+// Removed AutocompleteInput component as useAutocomplete import is failing
+
 export function TripPlannerClient() {
-  const { register, handleSubmit, formState: { errors } } = useForm<TripPlannerFormValues>({
+  const { control, handleSubmit, formState: { errors }, setValue } = useForm<TripPlannerFormValues>({
     resolver: zodResolver(tripPlannerSchema),
     defaultValues: {
-      fuelEfficiency: 10, // Default to 10 L/100km
-      fuelPrice: 1.80,   // Default to $1.80 per liter
+      fuelEfficiency: 10,
+      fuelPrice: 1.80,
     }
   });
 
@@ -35,14 +37,13 @@ export function TripPlannerClient() {
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [fuelEstimate, setFuelEstimate] = useState<FuelEstimate | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [mapServicesReady, setMapServicesReady] = useState(false); // Renamed for clarity
-  const [mapCenter, setMapCenter] = useState<google.maps.LatLngLiteral>({ lat: -33.8688, lng: 151.2093 }); // Default to Sydney
+  const [mapServicesReady, setMapServicesReady] = useState(false);
+  const [mapCenter, setMapCenter] = useState<google.maps.LatLngLiteral>({ lat: -33.8688, lng: 151.2093 });
   const [mapZoom, setMapZoom] = useState<number>(6);
 
-  const map = useMap(); // Get map instance
+  const map = useMap();
 
   useEffect(() => {
-    // Check if Google Maps API is loaded
     if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.DirectionsService) {
       setMapServicesReady(true);
     }
@@ -71,7 +72,7 @@ export function TripPlannerClient() {
 
 
   const onSubmit: SubmitHandler<TripPlannerFormValues> = async (data) => {
-    if (!mapServicesReady || !map) { // Also check if map instance is available
+    if (!mapServicesReady || !map) {
       setError("Map service is not fully available. Please try again shortly.");
       return;
     }
@@ -94,7 +95,7 @@ export function TripPlannerClient() {
         const route = results.routes[0];
         if (route.legs && route.legs.length > 0) {
           const leg = route.legs[0];
-          const distanceValue = leg.distance?.value || 0; // in meters
+          const distanceValue = leg.distance?.value || 0;
           const currentRouteDetails: RouteDetails = {
             distance: leg.distance?.text || 'N/A',
             duration: leg.duration?.text || 'N/A',
@@ -148,22 +149,58 @@ export function TripPlannerClient() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
               <Label htmlFor="startLocation" className="font-body">Start Location</Label>
-              <Input id="startLocation" {...register("startLocation")} placeholder="e.g., Sydney, NSW" className="font-body" />
+              <Controller
+                name="startLocation"
+                control={control}
+                render={({ field }) => (
+                  <Input 
+                    id="startLocation" 
+                    {...field} 
+                    placeholder="e.g., Sydney, NSW" 
+                    className="font-body" 
+                    autoComplete="off"
+                  />
+                )}
+              />
               {errors.startLocation && <p className="text-sm text-destructive font-body mt-1">{errors.startLocation.message}</p>}
             </div>
             <div>
               <Label htmlFor="endLocation" className="font-body">End Location</Label>
-              <Input id="endLocation" {...register("endLocation")} placeholder="e.g., Melbourne, VIC" className="font-body" />
+              <Controller
+                name="endLocation"
+                control={control}
+                render={({ field }) => (
+                  <Input 
+                    id="endLocation" 
+                    {...field} 
+                    placeholder="e.g., Melbourne, VIC" 
+                    className="font-body" 
+                    autoComplete="off"
+                  />
+                )}
+              />
               {errors.endLocation && <p className="text-sm text-destructive font-body mt-1">{errors.endLocation.message}</p>}
             </div>
             <div>
               <Label htmlFor="fuelEfficiency" className="font-body">Vehicle Fuel Efficiency (L/100km)</Label>
-              <Input id="fuelEfficiency" type="number" step="0.1" {...register("fuelEfficiency")} className="font-body" />
+              <Controller
+                name="fuelEfficiency"
+                control={control}
+                render={({ field }) => (
+                   <Input id="fuelEfficiency" type="number" step="0.1" {...field} className="font-body" />
+                )}
+              />
               {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
             </div>
             <div>
               <Label htmlFor="fuelPrice" className="font-body">Fuel Price (per liter)</Label>
-              <Input id="fuelPrice" type="number" step="0.01" {...register("fuelPrice")} className="font-body" />
+               <Controller
+                name="fuelPrice"
+                control={control}
+                render={({ field }) => (
+                  <Input id="fuelPrice" type="number" step="0.01" {...field} className="font-body" />
+                )}
+              />
               {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
             </div>
             <Button type="submit" disabled={isLoading || !mapServicesReady || !map} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body">
@@ -184,7 +221,7 @@ export function TripPlannerClient() {
             {mapServicesReady && map ? (
               <div style={{ height: mapHeight }} className="bg-muted rounded-b-lg overflow-hidden">
                 <Map
-                  map={map} // Pass the map instance
+                  map={map}
                   defaultCenter={mapCenter}
                   defaultZoom={mapZoom}
                   gestureHandling={'greedy'}
