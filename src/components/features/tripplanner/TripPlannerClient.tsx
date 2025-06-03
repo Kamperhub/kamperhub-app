@@ -29,6 +29,7 @@ interface GooglePlacesAutocompleteInputProps {
   placeholder?: string;
   errors: FieldErrors<TripPlannerFormValues>;
   setValue: UseFormSetValue<TripPlannerFormValues>;
+  isGoogleApiReady: boolean; // New prop to signal API readiness
 }
 
 const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps> = ({
@@ -38,17 +39,20 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
   placeholder,
   errors,
   setValue,
+  isGoogleApiReady, // Use the new prop
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
-    if (!inputRef.current || typeof window.google === 'undefined' || !window.google.maps.places) {
+    // Guard against API not ready, input ref not set, or already initialized
+    if (!isGoogleApiReady || !inputRef.current || autocompleteRef.current) {
       return;
     }
-
-    if (autocompleteRef.current) {
-      return; 
+    
+    // Check again for window.google.maps.places as isGoogleApiReady is a proxy
+    if (typeof window.google === 'undefined' || !window.google.maps || !window.google.maps.places) {
+        return;
     }
 
     const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
@@ -86,7 +90,7 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
           window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
         }
       };
-  }, [name, setValue]);
+  }, [isGoogleApiReady, name, setValue]); // Added isGoogleApiReady to dependencies
 
   return (
     <div>
@@ -137,10 +141,10 @@ export function TripPlannerClient() {
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [fuelEstimate, setFuelEstimate] = useState<FuelEstimate | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [mapCenter, setMapCenter] = useState<google.maps.LatLngLiteral>({ lat: -33.8688, lng: 151.2093 });
-  const [mapZoom, setMapZoom] = useState<number>(6);
-
+  
   const map = useMap(); 
+  const isGoogleApiReady = !!map && typeof window.google !== 'undefined' && !!window.google.maps?.places;
+
 
   useEffect(() => {
     if (map && routeDetails?.startLocation && routeDetails.endLocation && typeof window.google !== 'undefined' && window.google.maps) {
@@ -230,6 +234,8 @@ export function TripPlannerClient() {
   };
 
   const mapHeight = "400px";
+  const defaultMapCenter = { lat: -33.8688, lng: 151.2093 }; // Sydney
+  const defaultMapZoom = 6;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -247,6 +253,7 @@ export function TripPlannerClient() {
               placeholder="e.g., Sydney, NSW"
               errors={errors}
               setValue={setValue}
+              isGoogleApiReady={isGoogleApiReady}
             />
             <GooglePlacesAutocompleteInput
               control={control}
@@ -255,6 +262,7 @@ export function TripPlannerClient() {
               placeholder="e.g., Melbourne, VIC"
               errors={errors}
               setValue={setValue}
+              isGoogleApiReady={isGoogleApiReady}
             />
             <div>
               <Label htmlFor="fuelEfficiency" className="font-body">Vehicle Fuel Efficiency (L/100km)</Label>
@@ -295,8 +303,8 @@ export function TripPlannerClient() {
           <CardContent className="p-0">
             <div style={{ height: mapHeight }} className="bg-muted rounded-b-lg overflow-hidden relative">
                 <Map
-                  defaultCenter={mapCenter}
-                  defaultZoom={mapZoom}
+                  defaultCenter={defaultMapCenter}
+                  defaultZoom={defaultMapZoom}
                   gestureHandling={'greedy'}
                   disableDefaultUI={true}
                   mapId={'DEMO_MAP_ID'}
@@ -374,4 +382,3 @@ export function TripPlannerClient() {
     </div>
   );
 }
-
