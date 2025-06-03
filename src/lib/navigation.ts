@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { Home, CarFront, Backpack, ListChecks, MapPin, BookOpen, MessageCircle } from 'lucide-react';
+import { Home, CarFront, Backpack, ListChecks, MapPin, BookOpen, MessageCircle, Route } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -16,4 +16,5 @@ export const navItems: NavItem[] = [
   { href: '/map', label: 'Map', icon: MapPin, keywords: 'road trip' },
   { href: '/learn', label: 'Learn', icon: BookOpen, keywords: 'guide tutorial' },
   { href: '/chatbot', label: 'Chatbot', icon: MessageCircle, keywords: 'support help' },
+  { href: '/tripplanner', label: 'Trip Planner', icon: Route, keywords: 'journey route plan' },
 ];
