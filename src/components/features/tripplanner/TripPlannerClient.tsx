@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Map, AdvancedMarker, Pin, useMap, Polyline } from '@vis.gl/react-google-maps';
+import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
 import { Loader2, RouteIcon, Fuel, MapPin } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -177,6 +177,7 @@ export function TripPlannerClient() {
   const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
   
   const map = useMap(); 
+  const polylineRef = useRef<google.maps.Polyline | null>(null);
   const isGoogleApiReady = !!map && typeof window.google !== 'undefined' && !!window.google.maps?.places && !!window.google.maps?.DirectionsService;
 
   useEffect(() => {
@@ -186,20 +187,40 @@ export function TripPlannerClient() {
 
   useEffect(() => {
     if (!map) return;
-
+  
+    // Clear existing polyline if any
+    if (polylineRef.current) {
+      polylineRef.current.setMap(null);
+      polylineRef.current = null;
+    }
+  
     if (directionsResponse && directionsResponse.routes && directionsResponse.routes.length > 0) {
-        const route = directionsResponse.routes[0];
-        if (route.bounds) {
-            map.fitBounds(route.bounds);
-             const currentZoom = map.getZoom();
-             // Ensure zoom is not too close for long routes after fitting bounds
-             if (currentZoom && route.legs.reduce((acc, leg) => acc + (leg.distance?.value || 0), 0) > 50000 && currentZoom > 12) { // >50km
-                map.setZoom(12);
-             } else if (currentZoom && currentZoom > 15) {
-                map.setZoom(15);
-             }
+      const route = directionsResponse.routes[0];
+      
+      // Draw new polyline
+      if (route.overview_path && route.overview_path.length > 0 && window.google && window.google.maps) {
+        const newPolyline = new window.google.maps.Polyline({
+          path: route.overview_path,
+          strokeColor: 'hsl(var(--primary))', 
+          strokeOpacity: 0.8,
+          strokeWeight: 6,
+        });
+        newPolyline.setMap(map);
+        polylineRef.current = newPolyline;
+      }
+  
+      // Fit map to route bounds
+      if (route.bounds) {
+        map.fitBounds(route.bounds);
+        const currentZoom = map.getZoom();
+        if (currentZoom && route.legs.reduce((acc, leg) => acc + (leg.distance?.value || 0), 0) > 50000 && currentZoom > 12) {
+          map.setZoom(12);
+        } else if (currentZoom && currentZoom > 15) {
+          map.setZoom(15);
         }
+      }
     } else if (routeDetails?.startLocation && routeDetails.endLocation && window.google && window.google.maps) {
+      // Fit map to markers if no route, but start/end locations are known
       const bounds = new window.google.maps.LatLngBounds();
       bounds.extend(routeDetails.startLocation);
       bounds.extend(routeDetails.endLocation);
@@ -207,19 +228,26 @@ export function TripPlannerClient() {
       const currentZoom = map.getZoom();
       if (currentZoom && currentZoom > 15) {
         map.setZoom(15);
-      } else if (currentZoom && currentZoom < 3) { // Avoid too zoomed out for single points
-         map.setZoom(12); // A reasonable default if bounds are too tight
+      } else if (currentZoom && currentZoom < 3) {
+         map.setZoom(12);
       } else if (currentZoom) {
          map.setZoom(Math.max(2, currentZoom -1)); 
       }
     } else if (routeDetails?.startLocation) {
-        map.setCenter(routeDetails.startLocation);
-        map.setZoom(12);
+      map.setCenter(routeDetails.startLocation);
+      map.setZoom(12);
     } else if (routeDetails?.endLocation) {
-        map.setCenter(routeDetails.endLocation);
-        map.setZoom(12);
+      map.setCenter(routeDetails.endLocation);
+      map.setZoom(12);
     }
-  }, [map, routeDetails, directionsResponse]);
+  
+    // Cleanup: Remove polyline when component unmounts or map instance changes
+    return () => {
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null);
+      }
+    };
+  }, [map, directionsResponse, routeDetails]); // Added routeDetails to dependencies for the else-if conditions
 
 
   const onSubmit: SubmitHandler<TripPlannerFormValues> = async (data) => {
@@ -245,6 +273,8 @@ export function TripPlannerClient() {
         travelMode: window.google.maps.TravelMode.DRIVING,
       });
 
+      console.log("[KamperHub TripPlannerClient] DirectionsService response:", results);
+
       if (results.routes && results.routes.length > 0) {
         const route = results.routes[0];
         if (route.legs && route.legs.length > 0) {
@@ -260,7 +290,7 @@ export function TripPlannerClient() {
             endLocation: leg.end_location?.toJSON()
           };
           setRouteDetails(currentRouteDetails);
-          setDirectionsResponse(results);
+          setDirectionsResponse(results); // This will trigger the useEffect to draw the polyline
           
           if (distanceValue > 0 && data.fuelEfficiency > 0) {
             const distanceKm = distanceValue / 1000;
@@ -273,9 +303,11 @@ export function TripPlannerClient() {
           }
         } else {
            setError("Could not find a valid leg for the route.");
+           console.warn("[KamperHub TripPlannerClient] No legs found in the route:", route);
         }
       } else {
         setError("No routes found. Please check your locations.");
+        console.warn("[KamperHub TripPlannerClient] No routes found in DirectionsService response:", results);
       }
     } catch (e: any) {
       console.error("[KamperHub TripPlannerClient] Directions request failed:", e);
@@ -387,14 +419,7 @@ export function TripPlannerClient() {
                       />
                     </AdvancedMarker>
                   )}
-                  {directionsResponse && directionsResponse.routes && directionsResponse.routes.length > 0 && (
-                    <Polyline
-                        path={directionsResponse.routes[0].overview_path}
-                        strokeColor={'hsl(var(--primary))'}
-                        strokeOpacity={0.8}
-                        strokeWeight={6}
-                    />
-                  )}
+                  {/* Polyline is now drawn programmatically in useEffect */}
                 </Map>
                 {!map && (
                     <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm rounded-b-lg">
