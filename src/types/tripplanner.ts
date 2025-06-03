@@ -20,3 +20,22 @@ export interface FuelEstimate {
   fuelNeeded: string; // e.g., "10.0 L"
   estimatedCost: string; // e.g., "$20.00"
 }
+
+export interface LoggedTrip {
+  id: string;
+  name: string;
+  timestamp: string; // ISO string for date
+  startLocationDisplay: string; // The string input by the user for start
+  endLocationDisplay: string; // The string input by the user for end
+  fuelEfficiency: number;
+  fuelPrice: number;
+  routeDetails: RouteDetails;
+  fuelEstimate: FuelEstimate | null;
+  // We store the display names and core data separately from the full geocoded routeDetails
+  // to ensure we can re-populate the form accurately.
+  // The startLocation and endLocation within routeDetails are geocoded LatLng.
+}
+
+// Key for localStorage
+export const TRIP_LOG_STORAGE_KEY = 'kamperhub_trip_log';
+export const RECALLED_TRIP_DATA_KEY = 'kamperhub_recalled_trip_data';
