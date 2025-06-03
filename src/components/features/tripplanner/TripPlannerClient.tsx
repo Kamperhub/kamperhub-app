@@ -188,7 +188,6 @@ export function TripPlannerClient() {
   useEffect(() => {
     if (!map) return;
   
-    // Clear existing polyline if any
     if (polylineRef.current) {
       polylineRef.current.setMap(null);
       polylineRef.current = null;
@@ -197,7 +196,6 @@ export function TripPlannerClient() {
     if (directionsResponse && directionsResponse.routes && directionsResponse.routes.length > 0) {
       const route = directionsResponse.routes[0];
       
-      // Draw new polyline
       if (route.overview_path && route.overview_path.length > 0 && window.google && window.google.maps) {
         const newPolyline = new window.google.maps.Polyline({
           path: route.overview_path,
@@ -209,7 +207,6 @@ export function TripPlannerClient() {
         polylineRef.current = newPolyline;
       }
   
-      // Fit map to route bounds
       if (route.bounds) {
         map.fitBounds(route.bounds);
         const currentZoom = map.getZoom();
@@ -220,7 +217,6 @@ export function TripPlannerClient() {
         }
       }
     } else if (routeDetails?.startLocation && routeDetails.endLocation && window.google && window.google.maps) {
-      // Fit map to markers if no route, but start/end locations are known
       const bounds = new window.google.maps.LatLngBounds();
       bounds.extend(routeDetails.startLocation);
       bounds.extend(routeDetails.endLocation);
@@ -241,13 +237,12 @@ export function TripPlannerClient() {
       map.setZoom(12);
     }
   
-    // Cleanup: Remove polyline when component unmounts or map instance changes
     return () => {
       if (polylineRef.current) {
         polylineRef.current.setMap(null);
       }
     };
-  }, [map, directionsResponse, routeDetails]); // Added routeDetails to dependencies for the else-if conditions
+  }, [map, directionsResponse, routeDetails]);
 
 
   const onSubmit: SubmitHandler<TripPlannerFormValues> = async (data) => {
@@ -290,7 +285,7 @@ export function TripPlannerClient() {
             endLocation: leg.end_location?.toJSON()
           };
           setRouteDetails(currentRouteDetails);
-          setDirectionsResponse(results); // This will trigger the useEffect to draw the polyline
+          setDirectionsResponse(results); 
           
           if (distanceValue > 0 && data.fuelEfficiency > 0) {
             const distanceKm = distanceValue / 1000;
@@ -404,22 +399,21 @@ export function TripPlannerClient() {
                   {routeDetails?.startLocation && (
                     <AdvancedMarker position={routeDetails.startLocation} title={`Start: ${routeDetails.startAddress || ''}`}>
                       <Pin
-                        background={'hsl(var(--accent))'} 
-                        borderColor={'hsl(var(--accent))'}
-                        glyphColor={'hsl(var(--accent-foreground))'}
+                        background={'hsl(var(--primary))'} 
+                        borderColor={'hsl(var(--primary))'}
+                        glyphColor={'hsl(var(--primary-foreground))'}
                       />
                     </AdvancedMarker>
                   )}
                   {routeDetails?.endLocation && (
                     <AdvancedMarker position={routeDetails.endLocation} title={`End: ${routeDetails.endAddress || ''}`}>
                       <Pin
-                        background={'hsl(var(--primary))'}
-                        borderColor={'hsl(var(--primary))'}
-                        glyphColor={'hsl(var(--primary-foreground))'}
+                        background={'hsl(var(--accent))'}
+                        borderColor={'hsl(var(--accent))'}
+                        glyphColor={'hsl(var(--accent-foreground))'}
                       />
                     </AdvancedMarker>
                   )}
-                  {/* Polyline is now drawn programmatically in useEffect */}
                 </Map>
                 {!map && (
                     <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm rounded-b-lg">
@@ -474,4 +468,3 @@ export function TripPlannerClient() {
     </div>
   );
 }
-
