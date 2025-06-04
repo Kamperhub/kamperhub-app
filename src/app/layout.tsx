@@ -1,7 +1,9 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { AppShell } from '@/components/layout/AppShell';
 import { Toaster } from "@/components/ui/toaster";
+import { SubscriptionProvider } from '@/hooks/useSubscription'; // Import SubscriptionProvider
 
 export const metadata: Metadata = {
   title: 'KamperHub',
@@ -23,9 +25,11 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <AppShell>
-          {children}
-        </AppShell>
+        <SubscriptionProvider> {/* Wrap AppShell with SubscriptionProvider */}
+          <AppShell>
+            {children}
+          </AppShell>
+        </SubscriptionProvider>
         <Toaster />
       </body>
     </html>
