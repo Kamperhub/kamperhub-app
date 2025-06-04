@@ -1,2 +1,3 @@
-// This file is no longer needed and can be safely deleted.
-// The "Important Info" feature and its types have been removed.
+// This file was part of a feature that has been removed.
+// It's kept minimal to prevent build errors if the file isn't deleted by the tooling.
+export {}; // Ensures it's treated as a module

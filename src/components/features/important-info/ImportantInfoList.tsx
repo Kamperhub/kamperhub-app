@@ -1,2 +1,5 @@
-// This file is no longer needed and can be safely deleted.
-// The "Important Info" feature and its components have been removed.
+// This component was part of a feature that has been removed.
+// It's kept as a minimal component to prevent build errors if the file isn't deleted by the tooling.
+export default function ImportantInfoList() {
+  return null;
+}
