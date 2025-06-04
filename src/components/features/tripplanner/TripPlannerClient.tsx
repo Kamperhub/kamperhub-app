@@ -2,10 +2,10 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useForm, type SubmitHandler, Controller, type Control, type UseFormSetValue, type FieldErrors } from 'react-hook-form';
+import { useForm, type SubmitHandler, Controller, type Control, type UseFormSetValue, type FieldErrors, FieldPath } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { usePathname } from 'next/navigation'; // Added
+import { usePathname } from 'next/navigation'; 
 import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip } from '@/types/tripplanner';
 import { TRIP_LOG_STORAGE_KEY, RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import type { StoredVehicle } from '@/types/vehicle'; 
@@ -28,6 +28,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import type { DateRange } from 'react-day-picker';
+import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesAutocompleteInput'; // Import shared component
 
 const tripPlannerSchema = z.object({
   startLocation: z.string().min(3, "Start location is required (min 3 chars)"),
@@ -48,112 +49,7 @@ const tripPlannerSchema = z.object({
   path: ["dateRange"],
 });
 
-interface GooglePlacesAutocompleteInputProps {
-  control: Control<TripPlannerFormValues>;
-  name: "startLocation" | "endLocation";
-  label: string;
-  placeholder?: string;
-  errors: FieldErrors<TripPlannerFormValues>;
-  setValue: UseFormSetValue<TripPlannerFormValues>;
-  isGoogleApiReady: boolean;
-}
-
-const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps> = ({
-  control,
-  name,
-  label,
-  placeholder,
-  errors,
-  setValue,
-  isGoogleApiReady,
-}) => {
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-
-  useEffect(() => {
-    if (!isGoogleApiReady || !inputRef.current || typeof window.google === 'undefined' || !window.google.maps || !window.google.maps.places || typeof window.google.maps.places.Autocomplete === 'undefined') {
-      return;
-    }
-
-    if (autocompleteRef.current && typeof window.google.maps.event !== 'undefined') {
-       window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
-    }
-
-    try {
-      const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
-        fields: ["formatted_address", "geometry", "name"],
-        types: ["geocode"], 
-      });
-      autocompleteRef.current = autocomplete;
-
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (place && place.formatted_address) {
-          setValue(name, place.formatted_address, { shouldValidate: true, shouldDirty: true });
-        } else if (inputRef.current) {
-          setValue(name, inputRef.current.value, { shouldValidate: true, shouldDirty: true });
-        }
-      });
-    } catch (error) {
-      console.error(`Error initializing Google Places Autocomplete for ${name}:`, error);
-    }
-    
-    const currentInputRef = inputRef.current; 
-    const onKeyDown = (event: KeyboardEvent) => {
-      const pacContainer = document.querySelector('.pac-container');
-      if (event.key === 'Enter' && pacContainer && getComputedStyle(pacContainer).display !== 'none') {
-        event.preventDefault(); 
-      }
-    };
-
-    if (currentInputRef) {
-      currentInputRef.addEventListener('keydown', onKeyDown);
-    }
-
-    return () => {
-      if (currentInputRef) {
-        currentInputRef.removeEventListener('keydown', onKeyDown);
-      }
-       if (autocompleteRef.current && typeof window.google !== 'undefined' && window.google.maps && window.google.maps.event) {
-         window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
-       }
-       autocompleteRef.current = null; 
-    };
-  }, [isGoogleApiReady, name, setValue]); 
-
-  return (
-    <div>
-      <Label htmlFor={name} className="font-body">
-        {label}
-      </Label>
-      <Controller
-        name={name}
-        control={control}
-        render={({ field }) => (
-          <Input
-            id={name}
-            ref={(el) => {
-              field.ref(el); 
-              inputRef.current = el; 
-            }}
-            onChange={(e) => field.onChange(e.target.value)} 
-            onBlur={field.onBlur}
-            value={field.value || ''}
-            placeholder={placeholder}
-            className="font-body"
-            autoComplete="off"
-          />
-        )}
-      />
-      {errors[name] && (
-        <p className="text-sm text-destructive font-body mt-1">
-          {errors[name]?.message}
-        </p>
-      )}
-    </div>
-  );
-};
-
+// Removed inline GooglePlacesAutocompleteInput component definition
 
 export function TripPlannerClient() {
   const { control, handleSubmit, formState: { errors }, setValue, getValues, reset } = useForm<TripPlannerFormValues>({
@@ -173,7 +69,7 @@ export function TripPlannerClient() {
   const [error, setError] = useState<string | null>(null);
   const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
   const { toast } = useToast();
-  const pathname = usePathname(); // Added
+  const pathname = usePathname(); 
   
   const map = useMap(); 
   const polylineRef = useRef<google.maps.Polyline | null>(null);
@@ -193,7 +89,6 @@ export function TripPlannerClient() {
   useEffect(() => {
     let recalledTripLoaded = false;
     if (typeof window !== 'undefined') {
-      // Try to load recalled trip data FIRST
       try {
         const recalledTripJson = localStorage.getItem(RECALLED_TRIP_DATA_KEY);
         if (recalledTripJson) {
@@ -219,7 +114,6 @@ export function TripPlannerClient() {
         toast({ title: "Error", description: "Could not load recalled trip data.", variant: "destructive" });
       }
 
-      // If a recalled trip wasn't loaded, THEN try to load active vehicle's fuel efficiency
       if (!recalledTripLoaded) {
         try {
           const activeVehicleId = localStorage.getItem(ACTIVE_VEHICLE_ID_KEY);
@@ -228,8 +122,7 @@ export function TripPlannerClient() {
             const storedVehicles: StoredVehicle[] = JSON.parse(storedVehiclesJson);
             const activeVehicle = storedVehicles.find(v => v.id === activeVehicleId);
             if (activeVehicle && typeof activeVehicle.fuelEfficiency === 'number') {
-              // Only set fuelEfficiency if not already set by a recalled trip
-              if (getValues('fuelEfficiency') === 10) { // Check against default or if it hasn't been touched
+              if (getValues('fuelEfficiency') === 10) { 
                  setValue('fuelEfficiency', activeVehicle.fuelEfficiency, { shouldValidate: false });
               }
             }
@@ -240,7 +133,7 @@ export function TripPlannerClient() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reset, setValue, toast, pathname, getValues]); // Added pathname and getValues
+  }, [reset, setValue, toast, pathname, getValues]); 
 
 
   useEffect(() => {
@@ -520,7 +413,6 @@ export function TripPlannerClient() {
               placeholder="e.g., Sydney, NSW"
               errors={errors}
               setValue={setValue}
-              isGoogleApiReady={isGoogleApiReady}
             />
             <GooglePlacesAutocompleteInput
               control={control}
@@ -529,7 +421,6 @@ export function TripPlannerClient() {
               placeholder="e.g., Melbourne, VIC"
               errors={errors}
               setValue={setValue}
-              isGoogleApiReady={isGoogleApiReady}
             />
             
             <div>
@@ -577,7 +468,7 @@ export function TripPlannerClient() {
               />
               {errors.dateRange && (
                 <p className="text-sm text-destructive font-body mt-1">
-                  {errors.dateRange.message || errors.dateRange.to?.message || errors.dateRange.from?.message}
+                  {errors.dateRange.message || (errors.dateRange as any)?.to?.message || (errors.dateRange as any)?.from?.message}
                 </p>
               )}
             </div>
@@ -588,7 +479,7 @@ export function TripPlannerClient() {
                 name="fuelEfficiency"
                 control={control}
                 render={({ field }) => (
-                   <Input id="fuelEfficiency" type="number" step="0.1" {...field} value={field.value || ''} className="font-body" />
+                   <Input id="fuelEfficiency" type="number" step="0.1" {...field} value={field.value ?? ''} className="font-body" />
                 )}
               />
               {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
@@ -598,7 +489,7 @@ export function TripPlannerClient() {
                 name="fuelPrice"
                 control={control}
                 render={({ field }) => (
-                  <Input id="fuelPrice" type="number" step="0.01" {...field} value={field.value || ''} className="font-body" />
+                  <Input id="fuelPrice" type="number" step="0.01" {...field} value={field.value ?? ''} className="font-body" />
                 )}
               />
               {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
@@ -664,7 +555,7 @@ export function TripPlannerClient() {
                             <AdvancedMarker
                                 key={poi.place_id}
                                 position={poi.geometry.location}
-                                title={poi.name}
+                                title={poi.name ?? undefined}
                             >
                                 <Pin background={'#FFBF00'} borderColor={'#B8860B'} glyphColor={'#000000'} />
                             </AdvancedMarker>

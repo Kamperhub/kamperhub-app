@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useEffect, useRef } from 'react';
+import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesAutocompleteInput'; // Changed path
 
 const bookingSchema = z.object({
   siteName: z.string().min(1, "Site name is required"),
@@ -62,69 +62,7 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
     },
   });
 
-  const locationAddressInputRef = useRef<HTMLInputElement | null>(null);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-
-  useEffect(() => {
-    if (
-      typeof window.google === 'undefined' ||
-      !window.google.maps ||
-      !window.google.maps.places ||
-      typeof window.google.maps.places.Autocomplete !== 'function' ||
-      !locationAddressInputRef.current
-    ) {
-      console.warn("Google Maps Autocomplete API not ready for BookingForm or input ref not available.");
-      return;
-    }
-
-    if (autocompleteRef.current && typeof window.google.maps.event !== 'undefined') {
-      window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
-      autocompleteRef.current = null;
-    }
-
-    try {
-      const autocomplete = new window.google.maps.places.Autocomplete(locationAddressInputRef.current, {
-        fields: ["formatted_address", "geometry", "name"], // Aligned with TripPlanner
-        types: ["geocode"],
-      });
-      autocompleteRef.current = autocomplete;
-
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (place && place.formatted_address) {
-          setValue("locationAddress", place.formatted_address, { shouldValidate: true, shouldDirty: true });
-        } else if (locationAddressInputRef.current) {
-          // Fallback to current input value if place is not well-formed
-          setValue("locationAddress", locationAddressInputRef.current.value, { shouldValidate: true, shouldDirty: true });
-        }
-      });
-    } catch (error) {
-      console.error("Error initializing Google Places Autocomplete for booking address:", error);
-    }
-
-    const currentInputRef = locationAddressInputRef.current;
-    const onKeyDownPreventSubmit = (event: KeyboardEvent) => {
-      const pacContainer = document.querySelector('.pac-container');
-      // Prevent form submission if Enter is pressed while autocomplete suggestions are visible
-      if (event.key === 'Enter' && pacContainer && getComputedStyle(pacContainer).display !== 'none') {
-        event.preventDefault();
-      }
-    };
-
-    if (currentInputRef) {
-      currentInputRef.addEventListener('keydown', onKeyDownPreventSubmit);
-    }
-
-    return () => {
-      if (currentInputRef) {
-        currentInputRef.removeEventListener('keydown', onKeyDownPreventSubmit);
-      }
-      if (autocompleteRef.current && typeof window.google !== 'undefined' && window.google.maps && window.google.maps.event) {
-        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
-      }
-      autocompleteRef.current = null;
-    };
-  }, []); // Empty dependency array ensures this runs once on mount & cleans up
+  // Removed direct autocomplete setup logic
 
   const onSubmit: SubmitHandler<BookingFormData> = (data) => {
     onSave(data);
@@ -212,27 +150,14 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
       </div>
       
       <div>
-        <Label htmlFor="locationAddress" className="font-body">Location / Address</Label>
-        <Controller
-          name="locationAddress"
+        <GooglePlacesAutocompleteInput
           control={control}
-          render={({ field }) => (
-            <Input
-              id="locationAddress"
-              ref={(el) => {
-                field.ref(el);
-                locationAddressInputRef.current = el;
-              }}
-              onChange={(e) => field.onChange(e.target.value)}
-              onBlur={field.onBlur}
-              value={field.value || ''}
-              placeholder="e.g., 123 Scenic Route, Nature Town"
-              className="font-body"
-              autoComplete="off"
-            />
-          )}
+          name="locationAddress" // This is type BookingFormData['locationAddress']
+          label="Location / Address"
+          placeholder="e.g., 123 Scenic Route, Nature Town"
+          errors={errors}
+          setValue={setValue}
         />
-        {errors.locationAddress && <p className="text-sm text-destructive font-body mt-1">{errors.locationAddress.message}</p>}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
