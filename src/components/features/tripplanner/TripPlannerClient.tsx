@@ -24,22 +24,25 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import type { DateRange } from 'react-day-picker';
 
 const tripPlannerSchema = z.object({
   startLocation: z.string().min(3, "Start location is required (min 3 chars)"),
   endLocation: z.string().min(3, "End location is required (min 3 chars)"),
   fuelEfficiency: z.coerce.number().positive("Fuel efficiency must be a positive number (L/100km)"),
   fuelPrice: z.coerce.number().positive("Fuel price must be a positive number (per liter)"),
-  plannedStartDate: z.date().optional().nullable(),
-  plannedEndDate: z.date().optional().nullable(),
+  dateRange: z.object({
+    from: z.date().optional().nullable(),
+    to: z.date().optional().nullable(),
+  }).optional().nullable(),
 }).refine(data => {
-  if (data.plannedStartDate && data.plannedEndDate) {
-    return data.plannedEndDate >= data.plannedStartDate;
+  if (data.dateRange?.from && data.dateRange?.to) {
+    return data.dateRange.to >= data.dateRange.from;
   }
   return true;
 }, {
-  message: "End date cannot be before start date",
-  path: ["plannedEndDate"],
+  message: "End date cannot be before start date.",
+  path: ["dateRange"],
 });
 
 interface GooglePlacesAutocompleteInputProps {
@@ -148,60 +151,6 @@ const GooglePlacesAutocompleteInput: React.FC<GooglePlacesAutocompleteInputProps
   );
 };
 
-interface DatePickerProps {
-  control: Control<TripPlannerFormValues>;
-  name: "plannedStartDate" | "plannedEndDate";
-  label: string;
-  errors: FieldErrors<TripPlannerFormValues>;
-}
-
-const FormDatePicker: React.FC<DatePickerProps> = ({ control, name, label, errors }) => {
-  return (
-    <div>
-      <Label htmlFor={name} className="font-body">{label}</Label>
-      <Controller
-        name={name}
-        control={control}
-        render={({ field }) => (
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                id={name}
-                className={cn(
-                  "w-full justify-start text-left font-normal font-body",
-                  !field.value && "text-muted-foreground"
-                )}
-              >
-                <CalendarDays className="mr-2 h-4 w-4" />
-                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={field.value || undefined}
-                onSelect={(date) => field.onChange(date || null)}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        )}
-      />
-      {errors[name] && (
-        <p className="text-sm text-destructive font-body mt-1">
-          {errors[name]?.message}
-        </p>
-      )}
-      {name === 'plannedEndDate' && errors.root?.message && (
-         <p className="text-sm text-destructive font-body mt-1">
-          {errors.root.message}
-        </p>
-      )}
-    </div>
-  );
-};
-
 
 export function TripPlannerClient() {
   const { control, handleSubmit, formState: { errors }, setValue, getValues, reset } = useForm<TripPlannerFormValues>({
@@ -211,8 +160,7 @@ export function TripPlannerClient() {
       endLocation: '',
       fuelEfficiency: 10,
       fuelPrice: 1.80,
-      plannedStartDate: null,
-      plannedEndDate: null,
+      dateRange: { from: undefined, to: undefined }
     }
   });
 
@@ -249,8 +197,10 @@ export function TripPlannerClient() {
             endLocation: recalledTrip.endLocationDisplay,
             fuelEfficiency: recalledTrip.fuelEfficiency,
             fuelPrice: recalledTrip.fuelPrice,
-            plannedStartDate: recalledTrip.plannedStartDate ? parseISO(recalledTrip.plannedStartDate) : null,
-            plannedEndDate: recalledTrip.plannedEndDate ? parseISO(recalledTrip.plannedEndDate) : null,
+            dateRange: {
+              from: recalledTrip.plannedStartDate ? parseISO(recalledTrip.plannedStartDate) : undefined,
+              to: recalledTrip.plannedEndDate ? parseISO(recalledTrip.plannedEndDate) : undefined,
+            }
           });
           setRouteDetails(recalledTrip.routeDetails);
           setFuelEstimate(recalledTrip.fuelEstimate);
@@ -420,10 +370,16 @@ export function TripPlannerClient() {
     const tripName = window.prompt("Enter a name for this trip:", `Trip to ${getValues("endLocation")}`);
   
     if (!tripName) {
+      console.log("[KamperHub TripPlannerClient] Trip name prompt cancelled or empty.");
       return; 
     }
+    console.log(`[KamperHub TripPlannerClient] Trip name entered: "${tripName}"`);
   
     const currentFormData = getValues();
+    console.log("[KamperHub TripPlannerClient] Current form data for saving:", currentFormData);
+    console.log("[KamperHub TripPlannerClient] Route details for saving:", routeDetails);
+    console.log("[KamperHub TripPlannerClient] Fuel estimate for saving:", fuelEstimate);
+
     const newLoggedTrip: LoggedTrip = {
       id: Date.now().toString(),
       name: tripName,
@@ -434,17 +390,19 @@ export function TripPlannerClient() {
       fuelPrice: currentFormData.fuelPrice,
       routeDetails: routeDetails, 
       fuelEstimate: fuelEstimate,
-      plannedStartDate: currentFormData.plannedStartDate ? currentFormData.plannedStartDate.toISOString() : null,
-      plannedEndDate: currentFormData.plannedEndDate ? currentFormData.plannedEndDate.toISOString() : null,
+      plannedStartDate: currentFormData.dateRange?.from ? currentFormData.dateRange.from.toISOString() : null,
+      plannedEndDate: currentFormData.dateRange?.to ? currentFormData.dateRange.to.toISOString() : null,
     };
     
+    console.log("[KamperHub TripPlannerClient] Attempting to save new logged trip:", newLoggedTrip);
     try {
       const existingTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
       const existingTrips: LoggedTrip[] = existingTripsJson ? JSON.parse(existingTripsJson) : [];
       localStorage.setItem(TRIP_LOG_STORAGE_KEY, JSON.stringify([...existingTrips, newLoggedTrip]));
+      console.log("[KamperHub TripPlannerClient] Trip saved successfully to localStorage.");
       toast({ title: "Trip Saved!", description: `"${tripName}" has been added to your Trip Log.` });
     } catch (error) {
-      console.error("Error saving trip to localStorage:", error);
+      console.error("[KamperHub TripPlannerClient] Error saving trip to localStorage:", error);
       toast({ title: "Error Saving Trip", description: "Could not save trip.", variant: "destructive" });
     }
   };
@@ -545,18 +503,57 @@ export function TripPlannerClient() {
               setValue={setValue}
               isGoogleApiReady={isGoogleApiReady}
             />
-            <FormDatePicker
-              control={control}
-              name="plannedStartDate"
-              label="Planned Start Date"
-              errors={errors}
-            />
-            <FormDatePicker
-              control={control}
-              name="plannedEndDate"
-              label="Planned End Date"
-              errors={errors}
-            />
+            
+            <div>
+              <Label htmlFor="dateRange" className="font-body">Planned Date Range</Label>
+              <Controller
+                name="dateRange"
+                control={control}
+                render={({ field }) => (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="dateRange"
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal font-body",
+                          !field.value?.from && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarDays className="mr-2 h-4 w-4" />
+                        {field.value?.from ? (
+                          field.value.to ? (
+                            <>
+                              {format(field.value.from, "LLL dd, yyyy")} - {format(field.value.to, "LLL dd, yyyy")}
+                            </>
+                          ) : (
+                            format(field.value.from, "LLL dd, yyyy")
+                          )
+                        ) : (
+                          <span>Pick a date range</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={field.value?.from}
+                        selected={field.value as DateRange | undefined} // Cast because RHF type might be broader
+                        onSelect={field.onChange}
+                        numberOfMonths={2}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+              />
+              {errors.dateRange && (
+                <p className="text-sm text-destructive font-body mt-1">
+                  {errors.dateRange.message || errors.dateRange.to?.message || errors.dateRange.from?.message}
+                </p>
+              )}
+            </div>
+
             <div>
               <Label htmlFor="fuelEfficiency" className="font-body">Vehicle Fuel Efficiency (L/100km)</Label>
               <Controller
@@ -589,71 +586,73 @@ export function TripPlannerClient() {
       </Card>
 
       <div className="md:col-span-2 space-y-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="font-headline flex items-center"><MapPin className="mr-2 h-6 w-6 text-primary" /> Route Map</CardTitle>
-            {routeDetails && (
-                 <Button 
-                    onClick={handleFindPOIs} 
-                    variant="outline" 
-                    size="sm" 
-                    className="font-body"
-                    disabled={isSearchingPOIs || !isGoogleApiReady}
-                >
-                    {isSearchingPOIs ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                    {isSearchingPOIs ? 'Searching...' : 'Nearby Attractions'}
-                 </Button>
-            )}
-          </CardHeader>
-          <CardContent className="p-0">
-            <div style={{ height: mapHeight }} className="bg-muted rounded-b-lg overflow-hidden relative">
-                <Map
-                  defaultCenter={defaultMapCenter}
-                  defaultZoom={defaultMapZoom}
-                  gestureHandling={'greedy'}
-                  disableDefaultUI={true}
-                  mapId={'DEMO_MAP_ID'} 
-                  className="h-full w-full"
-                >
-                  {routeDetails?.startLocation && (
-                    <AdvancedMarker position={routeDetails.startLocation} title={`Start: ${routeDetails.startAddress || ''}`}>
-                      <Pin
-                        background={'hsl(var(--primary))'} 
-                        borderColor={'hsl(var(--primary))'}
-                        glyphColor={'hsl(var(--primary-foreground))'}
-                      />
-                    </AdvancedMarker>
-                  )}
-                  {routeDetails?.endLocation && (
-                    <AdvancedMarker position={routeDetails.endLocation} title={`End: ${routeDetails.endAddress || ''}`}>
-                      <Pin
-                        background={'hsl(var(--accent))'}
-                        borderColor={'hsl(var(--accent))'}
-                        glyphColor={'hsl(var(--accent-foreground))'}
-                      />
-                    </AdvancedMarker>
-                  )}
-                  {pointsOfInterest.map(poi => (
-                    poi.geometry?.location && (
-                        <AdvancedMarker
-                            key={poi.place_id}
-                            position={poi.geometry.location}
-                            title={poi.name}
-                        >
-                            <Pin background={'#FFBF00'} borderColor={'#B8860B'} glyphColor={'#000000'} />
-                        </AdvancedMarker>
-                    )
-                  ))}
-                </Map>
-                {(!map || (map && !isGoogleApiReady)) && ( 
-                    <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm rounded-b-lg">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="ml-2 font-body">{(map && !isGoogleApiReady) ? "Loading API Services..." : "Initializing Map..."}</p>
-                    </div>
+        <div className="relative"> {/* Wrapper for z-index context if needed */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="font-headline flex items-center"><MapPin className="mr-2 h-6 w-6 text-primary" /> Route Map</CardTitle>
+                {routeDetails && (
+                    <Button 
+                        onClick={handleFindPOIs} 
+                        variant="outline" 
+                        size="sm" 
+                        className="font-body"
+                        disabled={isSearchingPOIs || !isGoogleApiReady}
+                    >
+                        {isSearchingPOIs ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                        {isSearchingPOIs ? 'Searching...' : 'Nearby Attractions'}
+                    </Button>
                 )}
-              </div>
-          </CardContent>
-        </Card>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div style={{ height: mapHeight }} className="bg-muted rounded-b-lg overflow-hidden relative">
+                    <Map
+                      defaultCenter={defaultMapCenter}
+                      defaultZoom={defaultMapZoom}
+                      gestureHandling={'greedy'}
+                      disableDefaultUI={true}
+                      mapId={'DEMO_MAP_ID'} 
+                      className="h-full w-full"
+                    >
+                      {routeDetails?.startLocation && (
+                        <AdvancedMarker position={routeDetails.startLocation} title={`Start: ${routeDetails.startAddress || ''}`}>
+                          <Pin
+                            background={'hsl(var(--primary))'} 
+                            borderColor={'hsl(var(--primary))'}
+                            glyphColor={'hsl(var(--primary-foreground))'}
+                          />
+                        </AdvancedMarker>
+                      )}
+                      {routeDetails?.endLocation && (
+                        <AdvancedMarker position={routeDetails.endLocation} title={`End: ${routeDetails.endAddress || ''}`}>
+                          <Pin
+                            background={'hsl(var(--accent))'}
+                            borderColor={'hsl(var(--accent))'}
+                            glyphColor={'hsl(var(--accent-foreground))'}
+                          />
+                        </AdvancedMarker>
+                      )}
+                      {pointsOfInterest.map(poi => (
+                        poi.geometry?.location && (
+                            <AdvancedMarker
+                                key={poi.place_id}
+                                position={poi.geometry.location}
+                                title={poi.name}
+                            >
+                                <Pin background={'#FFBF00'} borderColor={'#B8860B'} glyphColor={'#000000'} />
+                            </AdvancedMarker>
+                        )
+                      ))}
+                    </Map>
+                    {(!map || (map && !isGoogleApiReady)) && ( 
+                        <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm rounded-b-lg">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <p className="ml-2 font-body">{(map && !isGoogleApiReady) ? "Loading API Services..." : "Initializing Map..."}</p>
+                        </div>
+                    )}
+                  </div>
+              </CardContent>
+            </Card>
+        </div>
         
         {error && (
           <Alert variant="destructive">
@@ -677,31 +676,46 @@ export function TripPlannerClient() {
 
         {routeDetails && (
           <Card>
-             <CardHeader className="flex flex-row items-center justify-between space-x-2">
+            <CardHeader className="flex flex-row items-center justify-between space-x-2">
               <CardTitle className="font-headline flex items-center"><Fuel className="mr-2 h-6 w-6 text-primary" /> Trip Summary</CardTitle>
-              <div className="flex items-center gap-2">
-                <Button 
-                    onClick={handleNavigateWithGoogleMaps}
-                    variant="outline" 
-                    size="sm" 
-                    className="font-body"
-                    disabled={!routeDetails}
-                 >
-                    <Navigation className="mr-2 h-4 w-4" /> Navigate
-                </Button>
-                <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="font-body"
-                    onClick={() => {
-                        console.log("[KamperHub Save Button] Clicked.");
-                        handleSaveTrip();
-                     }}
-                    disabled={!routeDetails}
-                >
-                    <Save className="mr-2 h-4 w-4" /> Save Trip
-                </Button>
-              </div>
+                <div className="flex items-center gap-2">
+                    <Button 
+                        onClick={handleNavigateWithGoogleMaps}
+                        variant="outline" 
+                        size="sm" 
+                        className="font-body"
+                        disabled={!routeDetails}
+                    >
+                        <Navigation className="mr-2 h-4 w-4" /> Navigate
+                    </Button>
+                    <div onClick={() => {
+                         console.log("[KamperHub Save Button] Clicked.");
+                         if (routeDetails) {
+                           handleSaveTrip();
+                         } else {
+                            toast({ title: "Cannot Save", description: "No trip details to save. Plan a trip first.", variant: "destructive" });
+                         }
+                        }}
+                        className={cn(
+                            "inline-block", // To allow styling like a button
+                            !routeDetails && "cursor-not-allowed"
+                        )}
+                        style={{ zIndex: 1000, position: 'relative' }} // Ensure high z-index and establish stacking context
+                        aria-disabled={!routeDetails}
+                        role="button"
+                        tabIndex={routeDetails ? 0 : -1}
+                    >
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="font-body"
+                            disabled={!routeDetails}
+                            tabIndex={-1} // Make the inner button not focusable directly
+                        >
+                            <Save className="mr-2 h-4 w-4" /> Save Trip
+                        </Button>
+                    </div>
+                </div>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="font-body"><strong>Distance:</strong> {routeDetails.distance}</div>
@@ -714,11 +728,11 @@ export function TripPlannerClient() {
                   <div className="font-body"><strong>Est. Fuel Cost:</strong> {fuelEstimate.estimatedCost}</div>
                 </>
               )}
-              {getValues("plannedStartDate") && (
-                <div className="font-body"><strong>Planned Start:</strong> {format(getValues("plannedStartDate")!, "PPP")}</div>
+              {getValues("dateRange")?.from && (
+                <div className="font-body"><strong>Planned Start:</strong> {format(getValues("dateRange")!.from!, "PPP")}</div>
               )}
-              {getValues("plannedEndDate") && (
-                <div className="font-body"><strong>Planned End:</strong> {format(getValues("plannedEndDate")!, "PPP")}</div>
+              {getValues("dateRange")?.to && (
+                <div className="font-body"><strong>Planned End:</strong> {format(getValues("dateRange")!.to!, "PPP")}</div>
               )}
             </CardContent>
           </Card>
@@ -727,6 +741,3 @@ export function TripPlannerClient() {
     </div>
   );
 }
-
-
-    

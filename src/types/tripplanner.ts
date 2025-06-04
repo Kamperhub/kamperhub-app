@@ -1,11 +1,12 @@
 
+import type { DateRange } from 'react-day-picker';
+
 export interface TripPlannerFormValues {
   startLocation: string;
   endLocation: string;
   fuelEfficiency: number; // L/100km
   fuelPrice: number; // Price per liter
-  plannedStartDate?: Date | null;
-  plannedEndDate?: Date | null;
+  dateRange?: DateRange | null;
 }
 
 export interface RouteDetails {
@@ -40,3 +41,4 @@ export interface LoggedTrip {
 // Key for localStorage
 export const TRIP_LOG_STORAGE_KEY = 'kamperhub_trip_log';
 export const RECALLED_TRIP_DATA_KEY = 'kamperhub_recalled_trip_data';
+
