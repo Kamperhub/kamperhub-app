@@ -19,12 +19,15 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState<BookingEntry[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<BookingEntry | null>(null);
-  const [isLocalStorageReady, setIsLocalStorageReady] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    setIsLocalStorageReady(true);
-    if (typeof window !== 'undefined') {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (hasMounted) {
       try {
         const storedBookings = localStorage.getItem(BOOKINGS_STORAGE_KEY);
         if (storedBookings) {
@@ -32,19 +35,20 @@ export default function BookingsPage() {
         }
       } catch (error) {
         console.error("Error loading bookings from localStorage:", error);
-        toast({ title: "Error Loading Bookings", variant: "destructive" });
+        toast({ title: "Error Loading Bookings", description: "Could not load your saved bookings.", variant: "destructive" });
       }
     }
-  }, [toast]);
+  }, [hasMounted, toast]);
 
   const saveBookingsToStorage = useCallback((updatedBookings: BookingEntry[]) => {
-    if (!isLocalStorageReady || typeof window === 'undefined') return;
+    if (!hasMounted) return;
     try {
       localStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(updatedBookings));
     } catch (error) {
-      toast({ title: "Error Saving Bookings", variant: "destructive" });
+      console.error("Error saving bookings to localStorage:", error);
+      toast({ title: "Error Saving Bookings", description: "Could not save your changes.", variant: "destructive" });
     }
-  }, [toast, isLocalStorageReady]);
+  }, [toast, hasMounted]);
 
   const handleSaveBooking = (data: Omit<BookingEntry, 'id' | 'timestamp'>) => {
     let updatedBookings;
@@ -94,7 +98,7 @@ export default function BookingsPage() {
     setIsFormOpen(true);
   };
 
-  if (!isLocalStorageReady && typeof window !== 'undefined') {
+  if (!hasMounted) {
     return (
       <div className="space-y-8">
         <h1 className="text-3xl font-headline mb-6 text-primary">Accommodation Bookings</h1>
