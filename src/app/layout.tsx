@@ -3,7 +3,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AppShell } from '@/components/layout/AppShell';
 import { Toaster } from "@/components/ui/toaster";
-import { SubscriptionProvider } from '@/hooks/useSubscription'; // Import SubscriptionProvider
+import { SubscriptionProvider } from '@/hooks/useSubscription';
+import { AuthProvider } from '@/contexts/AuthContext'; // Import AuthProvider
+import { AuthGuard } from '@/components/layout/AuthGuard'; // Import AuthGuard
 
 export const metadata: Metadata = {
   title: 'KamperHub',
@@ -25,10 +27,14 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <SubscriptionProvider> {/* Wrap AppShell with SubscriptionProvider */}
-          <AppShell>
-            {children}
-          </AppShell>
+        <SubscriptionProvider>
+          <AuthProvider>
+            <AuthGuard> {/* AuthGuard wraps AppShell and children */}
+              <AppShell>
+                {children}
+              </AppShell>
+            </AuthGuard>
+          </AuthProvider>
         </SubscriptionProvider>
         <Toaster />
       </body>

@@ -2,6 +2,8 @@
 // src/app/api/create-stripe-checkout/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import Stripe from 'stripe';
+// import { auth as adminAuth } from 'firebase-admin'; // For verifying user token if needed
+// import { getAuth } from 'firebase/auth'; // For getting client-side user (not here)
 
 // Initialize Stripe with your secret key
 // Ensure your Stripe secret key is set in your environment variables
@@ -26,6 +28,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Stripe Secret Key is not configured.' }, { status: 500 });
   }
 
+  // TODO: In a real application with user authentication:
+  // 1. Get the authenticated user's ID (e.g., from a Firebase Auth token).
+  // 2. Pass this ID as `client_reference_id` to Stripe.
+  // 3. Store the Stripe customer ID associated with your user in your database.
+  // const { userId } = await req.json(); // Example: if you send userId from client
+  // if (!userId) {
+  //   return NextResponse.json({ error: 'User ID is missing.' }, { status: 400 });
+  // }
+
+
   try {
     // Create a new Checkout Session
     const session = await stripe.checkout.sessions.create({
@@ -39,12 +51,13 @@ export async function POST(req: NextRequest) {
       mode: 'subscription', 
       subscription_data: {
         trial_period_days: 3, // Add 3-day trial period
+        // You might also want to pass metadata specific to the subscription
+        // metadata: { userId: userId } 
       },
       success_url: SUCCESS_URL,
       cancel_url: CANCEL_URL,
-      // You can pass metadata or a client_reference_id here if you have user authentication
-      // client_reference_id: userId, 
-      // metadata: { userId: userId }
+      // client_reference_id: userId, // Important for linking Stripe customer to your user
+      // metadata: { userId: userId } // General metadata for the session
     });
 
     if (session.url) {
@@ -57,4 +70,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message || 'An unknown error occurred with Stripe.' }, { status: 500 });
   }
 }
-
