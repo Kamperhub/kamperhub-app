@@ -53,7 +53,7 @@ export function GooglePlacesAutocompleteInput<
     try {
       const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
         fields: ["formatted_address", "geometry", "name"],
-        types: ["geocode"],
+        types: ["geocode"], // Use geocode for broader results including establishments
       });
       autocompleteRef.current = autocomplete;
 
@@ -91,7 +91,10 @@ export function GooglePlacesAutocompleteInput<
       }
        autocompleteRef.current = null; // Clean up the instance itself
     };
-  }, [name, setValue]); // `name` prop and `setValue` function are stable dependencies
+  // Using an empty dependency array to ensure this runs once on mount and cleans up on unmount.
+  // The necessary dependencies (inputRef, google API) are checked internally.
+  // `name` and `setValue` are stable for a given instance of this component.
+  }, []); 
 
   return (
     <div>
