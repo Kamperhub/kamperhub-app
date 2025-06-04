@@ -28,7 +28,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import type { DateRange } from 'react-day-picker';
-import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesAutocompleteInput'; // Import shared component
+import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesAutocompleteInput'; 
 
 const tripPlannerSchema = z.object({
   startLocation: z.string().min(3, "Start location is required (min 3 chars)"),
@@ -49,7 +49,6 @@ const tripPlannerSchema = z.object({
   path: ["dateRange"],
 });
 
-// Removed inline GooglePlacesAutocompleteInput component definition
 
 export function TripPlannerClient() {
   const { control, handleSubmit, formState: { errors }, setValue, getValues, reset } = useForm<TripPlannerFormValues>({
@@ -413,6 +412,7 @@ export function TripPlannerClient() {
               placeholder="e.g., Sydney, NSW"
               errors={errors}
               setValue={setValue}
+              isApiReady={isGoogleApiReady}
             />
             <GooglePlacesAutocompleteInput
               control={control}
@@ -421,6 +421,7 @@ export function TripPlannerClient() {
               placeholder="e.g., Melbourne, VIC"
               errors={errors}
               setValue={setValue}
+              isApiReady={isGoogleApiReady}
             />
             
             <div>

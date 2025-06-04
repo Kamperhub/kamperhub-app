@@ -17,6 +17,7 @@ interface GooglePlacesAutocompleteInputProps<
   placeholder?: string;
   errors: FieldErrors<TFieldValues>;
   setValue: UseFormSetValue<TFieldValues>;
+  isApiReady: boolean; // New prop
 }
 
 export function GooglePlacesAutocompleteInput<
@@ -29,12 +30,14 @@ export function GooglePlacesAutocompleteInput<
   placeholder,
   errors,
   setValue,
+  isApiReady, // Destructure new prop
 }: GooglePlacesAutocompleteInputProps<TFieldValues, TName>) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
     if (
+      !isApiReady || // Check the new prop first
       !inputRef.current ||
       typeof window.google === 'undefined' ||
       !window.google.maps ||
@@ -53,7 +56,7 @@ export function GooglePlacesAutocompleteInput<
     try {
       const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
         fields: ["formatted_address", "geometry", "name"],
-        types: ["geocode"], // Use geocode for broader results including establishments
+        types: ["geocode"], 
       });
       autocompleteRef.current = autocomplete;
 
@@ -62,7 +65,6 @@ export function GooglePlacesAutocompleteInput<
         if (place && place.formatted_address) {
           setValue(name, place.formatted_address as any, { shouldValidate: true, shouldDirty: true });
         } else if (inputRef.current) {
-          // Fallback to current input value if place is not well-formed, allowing manual entry
           setValue(name, inputRef.current.value as any, { shouldValidate: true, shouldDirty: true });
         }
       });
@@ -89,12 +91,10 @@ export function GooglePlacesAutocompleteInput<
       if (autocompleteRef.current && typeof window.google !== 'undefined' && window.google.maps && window.google.maps.event) {
         window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
       }
-       autocompleteRef.current = null; // Clean up the instance itself
+       autocompleteRef.current = null; 
     };
-  // Using an empty dependency array to ensure this runs once on mount and cleans up on unmount.
-  // The necessary dependencies (inputRef, google API) are checked internally.
-  // `name` and `setValue` are stable for a given instance of this component.
-  }, []); 
+  // Use isApiReady in the dependency array. Name and setValue are stable from react-hook-form for a given instance.
+  }, [isApiReady, name, setValue]); 
 
   return (
     <div>
@@ -116,7 +116,7 @@ export function GooglePlacesAutocompleteInput<
             value={field.value || ''}
             placeholder={placeholder}
             className="font-body"
-            autoComplete="off" // Important for custom autocomplete
+            autoComplete="off" 
           />
         )}
       />
