@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { navItems } from '@/lib/navigation';
-import { MountainSnow } from 'lucide-react';
+import { Caravan } from 'lucide-react'; // Changed from MountainSnow
 
 export default function DashboardPage() {
   const features = navItems.filter(item => item.href !== '/'); // Exclude Dashboard itself
@@ -11,7 +11,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <header className="text-center py-8">
-        <MountainSnow className="h-16 w-16 mx-auto text-primary mb-4" />
+        <Caravan className="h-16 w-16 mx-auto text-primary mb-4" /> {/* Changed icon here */}
         <h1 className="text-4xl md:text-5xl font-headline text-primary mb-2">Welcome to KamperHub</h1>
         <p className="text-lg text-muted-foreground font-body max-w-2xl mx-auto">
           Your all-in-one companion for safer and more enjoyable caravanning adventures. Manage your vehicle weights, checklists, routes, and more!
