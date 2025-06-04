@@ -30,15 +30,16 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
   }, [items]);
 
   const currentCaravanMass = caravanSpecs.tareMass + totalWeight;
-  const remainingPayloadATM = caravanSpecs.atm - currentCaravanMass;
-  // GTM calculation is complex and depends on towball download, which varies with load distribution.
-  // For simplicity, we'll use a rough GTM check here. A more accurate GTM would need towball weight input.
+  const remainingPayloadATM = caravanSpecs.atm > 0 ? caravanSpecs.atm - currentCaravanMass : 0;
+  
   const estimatedTowballDownload = totalWeight * 0.1; // Common estimate: 10% of payload
   const currentLoadOnAxles = currentCaravanMass - estimatedTowballDownload;
-  const remainingPayloadGTM = caravanSpecs.gtm - currentLoadOnAxles;
+  const remainingPayloadGTM = caravanSpecs.gtm > 0 ? caravanSpecs.gtm - currentLoadOnAxles : 0;
 
 
   const atmUsagePercentage = caravanSpecs.atm > 0 ? (currentCaravanMass / caravanSpecs.atm) * 100 : 0;
+  const gtmUsagePercentage = caravanSpecs.gtm > 0 ? (currentLoadOnAxles / caravanSpecs.gtm) * 100 : 0;
+  const towballUsagePercentage = caravanSpecs.maxTowballDownload > 0 ? (estimatedTowballDownload / caravanSpecs.maxTowballDownload) * 100 : 0;
 
 
   const handleAddItem = () => {
@@ -91,9 +92,13 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
     toast({ title: "Item Removed", description: "Item has been removed from inventory." });
   };
 
-  const getAlertVariant = (percentage: number) => {
-    if (percentage > 100) return "destructive";
-    if (percentage > 90) return "destructive"; 
+  // Determines the alert variant based on current value vs limit.
+  // "destructive" if over limit, "default" otherwise.
+  // Considers 90% usage as a threshold for "nearing limit" message, but style remains default unless over.
+  const getAlertStylingVariant = (currentValue: number, limit: number) => {
+    if (limit <= 0) return "default"; // Specs not set or invalid
+    if (currentValue > limit) return "destructive"; // Truly over limit
+    // if (currentValue > limit * 0.9) return "warning"; // shadcn doesn't have 'warning' by default, could be destructive too if desired
     return "default";
   };
   
@@ -157,41 +162,81 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
         <div className="space-y-4 pt-4">
           <h3 className="text-xl font-headline text-primary">Weight Summary & Compliance</h3>
           
-          <Alert variant={getAlertVariant(atmUsagePercentage)}>
+          <Alert variant={getAlertStylingVariant(currentCaravanMass, caravanSpecs.atm)}>
             <AlertTitle className="font-headline">ATM Status: {currentCaravanMass.toFixed(1)}kg / {caravanSpecs.atm > 0 ? caravanSpecs.atm.toFixed(0) : 'N/A'}kg</AlertTitle>
             <AlertDescription className="font-body">
-              Remaining Payload (ATM): {caravanSpecs.atm > 0 ? remainingPayloadATM.toFixed(1) : 'N/A'} kg.
-              {atmUsagePercentage > 100 && caravanSpecs.atm > 0 && " You are OVER the ATM limit!"}
-              {atmUsagePercentage > 90 && atmUsagePercentage <= 100 && caravanSpecs.atm > 0 && " You are nearing the ATM limit."}
-              {caravanSpecs.atm === 0 && " ATM not specified for active caravan. Cannot calculate usage."}
+              {caravanSpecs.atm > 0 ? (
+                <>
+                  Remaining Payload (ATM): {remainingPayloadATM.toFixed(1)} kg.
+                  {atmUsagePercentage > 100 ? (
+                    <>
+                      <br />
+                      <span className="font-semibold">You are OVER the ATM limit!</span>
+                      {" Suggestions: Remove heavy items, choose lighter alternatives, or reduce quantities."}
+                    </>
+                  ) : atmUsagePercentage > 90 ? (
+                    " You are nearing the ATM limit."
+                  ) : (
+                    "" 
+                  )}
+                </>
+              ) : (
+                "ATM not specified for active caravan. Cannot calculate usage."
+              )}
             </AlertDescription>
-            {caravanSpecs.atm > 0 && <Progress value={Math.min(atmUsagePercentage, 100)} className="mt-2 [&>div]:bg-primary" />}
-            {caravanSpecs.atm > 0 && atmUsagePercentage > 100 &&  <Progress value={atmUsagePercentage - 100} className="mt-1 [&>div]:bg-destructive" />}
+            {caravanSpecs.atm > 0 && (
+              <>
+                <Progress value={Math.min(atmUsagePercentage, 100)} className="mt-2 [&>div]:bg-primary" />
+                {atmUsagePercentage > 100 &&  <Progress value={atmUsagePercentage - 100} className="mt-1 [&>div]:bg-destructive" />}
+              </>
+            )}
           </Alert>
 
           {caravanSpecs.gtm > 0 && (
-            <Alert variant={currentLoadOnAxles > caravanSpecs.gtm ? "destructive" : "default"}>
+            <Alert variant={getAlertStylingVariant(currentLoadOnAxles, caravanSpecs.gtm)}>
                 <AlertTitle className="font-headline">GTM Status: {currentLoadOnAxles.toFixed(1)}kg / {caravanSpecs.gtm.toFixed(0)}kg</AlertTitle>
                 <AlertDescription className="font-body">
                 Remaining Payload (GTM): {remainingPayloadGTM.toFixed(1)} kg. 
-                Ensure proper weight distribution. Towball download significantly impacts GTM.
-                {currentLoadOnAxles > caravanSpecs.gtm && " You may be OVER the GTM limit!"}
+                Ensure proper weight distribution as towball download significantly impacts GTM.
+                {gtmUsagePercentage > 100 ? (
+                    <>
+                        <br />
+                        <span className="font-semibold">You may be OVER the GTM limit!</span>
+                        {" Suggestions: Reduce overall load or try moving heavier items closer to the caravan's axles."}
+                    </>
+                ) : gtmUsagePercentage > 90 ? (
+                    " You are nearing the GTM limit."
+                ) : (
+                    ""
+                )}
                 </AlertDescription>
-                {caravanSpecs.gtm > 0 && <Progress value={Math.min((currentLoadOnAxles/caravanSpecs.gtm)*100, 100)} className="mt-2 [&>div]:bg-primary" />}
-                 {caravanSpecs.gtm > 0 && currentLoadOnAxles > caravanSpecs.gtm &&  <Progress value={((currentLoadOnAxles/caravanSpecs.gtm)*100) - 100} className="mt-1 [&>div]:bg-destructive" />}
+                <>
+                    <Progress value={Math.min(gtmUsagePercentage, 100)} className="mt-2 [&>div]:bg-primary" />
+                    {gtmUsagePercentage > 100 &&  <Progress value={gtmUsagePercentage - 100} className="mt-1 [&>div]:bg-destructive" />}
+                </>
             </Alert>
           )}
            
           {caravanSpecs.maxTowballDownload > 0 && (
-            <Alert variant={estimatedTowballDownload > caravanSpecs.maxTowballDownload ? "destructive" : "default"}>
+            <Alert variant={getAlertStylingVariant(estimatedTowballDownload, caravanSpecs.maxTowballDownload)}>
                 <AlertTitle className="font-headline">Est. Towball Download: {estimatedTowballDownload.toFixed(1)}kg / {caravanSpecs.maxTowballDownload.toFixed(0)}kg</AlertTitle>
                 <AlertDescription className="font-body">
                 Remaining Capacity (Towball): {(caravanSpecs.maxTowballDownload - estimatedTowballDownload).toFixed(1)} kg. 
                 Adjust load distribution for optimal towball mass (typically 7-15% of ATM).
-                {estimatedTowballDownload > caravanSpecs.maxTowballDownload && " Your estimated towball download might EXCEED the limit!"}
+                {towballUsagePercentage > 100 ? (
+                    <>
+                        <br />
+                        <span className="font-semibold">Your estimated towball download might EXCEED the limit!</span>
+                        {" Suggestions: Try moving heavier items further back from the drawbar (towards or just behind the axles)."}
+                    </>
+                ) : /* Placeholder for too low towball mass warning */ (
+                    ""
+                )}
                 </AlertDescription>
-                 {caravanSpecs.maxTowballDownload > 0 && <Progress value={Math.min((estimatedTowballDownload/caravanSpecs.maxTowballDownload)*100, 100)} className="mt-2 [&>div]:bg-primary" />}
-                 {caravanSpecs.maxTowballDownload > 0 && estimatedTowballDownload > caravanSpecs.maxTowballDownload &&  <Progress value={((estimatedTowballDownload/caravanSpecs.maxTowballDownload)*100) - 100} className="mt-1 [&>div]:bg-destructive" />}
+                 <>
+                    <Progress value={Math.min(towballUsagePercentage, 100)} className="mt-2 [&>div]:bg-primary" />
+                    {towballUsagePercentage > 100 &&  <Progress value={towballUsagePercentage - 100} className="mt-1 [&>div]:bg-destructive" />}
+                 </>
             </Alert>
           )}
         </div>
@@ -202,11 +247,13 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
           Always verify weights at a weighbridge. 
           Your caravan's specs: Tare: {caravanSpecs.tareMass > 0 ? `${caravanSpecs.tareMass.toFixed(0)}kg` : 'N/A'}, 
           ATM: {caravanSpecs.atm > 0 ? `${caravanSpecs.atm.toFixed(0)}kg` : 'N/A'}, 
-          GTM: {caravanSpecs.gtm > 0 ? `${caravanSpecs.gtm.toFixed(0)}kg` : 'N/A'}.
+          GTM: {caravanSpecs.gtm > 0 ? `${caravanSpecs.gtm.toFixed(0)}kg` : 'N/A'},
+          Max Towball: {caravanSpecs.maxTowballDownload > 0 ? `${caravanSpecs.maxTowballDownload.toFixed(0)}kg` : 'N/A'}.
           <br />
-          Tare: Base weight of the empty caravan. ATM: Max loaded weight (uncoupled). GTM: Max weight on axles (coupled). Towball Download: Downward force on towbar.
+          <strong>Tare:</strong> Base weight of the empty caravan. <strong>ATM:</strong> Max loaded weight (uncoupled). <strong>GTM:</strong> Max weight on axles (coupled). <strong>Towball Download:</strong> Downward force on towbar.
         </p>
       </CardFooter>
     </Card>
   );
 }
+
