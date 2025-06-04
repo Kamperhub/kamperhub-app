@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useEffect, useRef } from 'react';
 
 const bookingSchema = z.object({
   siteName: z.string().min(1, "Site name is required"),
@@ -61,13 +62,68 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
     },
   });
 
+  const locationAddressInputRef = useRef<HTMLInputElement | null>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+
+  useEffect(() => {
+    if (typeof window.google === 'undefined' || !window.google.maps || !window.google.maps.places || !locationAddressInputRef.current) {
+      console.warn("Google Maps API not ready for BookingForm autocomplete or input ref not available.");
+      return;
+    }
+
+    if (autocompleteRef.current && typeof window.google.maps.event !== 'undefined') {
+      window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+    }
+
+    try {
+      const autocomplete = new window.google.maps.places.Autocomplete(locationAddressInputRef.current, {
+        fields: ["formatted_address", "name"],
+        types: ["address"],
+      });
+      autocompleteRef.current = autocomplete;
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place && place.formatted_address) {
+          setValue("locationAddress", place.formatted_address, { shouldValidate: true, shouldDirty: true });
+        } else if (locationAddressInputRef.current) {
+          setValue("locationAddress", locationAddressInputRef.current.value, { shouldValidate: true, shouldDirty: true });
+        }
+      });
+    } catch (error) {
+      console.error("Error initializing Google Places Autocomplete for booking address:", error);
+    }
+
+    const currentInputRef = locationAddressInputRef.current;
+    const onKeyDown = (event: KeyboardEvent) => {
+      const pacContainer = document.querySelector('.pac-container');
+      if (event.key === 'Enter' && pacContainer && getComputedStyle(pacContainer).display !== 'none') {
+        event.preventDefault();
+      }
+    };
+
+    if (currentInputRef) {
+      currentInputRef.addEventListener('keydown', onKeyDown);
+    }
+
+    return () => {
+      if (currentInputRef) {
+        currentInputRef.removeEventListener('keydown', onKeyDown);
+      }
+      if (autocompleteRef.current && typeof window.google !== 'undefined' && window.google.maps && window.google.maps.event) {
+        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      }
+      autocompleteRef.current = null;
+    };
+  }, [setValue]);
+
+
   const onSubmit: SubmitHandler<BookingFormData> = (data) => {
     onSave(data);
-    reset(); // Reset form after saving
+    reset(); 
   };
 
   const checkInDateValue = watch("checkInDate");
-  const checkOutDateValue = watch("checkOutDate");
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -149,7 +205,25 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
       
       <div>
         <Label htmlFor="locationAddress" className="font-body">Location / Address</Label>
-        <Input id="locationAddress" {...register("locationAddress")} placeholder="e.g., 123 Scenic Route, Nature Town" className="font-body" />
+        <Controller
+          name="locationAddress"
+          control={control}
+          render={({ field }) => (
+            <Input
+              id="locationAddress"
+              ref={(el) => {
+                field.ref(el);
+                locationAddressInputRef.current = el;
+              }}
+              onChange={(e) => field.onChange(e.target.value)}
+              onBlur={field.onBlur}
+              value={field.value || ''}
+              placeholder="e.g., 123 Scenic Route, Nature Town"
+              className="font-body"
+              autoComplete="off"
+            />
+          )}
+        />
         {errors.locationAddress && <p className="text-sm text-destructive font-body mt-1">{errors.locationAddress.message}</p>}
       </div>
 
