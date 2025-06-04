@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
-import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays } from 'lucide-react'; // Ensure Save is imported
+import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from "date-fns";
@@ -257,9 +257,6 @@ export function TripPlannerClient() {
           });
           setRouteDetails(recalledTrip.routeDetails);
           setFuelEstimate(recalledTrip.fuelEstimate);
-          // Future: if DirectionsResult was stored, could setDirectionsResponse here for immediate polyline.
-          // For now, user would need to replan to see polyline.
-
           localStorage.removeItem(RECALLED_TRIP_DATA_KEY);
           toast({ title: "Trip Recalled", description: `"${recalledTrip.name}" loaded into planner.` });
         }
@@ -280,10 +277,10 @@ export function TripPlannerClient() {
       polylineRef.current = null;
     }
   
-    if (directionsResponse && directionsResponse.routes && directionsResponse.routes.length > 0) {
+    if (directionsResponse && directionsResponse.routes && directionsResponse.routes.length > 0 && window.google && window.google.maps) {
       const route = directionsResponse.routes[0];
       
-      if (route.overview_path && route.overview_path.length > 0 && window.google && window.google.maps) {
+      if (route.overview_path && route.overview_path.length > 0) {
         const newPolyline = new window.google.maps.Polyline({
           path: route.overview_path,
           strokeColor: 'hsl(var(--primary))', 
@@ -416,7 +413,7 @@ export function TripPlannerClient() {
     console.log("[KamperHub TripPlannerClient] Current form values:", getValues());
   
     if (!routeDetails) {
-      console.error("[KamperHub TripPlannerClient] Save Aborted: routeDetails is falsy.");
+      console.error("[KamperHub TripPlannerClient] Save Aborted: routeDetails is falsy. No trip details to save.");
       toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
       return;
     }
@@ -600,23 +597,41 @@ export function TripPlannerClient() {
 
         {routeDetails && (
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="font-headline flex items-center"><Fuel className="mr-2 h-6 w-6 text-primary" /> Trip Summary</CardTitle>
-              {/* New Save Trip Button - Initial Test */}
-              <Button 
+              <div
                 onClick={() => {
-                  console.log('[KamperHub New Button] Save Trip clicked');
-                  // Temporarily call handleSaveTrip directly if the log above works
-                  // Otherwise, we'll connect it properly after confirming the click
-                  handleSaveTrip(); 
+                  console.log('[KamperHub DEBUG] Wrapper div clicked.');
+                  if (routeDetails) {
+                    console.log('[KamperHub DEBUG] Route details exist, calling handleSaveTrip.');
+                    handleSaveTrip();
+                  } else {
+                    console.log('[KamperHub DEBUG] No route details, save operation aborted by wrapper.');
+                     toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
+                  }
                 }}
-                variant="outline" 
-                size="sm" 
-                className="font-body"
-                disabled={!routeDetails} // Ensure it's only enabled when there are details
+                style={{ position: 'relative', zIndex: 1000, display: 'inline-block', cursor: routeDetails ? 'pointer' : 'default' }}
+                aria-label="Save Trip" // For accessibility
+                role="button" // For accessibility
+                tabIndex={routeDetails ? 0 : -1} // For accessibility
+                onKeyDown={(e) => { // Keyboard accessibility for the div
+                  if (routeDetails && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    handleSaveTrip();
+                  }
+                }}
               >
-                <Save className="mr-2 h-4 w-4" /> Save Trip
-              </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="font-body"
+                  disabled={!routeDetails}
+                  // onClick is intentionally removed from Button component for this diagnostic test
+                  aria-hidden="true" // The div is the interactive element now
+                >
+                  <Save className="mr-2 h-4 w-4" /> Save Trip
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="font-body"><strong>Distance:</strong> {routeDetails.distance}</div>
