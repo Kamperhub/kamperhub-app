@@ -70,23 +70,22 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
       typeof window.google === 'undefined' ||
       !window.google.maps ||
       !window.google.maps.places ||
-      typeof window.google.maps.places.Autocomplete !== 'function' || // More specific check
+      typeof window.google.maps.places.Autocomplete !== 'function' || 
       !locationAddressInputRef.current
     ) {
       console.warn("Google Maps Autocomplete API not ready for BookingForm or input ref not available.");
       return;
     }
 
-    // Clear any existing autocomplete instance first
     if (autocompleteRef.current && typeof window.google.maps.event !== 'undefined') {
       window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
-      autocompleteRef.current = null; // Explicitly nullify
+      autocompleteRef.current = null; 
     }
 
     try {
       const autocomplete = new window.google.maps.places.Autocomplete(locationAddressInputRef.current, {
-        fields: ["formatted_address", "name"], // "name" can sometimes be useful for site names
-        types: ["address"], // Can be broadened to "establishment" or "geocode" if needed
+        fields: ["formatted_address", "name"], 
+        types: ["geocode"], // Changed from ["address"] to ["geocode"]
       });
       autocompleteRef.current = autocomplete;
 
@@ -95,8 +94,6 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
         if (place && place.formatted_address) {
           setValue("locationAddress", place.formatted_address, { shouldValidate: true, shouldDirty: true });
         } else if (locationAddressInputRef.current) {
-          // Fallback to current input value if place is not fully formed,
-          // but user might have typed something valid manually.
           setValue("locationAddress", locationAddressInputRef.current.value, { shouldValidate: true, shouldDirty: true });
         }
       });
@@ -106,7 +103,6 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
 
     const currentInputRef = locationAddressInputRef.current;
     const onKeyDownPreventSubmit = (event: KeyboardEvent) => {
-      // Prevent form submission when Enter is pressed on an autocomplete suggestion
       const pacContainer = document.querySelector('.pac-container');
       if (event.key === 'Enter' && pacContainer && getComputedStyle(pacContainer).display !== 'none') {
         event.preventDefault();
@@ -124,10 +120,9 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
       if (autocompleteRef.current && typeof window.google !== 'undefined' && window.google.maps && window.google.maps.event) {
         window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
       }
-      autocompleteRef.current = null; // Ensure cleanup on unmount
+      autocompleteRef.current = null; 
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Removed setValue from dependency array
+  }, []); 
 
   const onSubmit: SubmitHandler<BookingFormData> = (data) => {
     onSave(data);
@@ -231,7 +226,7 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
               value={field.value || ''}
               placeholder="e.g., 123 Scenic Route, Nature Town"
               className="font-body"
-              autoComplete="off" // Important for custom autocomplete
+              autoComplete="off" 
             />
           )}
         />
@@ -274,5 +269,3 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
     </form>
   );
 }
-
-    
