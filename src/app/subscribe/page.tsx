@@ -1,14 +1,14 @@
 
 "use client";
 
-import React, { useEffect } from 'react'; // Added React import
+import React, { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { loadStripe } from '@stripe/stripe-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useSubscription } from '@/hooks/useSubscription'; // Import the hook
-import { CheckCircle, XCircle, Loader2, CreditCard } from 'lucide-react';
+import { useSubscription } from '@/hooks/useSubscription';
+import { CheckCircle, Loader2, CreditCard } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Ensure your Stripe publishable key is set in your environment variables
@@ -20,7 +20,7 @@ export default function SubscribePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { isSubscribed, setIsSubscribed, isLoading: isSubscriptionLoading } = useSubscription(); // Use the subscription hook
+  const { isSubscribed, setIsSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
   const [isRedirecting, setIsRedirecting] = React.useState(false);
 
   useEffect(() => {
@@ -43,24 +43,24 @@ export default function SubscribePage() {
     const canceled = searchParams.get('canceled');
 
     if (success) {
-      setIsSubscribed(true); // Set subscription status
+      setIsSubscribed(true);
       toast({
         title: "Subscription Successful!",
-        description: "Welcome to KamperHub Pro! Your trial has started. You now have access to all features.",
+        description: "Welcome to KamperHub Pro! You now have access to all features.",
         variant: "default",
         className: "bg-green-500 text-white",
       });
-      router.replace('/subscribe'); // Remove query params
+      router.replace('/subscribe'); 
     }
 
     if (canceled) {
-      setIsSubscribed(false); // Ensure subscription is false if cancelled
+      setIsSubscribed(false);
       toast({
         title: "Subscription Canceled",
         description: "Your subscription process was canceled. You can try again anytime.",
         variant: "destructive",
       });
-      router.replace('/subscribe'); // Remove query params
+      router.replace('/subscribe');
     }
   }, [searchParams, toast, router, setIsSubscribed]);
 
@@ -90,14 +90,11 @@ export default function SubscribePage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        // You might want to send user ID or other details if you have auth
-        // body: JSON.stringify({ userId: 'some-user-id' }), 
       });
 
       const sessionData = await response.json();
 
       if (response.ok && sessionData.url) {
-        // Redirect to Stripe Checkout
         window.location.href = sessionData.url;
       } else {
         throw new Error(sessionData.error || 'Failed to create Stripe session.');
@@ -146,7 +143,7 @@ export default function SubscribePage() {
           <CardDescription className="font-body text-center">
             {isSubscribed 
               ? "Thank you for being a Pro member. Enjoy all features!" 
-              : "Access all premium features, unlimited planning, and more with a 3-day free trial."
+              : "Access all premium features, unlimited planning, and more."
             }
           </CardDescription>
         </CardHeader>
@@ -161,9 +158,9 @@ export default function SubscribePage() {
             </div>
           ) : (
             <>
-              <p className="text-4xl font-headline text-accent">$8.99 <span className="text-lg text-muted-foreground">/ month</span></p>
+              <p className="text-4xl font-headline text-accent">Unlock Full Access</p>
               <p className="font-body text-muted-foreground">
-                After your 3-day free trial. Cancel anytime.
+                Subscribe to KamperHub Pro.
                 <br />
                 (Actual price is set in your Stripe Dashboard via STRIPE_PRICE_ID)
               </p>
@@ -177,7 +174,7 @@ export default function SubscribePage() {
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Redirecting to Stripe...
                   </>
                 ) : (
-                  "Start 3-Day Free Trial"
+                  "Subscribe to KamperHub Pro"
                 )}
               </Button>
                {!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && (
@@ -193,4 +190,3 @@ export default function SubscribePage() {
     </div>
   );
 }
-

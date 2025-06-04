@@ -4,8 +4,6 @@ import './globals.css';
 import { AppShell } from '@/components/layout/AppShell';
 import { Toaster } from "@/components/ui/toaster";
 import { SubscriptionProvider } from '@/hooks/useSubscription';
-import { AuthProvider } from '@/contexts/AuthContext'; // Import AuthProvider
-import { AuthGuard } from '@/components/layout/AuthGuard'; // Import AuthGuard
 
 export const metadata: Metadata = {
   title: 'KamperHub',
@@ -28,13 +26,9 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <SubscriptionProvider>
-          <AuthProvider>
-            <AuthGuard> {/* AuthGuard wraps AppShell and children */}
-              <AppShell>
-                {children}
-              </AppShell>
-            </AuthGuard>
-          </AuthProvider>
+          <AppShell>
+            {children}
+          </AppShell>
         </SubscriptionProvider>
         <Toaster />
       </body>

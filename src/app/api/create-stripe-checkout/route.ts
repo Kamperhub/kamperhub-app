@@ -49,11 +49,11 @@ export async function POST(req: NextRequest) {
         },
       ],
       mode: 'subscription', 
-      subscription_data: {
-        trial_period_days: 3, // Add 3-day trial period
+      // Removed trial_period_days
+      // subscription_data: {
         // You might also want to pass metadata specific to the subscription
         // metadata: { userId: userId } 
-      },
+      // },
       success_url: SUCCESS_URL,
       cancel_url: CANCEL_URL,
       // client_reference_id: userId, // Important for linking Stripe customer to your user
