@@ -14,35 +14,55 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 
 interface InventoryListProps {
-  caravanSpecs: CaravanWeightData; // Assume this is passed from a parent component or context
+  caravanSpecs: CaravanWeightData;
 }
 
 export function InventoryList({ caravanSpecs }: InventoryListProps) {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [itemName, setItemName] = useState('');
   const [itemWeight, setItemWeight] = useState('');
-  const [itemCategory, setItemCategory] = useState('');
+  const [itemQuantity, setItemQuantity] = useState('1'); // Default quantity to 1
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const { toast } = useToast();
 
-  const totalWeight = useMemo(() => items.reduce((sum, item) => sum + item.weight, 0), [items]);
+  const totalWeight = useMemo(() => {
+    return items.reduce((sum, item) => sum + (item.weight * item.quantity), 0);
+  }, [items]);
+
   const currentCaravanMass = caravanSpecs.tareMass + totalWeight;
   const remainingPayloadATM = caravanSpecs.atm - currentCaravanMass;
-  const remainingPayloadGTM = caravanSpecs.gtm - (currentCaravanMass - (0.1 * currentCaravanMass)); // Assuming towball download is 10% of current mass for GTM check
+  // GTM calculation is complex and depends on towball download, which varies with load distribution.
+  // For simplicity, we'll use a rough GTM check here. A more accurate GTM would need towball weight input.
+  const estimatedTowballDownload = totalWeight * 0.1; // Common estimate: 10% of payload
+  const currentLoadOnAxles = currentCaravanMass - estimatedTowballDownload;
+  const remainingPayloadGTM = caravanSpecs.gtm - currentLoadOnAxles;
+
 
   const atmUsagePercentage = caravanSpecs.atm > 0 ? (currentCaravanMass / caravanSpecs.atm) * 100 : 0;
 
 
   const handleAddItem = () => {
-    if (!itemName || !itemWeight || isNaN(parseFloat(itemWeight))) {
-      toast({ title: "Invalid Input", description: "Please enter valid item name and weight.", variant: "destructive" });
+    const weight = parseFloat(itemWeight);
+    const quantity = parseInt(itemQuantity, 10);
+
+    if (!itemName.trim()) {
+      toast({ title: "Invalid Input", description: "Please enter a valid item name.", variant: "destructive" });
       return;
     }
+    if (isNaN(weight) || weight <= 0) {
+      toast({ title: "Invalid Weight", description: "Item weight must be a positive number.", variant: "destructive" });
+      return;
+    }
+    if (isNaN(quantity) || quantity < 1) {
+      toast({ title: "Invalid Quantity", description: "Item quantity must be at least 1.", variant: "destructive" });
+      return;
+    }
+
     const newItem: InventoryItem = {
       id: editingItem ? editingItem.id : Date.now().toString(),
-      name: itemName,
-      weight: parseFloat(itemWeight),
-      category: itemCategory || 'General',
+      name: itemName.trim(),
+      weight: weight,
+      quantity: quantity,
     };
 
     if (editingItem) {
@@ -55,7 +75,7 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
     
     setItemName('');
     setItemWeight('');
-    setItemCategory('');
+    setItemQuantity('1'); // Reset quantity to 1
     setEditingItem(null);
   };
 
@@ -63,7 +83,7 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
     setEditingItem(item);
     setItemName(item.name);
     setItemWeight(item.weight.toString());
-    setItemCategory(item.category);
+    setItemQuantity(item.quantity.toString());
   };
 
   const handleDeleteItem = (id: string) => {
@@ -73,17 +93,10 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
 
   const getAlertVariant = (percentage: number) => {
     if (percentage > 100) return "destructive";
-    if (percentage > 90) return "destructive"; // Shadcn Alert doesn't have 'warning', use destructive for nearing
-    return "default"; // This will look like a normal info box
+    if (percentage > 90) return "destructive"; 
+    return "default";
   };
   
-  const getProgressColor = (percentage: number) => {
-    if (percentage > 100) return "bg-destructive";
-    if (percentage > 90) return "bg-orange-500"; // Custom orange for warning
-    return "bg-primary";
-  }
-
-
   return (
     <Card>
       <CardHeader>
@@ -96,12 +109,12 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
             <Input id="itemName" value={itemName} onChange={(e) => setItemName(e.target.value)} placeholder="e.g., Camping Chair" className="font-body"/>
           </div>
           <div>
-            <Label htmlFor="itemWeight" className="font-body">Weight (kg)</Label>
+            <Label htmlFor="itemWeight" className="font-body">Weight per Item (kg)</Label>
             <Input id="itemWeight" type="number" value={itemWeight} onChange={(e) => setItemWeight(e.target.value)} placeholder="e.g., 2.5" className="font-body"/>
           </div>
           <div>
-            <Label htmlFor="itemCategory" className="font-body">Category</Label>
-            <Input id="itemCategory" value={itemCategory} onChange={(e) => setItemCategory(e.target.value)} placeholder="e.g., Furniture" className="font-body"/>
+            <Label htmlFor="itemQuantity" className="font-body">Quantity</Label>
+            <Input id="itemQuantity" type="number" min="1" value={itemQuantity} onChange={(e) => setItemQuantity(e.target.value)} placeholder="e.g., 2" className="font-body"/>
           </div>
           <Button onClick={handleAddItem} className="md:col-span-3 bg-accent hover:bg-accent/90 text-accent-foreground font-body">
             <PlusCircle className="mr-2 h-4 w-4" /> {editingItem ? 'Update Item' : 'Add Item'}
@@ -113,8 +126,9 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
             <TableHeader>
               <TableRow>
                 <TableHead className="font-body">Name</TableHead>
-                <TableHead className="font-body">Category</TableHead>
-                <TableHead className="text-right font-body">Weight (kg)</TableHead>
+                <TableHead className="text-center font-body">Qty</TableHead>
+                <TableHead className="text-right font-body">Unit Wt. (kg)</TableHead>
+                <TableHead className="text-right font-body">Total Wt. (kg)</TableHead>
                 <TableHead className="text-right font-body">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -122,8 +136,9 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
               {items.map(item => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium font-body">{item.name}</TableCell>
-                  <TableCell className="font-body">{item.category}</TableCell>
+                  <TableCell className="text-center font-body">{item.quantity}</TableCell>
                   <TableCell className="text-right font-body">{item.weight.toFixed(1)}</TableCell>
+                  <TableCell className="text-right font-body font-semibold">{(item.weight * item.quantity).toFixed(1)}</TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button variant="ghost" size="icon" onClick={() => handleEditItem(item)}>
                       <Edit3 className="h-4 w-4" />
@@ -135,7 +150,7 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
                 </TableRow>
               ))}
             </TableBody>
-             <TableCaption className="font-body">Total Inventory Weight: {totalWeight.toFixed(1)} kg</TableCaption>
+             <TableCaption className="font-body text-base">Total Inventory Weight: {totalWeight.toFixed(1)} kg</TableCaption>
           </Table>
         )}
 
@@ -143,33 +158,40 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
           <h3 className="text-xl font-headline text-primary">Weight Summary & Compliance</h3>
           
           <Alert variant={getAlertVariant(atmUsagePercentage)}>
-            <AlertTitle className="font-headline">ATM Status: {currentCaravanMass.toFixed(1)}kg / {caravanSpecs.atm > 0 ? caravanSpecs.atm : 'N/A'}kg</AlertTitle>
+            <AlertTitle className="font-headline">ATM Status: {currentCaravanMass.toFixed(1)}kg / {caravanSpecs.atm > 0 ? caravanSpecs.atm.toFixed(0) : 'N/A'}kg</AlertTitle>
             <AlertDescription className="font-body">
               Remaining Payload (ATM): {caravanSpecs.atm > 0 ? remainingPayloadATM.toFixed(1) : 'N/A'} kg.
               {atmUsagePercentage > 100 && caravanSpecs.atm > 0 && " You are OVER the ATM limit!"}
               {atmUsagePercentage > 90 && atmUsagePercentage <= 100 && caravanSpecs.atm > 0 && " You are nearing the ATM limit."}
-              {caravanSpecs.atm === 0 && " ATM not specified for active caravan."}
+              {caravanSpecs.atm === 0 && " ATM not specified for active caravan. Cannot calculate usage."}
             </AlertDescription>
             {caravanSpecs.atm > 0 && <Progress value={Math.min(atmUsagePercentage, 100)} className="mt-2 [&>div]:bg-primary" />}
             {caravanSpecs.atm > 0 && atmUsagePercentage > 100 &&  <Progress value={atmUsagePercentage - 100} className="mt-1 [&>div]:bg-destructive" />}
           </Alert>
 
-          {/* Simplified GTM check placeholder */}
-          {caravanSpecs.gtm > 0 && currentCaravanMass > caravanSpecs.gtm && (
-             <Alert variant="destructive">
-                <AlertTitle className="font-headline">GTM Warning</AlertTitle>
+          {caravanSpecs.gtm > 0 && (
+            <Alert variant={currentLoadOnAxles > caravanSpecs.gtm ? "destructive" : "default"}>
+                <AlertTitle className="font-headline">GTM Status: {currentLoadOnAxles.toFixed(1)}kg / {caravanSpecs.gtm.toFixed(0)}kg</AlertTitle>
                 <AlertDescription className="font-body">
-                Your current estimated load might exceed GTM ({caravanSpecs.gtm}kg). Ensure proper weight distribution.
+                Remaining Payload (GTM): {remainingPayloadGTM.toFixed(1)} kg. 
+                Ensure proper weight distribution. Towball download significantly impacts GTM.
+                {currentLoadOnAxles > caravanSpecs.gtm && " You may be OVER the GTM limit!"}
                 </AlertDescription>
+                {caravanSpecs.gtm > 0 && <Progress value={Math.min((currentLoadOnAxles/caravanSpecs.gtm)*100, 100)} className="mt-2 [&>div]:bg-primary" />}
+                 {caravanSpecs.gtm > 0 && currentLoadOnAxles > caravanSpecs.gtm &&  <Progress value={((currentLoadOnAxles/caravanSpecs.gtm)*100) - 100} className="mt-1 [&>div]:bg-destructive" />}
             </Alert>
           )}
-           {/* Simplified Towball Download check placeholder */}
-          {caravanSpecs.maxTowballDownload > 0 && totalWeight * 0.1 > caravanSpecs.maxTowballDownload && ( // Example: 10% of payload on towball
-             <Alert variant="destructive">
-                <AlertTitle className="font-headline">Towball Mass Warning</AlertTitle>
+           
+          {caravanSpecs.maxTowballDownload > 0 && (
+            <Alert variant={estimatedTowballDownload > caravanSpecs.maxTowballDownload ? "destructive" : "default"}>
+                <AlertTitle className="font-headline">Est. Towball Download: {estimatedTowballDownload.toFixed(1)}kg / {caravanSpecs.maxTowballDownload.toFixed(0)}kg</AlertTitle>
                 <AlertDescription className="font-body">
-                Your estimated towball download might exceed the limit ({caravanSpecs.maxTowballDownload}kg). Adjust load distribution.
+                Remaining Capacity (Towball): {(caravanSpecs.maxTowballDownload - estimatedTowballDownload).toFixed(1)} kg. 
+                Adjust load distribution for optimal towball mass (typically 7-15% of ATM).
+                {estimatedTowballDownload > caravanSpecs.maxTowballDownload && " Your estimated towball download might EXCEED the limit!"}
                 </AlertDescription>
+                 {caravanSpecs.maxTowballDownload > 0 && <Progress value={Math.min((estimatedTowballDownload/caravanSpecs.maxTowballDownload)*100, 100)} className="mt-2 [&>div]:bg-primary" />}
+                 {caravanSpecs.maxTowballDownload > 0 && estimatedTowballDownload > caravanSpecs.maxTowballDownload &&  <Progress value={((estimatedTowballDownload/caravanSpecs.maxTowballDownload)*100) - 100} className="mt-1 [&>div]:bg-destructive" />}
             </Alert>
           )}
         </div>
@@ -178,11 +200,11 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
       <CardFooter>
         <p className="text-sm text-muted-foreground font-body">
           Always verify weights at a weighbridge. 
-          Your caravan's specs: Tare: {caravanSpecs.tareMass > 0 ? `${caravanSpecs.tareMass}kg` : 'N/A'}, 
-          ATM: {caravanSpecs.atm > 0 ? `${caravanSpecs.atm}kg` : 'N/A'}, 
-          GTM: {caravanSpecs.gtm > 0 ? `${caravanSpecs.gtm}kg` : 'N/A'}.
+          Your caravan's specs: Tare: {caravanSpecs.tareMass > 0 ? `${caravanSpecs.tareMass.toFixed(0)}kg` : 'N/A'}, 
+          ATM: {caravanSpecs.atm > 0 ? `${caravanSpecs.atm.toFixed(0)}kg` : 'N/A'}, 
+          GTM: {caravanSpecs.gtm > 0 ? `${caravanSpecs.gtm.toFixed(0)}kg` : 'N/A'}.
           <br />
-          Tare: Base weight of the empty caravan. ATM: Max loaded weight (uncoupled). GTM: Max weight on axles (coupled).
+          Tare: Base weight of the empty caravan. ATM: Max loaded weight (uncoupled). GTM: Max weight on axles (coupled). Towball Download: Downward force on towbar.
         </p>
       </CardFooter>
     </Card>

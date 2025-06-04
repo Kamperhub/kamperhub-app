@@ -1,8 +1,9 @@
+
 export interface InventoryItem {
   id: string;
   name: string;
-  weight: number; // in kg
-  category: string;
+  weight: number; // in kg, weight of a single unit
+  quantity: number; // number of units
 }
 
 export interface CaravanWeightData {
