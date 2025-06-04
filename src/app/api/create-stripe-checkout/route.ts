@@ -32,11 +32,14 @@ export async function POST(req: NextRequest) {
       payment_method_types: ['card'],
       line_items: [
         {
-          price: STRIPE_PRICE_ID, // Replace with your actual Price ID from Stripe
+          price: STRIPE_PRICE_ID, 
           quantity: 1,
         },
       ],
-      mode: 'subscription', // or 'payment' for one-time payments
+      mode: 'subscription', 
+      subscription_data: {
+        trial_period_days: 3, // Add 3-day trial period
+      },
       success_url: SUCCESS_URL,
       cancel_url: CANCEL_URL,
       // You can pass metadata or a client_reference_id here if you have user authentication
@@ -54,3 +57,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message || 'An unknown error occurred with Stripe.' }, { status: 500 });
   }
 }
+

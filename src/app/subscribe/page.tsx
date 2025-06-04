@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect } from 'react';
+import React, { useEffect } from 'react'; // Added React import
 import { useRouter, useSearchParams } from 'next/navigation';
 import { loadStripe } from '@stripe/stripe-js';
 import { Button } from '@/components/ui/button';
@@ -46,7 +46,7 @@ export default function SubscribePage() {
       setIsSubscribed(true); // Set subscription status
       toast({
         title: "Subscription Successful!",
-        description: "Welcome to KamperHub Pro! You now have access to all features.",
+        description: "Welcome to KamperHub Pro! Your trial has started. You now have access to all features.",
         variant: "default",
         className: "bg-green-500 text-white",
       });
@@ -146,7 +146,7 @@ export default function SubscribePage() {
           <CardDescription className="font-body text-center">
             {isSubscribed 
               ? "Thank you for being a Pro member. Enjoy all features!" 
-              : "Access all premium features, unlimited planning, and more."
+              : "Access all premium features, unlimited planning, and more with a 3-day free trial."
             }
           </CardDescription>
         </CardHeader>
@@ -161,9 +161,11 @@ export default function SubscribePage() {
             </div>
           ) : (
             <>
-              <p className="text-4xl font-headline text-accent">$9.99 <span className="text-lg text-muted-foreground">/ month</span></p>
+              <p className="text-4xl font-headline text-accent">$8.99 <span className="text-lg text-muted-foreground">/ month</span></p>
               <p className="font-body text-muted-foreground">
-                (This is a placeholder price. Actual price is set in your Stripe Dashboard via STRIPE_PRICE_ID)
+                After your 3-day free trial. Cancel anytime.
+                <br />
+                (Actual price is set in your Stripe Dashboard via STRIPE_PRICE_ID)
               </p>
               <Button 
                 onClick={handleSubscribeClick} 
@@ -175,7 +177,7 @@ export default function SubscribePage() {
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Redirecting to Stripe...
                   </>
                 ) : (
-                  "Subscribe Now"
+                  "Start 3-Day Free Trial"
                 )}
               </Button>
                {!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && (
@@ -191,3 +193,4 @@ export default function SubscribePage() {
     </div>
   );
 }
+
