@@ -69,6 +69,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
         <div>
           <Label htmlFor="tareMass" className="font-body">Tare Mass (kg)</Label>
           <Input id="tareMass" type="number" {...register("tareMass")} placeholder="e.g., 1800" className="font-body" />
+          <p className="text-xs text-muted-foreground font-body mt-1">Weight of the empty caravan (no water, gas, payload).</p>
           {errors.tareMass && <p className="text-sm text-destructive font-body mt-1">{errors.tareMass.message}</p>}
         </div>
       </div>
@@ -76,17 +77,20 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
         <div>
           <Label htmlFor="atm" className="font-body">Aggregate Trailer Mass (ATM) (kg)</Label>
           <Input id="atm" type="number" {...register("atm")} placeholder="e.g., 2500" className="font-body" />
+          <p className="text-xs text-muted-foreground font-body mt-1">Max total weight of the loaded caravan (uncoupled).</p>
           {errors.atm && <p className="text-sm text-destructive font-body mt-1">{errors.atm.message}</p>}
         </div>
         <div>
           <Label htmlFor="gtm" className="font-body">Gross Trailer Mass (GTM) (kg)</Label>
           <Input id="gtm" type="number" {...register("gtm")} placeholder="e.g., 2350" className="font-body" />
+          <p className="text-xs text-muted-foreground font-body mt-1">Max weight on caravan axles (when coupled).</p>
           {errors.gtm && <p className="text-sm text-destructive font-body mt-1">{errors.gtm.message}</p>}
         </div>
       </div>
       <div>
         <Label htmlFor="maxTowballDownload" className="font-body">Max Towball Download (kg)</Label>
         <Input id="maxTowballDownload" type="number" {...register("maxTowballDownload")} placeholder="e.g., 250" className="font-body" />
+        <p className="text-xs text-muted-foreground font-body mt-1">Max weight the caravan can put on the towball.</p>
         {errors.maxTowballDownload && <p className="text-sm text-destructive font-body mt-1">{errors.maxTowballDownload.message}</p>}
       </div>
       <div className="flex justify-end gap-2 pt-4">

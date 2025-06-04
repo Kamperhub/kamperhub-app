@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -29,7 +30,7 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
   const remainingPayloadATM = caravanSpecs.atm - currentCaravanMass;
   const remainingPayloadGTM = caravanSpecs.gtm - (currentCaravanMass - (0.1 * currentCaravanMass)); // Assuming towball download is 10% of current mass for GTM check
 
-  const atmUsagePercentage = (currentCaravanMass / caravanSpecs.atm) * 100;
+  const atmUsagePercentage = caravanSpecs.atm > 0 ? (currentCaravanMass / caravanSpecs.atm) * 100 : 0;
 
 
   const handleAddItem = () => {
@@ -142,18 +143,19 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
           <h3 className="text-xl font-headline text-primary">Weight Summary & Compliance</h3>
           
           <Alert variant={getAlertVariant(atmUsagePercentage)}>
-            <AlertTitle className="font-headline">ATM Status: {currentCaravanMass.toFixed(1)}kg / {caravanSpecs.atm}kg</AlertTitle>
+            <AlertTitle className="font-headline">ATM Status: {currentCaravanMass.toFixed(1)}kg / {caravanSpecs.atm > 0 ? caravanSpecs.atm : 'N/A'}kg</AlertTitle>
             <AlertDescription className="font-body">
-              Remaining Payload (ATM): {remainingPayloadATM.toFixed(1)} kg.
-              {atmUsagePercentage > 100 && " You are OVER the ATM limit!"}
-              {atmUsagePercentage > 90 && atmUsagePercentage <= 100 && " You are nearing the ATM limit."}
+              Remaining Payload (ATM): {caravanSpecs.atm > 0 ? remainingPayloadATM.toFixed(1) : 'N/A'} kg.
+              {atmUsagePercentage > 100 && caravanSpecs.atm > 0 && " You are OVER the ATM limit!"}
+              {atmUsagePercentage > 90 && atmUsagePercentage <= 100 && caravanSpecs.atm > 0 && " You are nearing the ATM limit."}
+              {caravanSpecs.atm === 0 && " ATM not specified for active caravan."}
             </AlertDescription>
-            <Progress value={Math.min(atmUsagePercentage, 100)} className="mt-2 [&>div]:bg-primary" />
-             {atmUsagePercentage > 100 &&  <Progress value={atmUsagePercentage - 100} className="mt-1 [&>div]:bg-destructive" />}
+            {caravanSpecs.atm > 0 && <Progress value={Math.min(atmUsagePercentage, 100)} className="mt-2 [&>div]:bg-primary" />}
+            {caravanSpecs.atm > 0 && atmUsagePercentage > 100 &&  <Progress value={atmUsagePercentage - 100} className="mt-1 [&>div]:bg-destructive" />}
           </Alert>
 
           {/* Simplified GTM check placeholder */}
-          {currentCaravanMass > caravanSpecs.gtm && (
+          {caravanSpecs.gtm > 0 && currentCaravanMass > caravanSpecs.gtm && (
              <Alert variant="destructive">
                 <AlertTitle className="font-headline">GTM Warning</AlertTitle>
                 <AlertDescription className="font-body">
@@ -162,7 +164,7 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
             </Alert>
           )}
            {/* Simplified Towball Download check placeholder */}
-          {totalWeight * 0.1 > caravanSpecs.maxTowballDownload && ( // Example: 10% of payload on towball
+          {caravanSpecs.maxTowballDownload > 0 && totalWeight * 0.1 > caravanSpecs.maxTowballDownload && ( // Example: 10% of payload on towball
              <Alert variant="destructive">
                 <AlertTitle className="font-headline">Towball Mass Warning</AlertTitle>
                 <AlertDescription className="font-body">
@@ -175,7 +177,12 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
       </CardContent>
       <CardFooter>
         <p className="text-sm text-muted-foreground font-body">
-          Always verify weights at a weighbridge. Tare: {caravanSpecs.tareMass}kg, ATM: {caravanSpecs.atm}kg, GTM: {caravanSpecs.gtm}kg.
+          Always verify weights at a weighbridge. 
+          Your caravan's specs: Tare: {caravanSpecs.tareMass > 0 ? `${caravanSpecs.tareMass}kg` : 'N/A'}, 
+          ATM: {caravanSpecs.atm > 0 ? `${caravanSpecs.atm}kg` : 'N/A'}, 
+          GTM: {caravanSpecs.gtm > 0 ? `${caravanSpecs.gtm}kg` : 'N/A'}.
+          <br />
+          Tare: Base weight of the empty caravan. ATM: Max loaded weight (uncoupled). GTM: Max weight on axles (coupled).
         </p>
       </CardFooter>
     </Card>
