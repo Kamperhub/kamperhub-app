@@ -7,6 +7,7 @@ export interface VehicleFormData {
   gcm: number; // Gross Combined Mass
   maxTowCapacity: number;
   maxTowballMass: number;
+  fuelEfficiency: number; // L/100km
 }
 
 export interface StoredVehicle extends VehicleFormData {

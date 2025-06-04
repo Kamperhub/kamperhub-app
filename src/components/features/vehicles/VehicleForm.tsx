@@ -18,6 +18,7 @@ const vehicleSchema = z.object({
   gcm: z.coerce.number().positive("GCM must be positive"),
   maxTowCapacity: z.coerce.number().positive("Max Towing Capacity must be positive"),
   maxTowballMass: z.coerce.number().positive("Max Towball Mass must be positive"),
+  fuelEfficiency: z.coerce.number().min(0.1, "Fuel efficiency must be positive (L/100km)").max(100, "Fuel efficiency seems too high (max 100 L/100km)"),
 });
 
 interface VehicleFormProps {
@@ -38,13 +39,32 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
       gcm: 0,
       maxTowCapacity: 0,
       maxTowballMass: 0,
+      fuelEfficiency: 10, // Default fuel efficiency
     },
   });
 
   const onSubmit: SubmitHandler<VehicleFormData> = (data) => {
     onSave(data);
-    reset(); // Reset form after save if needed, or manage reset in parent
+    // reset(); // Reset is handled by dialog close or manager
   };
+
+  // Effect to reset form if initialData changes (e.g. when editing a new item after another)
+  React.useEffect(() => {
+    if (initialData) {
+      reset(initialData);
+    } else {
+      reset({
+        make: '',
+        model: '',
+        year: new Date().getFullYear(),
+        gvm: 0,
+        gcm: 0,
+        maxTowCapacity: 0,
+        maxTowballMass: 0,
+        fuelEfficiency: 10,
+      });
+    }
+  }, [initialData, reset]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -84,10 +104,17 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
           {errors.maxTowCapacity && <p className="text-sm text-destructive font-body mt-1">{errors.maxTowCapacity.message}</p>}
         </div>
       </div>
-      <div>
-        <Label htmlFor="maxTowballMass" className="font-body">Max Towball Mass (kg)</Label>
-        <Input id="maxTowballMass" type="number" {...register("maxTowballMass")} placeholder="e.g., 350" className="font-body" />
-        {errors.maxTowballMass && <p className="text-sm text-destructive font-body mt-1">{errors.maxTowballMass.message}</p>}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="maxTowballMass" className="font-body">Max Towball Mass (kg)</Label>
+          <Input id="maxTowballMass" type="number" {...register("maxTowballMass")} placeholder="e.g., 350" className="font-body" />
+          {errors.maxTowballMass && <p className="text-sm text-destructive font-body mt-1">{errors.maxTowballMass.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="fuelEfficiency" className="font-body">Fuel Efficiency (L/100km)</Label>
+          <Input id="fuelEfficiency" type="number" step="0.1" {...register("fuelEfficiency")} placeholder="e.g., 12.5" className="font-body" />
+          {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
+        </div>
       </div>
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading} className="font-body">

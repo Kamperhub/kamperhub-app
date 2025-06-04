@@ -4,11 +4,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { StoredVehicle, VehicleFormData } from '@/types/vehicle';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { VehicleForm } from './VehicleForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel } from 'lucide-react';
 
 const VEHICLES_STORAGE_KEY = 'kamperhub_vehicles_list';
 const ACTIVE_VEHICLE_ID_KEY = 'kamperhub_active_vehicle_id';
@@ -22,8 +22,14 @@ export function VehicleManager() {
   const [isLocalStorageReady, setIsLocalStorageReady] = useState(false);
 
   useEffect(() => {
-    setIsLocalStorageReady(true);
-    if (typeof window !== 'undefined') {
+    setIsLocalStorageReady(true); // Mark localStorage as ready immediately for SSR compatibility
+                                 // Actual localStorage access will happen in subsequent effects.
+  }, []);
+
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') { // Ensure localStorage is available
+      setIsLocalStorageReady(true);
       try {
         const storedVehicles = localStorage.getItem(VEHICLES_STORAGE_KEY);
         if (storedVehicles) {
@@ -35,22 +41,22 @@ export function VehicleManager() {
         }
       } catch (error) {
         console.error("Error loading vehicle data from localStorage:", error);
-        toast({ title: "Error Loading Vehicles", variant: "destructive" });
+        toast({ title: "Error Loading Vehicles", variant: "destructive", description: "Could not load vehicle data. Your saved vehicles might not appear." });
       }
     }
   }, [toast]);
 
   const saveVehiclesToStorage = useCallback((updatedVehicles: StoredVehicle[]) => {
-    if (!isLocalStorageReady) return;
+    if (!isLocalStorageReady || typeof window === 'undefined') return;
     try {
       localStorage.setItem(VEHICLES_STORAGE_KEY, JSON.stringify(updatedVehicles));
     } catch (error) {
-      toast({ title: "Error Saving Vehicles", variant: "destructive" });
+      toast({ title: "Error Saving Vehicles", variant: "destructive", description: "Your changes might not be saved." });
     }
   }, [toast, isLocalStorageReady]);
 
   const saveActiveVehicleIdToStorage = useCallback((id: string | null) => {
-    if (!isLocalStorageReady) return;
+    if (!isLocalStorageReady || typeof window === 'undefined') return;
     try {
       if (id) {
         localStorage.setItem(ACTIVE_VEHICLE_ID_KEY, id);
@@ -58,14 +64,14 @@ export function VehicleManager() {
         localStorage.removeItem(ACTIVE_VEHICLE_ID_KEY);
       }
     } catch (error) {
-      toast({ title: "Error Saving Active Vehicle", variant: "destructive" });
+      toast({ title: "Error Saving Active Vehicle", variant: "destructive", description: "Active vehicle selection might not be saved." });
     }
   }, [toast, isLocalStorageReady]);
 
   const handleSaveVehicle = (data: VehicleFormData) => {
     let updatedVehicles;
     if (editingVehicle) {
-      updatedVehicles = vehicles.map(v => v.id === editingVehicle.id ? { ...v, ...data } : v);
+      updatedVehicles = vehicles.map(v => v.id === editingVehicle.id ? { ...editingVehicle, ...data } : v);
       toast({ title: "Vehicle Updated", description: `${data.make} ${data.model} updated.` });
     } else {
       const newVehicle: StoredVehicle = { ...data, id: Date.now().toString() };
@@ -105,11 +111,11 @@ export function VehicleManager() {
   };
 
   const handleOpenFormForNew = () => {
-    setEditingVehicle(null);
+    setEditingVehicle(null); // Ensure we are not editing when opening for new
     setIsFormOpen(true);
   };
   
-  if (!isLocalStorageReady) {
+  if (!isLocalStorageReady && typeof window !== 'undefined') { // Show loading only on client after initial effect check
     return (
       <Card>
         <CardHeader>
@@ -122,12 +128,16 @@ export function VehicleManager() {
     );
   }
 
+
   return (
     <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle className="font-headline">Tow Vehicles</CardTitle>
-          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+          <Dialog open={isFormOpen} onOpenChange={(isOpen) => {
+            setIsFormOpen(isOpen);
+            if (!isOpen) setEditingVehicle(null); // Reset editing state when dialog closes
+          }}>
             <DialogTrigger asChild>
               <Button onClick={handleOpenFormForNew} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body">
                 <PlusCircle className="mr-2 h-4 w-4" /> Add New Vehicle
@@ -138,7 +148,7 @@ export function VehicleManager() {
                 <DialogTitle className="font-headline">{editingVehicle ? 'Edit Vehicle' : 'Add New Vehicle'}</DialogTitle>
               </DialogHeader>
               <VehicleForm
-                initialData={editingVehicle || undefined}
+                initialData={editingVehicle || undefined} // Pass undefined for new, or existing data for edit
                 onSave={handleSaveVehicle}
                 onCancel={() => { setIsFormOpen(false); setEditingVehicle(null); }}
               />
@@ -150,7 +160,7 @@ export function VehicleManager() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {vehicles.length === 0 && (
+        {vehicles.length === 0 && isLocalStorageReady && ( // Only show "no vehicles" if local storage is ready and list is empty
           <p className="text-muted-foreground text-center font-body py-4">No vehicles added yet. Click "Add New Vehicle" to start.</p>
         )}
         {vehicles.map(vehicle => (
@@ -158,21 +168,22 @@ export function VehicleManager() {
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="font-semibold font-body text-lg">{vehicle.year} {vehicle.make} {vehicle.model}</h3>
-                <div className="text-sm text-muted-foreground font-body grid grid-cols-2 gap-x-4">
+                <div className="text-sm text-muted-foreground font-body grid grid-cols-2 md:grid-cols-3 gap-x-4">
                   <span>GVM: {vehicle.gvm}kg</span>
                   <span>GCM: {vehicle.gcm}kg</span>
-                  <span>Tow Capacity: {vehicle.maxTowCapacity}kg</span>
-                  <span>Towball Mass: {vehicle.maxTowballMass}kg</span>
+                  <span>Tow: {vehicle.maxTowCapacity}kg</span>
+                  <span>Towball: {vehicle.maxTowballMass}kg</span>
+                  <span className="flex items-center"><Fuel className="w-3 h-3 mr-1 text-primary/70"/> {vehicle.fuelEfficiency}L/100km</span>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2 items-end sm:items-center">
+              <div className="flex flex-col sm:flex-row gap-2 items-end sm:items-center flex-shrink-0">
                 {activeVehicleId !== vehicle.id && (
-                  <Button variant="outline" size="sm" onClick={() => handleSetActiveVehicle(vehicle.id)} className="font-body">
+                  <Button variant="outline" size="sm" onClick={() => handleSetActiveVehicle(vehicle.id)} className="font-body whitespace-nowrap">
                     <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Set Active
                   </Button>
                 )}
                  {activeVehicleId === vehicle.id && (
-                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 border border-green-300 flex items-center font-body">
+                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 border border-green-300 flex items-center font-body whitespace-nowrap">
                     <CheckCircle className="mr-1 h-4 w-4" /> Active
                   </span>
                 )}
