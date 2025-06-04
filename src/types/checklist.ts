@@ -1,3 +1,4 @@
+
 export interface ChecklistItem {
   id: string;
   text: string;
@@ -28,3 +29,7 @@ export const initialChecklists: Record<ChecklistCategory, ChecklistItem[]> = {
     { id: 'pk5', text: 'Final walk-around check', completed: false },
   ],
 };
+
+export const CHECKLISTS_STORAGE_KEY = 'kamperhub_caravan_checklists';
+
+export type CaravanChecklists = Record<string, Partial<Record<ChecklistCategory, ChecklistItem[]>>>;

@@ -3,8 +3,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { StoredCaravan, CaravanFormData } from '@/types/caravan';
-import type { CaravanInventories } from '@/types/inventory'; // Import inventory types
-import { INVENTORY_STORAGE_KEY } from '@/types/inventory'; // Import inventory storage key
+import type { CaravanInventories } from '@/types/inventory'; 
+import { INVENTORY_STORAGE_KEY } from '@/types/inventory'; 
+import type { CaravanChecklists } from '@/types/checklist'; // Import checklist types
+import { CHECKLISTS_STORAGE_KEY } from '@/types/checklist'; // Import checklist storage key
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -88,7 +90,7 @@ export function CaravanManager() {
   const handleDeleteCaravan = (id: string) => {
     if (!isLocalStorageReady || typeof window === 'undefined') return;
     const caravanToDelete = caravans.find(c => c.id === id);
-    if (window.confirm(`Are you sure you want to delete ${caravanToDelete?.make} ${caravanToDelete?.model}? This will also delete its inventory.`)) {
+    if (window.confirm(`Are you sure you want to delete ${caravanToDelete?.make} ${caravanToDelete?.model}? This will also delete its inventory and checklists.`)) {
       // Delete caravan
       const updatedCaravans = caravans.filter(c => c.id !== id);
       setCaravans(updatedCaravans);
@@ -109,11 +111,27 @@ export function CaravanManager() {
         toast({ title: "Error Deleting Inventory", description: "Could not remove associated inventory data.", variant: "destructive" });
       }
 
+      // Delete associated checklists
+      try {
+        const allChecklistsJson = localStorage.getItem(CHECKLISTS_STORAGE_KEY);
+        if (allChecklistsJson) {
+          const allChecklists: CaravanChecklists = JSON.parse(allChecklistsJson);
+          if (allChecklists[id]) {
+            delete allChecklists[id];
+            localStorage.setItem(CHECKLISTS_STORAGE_KEY, JSON.stringify(allChecklists));
+          }
+        }
+      } catch (error) {
+        console.error("Error deleting caravan checklists from localStorage:", error);
+        toast({ title: "Error Deleting Checklists", description: "Could not remove associated checklist data.", variant: "destructive" });
+      }
+
+
       if (activeCaravanId === id) {
         setActiveCaravanId(null);
         saveActiveCaravanIdToStorage(null);
       }
-      toast({ title: "Caravan Deleted", description: `${caravanToDelete?.make} ${caravanToDelete?.model} and its inventory have been removed.` });
+      toast({ title: "Caravan Deleted", description: `${caravanToDelete?.make} ${caravanToDelete?.model}, its inventory, and checklists have been removed.` });
     }
   };
 
