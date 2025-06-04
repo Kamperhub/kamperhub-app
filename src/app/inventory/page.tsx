@@ -2,6 +2,7 @@
 "use client"; 
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation'; // Added
 import { InventoryList } from '@/components/features/inventory/InventoryList';
 import type { StoredCaravan } from '@/types/caravan'; 
 import { CARAVANS_STORAGE_KEY, ACTIVE_CARAVAN_ID_KEY } from '@/types/caravan';
@@ -23,14 +24,16 @@ export default function InventoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLocalStorageReady, setIsLocalStorageReady] = useState(false);
+  const pathname = usePathname(); // Added
 
   useEffect(() => {
-    setIsLocalStorageReady(true); // Mark as ready for conditional rendering
+    setIsLocalStorageReady(true); 
   }, []);
 
   useEffect(() => {
     if (isLocalStorageReady && typeof window !== 'undefined') {
       setIsLoading(true);
+      setError(null); // Reset error on re-fetch
       try {
         const activeCaravanId = localStorage.getItem(ACTIVE_CARAVAN_ID_KEY);
         const storedCaravansJson = localStorage.getItem(CARAVANS_STORAGE_KEY);
@@ -47,21 +50,23 @@ export default function InventoryPage() {
               maxTowballDownload: activeCaravan.maxTowballDownload,
             });
           } else {
-            setError("Active caravan data not found. Please re-select an active caravan in the Vehicles section.");
+            // Active ID exists but caravan not found in list - data inconsistency
+            setError("Active caravan data not found in your saved list. Please re-select an active caravan in the Vehicles section or add it if it was deleted.");
             setCaravanSpecs(defaultCaravanSpecs); 
           }
         } else {
-          setCaravanSpecs(null); 
+          // No active caravan ID or no caravans stored
+          setCaravanSpecs(null); // Set to null to trigger the "Active Caravan Recommended" alert
         }
       } catch (e) {
         console.error("Error loading active caravan data for Inventory:", e);
         setError("Could not load caravan data. Please try again or check your browser's storage.");
-        setCaravanSpecs(defaultCaravanSpecs);
+        setCaravanSpecs(defaultCaravanSpecs); // Fallback to default on error
       } finally {
         setIsLoading(false);
       }
     }
-  }, [isLocalStorageReady]);
+  }, [isLocalStorageReady, pathname]); // Added pathname to dependencies
 
   if (!isLocalStorageReady || isLoading) {
     return (
@@ -93,7 +98,7 @@ export default function InventoryPage() {
         </Alert>
       )}
 
-      {!error && (!caravanSpecs || caravanSpecs.tareMass === 0) && (
+      {!error && (!caravanSpecs || caravanSpecs.tareMass === 0) && ( // Show if no error, but specs are null or tareMass is 0
         <Alert variant="default" className="mb-6 bg-primary/10 border-primary/30">
           <Settings className="h-4 w-4 text-primary" />
           <AlertTitle className="font-headline text-primary">Active Caravan Recommended</AlertTitle>

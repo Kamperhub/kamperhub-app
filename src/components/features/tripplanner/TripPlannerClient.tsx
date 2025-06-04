@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useForm, type SubmitHandler, Controller, type Control, type UseFormSetValue, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { usePathname } from 'next/navigation'; // Added
 import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip } from '@/types/tripplanner';
 import { TRIP_LOG_STORAGE_KEY, RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import type { StoredVehicle } from '@/types/vehicle'; 
@@ -160,7 +161,7 @@ export function TripPlannerClient() {
     defaultValues: {
       startLocation: '',
       endLocation: '',
-      fuelEfficiency: 10, // Default, might be overridden by active vehicle
+      fuelEfficiency: 10, 
       fuelPrice: 1.80,
       dateRange: { from: undefined, to: undefined }
     }
@@ -172,6 +173,7 @@ export function TripPlannerClient() {
   const [error, setError] = useState<string | null>(null);
   const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
   const { toast } = useToast();
+  const pathname = usePathname(); // Added
   
   const map = useMap(); 
   const polylineRef = useRef<google.maps.Polyline | null>(null);
@@ -189,29 +191,14 @@ export function TripPlannerClient() {
 
 
   useEffect(() => {
+    let recalledTripLoaded = false;
     if (typeof window !== 'undefined') {
-       // Attempt to load active vehicle's fuel efficiency FIRST
-      try {
-        const activeVehicleId = localStorage.getItem(ACTIVE_VEHICLE_ID_KEY);
-        const storedVehiclesJson = localStorage.getItem(VEHICLES_STORAGE_KEY);
-        if (activeVehicleId && storedVehiclesJson) {
-          const storedVehicles: StoredVehicle[] = JSON.parse(storedVehiclesJson);
-          const activeVehicle = storedVehicles.find(v => v.id === activeVehicleId);
-          if (activeVehicle && typeof activeVehicle.fuelEfficiency === 'number') {
-            setValue('fuelEfficiency', activeVehicle.fuelEfficiency, { shouldValidate: false }); // Don't validate here, let form submit handle it
-          }
-        }
-      } catch (e) {
-        console.error("Error loading active vehicle data for Trip Planner:", e);
-        // Silently fail, it's a convenience pre-fill
-      }
-
-      // THEN, existing logic for recalled trip data
+      // Try to load recalled trip data FIRST
       try {
         const recalledTripJson = localStorage.getItem(RECALLED_TRIP_DATA_KEY);
         if (recalledTripJson) {
           const recalledTrip: LoggedTrip = JSON.parse(recalledTripJson);
-          reset({ // reset will overwrite fuelEfficiency if recalledTrip has it, which is correct.
+          reset({
             startLocation: recalledTrip.startLocationDisplay,
             endLocation: recalledTrip.endLocationDisplay,
             fuelEfficiency: recalledTrip.fuelEfficiency,
@@ -225,14 +212,36 @@ export function TripPlannerClient() {
           setFuelEstimate(recalledTrip.fuelEstimate);
           localStorage.removeItem(RECALLED_TRIP_DATA_KEY);
           toast({ title: "Trip Recalled", description: `"${recalledTrip.name}" loaded into planner.` });
+          recalledTripLoaded = true; 
         }
       } catch (e) {
         console.error("Error loading recalled trip data:", e);
         toast({ title: "Error", description: "Could not load recalled trip data.", variant: "destructive" });
       }
+
+      // If a recalled trip wasn't loaded, THEN try to load active vehicle's fuel efficiency
+      if (!recalledTripLoaded) {
+        try {
+          const activeVehicleId = localStorage.getItem(ACTIVE_VEHICLE_ID_KEY);
+          const storedVehiclesJson = localStorage.getItem(VEHICLES_STORAGE_KEY);
+          if (activeVehicleId && storedVehiclesJson) {
+            const storedVehicles: StoredVehicle[] = JSON.parse(storedVehiclesJson);
+            const activeVehicle = storedVehicles.find(v => v.id === activeVehicleId);
+            if (activeVehicle && typeof activeVehicle.fuelEfficiency === 'number') {
+              // Only set fuelEfficiency if not already set by a recalled trip
+              if (getValues('fuelEfficiency') === 10) { // Check against default or if it hasn't been touched
+                 setValue('fuelEfficiency', activeVehicle.fuelEfficiency, { shouldValidate: false });
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error loading active vehicle data for Trip Planner:", e);
+        }
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reset, setValue, toast]); // Added setValue to dependencies
+  }, [reset, setValue, toast, pathname, getValues]); // Added pathname and getValues
+
 
   useEffect(() => {
     if (map && typeof window.google !== 'undefined' && window.google.maps) {
@@ -558,7 +567,7 @@ export function TripPlannerClient() {
                         initialFocus
                         mode="range"
                         defaultMonth={field.value?.from}
-                        selected={field.value as DateRange | undefined} // Cast because RHF type might be broader
+                        selected={field.value as DateRange | undefined} 
                         onSelect={field.onChange}
                         numberOfMonths={2}
                       />
@@ -605,7 +614,7 @@ export function TripPlannerClient() {
       </Card>
 
       <div className="md:col-span-2 space-y-6">
-        <div className="relative"> {/* Wrapper for z-index context if needed */}
+        <div className="relative"> 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="font-headline flex items-center"><MapPin className="mr-2 h-6 w-6 text-primary" /> Route Map</CardTitle>
@@ -716,10 +725,10 @@ export function TripPlannerClient() {
                          }
                         }}
                         className={cn(
-                            "inline-block", // To allow styling like a button
+                            "inline-block", 
                             !routeDetails && "cursor-not-allowed"
                         )}
-                        style={{ zIndex: 1000, position: 'relative' }} // Ensure high z-index and establish stacking context
+                        style={{ zIndex: 1000, position: 'relative' }} 
                         aria-disabled={!routeDetails}
                         role="button"
                         tabIndex={routeDetails ? 0 : -1}
@@ -729,7 +738,7 @@ export function TripPlannerClient() {
                             size="sm" 
                             className="font-body"
                             disabled={!routeDetails}
-                            tabIndex={-1} // Make the inner button not focusable directly
+                            tabIndex={-1} 
                         >
                             <Save className="mr-2 h-4 w-4" /> Save Trip
                         </Button>
