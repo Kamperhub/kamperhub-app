@@ -2,12 +2,14 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { 
-  type User, 
-  onAuthStateChanged, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
+import {
+  type User,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
+  GoogleAuthProvider, // Import GoogleAuthProvider
+  signInWithPopup,      // Import signInWithPopup
   type AuthError
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase'; // Your Firebase auth instance
@@ -19,6 +21,7 @@ interface AuthContextType {
   error: string | null;
   signIn: (email: string, pass: string) => Promise<boolean>;
   signUp: (email: string, pass: string) => Promise<boolean>;
+  signInWithGoogle: () => Promise<boolean>; // Add signInWithGoogle
   signOut: () => Promise<void>;
   clearError: () => void;
 }
@@ -39,8 +42,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
-  const handleAuthError = (err: AuthError): string => {
+  const handleAuthError = (err: AuthError | any): string => { // Adjusted to handle generic error for popup
     console.error("Firebase Auth Error:", err.code, err.message);
+    // Handle cases where err.code might not exist (e.g., popup closed by user)
+    if (!err.code) {
+        if (err.message && err.message.includes('popup-closed-by-user')) {
+            return 'Sign-in process was cancelled (popup closed).';
+        }
+        if (err.message && err.message.includes('account-exists-with-different-credential')) {
+            return 'An account already exists with the same email address but different sign-in credentials. Try signing in with the original method.';
+        }
+        return err.message || 'An unexpected error occurred. Please try again.';
+    }
+
     switch (err.code) {
       case 'auth/invalid-email':
         return 'Invalid email address format.';
@@ -56,6 +70,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return 'Password is too weak. It should be at least 6 characters.';
       case 'auth/operation-not-allowed':
           return 'Email/password accounts are not enabled.';
+      case 'auth/popup-closed-by-user':
+          return 'Sign-in process was cancelled (popup closed).';
+      case 'auth/account-exists-with-different-credential':
+          return 'An account already exists with the same email address but different sign-in credentials. Try signing in with the original method.';
       default:
         return err.message || 'An unexpected error occurred. Please try again.';
     }
@@ -89,6 +107,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const signInWithGoogle = async () => {
+    setLoading(true);
+    setError(null);
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      // onAuthStateChanged will handle setting the user and redirecting
+      setLoading(false);
+      return true;
+    } catch (err) {
+      setError(handleAuthError(err as AuthError)); // Cast to AuthError, or handle more generically if needed
+      setLoading(false);
+      return false;
+    }
+  };
+
   const signOut = async () => {
     setLoading(true);
     setError(null);
@@ -113,6 +147,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     error,
     signIn,
     signUp,
+    signInWithGoogle, // Expose signInWithGoogle
     signOut,
     clearError,
   };
