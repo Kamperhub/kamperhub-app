@@ -7,6 +7,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip } from '@/types/tripplanner';
 import { TRIP_LOG_STORAGE_KEY, RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
+import type { StoredVehicle } from '@/types/vehicle'; 
+import { VEHICLES_STORAGE_KEY, ACTIVE_VEHICLE_ID_KEY } from '@/types/vehicle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -158,7 +160,7 @@ export function TripPlannerClient() {
     defaultValues: {
       startLocation: '',
       endLocation: '',
-      fuelEfficiency: 10,
+      fuelEfficiency: 10, // Default, might be overridden by active vehicle
       fuelPrice: 1.80,
       dateRange: { from: undefined, to: undefined }
     }
@@ -188,11 +190,28 @@ export function TripPlannerClient() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+       // Attempt to load active vehicle's fuel efficiency FIRST
+      try {
+        const activeVehicleId = localStorage.getItem(ACTIVE_VEHICLE_ID_KEY);
+        const storedVehiclesJson = localStorage.getItem(VEHICLES_STORAGE_KEY);
+        if (activeVehicleId && storedVehiclesJson) {
+          const storedVehicles: StoredVehicle[] = JSON.parse(storedVehiclesJson);
+          const activeVehicle = storedVehicles.find(v => v.id === activeVehicleId);
+          if (activeVehicle && typeof activeVehicle.fuelEfficiency === 'number') {
+            setValue('fuelEfficiency', activeVehicle.fuelEfficiency, { shouldValidate: false }); // Don't validate here, let form submit handle it
+          }
+        }
+      } catch (e) {
+        console.error("Error loading active vehicle data for Trip Planner:", e);
+        // Silently fail, it's a convenience pre-fill
+      }
+
+      // THEN, existing logic for recalled trip data
       try {
         const recalledTripJson = localStorage.getItem(RECALLED_TRIP_DATA_KEY);
         if (recalledTripJson) {
           const recalledTrip: LoggedTrip = JSON.parse(recalledTripJson);
-          reset({
+          reset({ // reset will overwrite fuelEfficiency if recalledTrip has it, which is correct.
             startLocation: recalledTrip.startLocationDisplay,
             endLocation: recalledTrip.endLocationDisplay,
             fuelEfficiency: recalledTrip.fuelEfficiency,
@@ -213,7 +232,7 @@ export function TripPlannerClient() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reset, toast]); 
+  }, [reset, setValue, toast]); // Added setValue to dependencies
 
   useEffect(() => {
     if (map && typeof window.google !== 'undefined' && window.google.maps) {
