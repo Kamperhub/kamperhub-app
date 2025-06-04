@@ -30,7 +30,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <p className="text-muted-foreground font-body">
-                    Manage {feature.label.toLowerCase()} and access tools to enhance your caravanning experience.
+                    Access tools and information for {feature.label.toLowerCase()} to enhance your caravanning experience.
                   </p>
                   <div className="mt-4">
                     <Image 
