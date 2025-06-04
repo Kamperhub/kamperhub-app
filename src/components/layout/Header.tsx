@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Caravan, Home } from 'lucide-react'; // Changed MountainSnow to Caravan
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ export function Header() {
 
         <Link href="/" passHref>
           <Button variant="ghost" size="icon" aria-label="Go to Homepage">
-            <Home className="h-6 w-6" />
+            <Home className="h-12 w-12" />
           </Button>
         </Link>
       </div>
