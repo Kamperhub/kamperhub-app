@@ -2,15 +2,17 @@
 "use client"; 
 
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation'; // Added
+import { usePathname } from 'next/navigation';
 import { InventoryList } from '@/components/features/inventory/InventoryList';
 import type { StoredCaravan } from '@/types/caravan'; 
 import { CARAVANS_STORAGE_KEY, ACTIVE_CARAVAN_ID_KEY } from '@/types/caravan';
+import type { StoredVehicle } from '@/types/vehicle';
+import { VEHICLES_STORAGE_KEY, ACTIVE_VEHICLE_ID_KEY as ACTIVE_TOW_VEHICLE_ID_KEY } from '@/types/vehicle';
 import type { CaravanWeightData } from '@/types/inventory';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { AlertTriangle, Settings, Loader2 } from 'lucide-react';
+import { AlertTriangle, Settings, Loader2, Car, Home } from 'lucide-react'; // Added Car and Home icons
 
 const defaultCaravanSpecs: CaravanWeightData = {
   tareMass: 0,
@@ -21,10 +23,12 @@ const defaultCaravanSpecs: CaravanWeightData = {
 
 export default function InventoryPage() {
   const [caravanSpecs, setCaravanSpecs] = useState<CaravanWeightData | null>(null);
+  const [activeCaravanName, setActiveCaravanName] = useState<string | null>(null);
+  const [activeVehicleName, setActiveVehicleName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLocalStorageReady, setIsLocalStorageReady] = useState(false);
-  const pathname = usePathname(); // Added
+  const pathname = usePathname();
 
   useEffect(() => {
     setIsLocalStorageReady(true); 
@@ -33,8 +37,12 @@ export default function InventoryPage() {
   useEffect(() => {
     if (isLocalStorageReady && typeof window !== 'undefined') {
       setIsLoading(true);
-      setError(null); // Reset error on re-fetch
+      setError(null);
+      setActiveCaravanName(null);
+      setActiveVehicleName(null);
+
       try {
+        // Load Active Caravan
         const activeCaravanId = localStorage.getItem(ACTIVE_CARAVAN_ID_KEY);
         const storedCaravansJson = localStorage.getItem(CARAVANS_STORAGE_KEY);
 
@@ -49,24 +57,55 @@ export default function InventoryPage() {
               gtm: activeCaravan.gtm,
               maxTowballDownload: activeCaravan.maxTowballDownload,
             });
+            setActiveCaravanName(`${activeCaravan.year} ${activeCaravan.make} ${activeCaravan.model}`);
           } else {
-            // Active ID exists but caravan not found in list - data inconsistency
-            setError("Active caravan data not found in your saved list. Please re-select an active caravan in the Vehicles section or add it if it was deleted.");
+            setError("Active caravan data not found. Please re-select an active caravan in 'Vehicles'.");
             setCaravanSpecs(defaultCaravanSpecs); 
           }
         } else {
-          // No active caravan ID or no caravans stored
-          setCaravanSpecs(null); // Set to null to trigger the "Active Caravan Recommended" alert
+          setCaravanSpecs(null); // Trigger "Active Caravan Recommended"
         }
+
+        // Load Active Tow Vehicle
+        const activeVehicleId = localStorage.getItem(ACTIVE_TOW_VEHICLE_ID_KEY);
+        const storedVehiclesJson = localStorage.getItem(VEHICLES_STORAGE_KEY);
+
+        if (activeVehicleId && storedVehiclesJson) {
+          const storedVehicles: StoredVehicle[] = JSON.parse(storedVehiclesJson);
+          const activeVehicle = storedVehicles.find(v => v.id === activeVehicleId);
+          if (activeVehicle) {
+            setActiveVehicleName(`${activeVehicle.year} ${activeVehicle.make} ${activeVehicle.model}`);
+          }
+          // No error if vehicle not found, it's just for display here
+        }
+
       } catch (e) {
-        console.error("Error loading active caravan data for Inventory:", e);
-        setError("Could not load caravan data. Please try again or check your browser's storage.");
-        setCaravanSpecs(defaultCaravanSpecs); // Fallback to default on error
+        console.error("Error loading active data for Inventory:", e);
+        setError("Could not load vehicle/caravan data. Please try again.");
+        setCaravanSpecs(defaultCaravanSpecs); 
       } finally {
         setIsLoading(false);
       }
     }
-  }, [isLocalStorageReady, pathname]); // Added pathname to dependencies
+  }, [isLocalStorageReady, pathname]);
+
+  const getDescriptiveText = () => {
+    let text = "Track your caravan's load, manage items, and stay compliant with weight limits.";
+    if (activeCaravanName && activeVehicleName) {
+      text += ` Using specifications from your active ${activeCaravanName}, towed by your ${activeVehicleName}.`;
+    } else if (activeCaravanName) {
+      text += ` Using specifications from your active ${activeCaravanName}. Consider selecting an active tow vehicle in 'Vehicles'.`;
+    } else if (activeVehicleName) {
+      text += ` Current tow vehicle: ${activeVehicleName}. Please set an active caravan in 'Vehicles' for accurate calculations. Current calculations use default zero values.`;
+    }
+    else if (!activeCaravanName && caravanSpecs === null) {
+       text += " Please set an active caravan in the 'Vehicles' section for accurate calculations. Current calculations use default zero values.";
+    } else if (caravanSpecs && caravanSpecs.tareMass === 0 && !activeCaravanName) {
+       text += " Please set an active caravan in the 'Vehicles' section for accurate calculations. Current calculations use default zero values.";
+    }
+    return text;
+  };
+
 
   if (!isLocalStorageReady || isLoading) {
     return (
@@ -85,20 +124,19 @@ export default function InventoryPage() {
       <div>
         <h1 className="text-3xl font-headline mb-6 text-primary">Inventory & Weight Management</h1>
         <p className="text-muted-foreground font-body mb-6">
-          Track your caravan's load, manage items, and stay compliant with weight limits.
-          {caravanSpecs && caravanSpecs.tareMass > 0 ? " Using specifications from your active caravan." : " Please set an active caravan in the 'Vehicles' section for accurate calculations. Current calculations use default zero values."}
+          {getDescriptiveText()}
         </p>
       </div>
 
       {error && (
         <Alert variant="destructive" className="mb-6">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error Loading Caravan Data</AlertTitle>
+          <AlertTitle>Error Loading Data</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      {!error && (!caravanSpecs || caravanSpecs.tareMass === 0) && ( // Show if no error, but specs are null or tareMass is 0
+      {!error && (!caravanSpecs || caravanSpecs.tareMass === 0) && (
         <Alert variant="default" className="mb-6 bg-primary/10 border-primary/30">
           <Settings className="h-4 w-4 text-primary" />
           <AlertTitle className="font-headline text-primary">Active Caravan Recommended</AlertTitle>
@@ -110,6 +148,19 @@ export default function InventoryPage() {
              Currently, weight calculations are based on default zero values.
           </AlertDescription>
         </Alert>
+      )}
+
+      {activeCaravanName && (
+         <Alert variant="default" className="mb-6 bg-secondary/30 border-secondary/50">
+            <Home className="h-4 w-4 text-secondary-foreground" />
+            <AlertTitle className="font-headline text-secondary-foreground">Active Caravan: {activeCaravanName}</AlertTitle>
+         </Alert>
+      )}
+      {activeVehicleName && (
+         <Alert variant="default" className="mb-6 bg-secondary/30 border-secondary/50">
+            <Car className="h-4 w-4 text-secondary-foreground" />
+            <AlertTitle className="font-headline text-secondary-foreground">Active Tow Vehicle: {activeVehicleName}</AlertTitle>
+         </Alert>
       )}
       
       <InventoryList caravanSpecs={caravanSpecs || defaultCaravanSpecs} />
