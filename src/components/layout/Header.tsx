@@ -14,7 +14,7 @@ export function Header() {
 
         <Link href="/" passHref>
           <Button variant="ghost" size="icon" aria-label="Go to Homepage" className="p-0">
-            <Home className="h-12 w-12" />
+            <Home className="h-8 w-8" />
           </Button>
         </Link>
       </div>
