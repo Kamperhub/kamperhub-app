@@ -1,7 +1,7 @@
 
 "use client";
 
-import * as React from "react"; // Added this line
+import * as React from "react";
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -115,6 +115,9 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
           <Label htmlFor="fuelEfficiency" className="font-body">Fuel Efficiency (L/100km)</Label>
           <Input id="fuelEfficiency" type="number" step="0.1" {...register("fuelEfficiency")} placeholder="e.g., 12.5" className="font-body" />
           {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
+          <p className="text-xs text-muted-foreground font-body mt-1">
+            Enter vehicle's standard efficiency. Towing typically increases consumption by 30-40%.
+          </p>
         </div>
       </div>
       <div className="flex justify-end gap-2 pt-4">
