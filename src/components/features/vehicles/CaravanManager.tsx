@@ -3,6 +3,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { StoredCaravan, CaravanFormData } from '@/types/caravan';
+import type { CaravanInventories } from '@/types/inventory'; // Import inventory types
+import { INVENTORY_STORAGE_KEY } from '@/types/inventory'; // Import inventory storage key
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -41,7 +43,7 @@ export function CaravanManager() {
   }, [toast]);
 
   const saveCaravansToStorage = useCallback((updatedCaravans: StoredCaravan[]) => {
-     if (!isLocalStorageReady) return;
+     if (!isLocalStorageReady || typeof window === 'undefined') return;
     try {
       localStorage.setItem(CARAVANS_STORAGE_KEY, JSON.stringify(updatedCaravans));
     } catch (error) {
@@ -50,7 +52,7 @@ export function CaravanManager() {
   }, [toast, isLocalStorageReady]);
 
   const saveActiveCaravanIdToStorage = useCallback((id: string | null) => {
-     if (!isLocalStorageReady) return;
+     if (!isLocalStorageReady || typeof window === 'undefined') return;
     try {
       if (id) {
         localStorage.setItem(ACTIVE_CARAVAN_ID_KEY, id);
@@ -84,16 +86,34 @@ export function CaravanManager() {
   };
 
   const handleDeleteCaravan = (id: string) => {
+    if (!isLocalStorageReady || typeof window === 'undefined') return;
     const caravanToDelete = caravans.find(c => c.id === id);
-    if (window.confirm(`Are you sure you want to delete ${caravanToDelete?.make} ${caravanToDelete?.model}?`)) {
+    if (window.confirm(`Are you sure you want to delete ${caravanToDelete?.make} ${caravanToDelete?.model}? This will also delete its inventory.`)) {
+      // Delete caravan
       const updatedCaravans = caravans.filter(c => c.id !== id);
       setCaravans(updatedCaravans);
       saveCaravansToStorage(updatedCaravans);
+      
+      // Delete associated inventory
+      try {
+        const allInventoriesJson = localStorage.getItem(INVENTORY_STORAGE_KEY);
+        if (allInventoriesJson) {
+          const allInventories: CaravanInventories = JSON.parse(allInventoriesJson);
+          if (allInventories[id]) {
+            delete allInventories[id];
+            localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(allInventories));
+          }
+        }
+      } catch (error) {
+        console.error("Error deleting caravan inventory from localStorage:", error);
+        toast({ title: "Error Deleting Inventory", description: "Could not remove associated inventory data.", variant: "destructive" });
+      }
+
       if (activeCaravanId === id) {
         setActiveCaravanId(null);
         saveActiveCaravanIdToStorage(null);
       }
-      toast({ title: "Caravan Deleted" });
+      toast({ title: "Caravan Deleted", description: `${caravanToDelete?.make} ${caravanToDelete?.model} and its inventory have been removed.` });
     }
   };
 
@@ -109,7 +129,7 @@ export function CaravanManager() {
     setIsFormOpen(true);
   };
 
-  if (!isLocalStorageReady) {
+  if (!isLocalStorageReady && typeof window !== 'undefined') {
     return (
       <Card>
         <CardHeader>
@@ -150,7 +170,7 @@ export function CaravanManager() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {caravans.length === 0 && (
+        {caravans.length === 0 && isLocalStorageReady &&(
           <p className="text-muted-foreground text-center font-body py-4">No caravans added yet. Click "Add New Caravan" to start.</p>
         )}
         {caravans.map(caravan => (

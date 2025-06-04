@@ -13,6 +13,13 @@ export interface CaravanWeightData {
   maxTowballDownload: number; // kg, from CaravanForm
 }
 
+// Key for storing inventories for multiple caravans
+// The structure will be Record<caravanId, InventoryItem[]>
+export const INVENTORY_STORAGE_KEY = 'kamperhub_caravan_inventories';
+
+export type CaravanInventories = Record<string, InventoryItem[]>;
+
+
 // Mock data, in a real app this would come from user input / storage
 export const mockCaravanWeightData: CaravanWeightData = {
   tareMass: 1800,
