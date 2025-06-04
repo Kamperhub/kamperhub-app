@@ -254,8 +254,6 @@ export function TripPlannerClient() {
           });
           setRouteDetails(recalledTrip.routeDetails);
           setFuelEstimate(recalledTrip.fuelEstimate);
-          // For recalled trips, we don't automatically set directionsResponse to avoid immediate re-render of polyline
-          // until user interacts or recalculates. But we need start/end addresses for Navigate button.
           localStorage.removeItem(RECALLED_TRIP_DATA_KEY);
           toast({ title: "Trip Recalled", description: `"${recalledTrip.name}" loaded into planner.` });
         }
@@ -351,7 +349,7 @@ export function TripPlannerClient() {
     setRouteDetails(null);
     setFuelEstimate(null);
     setDirectionsResponse(null); 
-    setPointsOfInterest([]); // Clear previous POIs
+    setPointsOfInterest([]);
 
     try {
       const results = await directionsServiceRef.current.route({
@@ -452,13 +450,26 @@ export function TripPlannerClient() {
   };
 
   const handleNavigateWithGoogleMaps = () => {
-    if (!routeDetails || !routeDetails.startAddress || !routeDetails.endAddress) {
+    if (!routeDetails) {
       toast({ title: "Cannot Navigate", description: "Route details are incomplete.", variant: "destructive" });
       return;
     }
-    const origin = encodeURIComponent(routeDetails.startAddress);
-    const destination = encodeURIComponent(routeDetails.endAddress);
-    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
+
+    let originQuery: string;
+    let destinationQuery: string;
+
+    if (routeDetails.startLocation && routeDetails.endLocation) {
+      originQuery = `${routeDetails.startLocation.lat},${routeDetails.startLocation.lng}`;
+      destinationQuery = `${routeDetails.endLocation.lat},${routeDetails.endLocation.lng}`;
+    } else if (routeDetails.startAddress && routeDetails.endAddress) {
+      originQuery = encodeURIComponent(routeDetails.startAddress);
+      destinationQuery = encodeURIComponent(routeDetails.endAddress);
+    } else {
+      toast({ title: "Cannot Navigate", description: "Origin or destination data is missing for navigation.", variant: "destructive" });
+      return;
+    }
+
+    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${originQuery}&destination=${destinationQuery}&travelmode=driving`;
     window.open(googleMapsUrl, '_blank');
     toast({ title: "Opening Google Maps", description: "Check the new tab for navigation." });
   };
@@ -479,8 +490,8 @@ export function TripPlannerClient() {
 
     const request: google.maps.places.PlaceSearchRequest = {
         location: center,
-        radius: 5000, // Search within 5km radius
-        type: 'tourist_attraction', // Example type, can be made dynamic
+        radius: 5000, 
+        type: 'tourist_attraction', 
     };
 
     placesServiceRef.current.nearbySearch(request, (results, status) => {
@@ -674,6 +685,7 @@ export function TripPlannerClient() {
                     variant="outline" 
                     size="sm" 
                     className="font-body"
+                    disabled={!routeDetails}
                  >
                     <Navigation className="mr-2 h-4 w-4" /> Navigate
                 </Button>
@@ -681,7 +693,11 @@ export function TripPlannerClient() {
                     variant="outline" 
                     size="sm" 
                     className="font-body"
-                    onClick={handleSaveTrip}
+                    onClick={() => {
+                        console.log("[KamperHub Save Button] Clicked.");
+                        handleSaveTrip();
+                     }}
+                    disabled={!routeDetails}
                 >
                     <Save className="mr-2 h-4 w-4" /> Save Trip
                 </Button>
@@ -711,3 +727,6 @@ export function TripPlannerClient() {
     </div>
   );
 }
+
+
+    
