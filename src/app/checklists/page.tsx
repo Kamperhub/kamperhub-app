@@ -14,7 +14,7 @@ import { VEHICLES_STORAGE_KEY, ACTIVE_VEHICLE_ID_KEY as ACTIVE_TOW_VEHICLE_ID_KE
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { AlertTriangle, Settings, Loader2, Car, Home } from 'lucide-react';
+import { Settings, Loader2, Car, Home } from 'lucide-react'; // AlertTriangle was unused
 
 export default function ChecklistsPage() {
   const [activeCaravanId, setActiveCaravanId] = useState<string | null>(null);
@@ -39,6 +39,7 @@ export default function ChecklistsPage() {
         const currentActiveCaravanId = localStorage.getItem(ACTIVE_CARAVAN_ID_KEY);
         setActiveCaravanId(currentActiveCaravanId);
 
+        // Load caravan name
         if (currentActiveCaravanId) {
           const storedCaravansJson = localStorage.getItem(CARAVANS_STORAGE_KEY);
           if (storedCaravansJson) {
@@ -48,26 +49,9 @@ export default function ChecklistsPage() {
               setActiveCaravanName(`${activeCaravan.year} ${activeCaravan.make} ${activeCaravan.model}`);
             }
           }
-
-          const allStoredChecklistsJson = localStorage.getItem(CHECKLISTS_STORAGE_KEY);
-          if (allStoredChecklistsJson) {
-            const allStoredChecklists: CaravanChecklists = JSON.parse(allStoredChecklistsJson);
-            const checklistsForActiveCaravan = allStoredChecklists[currentActiveCaravanId];
-            
-            // Ensure all categories have at least the default items if not present for the caravan
-            const resolvedChecklists: Partial<Record<ChecklistCategory, ChecklistItem[]>> = {};
-            (Object.keys(defaultInitialChecklists) as ChecklistCategory[]).forEach(category => {
-              resolvedChecklists[category] = checklistsForActiveCaravan?.[category] || defaultInitialChecklists[category];
-            });
-            setCurrentCaravanChecklists(resolvedChecklists);
-
-          } else {
-            setCurrentCaravanChecklists(defaultInitialChecklists);
-          }
-        } else {
-          setCurrentCaravanChecklists(defaultInitialChecklists); // No active caravan, use defaults
         }
-
+        
+        // Load vehicle name
         const activeVehicleId = localStorage.getItem(ACTIVE_TOW_VEHICLE_ID_KEY);
         const storedVehiclesJson = localStorage.getItem(VEHICLES_STORAGE_KEY);
         if (activeVehicleId && storedVehiclesJson) {
@@ -77,9 +61,41 @@ export default function ChecklistsPage() {
             setActiveVehicleName(`${activeVehicle.year} ${activeVehicle.make} ${activeVehicle.model}`);
           }
         }
+
+        // Load checklists
+        let parsedAllStoredChecklists: CaravanChecklists = {};
+        const allStoredChecklistsJson = localStorage.getItem(CHECKLISTS_STORAGE_KEY);
+        if (allStoredChecklistsJson) {
+            try {
+                const parsed = JSON.parse(allStoredChecklistsJson);
+                if (typeof parsed === 'object' && parsed !== null) {
+                    parsedAllStoredChecklists = parsed;
+                } else {
+                    // Data is malformed (not an object), reset it
+                    console.warn("Checklist data in localStorage was malformed. Resetting.");
+                    localStorage.setItem(CHECKLISTS_STORAGE_KEY, JSON.stringify({}));
+                }
+            } catch (parseError) {
+                console.error("Error parsing checklists from localStorage. Resetting.", parseError);
+                // Attempt to clear corrupted data by saving an empty object
+                localStorage.setItem(CHECKLISTS_STORAGE_KEY, JSON.stringify({}));
+            }
+        }
+
+        if (currentActiveCaravanId) {
+            const checklistsForActiveCaravan = parsedAllStoredChecklists[currentActiveCaravanId];
+            const resolvedChecklists: Partial<Record<ChecklistCategory, ChecklistItem[]>> = {};
+            (Object.keys(defaultInitialChecklists) as ChecklistCategory[]).forEach(category => {
+              resolvedChecklists[category] = checklistsForActiveCaravan?.[category] || defaultInitialChecklists[category];
+            });
+            setCurrentCaravanChecklists(resolvedChecklists);
+        } else {
+            setCurrentCaravanChecklists(defaultInitialChecklists); 
+        }
+
       } catch (e) {
         console.error("Error loading data for Checklists:", e);
-        setCurrentCaravanChecklists(defaultInitialChecklists);
+        setCurrentCaravanChecklists(defaultInitialChecklists); // Fallback on any other error
       } finally {
         setIsLoading(false);
       }

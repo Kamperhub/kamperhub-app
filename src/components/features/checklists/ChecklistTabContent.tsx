@@ -30,24 +30,45 @@ export function ChecklistTabContent({ category, initialItems, activeCaravanId }:
   }, []);
 
   useEffect(() => {
-    // Update local items state if initialItems or activeCaravanId changes
     setItems(initialItems);
   }, [initialItems, activeCaravanId]);
 
   const saveChecklistToStorage = (updatedItemsForCategory: ChecklistItem[]) => {
-    if (!activeCaravanId || !isLocalStorageReady || typeof window === 'undefined') {
-      if (!activeCaravanId) {
+    if (!isLocalStorageReady || typeof window === 'undefined') return;
+
+    if (!activeCaravanId) {
+      if (isLocalStorageReady) { // Only show toast if LS is ready but no caravan is active
         toast({ title: "Cannot Save Checklist", description: "No active caravan selected. Changes will not be saved.", variant: "destructive" });
       }
       return;
     }
+
     try {
       const allCaravanChecklistsJson = localStorage.getItem(CHECKLISTS_STORAGE_KEY);
-      const allCaravanChecklists: CaravanChecklists = allCaravanChecklistsJson ? JSON.parse(allCaravanChecklistsJson) : {};
+      let allCaravanChecklists: CaravanChecklists = {};
+
+      if (allCaravanChecklistsJson) {
+        try {
+          const parsed = JSON.parse(allCaravanChecklistsJson);
+          // Ensure the parsed data is an object; otherwise, initialize as empty.
+          if (typeof parsed === 'object' && parsed !== null) {
+            allCaravanChecklists = parsed;
+          } else {
+            console.warn("Checklist data in localStorage was malformed. Initializing as empty object.");
+          }
+        } catch (e) {
+          console.error("Error parsing checklist data from localStorage. Initializing as empty object.", e);
+          // If parsing fails, allCaravanChecklists remains {}
+        }
+      }
       
-      if (!allCaravanChecklists[activeCaravanId]) {
+      // Ensure the entry for the active caravan exists and is an object
+      if (typeof allCaravanChecklists[activeCaravanId] !== 'object' || allCaravanChecklists[activeCaravanId] === null) {
         allCaravanChecklists[activeCaravanId] = {};
       }
+      
+      // The activeCaravanId is guaranteed to be non-null here due to the earlier guard.
+      // The ! operator is safe if the logic correctly ensures activeCaravanId is a string.
       allCaravanChecklists[activeCaravanId]![category] = updatedItemsForCategory;
       
       localStorage.setItem(CHECKLISTS_STORAGE_KEY, JSON.stringify(allCaravanChecklists));
