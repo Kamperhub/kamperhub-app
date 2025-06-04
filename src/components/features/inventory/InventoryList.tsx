@@ -98,7 +98,6 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
   const getAlertStylingVariant = (currentValue: number, limit: number) => {
     if (limit <= 0) return "default"; // Specs not set or invalid
     if (currentValue > limit) return "destructive"; // Truly over limit
-    // if (currentValue > limit * 0.9) return "warning"; // shadcn doesn't have 'warning' by default, could be destructive too if desired
     return "default";
   };
   
@@ -242,16 +241,19 @@ export function InventoryList({ caravanSpecs }: InventoryListProps) {
         </div>
 
       </CardContent>
-      <CardFooter>
-        <p className="text-sm text-muted-foreground font-body">
-          Always verify weights at a weighbridge. 
-          Your caravan's specs: Tare: {caravanSpecs.tareMass > 0 ? `${caravanSpecs.tareMass.toFixed(0)}kg` : 'N/A'}, 
-          ATM: {caravanSpecs.atm > 0 ? `${caravanSpecs.atm.toFixed(0)}kg` : 'N/A'}, 
-          GTM: {caravanSpecs.gtm > 0 ? `${caravanSpecs.gtm.toFixed(0)}kg` : 'N/A'},
-          Max Towball: {caravanSpecs.maxTowballDownload > 0 ? `${caravanSpecs.maxTowballDownload.toFixed(0)}kg` : 'N/A'}.
-          <br />
-          <strong>Tare:</strong> Base weight of the empty caravan. <strong>ATM:</strong> Max loaded weight (uncoupled). <strong>GTM:</strong> Max weight on axles (coupled). <strong>Towball Download:</strong> Downward force on towbar.
+      <CardFooter className="flex flex-col items-start text-sm pt-4">
+        <p className="font-body text-accent font-semibold mb-2">
+          Important: Always verify weights at a weighbridge. This application provides estimates only and should not be relied upon for legal compliance.
         </p>
+        <div className="text-muted-foreground font-body space-y-1">
+          <p>
+            <strong>Your Active Caravan's Specifications:</strong><br />
+            <strong>Tare Mass:</strong> {caravanSpecs.tareMass > 0 ? `${caravanSpecs.tareMass.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Base weight of the empty caravan)</span><br />
+            <strong>ATM (Aggregate Trailer Mass):</strong> {caravanSpecs.atm > 0 ? `${caravanSpecs.atm.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max loaded weight, uncoupled)</span><br />
+            <strong>GTM (Gross Trailer Mass):</strong> {caravanSpecs.gtm > 0 ? `${caravanSpecs.gtm.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max weight on axles, coupled)</span><br />
+            <strong>Max Towball Download:</strong> {caravanSpecs.maxTowballDownload > 0 ? `${caravanSpecs.maxTowballDownload.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max downward force on towbar)</span>
+          </p>
+        </div>
       </CardFooter>
     </Card>
   );
