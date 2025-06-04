@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, CarFront, Backpack, ListChecks, BookOpen, MessageCircle, Route, History } from 'lucide-react';
+import { Home, CarFront, Backpack, ListChecks, BookOpen, MessageCircle, Route, History, BedDouble } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -16,7 +16,7 @@ export const navItems: NavItem[] = [
   { href: '/checklists', label: 'Checklists', icon: ListChecks, keywords: 'travel list' },
   { href: '/tripplanner', label: 'Trip Planner', icon: Route, keywords: 'route plan' },
   { href: '/triplog', label: 'Trip Log', icon: History, keywords: 'trip history' },
+  { href: '/bookings', label: 'Bookings', icon: BedDouble, keywords: 'campsite booking' },
   { href: '/learn', label: 'Learn', icon: BookOpen, keywords: 'guide tutorial' },
   { href: '/chatbot', label: 'Chatbot', icon: MessageCircle, keywords: 'support help' },
 ];
-
