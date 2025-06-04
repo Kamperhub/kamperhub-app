@@ -14,8 +14,8 @@ export const navItems: NavItem[] = [
   { href: '/vehicles', label: 'Vehicles', icon: CarFront, keywords: 'caravan tow' },
   { href: '/inventory', label: 'Inventory', icon: Backpack, keywords: 'camping gear' },
   { href: '/checklists', label: 'Checklists', icon: ListChecks, keywords: 'travel list' },
-  { href: '/tripplanner', label: 'Trip Planner', icon: Route, keywords: 'journey route plan' },
-  { href: '/triplog', label: 'Trip Log', icon: History, keywords: 'saved trips history' },
+  { href: '/tripplanner', label: 'Trip Planner', icon: Route, keywords: 'route plan' },
+  { href: '/triplog', label: 'Trip Log', icon: History, keywords: 'trip history' },
   { href: '/learn', label: 'Learn', icon: BookOpen, keywords: 'guide tutorial' },
   { href: '/chatbot', label: 'Chatbot', icon: MessageCircle, keywords: 'support help' },
 ];
