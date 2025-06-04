@@ -1,0 +1,192 @@
+
+"use client";
+
+import { useState, useEffect, useCallback } from 'react';
+import type { StoredCaravan, CaravanFormData } from '@/types/caravan';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { CaravanForm } from './CaravanForm';
+import { PlusCircle, Edit3, Trash2, CheckCircle } from 'lucide-react';
+
+const CARAVANS_STORAGE_KEY = 'kamperhub_caravans_list';
+const ACTIVE_CARAVAN_ID_KEY = 'kamperhub_active_caravan_id';
+
+export function CaravanManager() {
+  const { toast } = useToast();
+  const [caravans, setCaravans] = useState<StoredCaravan[]>([]);
+  const [activeCaravanId, setActiveCaravanId] = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingCaravan, setEditingCaravan] = useState<StoredCaravan | null>(null);
+  const [isLocalStorageReady, setIsLocalStorageReady] = useState(false);
+
+  useEffect(() => {
+    setIsLocalStorageReady(true);
+    if (typeof window !== 'undefined') {
+      try {
+        const storedCaravans = localStorage.getItem(CARAVANS_STORAGE_KEY);
+        if (storedCaravans) {
+          setCaravans(JSON.parse(storedCaravans));
+        }
+        const storedActiveId = localStorage.getItem(ACTIVE_CARAVAN_ID_KEY);
+        if (storedActiveId) {
+          setActiveCaravanId(storedActiveId);
+        }
+      } catch (error) {
+        console.error("Error loading caravan data from localStorage:", error);
+        toast({ title: "Error Loading Caravans", variant: "destructive" });
+      }
+    }
+  }, [toast]);
+
+  const saveCaravansToStorage = useCallback((updatedCaravans: StoredCaravan[]) => {
+     if (!isLocalStorageReady) return;
+    try {
+      localStorage.setItem(CARAVANS_STORAGE_KEY, JSON.stringify(updatedCaravans));
+    } catch (error) {
+      toast({ title: "Error Saving Caravans", variant: "destructive" });
+    }
+  }, [toast, isLocalStorageReady]);
+
+  const saveActiveCaravanIdToStorage = useCallback((id: string | null) => {
+     if (!isLocalStorageReady) return;
+    try {
+      if (id) {
+        localStorage.setItem(ACTIVE_CARAVAN_ID_KEY, id);
+      } else {
+        localStorage.removeItem(ACTIVE_CARAVAN_ID_KEY);
+      }
+    } catch (error) {
+      toast({ title: "Error Saving Active Caravan", variant: "destructive" });
+    }
+  }, [toast, isLocalStorageReady]);
+
+  const handleSaveCaravan = (data: CaravanFormData) => {
+    let updatedCaravans;
+    if (editingCaravan) {
+      updatedCaravans = caravans.map(c => c.id === editingCaravan.id ? { ...c, ...data } : c);
+      toast({ title: "Caravan Updated", description: `${data.make} ${data.model} updated.` });
+    } else {
+      const newCaravan: StoredCaravan = { ...data, id: Date.now().toString() };
+      updatedCaravans = [...caravans, newCaravan];
+      toast({ title: "Caravan Added", description: `${data.make} ${data.model} added.` });
+    }
+    setCaravans(updatedCaravans);
+    saveCaravansToStorage(updatedCaravans);
+    setIsFormOpen(false);
+    setEditingCaravan(null);
+  };
+
+  const handleEditCaravan = (caravan: StoredCaravan) => {
+    setEditingCaravan(caravan);
+    setIsFormOpen(true);
+  };
+
+  const handleDeleteCaravan = (id: string) => {
+    const caravanToDelete = caravans.find(c => c.id === id);
+    if (window.confirm(`Are you sure you want to delete ${caravanToDelete?.make} ${caravanToDelete?.model}?`)) {
+      const updatedCaravans = caravans.filter(c => c.id !== id);
+      setCaravans(updatedCaravans);
+      saveCaravansToStorage(updatedCaravans);
+      if (activeCaravanId === id) {
+        setActiveCaravanId(null);
+        saveActiveCaravanIdToStorage(null);
+      }
+      toast({ title: "Caravan Deleted" });
+    }
+  };
+
+  const handleSetActiveCaravan = (id: string) => {
+    setActiveCaravanId(id);
+    saveActiveCaravanIdToStorage(id);
+    const caravan = caravans.find(c => c.id === id);
+    toast({ title: "Active Caravan Set", description: `${caravan?.make} ${caravan?.model} is now active.` });
+  };
+  
+  const handleOpenFormForNew = () => {
+    setEditingCaravan(null);
+    setIsFormOpen(true);
+  };
+
+  if (!isLocalStorageReady) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline">Caravan Specifications</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="font-body">Loading caravan data...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <CardTitle className="font-headline">Caravans</CardTitle>
+          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={handleOpenFormForNew} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body">
+                <PlusCircle className="mr-2 h-4 w-4" /> Add New Caravan
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[625px]">
+              <DialogHeader>
+                <DialogTitle className="font-headline">{editingCaravan ? 'Edit Caravan' : 'Add New Caravan'}</DialogTitle>
+              </DialogHeader>
+              <CaravanForm
+                initialData={editingCaravan || undefined}
+                onSave={handleSaveCaravan}
+                onCancel={() => { setIsFormOpen(false); setEditingCaravan(null); }}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
+        <CardDescription className="font-body">
+          Manage your caravans. Select one as active for inventory and planning.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {caravans.length === 0 && (
+          <p className="text-muted-foreground text-center font-body py-4">No caravans added yet. Click "Add New Caravan" to start.</p>
+        )}
+        {caravans.map(caravan => (
+          <Card key={caravan.id} className={`p-4 ${activeCaravanId === caravan.id ? 'border-primary shadow-md' : ''}`}>
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="font-semibold font-body text-lg">{caravan.year} {caravan.make} {caravan.model}</h3>
+                <div className="text-sm text-muted-foreground font-body grid grid-cols-2 gap-x-4">
+                  <span>Tare: {caravan.tareMass}kg</span>
+                  <span>ATM: {caravan.atm}kg</span>
+                  <span>GTM: {caravan.gtm}kg</span>
+                  <span>Towball: {caravan.maxTowballDownload}kg</span>
+                </div>
+              </div>
+               <div className="flex flex-col sm:flex-row gap-2 items-end sm:items-center">
+                {activeCaravanId !== caravan.id && (
+                  <Button variant="outline" size="sm" onClick={() => handleSetActiveCaravan(caravan.id)} className="font-body">
+                    <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Set Active
+                  </Button>
+                )}
+                {activeCaravanId === caravan.id && (
+                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 border border-green-300 flex items-center font-body">
+                    <CheckCircle className="mr-1 h-4 w-4" /> Active
+                  </span>
+                )}
+                <Button variant="ghost" size="icon" onClick={() => handleEditCaravan(caravan)}>
+                  <Edit3 className="h-5 w-5 text-blue-600" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => handleDeleteCaravan(caravan.id)}>
+                  <Trash2 className="h-5 w-5 text-destructive" />
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
