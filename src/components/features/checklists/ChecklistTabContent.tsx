@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Trash2, PlusCircle } from 'lucide-react';
+import { Trash2, PlusCircle, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -37,7 +37,7 @@ export function ChecklistTabContent({ category, initialItems, activeCaravanId }:
     if (!isLocalStorageReady || typeof window === 'undefined') return;
 
     if (!activeCaravanId) {
-      if (isLocalStorageReady) { // Only show toast if LS is ready but no caravan is active
+      if (isLocalStorageReady) { 
         toast({ title: "Cannot Save Checklist", description: "No active caravan selected. Changes will not be saved.", variant: "destructive" });
       }
       return;
@@ -50,7 +50,6 @@ export function ChecklistTabContent({ category, initialItems, activeCaravanId }:
       if (allCaravanChecklistsJson) {
         try {
           const parsed = JSON.parse(allCaravanChecklistsJson);
-          // Ensure the parsed data is an object; otherwise, initialize as empty.
           if (typeof parsed === 'object' && parsed !== null) {
             allCaravanChecklists = parsed;
           } else {
@@ -58,17 +57,13 @@ export function ChecklistTabContent({ category, initialItems, activeCaravanId }:
           }
         } catch (e) {
           console.error("Error parsing checklist data from localStorage. Initializing as empty object.", e);
-          // If parsing fails, allCaravanChecklists remains {}
         }
       }
       
-      // Ensure the entry for the active caravan exists and is an object
       if (typeof allCaravanChecklists[activeCaravanId] !== 'object' || allCaravanChecklists[activeCaravanId] === null) {
         allCaravanChecklists[activeCaravanId] = {};
       }
       
-      // The activeCaravanId is guaranteed to be non-null here due to the earlier guard.
-      // The ! operator is safe if the logic correctly ensures activeCaravanId is a string.
       allCaravanChecklists[activeCaravanId]![category] = updatedItemsForCategory;
       
       localStorage.setItem(CHECKLISTS_STORAGE_KEY, JSON.stringify(allCaravanChecklists));
@@ -120,6 +115,28 @@ export function ChecklistTabContent({ category, initialItems, activeCaravanId }:
     toast({ title: "Item Removed", description: "Item removed from checklist." });
   };
 
+  const handleMoveItem = (id: string, direction: 'up' | 'down') => {
+    if (!activeCaravanId) {
+      toast({ title: "Action Disabled", description: "Select an active caravan to modify checklists.", variant: "destructive" });
+      return;
+    }
+    const itemIndex = items.findIndex(item => item.id === id);
+    if (itemIndex === -1) return;
+
+    const newItems = [...items];
+    if (direction === 'up' && itemIndex > 0) {
+      [newItems[itemIndex - 1], newItems[itemIndex]] = [newItems[itemIndex], newItems[itemIndex - 1]];
+    } else if (direction === 'down' && itemIndex < items.length - 1) {
+      [newItems[itemIndex + 1], newItems[itemIndex]] = [newItems[itemIndex], newItems[itemIndex + 1]];
+    } else {
+      return; // Cannot move further
+    }
+
+    setItems(newItems);
+    saveChecklistToStorage(newItems);
+    toast({ title: "Item Moved", description: "Checklist order updated." });
+  };
+
   const isModificationDisabled = !activeCaravanId;
 
   return (
@@ -143,7 +160,7 @@ export function ChecklistTabContent({ category, initialItems, activeCaravanId }:
         {items.length === 0 && !activeCaravanId && <p className="text-muted-foreground text-center font-body">This default checklist is empty. Select an active caravan to add items.</p>}
         
         <ul className="space-y-3">
-          {items.map(item => (
+          {items.map((item, index) => (
             <li key={item.id} className="flex items-center justify-between p-3 bg-secondary/30 rounded-md shadow-sm">
               <div className="flex items-center space-x-3">
                 <Checkbox
@@ -159,9 +176,35 @@ export function ChecklistTabContent({ category, initialItems, activeCaravanId }:
                   {item.text}
                 </Label>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)} disabled={isModificationDisabled}>
-                <Trash2 className="h-5 w-5 text-destructive" />
-              </Button>
+              <div className="flex items-center space-x-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleMoveItem(item.id, 'up')}
+                  disabled={isModificationDisabled || index === 0}
+                  aria-label="Move item up"
+                >
+                  <ArrowUpCircle className="h-5 w-5 text-blue-500" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleMoveItem(item.id, 'down')}
+                  disabled={isModificationDisabled || index === items.length - 1}
+                  aria-label="Move item down"
+                >
+                  <ArrowDownCircle className="h-5 w-5 text-blue-500" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => handleDeleteItem(item.id)} 
+                  disabled={isModificationDisabled}
+                  aria-label="Delete item"
+                >
+                  <Trash2 className="h-5 w-5 text-destructive" />
+                </Button>
+              </div>
             </li>
           ))}
         </ul>
