@@ -134,7 +134,7 @@ export function ChecklistTabContent({ category, initialItems, activeCaravanId }:
 
     setItems(newItems);
     saveChecklistToStorage(newItems);
-    toast({ title: "Item Moved", description: "Checklist order updated." });
+    // Removed toast({ title: "Item Moved", description: "Checklist order updated." });
   };
 
   const isModificationDisabled = !activeCaravanId;
