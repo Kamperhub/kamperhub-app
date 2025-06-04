@@ -273,45 +273,49 @@ export function TripPlannerClient() {
     if (!map) return;
   
     if (polylineRef.current) {
-      polylineRef.current.setMap(null);
-      polylineRef.current = null;
+      polylineRef.current.setMap(null); // Remove old polyline from map
+      polylineRef.current = null; // Clear the ref
     }
   
     if (directionsResponse && directionsResponse.routes && directionsResponse.routes.length > 0 && window.google && window.google.maps) {
       const route = directionsResponse.routes[0];
       
       if (route.overview_path && route.overview_path.length > 0) {
+        // Create new polyline
         const newPolyline = new window.google.maps.Polyline({
           path: route.overview_path,
-          strokeColor: 'hsl(var(--primary))', 
+          strokeColor: 'hsl(var(--primary))', // Use theme color
           strokeOpacity: 0.8,
           strokeWeight: 6,
         });
-        newPolyline.setMap(map);
-        polylineRef.current = newPolyline; 
+        newPolyline.setMap(map); // Add new polyline to map
+        polylineRef.current = newPolyline; // Store new polyline in ref
       }
   
+      // Fit map to bounds of the route
       if (route.bounds) {
         map.fitBounds(route.bounds);
+        // Adjust zoom if route is very long or short for better initial view
         const currentZoom = map.getZoom();
-        if (currentZoom && route.legs.reduce((acc, leg) => acc + (leg.distance?.value || 0), 0) > 50000 && currentZoom > 12) { 
+        if (currentZoom && route.legs.reduce((acc, leg) => acc + (leg.distance?.value || 0), 0) > 50000 && currentZoom > 12) { // if route > 50km and zoom is too close
           map.setZoom(12); 
-        } else if (currentZoom && currentZoom > 15) {
+        } else if (currentZoom && currentZoom > 15) { // If route is short, don't zoom out too much
           map.setZoom(15);
         }
       }
     } else if (routeDetails?.startLocation && routeDetails.endLocation && window.google && window.google.maps) {
+      // Fallback to fit bounds between start and end if no full directionsResponse but we have points
       const bounds = new window.google.maps.LatLngBounds();
       if(routeDetails.startLocation) bounds.extend(routeDetails.startLocation);
       if(routeDetails.endLocation) bounds.extend(routeDetails.endLocation);
       map.fitBounds(bounds);
       const currentZoom = map.getZoom();
-       if (currentZoom && currentZoom > 15) {
+       if (currentZoom && currentZoom > 15) { // Don't zoom in too much for just two points
          map.setZoom(15); 
-      } else if (currentZoom && currentZoom < 3 ) { 
+      } else if (currentZoom && currentZoom < 3 ) { // Or too far out
          map.setZoom(3);
       } else if (currentZoom) {
-         map.setZoom(Math.max(2, currentZoom -1)); 
+         map.setZoom(Math.max(2, currentZoom -1)); // Slightly zoom out from default fitBounds
       }
 
     } else if (routeDetails?.startLocation) {
@@ -322,12 +326,13 @@ export function TripPlannerClient() {
         map.setZoom(12);
     }
   
+    // Cleanup function to remove polyline when component unmounts or dependencies change
     return () => {
       if (polylineRef.current) {
         polylineRef.current.setMap(null);
       }
     };
-  }, [map, directionsResponse, routeDetails]); 
+  }, [map, directionsResponse, routeDetails]); // Re-run when map, directionsResponse or routeDetails change
 
 
   const onSubmit: SubmitHandler<TripPlannerFormValues> = async (data) => {
@@ -599,39 +604,18 @@ export function TripPlannerClient() {
           <Card>
              <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="font-headline flex items-center"><Fuel className="mr-2 h-6 w-6 text-primary" /> Trip Summary</CardTitle>
-              <div
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="font-body"
+                disabled={!routeDetails}
                 onClick={() => {
-                  console.log('[KamperHub DEBUG] Wrapper div clicked.');
-                  if (routeDetails) {
-                    console.log('[KamperHub DEBUG] Route details exist, calling handleSaveTrip.');
-                    handleSaveTrip();
-                  } else {
-                    console.log('[KamperHub DEBUG] No route details, save operation aborted by wrapper.');
-                     toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
-                  }
-                }}
-                style={{ position: 'relative', zIndex: 1000, display: 'inline-block', cursor: routeDetails ? 'pointer' : 'default' }}
-                aria-label="Save Trip" // For accessibility
-                role="button" // For accessibility
-                tabIndex={routeDetails ? 0 : -1} // For accessibility
-                onKeyDown={(e) => { // Keyboard accessibility for the div
-                  if (routeDetails && (e.key === 'Enter' || e.key === ' ')) {
-                    e.preventDefault();
-                    handleSaveTrip();
-                  }
+                  console.log('[KamperHub Save Button] Clicked.');
+                  handleSaveTrip();
                 }}
               >
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="font-body"
-                  disabled={!routeDetails}
-                  // onClick is intentionally removed from Button component for this diagnostic test
-                  aria-hidden="true" // The div is the interactive element now
-                >
-                  <Save className="mr-2 h-4 w-4" /> Save Trip
-                </Button>
-              </div>
+                <Save className="mr-2 h-4 w-4" /> Save Trip
+              </Button>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="font-body"><strong>Distance:</strong> {routeDetails.distance}</div>
