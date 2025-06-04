@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesAutocompleteInput'; // Changed path
+// Removed import for GooglePlacesAutocompleteInput as it's no longer used here
 
 const bookingSchema = z.object({
   siteName: z.string().min(1, "Site name is required"),
@@ -44,7 +44,7 @@ interface BookingFormProps {
 }
 
 export function BookingForm({ initialData, onSave, onCancel, isLoading }: BookingFormProps) {
-  const { control, register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<BookingFormData>({
+  const { control, register, handleSubmit, formState: { errors }, reset, watch } = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: initialData ? {
       ...initialData,
@@ -61,8 +61,6 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
       notes: '',
     },
   });
-
-  // Removed direct autocomplete setup logic
 
   const onSubmit: SubmitHandler<BookingFormData> = (data) => {
     onSave(data);
@@ -150,14 +148,14 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
       </div>
       
       <div>
-        <GooglePlacesAutocompleteInput
-          control={control}
-          name="locationAddress" // This is type BookingFormData['locationAddress']
-          label="Location / Address"
-          placeholder="e.g., 123 Scenic Route, Nature Town"
-          errors={errors}
-          setValue={setValue}
+        <Label htmlFor="locationAddress" className="font-body">Location / Address</Label>
+        <Input 
+            id="locationAddress" 
+            {...register("locationAddress")} 
+            placeholder="e.g., 123 Scenic Route, Nature Town" 
+            className="font-body" 
         />
+        {errors.locationAddress && <p className="text-sm text-destructive font-body mt-1">{errors.locationAddress.message}</p>}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
