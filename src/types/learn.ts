@@ -8,6 +8,14 @@ export interface EducationalVideo {
   dataAiHint?: string;
 }
 
+export interface AiGeneratedArticle {
+  topic: string;
+  title: string;
+  introduction: string;
+  sections: Array<{ heading: string; content: string }>;
+  conclusion: string;
+}
+
 export const sampleVideos: EducationalVideo[] = [
   {
     id: 'vid1',
