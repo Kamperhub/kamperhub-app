@@ -70,7 +70,7 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
       typeof window.google === 'undefined' ||
       !window.google.maps ||
       !window.google.maps.places ||
-      typeof window.google.maps.places.Autocomplete !== 'function' || 
+      typeof window.google.maps.places.Autocomplete !== 'function' ||
       !locationAddressInputRef.current
     ) {
       console.warn("Google Maps Autocomplete API not ready for BookingForm or input ref not available.");
@@ -79,13 +79,13 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
 
     if (autocompleteRef.current && typeof window.google.maps.event !== 'undefined') {
       window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
-      autocompleteRef.current = null; 
+      autocompleteRef.current = null;
     }
 
     try {
       const autocomplete = new window.google.maps.places.Autocomplete(locationAddressInputRef.current, {
-        fields: ["formatted_address", "name"], 
-        types: ["geocode"], // Changed from ["address"] to ["geocode"]
+        fields: ["formatted_address", "geometry", "name"], // Aligned with TripPlanner
+        types: ["geocode"],
       });
       autocompleteRef.current = autocomplete;
 
@@ -94,6 +94,7 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
         if (place && place.formatted_address) {
           setValue("locationAddress", place.formatted_address, { shouldValidate: true, shouldDirty: true });
         } else if (locationAddressInputRef.current) {
+          // Fallback to current input value if place is not well-formed
           setValue("locationAddress", locationAddressInputRef.current.value, { shouldValidate: true, shouldDirty: true });
         }
       });
@@ -104,6 +105,7 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
     const currentInputRef = locationAddressInputRef.current;
     const onKeyDownPreventSubmit = (event: KeyboardEvent) => {
       const pacContainer = document.querySelector('.pac-container');
+      // Prevent form submission if Enter is pressed while autocomplete suggestions are visible
       if (event.key === 'Enter' && pacContainer && getComputedStyle(pacContainer).display !== 'none') {
         event.preventDefault();
       }
@@ -120,13 +122,13 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
       if (autocompleteRef.current && typeof window.google !== 'undefined' && window.google.maps && window.google.maps.event) {
         window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
       }
-      autocompleteRef.current = null; 
+      autocompleteRef.current = null;
     };
-  }, []); 
+  }, []); // Empty dependency array ensures this runs once on mount & cleans up
 
   const onSubmit: SubmitHandler<BookingFormData> = (data) => {
     onSave(data);
-    reset(); 
+    reset();
   };
 
   const checkInDateValue = watch("checkInDate");
@@ -226,7 +228,7 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
               value={field.value || ''}
               placeholder="e.g., 123 Scenic Route, Nature Town"
               className="font-body"
-              autoComplete="off" 
+              autoComplete="off"
             />
           )}
         />
