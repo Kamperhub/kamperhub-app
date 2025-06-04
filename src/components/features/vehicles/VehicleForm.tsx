@@ -116,7 +116,7 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
           <Input id="fuelEfficiency" type="number" step="0.1" {...register("fuelEfficiency")} placeholder="e.g., 12.5" className="font-body" />
           {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
           <p className="text-xs text-muted-foreground font-body mt-1">
-            Enter vehicle's standard efficiency. Towing typically increases consumption by 30-40%.
+            Enter vehicle's EXPECTED efficiency. Towing typically increases consumption by 30-40%.
           </p>
         </div>
       </div>
