@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
@@ -49,15 +50,24 @@ export function ChatInterface() {
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chatbot error:", error);
-      const errorMessage: ChatMessage = {
+      let specificMessage = "Sorry, I encountered an error processing your request. Please try again.";
+      if (error && typeof error.message === 'string') {
+        if (error.message.toLowerCase().includes("service unavailable") || error.message.toLowerCase().includes("overloaded")) {
+          specificMessage = "The AI assistant is currently experiencing high demand or is temporarily unavailable. Please try again in a few moments.";
+        } else if (error.message.toLowerCase().includes("api key not valid")) {
+          // This message is more for the developer if the API key is wrong.
+          specificMessage = "There seems to be an issue with the AI service configuration. Please try again later.";
+        }
+      }
+      const errorMessageContent: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
-        text: "Sorry, I encountered an error. Please try again.",
+        text: specificMessage,
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorMessageContent]);
     } finally {
       setIsLoading(false);
     }
