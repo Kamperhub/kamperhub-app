@@ -10,7 +10,7 @@ import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip } fr
 import { TRIP_LOG_STORAGE_KEY, RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import type { StoredVehicle } from '@/types/vehicle';
 import { VEHICLES_STORAGE_KEY, ACTIVE_VEHICLE_ID_KEY } from '@/types/vehicle';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button'; // Keep for other buttons
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -123,19 +123,17 @@ export function TripPlannerClient() {
             const storedVehicles: StoredVehicle[] = JSON.parse(storedVehiclesJson);
             const activeVehicle = storedVehicles.find(v => v.id === activeVehicleId);
             if (activeVehicle && typeof activeVehicle.fuelEfficiency === 'number') {
-              if (getValues('fuelEfficiency') === 10) { // Only set if it's still the default
+              if (getValues('fuelEfficiency') === 10) { 
                  setValue('fuelEfficiency', activeVehicle.fuelEfficiency, { shouldValidate: false });
               }
             }
           }
         } catch (e) {
           console.error("Error loading active vehicle data for Trip Planner:", e);
-          // Don't toast here as it could be annoying on page load
         }
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reset, setValue, toast, pathname, getValues]); // Added getValues to dependencies as it's used in the effect
+  }, [reset, setValue, toast, pathname, getValues]); 
 
 
   useEffect(() => {
@@ -192,9 +190,7 @@ export function TripPlannerClient() {
       } else if (currentZoom && currentZoom < 3 ) {
          map.setZoom(3);
       } else if (currentZoom) {
-         // Adjust zoom level carefully if bounds are very small (short distance)
-         // or very large. Default fitting might be too zoomed in or out.
-         map.setZoom(Math.max(2, currentZoom -1)); // Example adjustment
+         map.setZoom(Math.max(2, currentZoom -1)); 
       }
 
     } else if (routeDetails?.startLocation) {
@@ -205,7 +201,6 @@ export function TripPlannerClient() {
         map.setZoom(12);
     }
 
-    // Cleanup function
     return () => {
       if (polylineRef.current) {
         polylineRef.current.setMap(null);
@@ -224,9 +219,9 @@ export function TripPlannerClient() {
     setError(null);
     setRouteDetails(null);
     setFuelEstimate(null);
-    setCurrentTripNotes(null); // Clear notes from previous recalled trip
+    setCurrentTripNotes(null); 
     setDirectionsResponse(null);
-    setPointsOfInterest([]); // Clear POIs from previous search
+    setPointsOfInterest([]); 
 
     try {
       const results = await directionsServiceRef.current.route({
@@ -285,14 +280,13 @@ export function TripPlannerClient() {
     }
   };
 
-  // TODO: PENDING ISSUE - Save Trip button is not triggering the onClick handler.
-  // The button appears enabled when routeDetails exist, and the pointer changes on hover,
-  // but clicking it does not call this function or show any console logs/prompts.
-  // Investigate potential event capturing issues, React rendering interference,
-  // or problems with window.prompt in this environment.
+  // TODO: PENDING ISSUE - This button is not triggering the onClick handler.
+  // Console.log at start of handleSaveTrip is not appearing.
+  // Button visually enables correctly when routeDetails are present.
+  // Investigate potential event conflicts or React rendering issues.
   const handleSaveTrip = useCallback(() => {
-    console.log('handleSaveTrip called. routeDetails:', routeDetails); // For debugging
-    alert('handleSaveTrip function was called!'); // Test alert
+    console.log('handleSaveTrip called. routeDetails:', routeDetails); 
+    alert('handleSaveTrip function was called!'); 
 
     if (!routeDetails) {
       toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
@@ -302,10 +296,7 @@ export function TripPlannerClient() {
     const tripName = window.prompt("Enter a name for this trip:", `Trip to ${getValues("endLocation")}`);
     if (!tripName) return;
 
-    // Prompt for notes. If currentTripNotes has a value (e.g. from a recalled trip), use it as default.
     const tripNotesPromptResult = window.prompt("Enter any notes for this trip (optional, max 500 characters suggested):", currentTripNotes || "");
-    // If user cancels prompt (null) or clears it (empty string), save as undefined or empty string respectively.
-    // We will treat null from prompt as 'no notes' -> undefined. Empty string is fine as 'empty notes'.
     const tripNotes = tripNotesPromptResult === null ? undefined : tripNotesPromptResult;
 
 
@@ -329,7 +320,7 @@ export function TripPlannerClient() {
       const existingTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
       const existingTrips: LoggedTrip[] = existingTripsJson ? JSON.parse(existingTripsJson) : [];
       localStorage.setItem(TRIP_LOG_STORAGE_KEY, JSON.stringify([...existingTrips, newLoggedTrip]));
-      setCurrentTripNotes(newLoggedTrip.notes); // Update current notes to reflect what was saved
+      setCurrentTripNotes(newLoggedTrip.notes); 
       toast({ title: "Trip Saved!", description: `"${tripName}" has been added to your Trip Log.` });
     } catch (error) {
       console.error("Error saving trip to localStorage:", error);
@@ -346,11 +337,10 @@ export function TripPlannerClient() {
     let originQuery: string;
     let destinationQuery: string;
 
-    // Prioritize LatLng if available
     if (routeDetails.startLocation && routeDetails.endLocation) {
       originQuery = `${routeDetails.startLocation.lat},${routeDetails.startLocation.lng}`;
       destinationQuery = `${routeDetails.endLocation.lat},${routeDetails.endLocation.lng}`;
-    } else if (routeDetails.startAddress && routeDetails.endAddress) { // Fallback to addresses
+    } else if (routeDetails.startAddress && routeDetails.endAddress) { 
       originQuery = encodeURIComponent(routeDetails.startAddress);
       destinationQuery = encodeURIComponent(routeDetails.endAddress);
     } else {
@@ -375,12 +365,12 @@ export function TripPlannerClient() {
     }
 
     setIsSearchingPOIs(true);
-    setPointsOfInterest([]); // Clear previous POIs
+    setPointsOfInterest([]); 
 
     const request: google.maps.places.PlaceSearchRequest = {
         location: center,
-        radius: 5000, // Search within a 5km radius of the map center
-        type: 'tourist_attraction', // Example type, can be changed (e.g., 'campground', 'gas_station')
+        radius: 5000, 
+        type: 'tourist_attraction', 
     };
 
     placesServiceRef.current.nearbySearch(request, (results, status) => {
@@ -402,8 +392,8 @@ export function TripPlannerClient() {
   }, [map, toast]);
 
 
-  const mapHeight = "400px"; // Or use a dynamic calculation if needed
-  const defaultMapCenter = { lat: -33.8688, lng: 151.2093 }; // Sydney
+  const mapHeight = "400px"; 
+  const defaultMapCenter = { lat: -33.8688, lng: 151.2093 }; 
   const defaultMapZoom = 6;
 
 
@@ -517,11 +507,11 @@ export function TripPlannerClient() {
       </Card>
 
       <div className="md:col-span-2 space-y-6">
-        <div className="relative"> {/* Ensure this parent is positioned for absolute children if needed */}
+        <div className="relative"> 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="font-headline flex items-center"><MapPin className="mr-2 h-6 w-6 text-primary" /> Route Map</CardTitle>
-                {routeDetails && ( // Only show POI button if a route is planned
+                {routeDetails && ( 
                     <Button
                         onClick={handleFindPOIs}
                         variant="outline"
@@ -535,17 +525,15 @@ export function TripPlannerClient() {
                 )}
               </CardHeader>
               <CardContent className="p-0">
-                {/* Map container with explicit height */}
                 <div style={{ height: mapHeight }} className="bg-muted rounded-b-lg overflow-hidden relative">
                     <Map
                       defaultCenter={defaultMapCenter}
                       defaultZoom={defaultMapZoom}
                       gestureHandling={'greedy'}
                       disableDefaultUI={true}
-                      mapId={'DEMO_MAP_ID'} // Using the demo map ID
-                      className="h-full w-full" // Ensure map fills its container
+                      mapId={'DEMO_MAP_ID'} 
+                      className="h-full w-full" 
                     >
-                      {/* Markers for start and end */}
                       {routeDetails?.startLocation && (
                         <AdvancedMarker position={routeDetails.startLocation} title={`Start: ${routeDetails.startAddress || ''}`}>
                           <Pin
@@ -564,7 +552,6 @@ export function TripPlannerClient() {
                           />
                         </AdvancedMarker>
                       )}
-                      {/* Markers for POIs */}
                       {pointsOfInterest.map(poi => (
                         poi.geometry?.location && (
                             <AdvancedMarker
@@ -572,13 +559,11 @@ export function TripPlannerClient() {
                                 position={poi.geometry.location}
                                 title={poi.name ?? undefined}
                             >
-                                {/* Using a distinct pin color for POIs */}
                                 <Pin background={'#FFBF00'} borderColor={'#B8860B'} glyphColor={'#000000'} />
                             </AdvancedMarker>
                         )
                       ))}
                     </Map>
-                    {/* Loading overlay */}
                     {(!map || (map && !isGoogleApiReady)) && (
                         <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm rounded-b-lg">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -597,7 +582,7 @@ export function TripPlannerClient() {
           </Alert>
         )}
 
-        {isLoading && !routeDetails && ( // Show skeleton only when loading AND no details yet
+        {isLoading && !routeDetails && ( 
           <Card>
             <CardHeader>
               <CardTitle className="font-headline">Trip Summary</CardTitle>
@@ -616,9 +601,7 @@ export function TripPlannerClient() {
               <CardTitle className="font-headline flex items-center"><Fuel className="mr-2 h-6 w-6 text-primary" /> Trip Summary</CardTitle>
                 <div className="flex items-center gap-2">
                     <Button
-                        onClick={() => {
-                           handleNavigateWithGoogleMaps();
-                        }}
+                        onClick={handleNavigateWithGoogleMaps}
                         variant="outline"
                         size="sm"
                         className="font-body"
@@ -626,19 +609,26 @@ export function TripPlannerClient() {
                     >
                         <Navigation className="mr-2 h-4 w-4" /> Navigate
                     </Button>
-                    {/* TODO: PENDING ISSUE - This button is not triggering onClick when clicked.
-                        Console.log at start of handleSaveTrip is not appearing.
-                        Button visually enables correctly when routeDetails are present.
-                        Investigate potential event conflicts or React rendering issues. */}
-                    <Button
-                        variant="default"
-                        size="sm"
-                        className="font-body"
-                        onClick={() => { alert('Save Trip Button Clicked - Direct inline test'); }}
-                        // disabled={!routeDetails} // Temporarily removed for testing
+                    {/* TODO: PENDING ISSUE - This button is not triggering the onClick handler. */}
+                    {/* Switched to raw HTML button for testing */}
+                    <button
+                        type="button" // Important for forms to prevent default submit
+                        onClick={() => {
+                            console.log('Raw HTML Save Trip Button Clicked!');
+                            alert('Raw HTML Save Trip Button Clicked!');
+                            // If the alert works, then uncomment the next line to test handleSaveTrip:
+                            // handleSaveTrip(); 
+                        }}
+                        disabled={!routeDetails}
+                        className={cn(
+                            "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+                            "bg-primary text-primary-foreground hover:bg-primary/90", // Mimic ShadCN default button
+                            "h-9 px-3", // Mimic ShadCN sm size
+                            "font-body"
+                        )}
                     >
                         <Save className="mr-2 h-4 w-4" /> Save Trip
-                    </Button>
+                    </button>
                 </div>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -671,4 +661,5 @@ export function TripPlannerClient() {
     </div>
   );
 }
+
 
