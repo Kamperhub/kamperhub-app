@@ -65,7 +65,7 @@ export function TripPlannerClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [fuelEstimate, setFuelEstimate] = useState<FuelEstimate | null>(null);
-  const [currentTripNotes, setCurrentTripNotes] = useState<string | null | undefined>(null);
+  const [currentTripNotes, setCurrentTripNotes] = useState<string | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
   const { toast } = useToast();
@@ -219,7 +219,7 @@ export function TripPlannerClient() {
     setError(null);
     setRouteDetails(null);
     setFuelEstimate(null);
-    setCurrentTripNotes(null); 
+    // setCurrentTripNotes(null); // Do not reset notes on new plan, user might want to keep them for a modified plan
     setDirectionsResponse(null);
     setPointsOfInterest([]); 
 
@@ -343,17 +343,31 @@ export function TripPlannerClient() {
     });
   }, [map, toast]);
 
+
   const handleSaveTrip = useCallback(() => {
+    console.log('handleSaveTrip called. RouteDetails:', routeDetails);
+    console.log('Form Values:', getValues());
+    console.log('Fuel Estimate:', fuelEstimate);
+    console.log('Current Trip Notes:', currentTripNotes);
+
     if (!routeDetails) {
       toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
+      console.log('Exiting handleSaveTrip because !routeDetails');
       return;
     }
 
     const tripName = window.prompt("Enter a name for this trip:", `Trip to ${getValues("endLocation")}`);
-    if (!tripName) return;
+    if (!tripName) {
+        console.log('Exiting handleSaveTrip because no tripName provided.');
+        return;
+    }
 
     const tripNotesPromptResult = window.prompt("Enter any notes for this trip (optional, max 500 characters suggested):", currentTripNotes || "");
+    // If user cancels notes prompt, tripNotesPromptResult is null. If they leave it empty, it's "".
+    // We want to save "" if they empty it, but undefined/null if they cancel.
+    // Let's treat null (cancel) as undefined and "" as an empty string.
     const tripNotes = tripNotesPromptResult === null ? undefined : tripNotesPromptResult;
+    setCurrentTripNotes(tripNotes);
 
 
     const currentFormData = getValues();
@@ -376,13 +390,12 @@ export function TripPlannerClient() {
       const existingTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
       const existingTrips: LoggedTrip[] = existingTripsJson ? JSON.parse(existingTripsJson) : [];
       localStorage.setItem(TRIP_LOG_STORAGE_KEY, JSON.stringify([...existingTrips, newLoggedTrip]));
-      setCurrentTripNotes(newLoggedTrip.notes); 
       toast({ title: "Trip Saved!", description: `"${tripName}" has been added to your Trip Log.` });
     } catch (error) {
       console.error("Error saving trip to localStorage:", error);
       toast({ title: "Error Saving Trip", description: "Could not save trip.", variant: "destructive" });
     }
-  }, [routeDetails, getValues, fuelEstimate, currentTripNotes, toast, setCurrentTripNotes]);
+  }, [routeDetails, getValues, fuelEstimate, currentTripNotes, setCurrentTripNotes, toast]);
 
 
   const mapHeight = "400px"; 
@@ -610,10 +623,10 @@ export function TripPlannerClient() {
               {getValues("dateRange")?.to && (
                 <div className="font-body"><strong>Planned End:</strong> {format(getValues("dateRange")!.to!, "PPP")}</div>
               )}
-              {currentTripNotes && (
+              {currentTripNotes !== undefined && ( // Check for undefined to show notes section even if notes are ""
                 <div className="font-body mt-2 pt-2 border-t">
                   <strong className="font-semibold flex items-center"><StickyNote className="mr-2 h-4 w-4 text-primary" />Notes:</strong>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap pl-6">{currentTripNotes}</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap pl-6">{currentTripNotes || <i>No notes entered.</i>}</p>
                 </div>
               )}
             </CardContent>
@@ -621,7 +634,7 @@ export function TripPlannerClient() {
         )}
         
         {routeDetails && (
-          <div className="flex justify-end items-center gap-2 mt-4 p-4 border bg-card rounded-lg shadow-sm">
+           <div className="flex justify-end items-center gap-2 mt-4 p-4 border bg-card rounded-lg shadow-sm">
             <Button
               onClick={handleNavigateWithGoogleMaps}
               variant="outline"
@@ -631,15 +644,18 @@ export function TripPlannerClient() {
             >
               <Navigation className="mr-2 h-4 w-4" /> Navigate
             </Button>
-            <Button
+            <button
+                type="button"
                 onClick={handleSaveTrip}
-                variant="default" 
-                size="sm"
-                className="font-body bg-primary hover:bg-primary/90 text-primary-foreground"
                 disabled={!routeDetails}
+                className={cn(
+                    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+                    "bg-primary text-primary-foreground hover:bg-primary/90", // from Button variant="default"
+                    "h-9 px-3" // from Button size="sm"
+                )}
             >
                 <Save className="mr-2 h-4 w-4" /> Save Trip
-            </Button>
+            </button>
           </div>
         )}
       </div>
@@ -654,4 +670,5 @@ export function TripPlannerClient() {
 
 
     
+
 
