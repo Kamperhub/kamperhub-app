@@ -26,9 +26,9 @@ export default function LearnPage() {
   useEffect(() => {
     async function fetchArticles() {
       setIsLoadingArticles(true);
-      setShowRateLimitError(false);
+      setShowRateLimitError(false); // Reset per fetch attempt
       const newArticles: AiGeneratedArticle[] = [];
-      const errors: string[] = [];
+      const localErrors: string[] = [];
 
       for (const topic of articleTopics) {
         try {
@@ -37,16 +37,23 @@ export default function LearnPage() {
           newArticles.push(article);
         } catch (error: any) {
           console.error(`Failed to generate article for topic "${topic}":`, error);
-          if (error.message && (error.message.includes("429") || error.message.toLowerCase().includes("quota"))) {
+          if (error.message && error.message.startsWith("RATE_LIMIT_EXCEEDED")) {
             setShowRateLimitError(true);
-            errors.push(`Article for "${topic}" failed due to API rate limits.`);
-          } else {
-            errors.push(`Could not generate article for: ${topic}.`);
+            localErrors.push(`Article for "${topic}" could not be generated due to API rate limits. Please check your Gemini API quota and billing details.`);
+            // Optionally, break here if one rate limit error means all subsequent calls will also fail
+            // break; 
+          } else if (error.message && error.message.startsWith("AI_MODEL_OUTPUT_ERROR")) {
+            localErrors.push(`Article for "${topic}" generation issue: Model did not return expected output. Details: ${error.message}`);
+          } else if (error.message && error.message.startsWith("AI_PROMPT_ERROR")) {
+            localErrors.push(`Article for "${topic}" generation failed: Error calling AI prompt. Details: ${error.message}`);
+          }
+          else { // Fallback for other generic errors
+            localErrors.push(`Could not generate article for "${topic}". An unexpected error occurred: ${error.message || 'Unknown error'}`);
           }
         }
       }
       setGeneratedArticles(newArticles);
-      setArticleErrors(errors);
+      setArticleErrors(localErrors);
       setIsLoadingArticles(false);
     }
     fetchArticles();
@@ -91,6 +98,7 @@ export default function LearnPage() {
             <AlertDescription className="font-body">
               Article generation is temporarily unavailable because the API usage limits have been reached. 
               Please check your Google Cloud project's Gemini API quotas and billing details. You may need to wait or upgrade your plan.
+              Some articles may not have loaded.
             </AlertDescription>
           </Alert>
         )}
@@ -112,7 +120,11 @@ export default function LearnPage() {
         {!isLoadingArticles && articleErrors.length > 0 && (
           <div className="space-y-2 mb-4">
             {articleErrors.map((errorMsg, index) => (
-              <p key={index} className="text-destructive font-body">{errorMsg}</p>
+               <Alert key={index} variant="default" className="bg-orange-50 border-orange-300 text-orange-700">
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                <AlertTitle className="font-headline text-orange-700">Article Generation Issue</AlertTitle>
+                <AlertDescription className="font-body">{errorMsg}</AlertDescription>
+              </Alert>
             ))}
           </div>
         )}
@@ -130,3 +142,4 @@ export default function LearnPage() {
     </div>
   );
 }
+

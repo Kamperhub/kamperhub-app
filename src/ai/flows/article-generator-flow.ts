@@ -58,12 +58,23 @@ const articleGeneratorFlow = ai.defineFlow(
     inputSchema: ArticleGeneratorInputSchema,
     outputSchema: ArticleGeneratorOutputSchema,
   },
-  async (input: ArticleGeneratorInput) => {
-    const {output} = await prompt(input);
-    if (!output) {
-      throw new Error('Failed to generate article content.');
+  async (input: ArticleGeneratorInput): Promise<ArticleGeneratorOutput> => {
+    try {
+      const {output} = await prompt(input);
+      if (!output) {
+        console.warn('ArticleGeneratorFlow: AI model returned null output. This might be due to schema mismatch or other non-fatal errors from the model.');
+        throw new Error('AI_MODEL_OUTPUT_ERROR: Failed to generate article content in the expected format from the model.');
+      }
+      return { ...output, topic: input.topic };
+    } catch (error: any) {
+      console.error("Error in articleGeneratorFlow during prompt execution:", error);
+      // Check for rate limit / quota errors
+      if (error.message && (error.message.includes("429") || error.message.toLowerCase().includes("quota") || (error.cause && typeof error.cause === 'object' && 'status' in error.cause && error.cause.status === 429))) {
+        throw new Error(`RATE_LIMIT_EXCEEDED: API request failed due to rate limits or quota issues. Original: ${error.message}`);
+      }
+      // For other types of errors from the prompt call
+      throw new Error(`AI_PROMPT_ERROR: An unexpected error occurred while calling the AI prompt. Original: ${error.message}`);
     }
-    // Ensure the topic is passed through correctly
-    return { ...output, topic: input.topic };
   }
 );
+
