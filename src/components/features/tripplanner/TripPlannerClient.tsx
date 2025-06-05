@@ -5,10 +5,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useForm, type SubmitHandler, Controller, type Control, type UseFormSetValue, type FieldErrors, FieldPath } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { usePathname } from 'next/navigation'; 
+import { usePathname } from 'next/navigation';
 import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip } from '@/types/tripplanner';
 import { TRIP_LOG_STORAGE_KEY, RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
-import type { StoredVehicle } from '@/types/vehicle'; 
+import type { StoredVehicle } from '@/types/vehicle';
 import { VEHICLES_STORAGE_KEY, ACTIVE_VEHICLE_ID_KEY } from '@/types/vehicle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,7 +28,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import type { DateRange } from 'react-day-picker';
-import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesAutocompleteInput'; 
+import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesAutocompleteInput';
 
 const tripPlannerSchema = z.object({
   startLocation: z.string().min(3, "Start location is required (min 3 chars)"),
@@ -56,7 +56,7 @@ export function TripPlannerClient() {
     defaultValues: {
       startLocation: '',
       endLocation: '',
-      fuelEfficiency: 10, 
+      fuelEfficiency: 10,
       fuelPrice: 1.80,
       dateRange: { from: undefined, to: undefined }
     }
@@ -69,9 +69,9 @@ export function TripPlannerClient() {
   const [error, setError] = useState<string | null>(null);
   const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
   const { toast } = useToast();
-  const pathname = usePathname(); 
-  
-  const map = useMap(); 
+  const pathname = usePathname();
+
+  const map = useMap();
   const polylineRef = useRef<google.maps.Polyline | null>(null);
   const directionsServiceRef = useRef<google.maps.DirectionsService | null>(null);
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
@@ -79,9 +79,9 @@ export function TripPlannerClient() {
   const [isSearchingPOIs, setIsSearchingPOIs] = useState(false);
 
 
-  const isGoogleApiReady = !!map && 
-                           typeof window.google !== 'undefined' && 
-                           !!window.google.maps?.places?.Autocomplete && 
+  const isGoogleApiReady = !!map &&
+                           typeof window.google !== 'undefined' &&
+                           !!window.google.maps?.places?.Autocomplete &&
                            !!window.google.maps?.DirectionsService &&
                            !!window.google.maps?.places?.PlacesService;
 
@@ -108,7 +108,7 @@ export function TripPlannerClient() {
           setCurrentTripNotes(recalledTrip.notes);
           localStorage.removeItem(RECALLED_TRIP_DATA_KEY);
           toast({ title: "Trip Recalled", description: `"${recalledTrip.name}" loaded into planner.` });
-          recalledTripLoaded = true; 
+          recalledTripLoaded = true;
         }
       } catch (e) {
         console.error("Error loading recalled trip data:", e);
@@ -123,7 +123,7 @@ export function TripPlannerClient() {
             const storedVehicles: StoredVehicle[] = JSON.parse(storedVehiclesJson);
             const activeVehicle = storedVehicles.find(v => v.id === activeVehicleId);
             if (activeVehicle && typeof activeVehicle.fuelEfficiency === 'number') {
-              if (getValues('fuelEfficiency') === 10) { 
+              if (getValues('fuelEfficiency') === 10) {
                  setValue('fuelEfficiency', activeVehicle.fuelEfficiency, { shouldValidate: false });
               }
             }
@@ -134,7 +134,7 @@ export function TripPlannerClient() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reset, setValue, toast, pathname, getValues]); 
+  }, [reset, setValue, toast, pathname, getValues]);
 
 
   useEffect(() => {
@@ -151,32 +151,32 @@ export function TripPlannerClient() {
 
   useEffect(() => {
     if (!map) return;
-  
+
     if (polylineRef.current) {
-      polylineRef.current.setMap(null); 
-      polylineRef.current = null; 
+      polylineRef.current.setMap(null);
+      polylineRef.current = null;
     }
-  
+
     if (directionsResponse && directionsResponse.routes && directionsResponse.routes.length > 0 && window.google && window.google.maps) {
       const route = directionsResponse.routes[0];
-      
+
       if (route.overview_path && route.overview_path.length > 0) {
         const newPolyline = new window.google.maps.Polyline({
           path: route.overview_path,
-          strokeColor: 'hsl(var(--primary))', 
+          strokeColor: 'hsl(var(--primary))',
           strokeOpacity: 0.8,
           strokeWeight: 6,
         });
-        newPolyline.setMap(map); 
-        polylineRef.current = newPolyline; 
+        newPolyline.setMap(map);
+        polylineRef.current = newPolyline;
       }
-  
+
       if (route.bounds) {
         map.fitBounds(route.bounds);
         const currentZoom = map.getZoom();
-        if (currentZoom && route.legs.reduce((acc, leg) => acc + (leg.distance?.value || 0), 0) > 50000 && currentZoom > 12) { 
-          map.setZoom(12); 
-        } else if (currentZoom && currentZoom > 15) { 
+        if (currentZoom && route.legs.reduce((acc, leg) => acc + (leg.distance?.value || 0), 0) > 50000 && currentZoom > 12) {
+          map.setZoom(12);
+        } else if (currentZoom && currentZoom > 15) {
           map.setZoom(15);
         }
       }
@@ -186,12 +186,12 @@ export function TripPlannerClient() {
       if(routeDetails.endLocation) bounds.extend(routeDetails.endLocation);
       map.fitBounds(bounds);
       const currentZoom = map.getZoom();
-       if (currentZoom && currentZoom > 15) { 
-         map.setZoom(15); 
-      } else if (currentZoom && currentZoom < 3 ) { 
+       if (currentZoom && currentZoom > 15) {
+         map.setZoom(15);
+      } else if (currentZoom && currentZoom < 3 ) {
          map.setZoom(3);
       } else if (currentZoom) {
-         map.setZoom(Math.max(2, currentZoom -1)); 
+         map.setZoom(Math.max(2, currentZoom -1));
       }
 
     } else if (routeDetails?.startLocation) {
@@ -201,7 +201,7 @@ export function TripPlannerClient() {
         map.setCenter(routeDetails.endLocation);
         map.setZoom(12);
     }
-  
+
     return () => {
       if (polylineRef.current) {
         polylineRef.current.setMap(null);
@@ -215,13 +215,13 @@ export function TripPlannerClient() {
       setError("Map services (Directions) are not ready. Please try again shortly.");
       return;
     }
-    
+
     setIsLoading(true);
     setError(null);
     setRouteDetails(null);
     setFuelEstimate(null);
     setCurrentTripNotes(null);
-    setDirectionsResponse(null); 
+    setDirectionsResponse(null);
     setPointsOfInterest([]);
 
     try {
@@ -242,12 +242,12 @@ export function TripPlannerClient() {
             distanceValue: distanceValue,
             startAddress: leg.start_address,
             endAddress: leg.end_address,
-            startLocation: leg.start_location?.toJSON(), 
-            endLocation: leg.end_location?.toJSON() 
+            startLocation: leg.start_location?.toJSON(),
+            endLocation: leg.end_location?.toJSON()
           };
           setRouteDetails(currentRouteDetails);
-          setDirectionsResponse(results); 
-          
+          setDirectionsResponse(results);
+
           if (distanceValue > 0 && data.fuelEfficiency > 0) {
             const distanceKm = distanceValue / 1000;
             const fuelNeededLitres = (distanceKm / 100) * data.fuelEfficiency;
@@ -270,7 +270,7 @@ export function TripPlannerClient() {
         setError("No routes found for the specified locations. Please try different addresses.");
       } else if (mapsStatus && e.code === mapsStatus.NOT_FOUND) {
         setError("One or both locations could not be geocoded. Please check the addresses.");
-      } else if (e.message && e.message.includes("Legacy API")) { 
+      } else if (e.message && e.message.includes("Legacy API")) {
         setError("Error: You’re calling a legacy API, which is not enabled for your project. Please enable Places API (New) or Routes API in your Google Cloud Console.");
       }
       else {
@@ -286,14 +286,12 @@ export function TripPlannerClient() {
       toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
       return;
     }
-  
+
     const tripName = window.prompt("Enter a name for this trip:", `Trip to ${getValues("endLocation")}`);
-    if (!tripName) return; 
+    if (!tripName) return;
 
     const tripNotes = window.prompt("Enter any notes for this trip (optional, max 500 characters suggested):", currentTripNotes || "");
-    // User can press cancel for notes, so tripNotes can be null.
-    // If they enter an empty string, it will be saved as such.
-  
+
     const currentFormData = getValues();
     const newLoggedTrip: LoggedTrip = {
       id: Date.now().toString(),
@@ -303,18 +301,18 @@ export function TripPlannerClient() {
       endLocationDisplay: currentFormData.endLocation,
       fuelEfficiency: currentFormData.fuelEfficiency,
       fuelPrice: currentFormData.fuelPrice,
-      routeDetails: routeDetails, 
+      routeDetails: routeDetails,
       fuelEstimate: fuelEstimate,
       plannedStartDate: currentFormData.dateRange?.from ? currentFormData.dateRange.from.toISOString() : null,
       plannedEndDate: currentFormData.dateRange?.to ? currentFormData.dateRange.to.toISOString() : null,
-      notes: tripNotes === null ? undefined : tripNotes, // Store null as undefined, or the string
+      notes: tripNotes === null ? undefined : tripNotes,
     };
-    
+
     try {
       const existingTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
       const existingTrips: LoggedTrip[] = existingTripsJson ? JSON.parse(existingTripsJson) : [];
       localStorage.setItem(TRIP_LOG_STORAGE_KEY, JSON.stringify([...existingTrips, newLoggedTrip]));
-      setCurrentTripNotes(newLoggedTrip.notes); // Update current view with notes
+      setCurrentTripNotes(newLoggedTrip.notes);
       toast({ title: "Trip Saved!", description: `"${tripName}" has been added to your Trip Log.` });
     } catch (error) {
       console.error("Error saving trip to localStorage:", error);
@@ -363,8 +361,8 @@ export function TripPlannerClient() {
 
     const request: google.maps.places.PlaceSearchRequest = {
         location: center,
-        radius: 5000, 
-        type: 'tourist_attraction', 
+        radius: 5000,
+        type: 'tourist_attraction',
     };
 
     placesServiceRef.current.nearbySearch(request, (results, status) => {
@@ -387,7 +385,7 @@ export function TripPlannerClient() {
 
 
   const mapHeight = "400px";
-  const defaultMapCenter = { lat: -33.8688, lng: 151.2093 }; 
+  const defaultMapCenter = { lat: -33.8688, lng: 151.2093 };
   const defaultMapZoom = 6;
 
 
@@ -418,7 +416,7 @@ export function TripPlannerClient() {
               setValue={setValue}
               isApiReady={isGoogleApiReady}
             />
-            
+
             <div>
               <Label htmlFor="dateRange" className="font-body">Planned Date Range</Label>
               <Controller
@@ -454,7 +452,7 @@ export function TripPlannerClient() {
                         initialFocus
                         mode="range"
                         defaultMonth={field.value?.from}
-                        selected={field.value as DateRange | undefined} 
+                        selected={field.value as DateRange | undefined}
                         onSelect={field.onChange}
                         numberOfMonths={2}
                       />
@@ -501,15 +499,15 @@ export function TripPlannerClient() {
       </Card>
 
       <div className="md:col-span-2 space-y-6">
-        <div className="relative"> 
+        <div className="relative">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="font-headline flex items-center"><MapPin className="mr-2 h-6 w-6 text-primary" /> Route Map</CardTitle>
                 {routeDetails && (
-                    <Button 
-                        onClick={handleFindPOIs} 
-                        variant="outline" 
-                        size="sm" 
+                    <Button
+                        onClick={handleFindPOIs}
+                        variant="outline"
+                        size="sm"
                         className="font-body"
                         disabled={isSearchingPOIs || !isGoogleApiReady}
                     >
@@ -525,13 +523,13 @@ export function TripPlannerClient() {
                       defaultZoom={defaultMapZoom}
                       gestureHandling={'greedy'}
                       disableDefaultUI={true}
-                      mapId={'DEMO_MAP_ID'} 
+                      mapId={'DEMO_MAP_ID'}
                       className="h-full w-full"
                     >
                       {routeDetails?.startLocation && (
                         <AdvancedMarker position={routeDetails.startLocation} title={`Start: ${routeDetails.startAddress || ''}`}>
                           <Pin
-                            background={'hsl(var(--primary))'} 
+                            background={'hsl(var(--primary))'}
                             borderColor={'hsl(var(--primary))'}
                             glyphColor={'hsl(var(--primary-foreground))'}
                           />
@@ -558,7 +556,7 @@ export function TripPlannerClient() {
                         )
                       ))}
                     </Map>
-                    {(!map || (map && !isGoogleApiReady)) && ( 
+                    {(!map || (map && !isGoogleApiReady)) && (
                         <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm rounded-b-lg">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             <p className="ml-2 font-body">{(map && !isGoogleApiReady) ? "Loading API Services..." : "Initializing Map..."}</p>
@@ -568,7 +566,7 @@ export function TripPlannerClient() {
               </CardContent>
             </Card>
         </div>
-        
+
         {error && (
           <Alert variant="destructive">
             <AlertTitle className="font-headline">Error</AlertTitle>
@@ -576,7 +574,7 @@ export function TripPlannerClient() {
           </Alert>
         )}
 
-        {isLoading && !routeDetails && ( 
+        {isLoading && !routeDetails && (
           <Card>
             <CardHeader>
               <CardTitle className="font-headline">Trip Summary</CardTitle>
@@ -594,37 +592,32 @@ export function TripPlannerClient() {
             <CardHeader className="flex flex-row items-center justify-between space-x-2">
               <CardTitle className="font-headline flex items-center"><Fuel className="mr-2 h-6 w-6 text-primary" /> Trip Summary</CardTitle>
                 <div className="flex items-center gap-2">
-                    <Button 
+                    <Button
                         onClick={handleNavigateWithGoogleMaps}
-                        variant="outline" 
-                        size="sm" 
+                        variant="outline"
+                        size="sm"
                         className="font-body"
                         disabled={!routeDetails}
                     >
                         <Navigation className="mr-2 h-4 w-4" /> Navigate
                     </Button>
-                    <div onClick={() => {
-                         if (routeDetails) {
-                           handleSaveTrip();
-                         } else {
-                            toast({ title: "Cannot Save", description: "No trip details to save. Plan a trip first.", variant: "destructive" });
-                         }
-                        }}
-                        className={cn(
-                            "inline-block", 
-                            !routeDetails && "cursor-not-allowed"
-                        )}
-                        style={{ zIndex: 1000, position: 'relative' }} 
-                        aria-disabled={!routeDetails}
-                        role="button"
-                        tabIndex={routeDetails ? 0 : -1}
+                    <div
+                        className="inline-block" // Retained for potential layout needs, but not for click
+                        style={{ zIndex: 1000, position: 'relative' }} // Retained for stacking
                     >
-                        <Button 
-                            variant="default" 
-                            size="sm" 
+                        <Button
+                            onClick={() => { // onClick handler now directly on the Button
+                                 if (routeDetails) {
+                                   handleSaveTrip();
+                                 } else {
+                                    // This case should ideally be prevented by the button's disabled state
+                                    toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
+                                 }
+                                }}
+                            variant="default"
+                            size="sm"
                             className="font-body"
-                            disabled={!routeDetails}
-                            tabIndex={-1} 
+                            disabled={!routeDetails} // Button is disabled if no routeDetails
                         >
                             <Save className="mr-2 h-4 w-4" /> Save Trip
                         </Button>
