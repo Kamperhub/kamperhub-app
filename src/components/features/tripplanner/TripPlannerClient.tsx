@@ -280,12 +280,8 @@ export function TripPlannerClient() {
     }
   };
 
-  // TODO: PENDING ISSUE - This button is not triggering the onClick handler.
-  // Console.log at start of handleSaveTrip is not appearing.
-  // Button visually enables correctly when routeDetails are present.
-  // Investigate potential event conflicts or React rendering issues.
   const handleSaveTrip = useCallback(() => {
-    console.log('handleSaveTrip called. routeDetails:', routeDetails); 
+    console.error('handleSaveTrip function was called!'); 
     alert('handleSaveTrip function was called!'); 
 
     if (!routeDetails) {
@@ -599,7 +595,13 @@ export function TripPlannerClient() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-x-2">
               <CardTitle className="font-headline flex items-center"><Fuel className="mr-2 h-6 w-6 text-primary" /> Trip Summary</CardTitle>
-                <div className="flex items-center gap-2 p-1 bg-yellow-300 border-2 border-yellow-500"> {/* Debugging: Visual parent */}
+                <div 
+                    className="flex items-center gap-2"
+                    onClick={() => {
+                        console.error('Wrapper DIV clicked around buttons!');
+                        alert('Wrapper DIV clicked around buttons!');
+                    }}
+                >
                     <Button
                         onClick={handleNavigateWithGoogleMaps}
                         variant="outline"
@@ -609,18 +611,20 @@ export function TripPlannerClient() {
                     >
                         <Navigation className="mr-2 h-4 w-4" /> Navigate
                     </Button>
-                    {/* TODO: PENDING ISSUE - This button is not triggering the onClick handler. Reverted to raw HTML for testing. */}
                     <button
                         type="button" 
-                        onClick={() => {
-                            console.log('Raw HTML Save Trip Button Clicked! Test 3');
-                            alert('Raw HTML Save Trip Button Clicked! Test 3');
+                        onClick={(e) => {
+                            // e.stopPropagation(); // Test if stopping propagation here helps isolate
+                            console.error('Save Trip raw HTML BUTTON clicked!');
+                            alert('Save Trip raw HTML BUTTON clicked!');
+                            // handleSaveTrip(); // Call the actual save function if the click works
                         }}
-                        // disabled={!routeDetails} // Temporarily always enabled for this specific test
+                        disabled={!routeDetails}
                         className={cn(
                             "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
                             "h-9 px-3", 
-                            "font-body bg-red-500 text-white border-4 border-red-800 hover:bg-red-600 p-2" // Debugging: Visual button with more padding
+                            !routeDetails ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed" : "bg-primary hover:bg-primary/90 text-primary-foreground",
+                            "font-body"
                         )}
                     >
                         <Save className="mr-2 h-4 w-4" /> Save Trip (Test)
@@ -657,4 +661,6 @@ export function TripPlannerClient() {
     </div>
   );
 }
+    
+
     
