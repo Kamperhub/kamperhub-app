@@ -281,7 +281,8 @@ export function TripPlannerClient() {
     }
   };
 
-  const handleSaveTrip = () => {
+  const handleSaveTrip = useCallback(() => {
+    console.log('handleSaveTrip called. routeDetails:', routeDetails); // For debugging
     if (!routeDetails) {
       toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
       return;
@@ -320,7 +321,7 @@ export function TripPlannerClient() {
       console.error("Error saving trip to localStorage:", error);
       toast({ title: "Error Saving Trip", description: "Could not save trip.", variant: "destructive" });
     }
-  };
+  }, [routeDetails, getValues, fuelEstimate, currentTripNotes, toast]);
 
   const handleNavigateWithGoogleMaps = () => {
     if (!routeDetails) {
