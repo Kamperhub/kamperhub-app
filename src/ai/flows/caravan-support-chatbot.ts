@@ -132,13 +132,23 @@ const caravanSupportChatbotFlow = ai.defineFlow(
       return output;
     } catch (error: any) {
       console.error("Error in caravanSupportChatbotFlow calling prompt:", error);
-      // Check for specific GoogleGenerativeAI error messages
-      if (error.message && (error.message.includes("503 Service Unavailable") || error.message.includes("overloaded") || error.message.includes("model is overloaded"))) {
-        return { 
-          answer: "The AI assistant is currently experiencing high demand or is temporarily unavailable. Please try again in a few moments.", 
-          youtubeLink: null 
-        };
+      
+      if (error.message) {
+        const errorMessage = error.message.toLowerCase();
+        if (errorMessage.includes("503 service unavailable") || errorMessage.includes("overloaded") || errorMessage.includes("model is overloaded")) {
+          return { 
+            answer: "The AI assistant is currently experiencing high demand or is temporarily unavailable. Please try again in a few moments.", 
+            youtubeLink: null 
+          };
+        }
+        if (errorMessage.includes("429") || errorMessage.includes("quota") || errorMessage.includes("rate limit")) {
+          return {
+            answer: "The AI assistant has hit a usage limit for the current period. Please try again later. If this issue persists, please check API plan details.",
+            youtubeLink: null
+          };
+        }
       }
+      
       // For other generic errors caught from the prompt call
       return { 
         answer: "An unexpected error occurred while communicating with the AI assistant. Please try again later.", 
@@ -147,4 +157,3 @@ const caravanSupportChatbotFlow = ai.defineFlow(
     }
   }
 );
-
