@@ -603,14 +603,11 @@ export function TripPlannerClient() {
                         <Navigation className="mr-2 h-4 w-4" /> Navigate
                     </Button>
                     <Button
-                        onClick={() => {
-                            console.error('ShadCN Save Button CLICKED!');
-                            alert('ShadCN Save Button CLICKED!');
-                        }}
+                        onClick={handleSaveTrip}
                         variant="default" 
                         size="sm"
                         className="font-body bg-primary hover:bg-primary/90 text-primary-foreground"
-                        // disabled={!routeDetails} // Temporarily removed for testing
+                        disabled={!routeDetails}
                     >
                         <Save className="mr-2 h-4 w-4" /> Save Trip
                     </Button>
@@ -651,3 +648,6 @@ export function TripPlannerClient() {
     
 
 
+
+
+    
