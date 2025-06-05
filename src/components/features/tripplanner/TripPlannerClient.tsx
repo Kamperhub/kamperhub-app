@@ -280,47 +280,6 @@ export function TripPlannerClient() {
     }
   };
 
-  const handleSaveTrip = useCallback(() => {
-    if (!routeDetails) {
-      toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
-      return;
-    }
-
-    const tripName = window.prompt("Enter a name for this trip:", `Trip to ${getValues("endLocation")}`);
-    if (!tripName) return;
-
-    const tripNotesPromptResult = window.prompt("Enter any notes for this trip (optional, max 500 characters suggested):", currentTripNotes || "");
-    const tripNotes = tripNotesPromptResult === null ? undefined : tripNotesPromptResult;
-
-
-    const currentFormData = getValues();
-    const newLoggedTrip: LoggedTrip = {
-      id: Date.now().toString(),
-      name: tripName,
-      timestamp: new Date().toISOString(),
-      startLocationDisplay: currentFormData.startLocation,
-      endLocationDisplay: currentFormData.endLocation,
-      fuelEfficiency: currentFormData.fuelEfficiency,
-      fuelPrice: currentFormData.fuelPrice,
-      routeDetails: routeDetails,
-      fuelEstimate: fuelEstimate,
-      plannedStartDate: currentFormData.dateRange?.from ? currentFormData.dateRange.from.toISOString() : null,
-      plannedEndDate: currentFormData.dateRange?.to ? currentFormData.dateRange.to.toISOString() : null,
-      notes: tripNotes,
-    };
-
-    try {
-      const existingTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
-      const existingTrips: LoggedTrip[] = existingTripsJson ? JSON.parse(existingTripsJson) : [];
-      localStorage.setItem(TRIP_LOG_STORAGE_KEY, JSON.stringify([...existingTrips, newLoggedTrip]));
-      setCurrentTripNotes(newLoggedTrip.notes); 
-      toast({ title: "Trip Saved!", description: `"${tripName}" has been added to your Trip Log.` });
-    } catch (error) {
-      console.error("Error saving trip to localStorage:", error);
-      toast({ title: "Error Saving Trip", description: "Could not save trip.", variant: "destructive" });
-    }
-  }, [routeDetails, getValues, fuelEstimate, currentTripNotes, toast]);
-
   const handleNavigateWithGoogleMaps = () => {
     if (!routeDetails) {
       toast({ title: "Cannot Navigate", description: "Route details are incomplete.", variant: "destructive" });
@@ -383,6 +342,47 @@ export function TripPlannerClient() {
         }
     });
   }, [map, toast]);
+
+  const handleSaveTrip = useCallback(() => {
+    if (!routeDetails) {
+      toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
+      return;
+    }
+
+    const tripName = window.prompt("Enter a name for this trip:", `Trip to ${getValues("endLocation")}`);
+    if (!tripName) return;
+
+    const tripNotesPromptResult = window.prompt("Enter any notes for this trip (optional, max 500 characters suggested):", currentTripNotes || "");
+    const tripNotes = tripNotesPromptResult === null ? undefined : tripNotesPromptResult;
+
+
+    const currentFormData = getValues();
+    const newLoggedTrip: LoggedTrip = {
+      id: Date.now().toString(),
+      name: tripName,
+      timestamp: new Date().toISOString(),
+      startLocationDisplay: currentFormData.startLocation,
+      endLocationDisplay: currentFormData.endLocation,
+      fuelEfficiency: currentFormData.fuelEfficiency,
+      fuelPrice: currentFormData.fuelPrice,
+      routeDetails: routeDetails,
+      fuelEstimate: fuelEstimate,
+      plannedStartDate: currentFormData.dateRange?.from ? currentFormData.dateRange.from.toISOString() : null,
+      plannedEndDate: currentFormData.dateRange?.to ? currentFormData.dateRange.to.toISOString() : null,
+      notes: tripNotes,
+    };
+
+    try {
+      const existingTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
+      const existingTrips: LoggedTrip[] = existingTripsJson ? JSON.parse(existingTripsJson) : [];
+      localStorage.setItem(TRIP_LOG_STORAGE_KEY, JSON.stringify([...existingTrips, newLoggedTrip]));
+      setCurrentTripNotes(newLoggedTrip.notes); 
+      toast({ title: "Trip Saved!", description: `"${tripName}" has been added to your Trip Log.` });
+    } catch (error) {
+      console.error("Error saving trip to localStorage:", error);
+      toast({ title: "Error Saving Trip", description: "Could not save trip.", variant: "destructive" });
+    }
+  }, [routeDetails, getValues, fuelEstimate, currentTripNotes, toast, setCurrentTripNotes]);
 
 
   const mapHeight = "400px"; 
@@ -590,7 +590,7 @@ export function TripPlannerClient() {
 
         {routeDetails && (
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-x-2">
+            <CardHeader>
               <CardTitle className="font-headline flex items-center"><Fuel className="mr-2 h-6 w-6 text-primary" /> Trip Summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -619,7 +619,7 @@ export function TripPlannerClient() {
             </CardContent>
           </Card>
         )}
-
+        
         {routeDetails && (
           <div className="flex justify-end items-center gap-2 mt-4 p-4 border bg-card rounded-lg shadow-sm">
             <Button
@@ -632,13 +632,13 @@ export function TripPlannerClient() {
               <Navigation className="mr-2 h-4 w-4" /> Navigate
             </Button>
             <Button
-              onClick={handleSaveTrip}
-              variant="default" 
-              size="sm"
-              className="font-body bg-primary hover:bg-primary/90 text-primary-foreground"
-              disabled={!routeDetails}
+                onClick={handleSaveTrip}
+                variant="default" 
+                size="sm"
+                className="font-body bg-primary hover:bg-primary/90 text-primary-foreground"
+                disabled={!routeDetails}
             >
-              <Save className="mr-2 h-4 w-4" /> Save Trip
+                <Save className="mr-2 h-4 w-4" /> Save Trip
             </Button>
           </div>
         )}
@@ -654,3 +654,4 @@ export function TripPlannerClient() {
 
 
     
+
