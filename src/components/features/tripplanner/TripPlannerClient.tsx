@@ -595,13 +595,7 @@ export function TripPlannerClient() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-x-2">
               <CardTitle className="font-headline flex items-center"><Fuel className="mr-2 h-6 w-6 text-primary" /> Trip Summary</CardTitle>
-                <div 
-                    className="flex items-center gap-2"
-                    onClick={() => {
-                        console.error('Wrapper DIV clicked around buttons!');
-                        alert('Wrapper DIV clicked around buttons!');
-                    }}
-                >
+                <div className="flex items-center gap-2">
                     <Button
                         onClick={handleNavigateWithGoogleMaps}
                         variant="outline"
@@ -613,11 +607,8 @@ export function TripPlannerClient() {
                     </Button>
                     <button
                         type="button" 
-                        onClick={(e) => {
-                            // e.stopPropagation(); // Test if stopping propagation here helps isolate
-                            console.error('Save Trip raw HTML BUTTON clicked!');
-                            alert('Save Trip raw HTML BUTTON clicked!');
-                            // handleSaveTrip(); // Call the actual save function if the click works
+                        onClick={() => {
+                            handleSaveTrip();
                         }}
                         disabled={!routeDetails}
                         className={cn(
@@ -627,7 +618,7 @@ export function TripPlannerClient() {
                             "font-body"
                         )}
                     >
-                        <Save className="mr-2 h-4 w-4" /> Save Trip (Test)
+                        <Save className="mr-2 h-4 w-4" /> Save Trip
                     </button>
                 </div>
             </CardHeader>
