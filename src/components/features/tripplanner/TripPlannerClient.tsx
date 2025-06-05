@@ -288,6 +288,8 @@ export function TripPlannerClient() {
   // or problems with window.prompt in this environment.
   const handleSaveTrip = useCallback(() => {
     console.log('handleSaveTrip called. routeDetails:', routeDetails); // For debugging
+    alert('handleSaveTrip function was called!'); // Test alert
+
     if (!routeDetails) {
       toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
       return;
@@ -601,7 +603,7 @@ export function TripPlannerClient() {
               <CardTitle className="font-headline flex items-center"><Fuel className="mr-2 h-6 w-6 text-primary" /> Trip Summary</CardTitle>
                 <div className="flex items-center gap-2">
                     <Button
-                        onClick={handleNavigateWithGoogleMaps}
+                        onClick={() => { console.log('Navigate button clicked!'); alert('Navigate button alert!'); handleNavigateWithGoogleMaps(); }}
                         variant="outline"
                         size="sm"
                         className="font-body"
@@ -614,7 +616,7 @@ export function TripPlannerClient() {
                         Button visually enables correctly when routeDetails are present.
                         Investigate potential event conflicts or React rendering issues. */}
                     <Button
-                        onClick={() => { console.log('Save Trip button clicked directly via onClick!'); alert('Save Trip button clicked!'); }}
+                        onClick={handleSaveTrip}
                         variant="default"
                         size="sm"
                         className="font-body"
@@ -654,5 +656,3 @@ export function TripPlannerClient() {
     </div>
   );
 }
-
-
