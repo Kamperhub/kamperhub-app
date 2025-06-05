@@ -614,7 +614,7 @@ export function TripPlannerClient() {
                         Button visually enables correctly when routeDetails are present.
                         Investigate potential event conflicts or React rendering issues. */}
                     <Button
-                        onClick={handleSaveTrip}
+                        onClick={() => { console.log('Save Trip button clicked directly via onClick!'); alert('Save Trip button clicked!'); }}
                         variant="default"
                         size="sm"
                         className="font-body"
@@ -654,4 +654,5 @@ export function TripPlannerClient() {
     </div>
   );
 }
+
 
