@@ -219,7 +219,6 @@ export function TripPlannerClient() {
     setError(null);
     setRouteDetails(null);
     setFuelEstimate(null);
-    // setCurrentTripNotes(null); // Do not reset notes on new plan, user might want to keep them for a modified plan
     setDirectionsResponse(null);
     setPointsOfInterest([]); 
 
@@ -348,7 +347,7 @@ export function TripPlannerClient() {
     console.log('handleSaveTrip called. RouteDetails:', routeDetails);
     console.log('Form Values:', getValues());
     console.log('Fuel Estimate:', fuelEstimate);
-    console.log('Current Trip Notes:', currentTripNotes);
+    console.log('Current Trip Notes (at start of handleSaveTrip):', currentTripNotes);
 
     if (!routeDetails) {
       console.log('Exiting handleSaveTrip because !routeDetails');
@@ -380,17 +379,15 @@ export function TripPlannerClient() {
     } catch (promptError: any) {
       console.error("Error during trip notes prompt:", promptError);
       toast({ title: "Prompt Error", description: `Could not get trip notes: ${promptError.message}`, variant: "destructive"});
-      // Optionally allow saving without notes or return
-      // return; 
+      return; 
     }
     
-    const tripNotes = tripNotesPromptResult === null ? undefined : tripNotesPromptResult;
-    setCurrentTripNotes(tripNotes);
-    console.log('Final trip notes to be saved:', tripNotes);
+    const tripNotesToSave = tripNotesPromptResult === null ? undefined : tripNotesPromptResult;
+    setCurrentTripNotes(tripNotesToSave); 
+    console.log('Final trip notes to be saved (after prompt, from variable):', tripNotesToSave);
 
-
-    const currentFormData = getValues();
     console.log('About to create newLoggedTrip object.');
+    const currentFormData = getValues();
     const newLoggedTrip: LoggedTrip = {
       id: Date.now().toString(),
       name: tripName,
@@ -399,24 +396,59 @@ export function TripPlannerClient() {
       endLocationDisplay: currentFormData.endLocation,
       fuelEfficiency: currentFormData.fuelEfficiency,
       fuelPrice: currentFormData.fuelPrice,
-      routeDetails: routeDetails,
+      routeDetails: routeDetails, 
       fuelEstimate: fuelEstimate,
       plannedStartDate: currentFormData.dateRange?.from ? currentFormData.dateRange.from.toISOString() : null,
       plannedEndDate: currentFormData.dateRange?.to ? currentFormData.dateRange.to.toISOString() : null,
-      notes: tripNotes,
+      notes: tripNotesToSave,
     };
     console.log('newLoggedTrip object created:', newLoggedTrip);
 
     try {
-      console.log('Attempting to save to localStorage. Key:', TRIP_LOG_STORAGE_KEY);
+      console.log('Attempting to read existing trips from localStorage. Key:', TRIP_LOG_STORAGE_KEY);
       const existingTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
-      const existingTrips: LoggedTrip[] = existingTripsJson ? JSON.parse(existingTripsJson) : [];
-      localStorage.setItem(TRIP_LOG_STORAGE_KEY, JSON.stringify([...existingTrips, newLoggedTrip]));
+      console.log('Raw existingTripsJson from localStorage:', existingTripsJson);
+
+      let existingTrips: LoggedTrip[] = [];
+      if (existingTripsJson && existingTripsJson.trim() !== "") {
+        try {
+          existingTrips = JSON.parse(existingTripsJson);
+          console.log('Successfully parsed existing trips:', existingTrips);
+        } catch (parseError: any) {
+          console.error('Error parsing existing trips from localStorage:', parseError);
+          toast({
+            title: "Data Corruption Warning",
+            description: "Could not read previously saved trips. New trip will be saved. Old data might be affected if corrupted.",
+            variant: "destructive",
+            duration: 7000,
+          });
+          // Attempt to save new trip by resetting existingTrips, old data might be lost or still there if only new one is saved separately
+          existingTrips = []; 
+        }
+      } else {
+        console.log('No existing trips found or localStorage item is empty/null.');
+      }
+
+      console.log('Preparing to add new trip to existing trips. New trip:', newLoggedTrip, 'Existing trips array (potentially reset):', existingTrips);
+      const updatedTripsArray = [...existingTrips, newLoggedTrip];
+      console.log('Updated trips array (before stringify):', updatedTripsArray);
+      
+      let jsonToSave;
+      try {
+        jsonToSave = JSON.stringify(updatedTripsArray);
+        console.log('JSON string to save to localStorage (first 500 chars):', jsonToSave.substring(0, 500) + (jsonToSave.length > 500 ? '...' : ''));
+      } catch (stringifyError: any) {
+        console.error("Error stringifying updated trips array:", stringifyError);
+        toast({ title: "Serialization Error", description: `Could not prepare trip data for saving: ${stringifyError.message}`, variant: "destructive" });
+        return;
+      }
+
+      localStorage.setItem(TRIP_LOG_STORAGE_KEY, jsonToSave);
       console.log('Successfully saved to localStorage.');
       toast({ title: "Trip Saved!", description: `"${tripName}" has been added to your Trip Log.` });
     } catch (storageError: any) {
-      console.error("Error saving trip to localStorage:", storageError);
-      toast({ title: "Storage Error", description: `Could not save trip: ${storageError.message}`, variant: "destructive" });
+      console.error("Outer Storage Error (e.g., localStorage full or other critical issue):", storageError);
+      toast({ title: "Critical Storage Error", description: `Could not save trip: ${storageError.message}. LocalStorage might be full or disabled.`, variant: "destructive" });
     }
   }, [routeDetails, getValues, fuelEstimate, currentTripNotes, setCurrentTripNotes, toast]);
 
@@ -624,15 +656,14 @@ export function TripPlannerClient() {
           </Card>
         )}
         
-        {/* Action buttons div */}
         {routeDetails && (
-          <div className="p-4 border bg-card rounded-lg shadow-sm flex flex-col sm:flex-row justify-end items-center gap-3">
+           <div className="p-4 border bg-card rounded-lg shadow-sm flex flex-col sm:flex-row items-stretch gap-3">
             <div className="flex-grow mb-4 sm:mb-0">
-              <Card className="w-full">
+              <Card className="w-full h-full flex flex-col">
                 <CardHeader className="pb-2 pt-4 px-4">
                   <CardTitle className="font-headline text-xl flex items-center"><Fuel className="mr-2 h-5 w-5 text-primary" /> Trip Summary</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-1 px-4 pb-4">
+                <CardContent className="space-y-1 px-4 pb-4 flex-grow">
                   <div className="font-body text-sm"><strong>Distance:</strong> {routeDetails.distance}</div>
                   <div className="font-body text-sm"><strong>Est. Duration:</strong> {routeDetails.duration}</div>
                   {routeDetails.startAddress && <div className="font-body text-xs text-muted-foreground"><strong>From:</strong> {routeDetails.startAddress}</div>}
@@ -658,28 +689,25 @@ export function TripPlannerClient() {
                 </CardContent>
               </Card>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 self-stretch sm:self-center">
+             <div className="flex flex-col sm:flex-col gap-2 self-stretch justify-start items-stretch">
               <Button
                 onClick={handleNavigateWithGoogleMaps}
                 variant="outline"
                 size="sm"
-                className="font-body w-full sm:w-auto"
+                className="font-body w-full"
                 disabled={!routeDetails}
               >
                 <Navigation className="mr-2 h-4 w-4" /> Navigate
               </Button>
-              <button
-                type="button"
+              <Button
                 onClick={handleSaveTrip}
+                variant="default"
+                size="sm"
+                className="font-body w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                 disabled={!routeDetails}
-                className={cn(
-                    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-                    "bg-primary text-primary-foreground hover:bg-primary/90",
-                    "h-9 px-3 w-full sm:w-auto" // Adjusted for consistent height and padding
-                )}
               >
                 <Save className="mr-2 h-4 w-4" /> Save Trip
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -687,4 +715,3 @@ export function TripPlannerClient() {
     </div>
   );
 }
-
