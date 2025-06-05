@@ -592,26 +592,6 @@ export function TripPlannerClient() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-x-2">
               <CardTitle className="font-headline flex items-center"><Fuel className="mr-2 h-6 w-6 text-primary" /> Trip Summary</CardTitle>
-                <div className="flex items-center gap-2">
-                    <Button
-                        onClick={handleNavigateWithGoogleMaps}
-                        variant="outline"
-                        size="sm"
-                        className="font-body"
-                        disabled={!routeDetails}
-                    >
-                        <Navigation className="mr-2 h-4 w-4" /> Navigate
-                    </Button>
-                    <Button
-                        onClick={handleSaveTrip}
-                        variant="default" 
-                        size="sm"
-                        className="font-body bg-primary hover:bg-primary/90 text-primary-foreground"
-                        disabled={!routeDetails}
-                    >
-                        <Save className="mr-2 h-4 w-4" /> Save Trip
-                    </Button>
-                </div>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="font-body"><strong>Distance:</strong> {routeDetails.distance}</div>
@@ -638,6 +618,29 @@ export function TripPlannerClient() {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {routeDetails && (
+          <div className="flex justify-end items-center gap-2 mt-4 p-4 border bg-card rounded-lg shadow-sm">
+            <Button
+              onClick={handleNavigateWithGoogleMaps}
+              variant="outline"
+              size="sm"
+              className="font-body"
+              disabled={!routeDetails}
+            >
+              <Navigation className="mr-2 h-4 w-4" /> Navigate
+            </Button>
+            <Button
+              onClick={handleSaveTrip}
+              variant="default" 
+              size="sm"
+              className="font-body bg-primary hover:bg-primary/90 text-primary-foreground"
+              disabled={!routeDetails}
+            >
+              <Save className="mr-2 h-4 w-4" /> Save Trip
+            </Button>
+          </div>
         )}
       </div>
     </div>
