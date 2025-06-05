@@ -599,7 +599,7 @@ export function TripPlannerClient() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-x-2">
               <CardTitle className="font-headline flex items-center"><Fuel className="mr-2 h-6 w-6 text-primary" /> Trip Summary</CardTitle>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 p-1 bg-yellow-300 border-2 border-yellow-500"> {/* Debugging: Visual parent */}
                     <Button
                         onClick={handleNavigateWithGoogleMaps}
                         variant="outline"
@@ -609,25 +609,21 @@ export function TripPlannerClient() {
                     >
                         <Navigation className="mr-2 h-4 w-4" /> Navigate
                     </Button>
-                    {/* TODO: PENDING ISSUE - This button is not triggering the onClick handler. */}
-                    {/* Switched to raw HTML button for testing */}
+                    {/* TODO: PENDING ISSUE - This button is not triggering the onClick handler. Reverted to raw HTML for testing. */}
                     <button
-                        type="button" // Important for forms to prevent default submit
+                        type="button" 
                         onClick={() => {
-                            console.log('Raw HTML Save Trip Button Clicked!');
-                            alert('Raw HTML Save Trip Button Clicked!');
-                            // If the alert works, then uncomment the next line to test handleSaveTrip:
-                            // handleSaveTrip(); 
+                            console.log('Raw HTML Save Trip Button Clicked! Test 3');
+                            alert('Raw HTML Save Trip Button Clicked! Test 3');
                         }}
-                        disabled={!routeDetails}
+                        // disabled={!routeDetails} // Temporarily always enabled for this specific test
                         className={cn(
                             "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-                            "bg-primary text-primary-foreground hover:bg-primary/90", // Mimic ShadCN default button
-                            "h-9 px-3", // Mimic ShadCN sm size
-                            "font-body"
+                            "h-9 px-3", 
+                            "font-body bg-red-500 text-white border-4 border-red-800 hover:bg-red-600 p-2" // Debugging: Visual button with more padding
                         )}
                     >
-                        <Save className="mr-2 h-4 w-4" /> Save Trip
+                        <Save className="mr-2 h-4 w-4" /> Save Trip (Test)
                     </button>
                 </div>
             </CardHeader>
@@ -661,5 +657,4 @@ export function TripPlannerClient() {
     </div>
   );
 }
-
-
+    
