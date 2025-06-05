@@ -281,8 +281,6 @@ export function TripPlannerClient() {
   };
 
   const handleSaveTrip = useCallback(() => {
-    // Removed debug console.error and alert
-
     if (!routeDetails) {
       toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
       return;
@@ -605,11 +603,14 @@ export function TripPlannerClient() {
                         <Navigation className="mr-2 h-4 w-4" /> Navigate
                     </Button>
                     <Button
-                        onClick={handleSaveTrip}
+                        onClick={() => {
+                            console.error('ShadCN Save Button CLICKED!');
+                            alert('ShadCN Save Button CLICKED!');
+                        }}
                         variant="default" 
                         size="sm"
                         className="font-body bg-primary hover:bg-primary/90 text-primary-foreground"
-                        disabled={!routeDetails}
+                        // disabled={!routeDetails} // Temporarily removed for testing
                     >
                         <Save className="mr-2 h-4 w-4" /> Save Trip
                     </Button>
@@ -648,4 +649,5 @@ export function TripPlannerClient() {
     
 
     
+
 
