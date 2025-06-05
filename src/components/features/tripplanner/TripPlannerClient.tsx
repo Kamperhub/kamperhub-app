@@ -620,7 +620,7 @@ export function TripPlannerClient() {
                         tabIndex={routeDetails ? 0 : -1}
                     >
                         <Button 
-                            variant="outline" 
+                            variant="default" 
                             size="sm" 
                             className="font-body"
                             disabled={!routeDetails}
@@ -661,3 +661,4 @@ export function TripPlannerClient() {
     </div>
   );
 }
+
