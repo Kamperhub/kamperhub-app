@@ -6,22 +6,22 @@
 @layer base {
   :root {
     --background: 48 50% 95%; /* Ivory White (from logo) */
-    --foreground: 0 0% 15%; /* Charcoal (from logo text) */
+    --foreground: 0 0% 7.5%; /* Charcoal (from logo text) - Made 50% darker */
 
     --card: 48 50% 95%;
-    --card-foreground: 0 0% 15%;
+    --card-foreground: 0 0% 7.5%; /* Made 50% darker */
 
     --popover: 48 50% 95%;
-    --popover-foreground: 0 0% 15%;
+    --popover-foreground: 0 0% 7.5%; /* Made 50% darker */
 
     --primary: 170 35% 48%; /* Teal (from logo caravan) */
     --primary-foreground: 0 0% 98%; /* Off-white (for text on primary) */
 
     --secondary: 170 30% 65%; /* Lighter/Muted Teal */
-    --secondary-foreground: 0 0% 15%; /* Dark text on secondary */
+    --secondary-foreground: 0 0% 7.5%; /* Dark text on secondary - Made 50% darker */
 
     --muted: 48 30% 90%; /* Lighter Ivory/Beige */
-    --muted-foreground: 0 0% 35%; /* Mid-Gray for text on muted */
+    --muted-foreground: 0 0% 17.5%; /* Mid-Gray for text on muted - Made 50% darker */
 
     --accent: 27 90% 58%; /* Orange (from logo caravan/pin) */
     --accent-foreground: 0 0% 98%; /* Off-white (for text on accent) */
