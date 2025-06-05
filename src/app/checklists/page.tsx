@@ -152,14 +152,14 @@ export default function ChecklistsPage() {
       )}
        {activeCaravanName && (
          <Alert variant="default" className="mb-6 bg-secondary/30 border-secondary/50">
-            <Home className="h-4 w-4 text-secondary-foreground" />
-            <AlertTitle className="font-headline text-secondary-foreground">Active Caravan: {activeCaravanName}</AlertTitle>
+            <Home className="h-4 w-4 text-foreground" />
+            <AlertTitle className="font-headline font-bold text-foreground">Active Caravan: {activeCaravanName}</AlertTitle>
          </Alert>
       )}
       {activeVehicleName && (
          <Alert variant="default" className="mb-6 bg-secondary/30 border-secondary/50">
-            <Car className="h-4 w-4 text-secondary-foreground" />
-            <AlertTitle className="font-headline text-secondary-foreground">Active Tow Vehicle: {activeVehicleName}</AlertTitle>
+            <Car className="h-4 w-4 text-foreground" />
+            <AlertTitle className="font-headline font-bold text-foreground">Active Tow Vehicle: {activeVehicleName}</AlertTitle>
          </Alert>
       )}
 
