@@ -281,6 +281,11 @@ export function TripPlannerClient() {
     }
   };
 
+  // TODO: PENDING ISSUE - Save Trip button is not triggering the onClick handler.
+  // The button appears enabled when routeDetails exist, and the pointer changes on hover,
+  // but clicking it does not call this function or show any console logs/prompts.
+  // Investigate potential event capturing issues, React rendering interference,
+  // or problems with window.prompt in this environment.
   const handleSaveTrip = useCallback(() => {
     console.log('handleSaveTrip called. routeDetails:', routeDetails); // For debugging
     if (!routeDetails) {
@@ -604,6 +609,10 @@ export function TripPlannerClient() {
                     >
                         <Navigation className="mr-2 h-4 w-4" /> Navigate
                     </Button>
+                    {/* TODO: PENDING ISSUE - This button is not triggering onClick when clicked.
+                        Console.log at start of handleSaveTrip is not appearing.
+                        Button visually enables correctly when routeDetails are present.
+                        Investigate potential event conflicts or React rendering issues. */}
                     <Button
                         onClick={handleSaveTrip}
                         variant="default"
