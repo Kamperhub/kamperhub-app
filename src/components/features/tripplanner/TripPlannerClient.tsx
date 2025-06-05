@@ -351,26 +351,46 @@ export function TripPlannerClient() {
     console.log('Current Trip Notes:', currentTripNotes);
 
     if (!routeDetails) {
-      toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
       console.log('Exiting handleSaveTrip because !routeDetails');
+      toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
       return;
     }
 
-    const tripName = window.prompt("Enter a name for this trip:", `Trip to ${getValues("endLocation")}`);
-    if (!tripName) {
-        console.log('Exiting handleSaveTrip because no tripName provided.');
-        return;
+    let tripName: string | null = null;
+    try {
+      console.log('Attempting to prompt for trip name.');
+      tripName = window.prompt("Enter a name for this trip:", `Trip to ${getValues("endLocation")}`);
+      console.log('Trip name prompt result:', tripName);
+    } catch (promptError: any) {
+      console.error("Error during trip name prompt:", promptError);
+      toast({ title: "Prompt Error", description: `Could not get trip name: ${promptError.message}`, variant: "destructive"});
+      return;
     }
 
-    const tripNotesPromptResult = window.prompt("Enter any notes for this trip (optional, max 500 characters suggested):", currentTripNotes || "");
-    // If user cancels notes prompt, tripNotesPromptResult is null. If they leave it empty, it's "".
-    // We want to save "" if they empty it, but undefined/null if they cancel.
-    // Let's treat null (cancel) as undefined and "" as an empty string.
+    if (!tripName) {
+      console.log('Trip name prompt was cancelled or empty. Exiting save.');
+      return;
+    }
+
+    let tripNotesPromptResult: string | null = null;
+    try {
+      console.log('Attempting to prompt for trip notes. Current notes:', currentTripNotes);
+      tripNotesPromptResult = window.prompt("Enter any notes for this trip (optional, max 500 characters suggested):", currentTripNotes || "");
+      console.log('Trip notes prompt result:', tripNotesPromptResult);
+    } catch (promptError: any) {
+      console.error("Error during trip notes prompt:", promptError);
+      toast({ title: "Prompt Error", description: `Could not get trip notes: ${promptError.message}`, variant: "destructive"});
+      // Optionally allow saving without notes or return
+      // return; 
+    }
+    
     const tripNotes = tripNotesPromptResult === null ? undefined : tripNotesPromptResult;
     setCurrentTripNotes(tripNotes);
+    console.log('Final trip notes to be saved:', tripNotes);
 
 
     const currentFormData = getValues();
+    console.log('About to create newLoggedTrip object.');
     const newLoggedTrip: LoggedTrip = {
       id: Date.now().toString(),
       name: tripName,
@@ -385,15 +405,18 @@ export function TripPlannerClient() {
       plannedEndDate: currentFormData.dateRange?.to ? currentFormData.dateRange.to.toISOString() : null,
       notes: tripNotes,
     };
+    console.log('newLoggedTrip object created:', newLoggedTrip);
 
     try {
+      console.log('Attempting to save to localStorage. Key:', TRIP_LOG_STORAGE_KEY);
       const existingTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
       const existingTrips: LoggedTrip[] = existingTripsJson ? JSON.parse(existingTripsJson) : [];
       localStorage.setItem(TRIP_LOG_STORAGE_KEY, JSON.stringify([...existingTrips, newLoggedTrip]));
+      console.log('Successfully saved to localStorage.');
       toast({ title: "Trip Saved!", description: `"${tripName}" has been added to your Trip Log.` });
-    } catch (error) {
-      console.error("Error saving trip to localStorage:", error);
-      toast({ title: "Error Saving Trip", description: "Could not save trip.", variant: "destructive" });
+    } catch (storageError: any) {
+      console.error("Error saving trip to localStorage:", storageError);
+      toast({ title: "Storage Error", description: `Could not save trip: ${storageError.message}`, variant: "destructive" });
     }
   }, [routeDetails, getValues, fuelEstimate, currentTripNotes, setCurrentTripNotes, toast]);
 
@@ -600,75 +623,68 @@ export function TripPlannerClient() {
             </CardContent>
           </Card>
         )}
-
-        {routeDetails && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-headline flex items-center"><Fuel className="mr-2 h-6 w-6 text-primary" /> Trip Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="font-body"><strong>Distance:</strong> {routeDetails.distance}</div>
-              <div className="font-body"><strong>Est. Duration:</strong> {routeDetails.duration}</div>
-              {routeDetails.startAddress && <div className="font-body text-sm text-muted-foreground"><strong>From:</strong> {routeDetails.startAddress}</div>}
-              {routeDetails.endAddress && <div className="font-body text-sm text-muted-foreground"><strong>To:</strong> {routeDetails.endAddress}</div>}
-              {fuelEstimate && (
-                <>
-                  <div className="font-body"><strong>Est. Fuel Needed:</strong> {fuelEstimate.fuelNeeded}</div>
-                  <div className="font-body"><strong>Est. Fuel Cost:</strong> {fuelEstimate.estimatedCost}</div>
-                </>
-              )}
-              {getValues("dateRange")?.from && (
-                <div className="font-body"><strong>Planned Start:</strong> {format(getValues("dateRange")!.from!, "PPP")}</div>
-              )}
-              {getValues("dateRange")?.to && (
-                <div className="font-body"><strong>Planned End:</strong> {format(getValues("dateRange")!.to!, "PPP")}</div>
-              )}
-              {currentTripNotes !== undefined && ( // Check for undefined to show notes section even if notes are ""
-                <div className="font-body mt-2 pt-2 border-t">
-                  <strong className="font-semibold flex items-center"><StickyNote className="mr-2 h-4 w-4 text-primary" />Notes:</strong>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap pl-6">{currentTripNotes || <i>No notes entered.</i>}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
         
+        {/* Action buttons div */}
         {routeDetails && (
-           <div className="flex justify-end items-center gap-2 mt-4 p-4 border bg-card rounded-lg shadow-sm">
-            <Button
-              onClick={handleNavigateWithGoogleMaps}
-              variant="outline"
-              size="sm"
-              className="font-body"
-              disabled={!routeDetails}
-            >
-              <Navigation className="mr-2 h-4 w-4" /> Navigate
-            </Button>
-            <button
+          <div className="p-4 border bg-card rounded-lg shadow-sm flex flex-col sm:flex-row justify-end items-center gap-3">
+            <div className="flex-grow mb-4 sm:mb-0">
+              <Card className="w-full">
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="font-headline text-xl flex items-center"><Fuel className="mr-2 h-5 w-5 text-primary" /> Trip Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1 px-4 pb-4">
+                  <div className="font-body text-sm"><strong>Distance:</strong> {routeDetails.distance}</div>
+                  <div className="font-body text-sm"><strong>Est. Duration:</strong> {routeDetails.duration}</div>
+                  {routeDetails.startAddress && <div className="font-body text-xs text-muted-foreground"><strong>From:</strong> {routeDetails.startAddress}</div>}
+                  {routeDetails.endAddress && <div className="font-body text-xs text-muted-foreground"><strong>To:</strong> {routeDetails.endAddress}</div>}
+                  {fuelEstimate && (
+                    <>
+                      <div className="font-body text-sm"><strong>Est. Fuel Needed:</strong> {fuelEstimate.fuelNeeded}</div>
+                      <div className="font-body text-sm"><strong>Est. Fuel Cost:</strong> {fuelEstimate.estimatedCost}</div>
+                    </>
+                  )}
+                  {getValues("dateRange")?.from && (
+                    <div className="font-body text-sm"><strong>Planned Start:</strong> {format(getValues("dateRange")!.from!, "PPP")}</div>
+                  )}
+                  {getValues("dateRange")?.to && (
+                    <div className="font-body text-sm"><strong>Planned End:</strong> {format(getValues("dateRange")!.to!, "PPP")}</div>
+                  )}
+                  {currentTripNotes !== undefined && (
+                    <div className="font-body mt-1 pt-1 border-t">
+                      <strong className="text-sm flex items-center"><StickyNote className="mr-2 h-4 w-4 text-primary" />Notes:</strong>
+                      <p className="text-xs text-muted-foreground whitespace-pre-wrap pl-6">{currentTripNotes || <i>No notes.</i>}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 self-stretch sm:self-center">
+              <Button
+                onClick={handleNavigateWithGoogleMaps}
+                variant="outline"
+                size="sm"
+                className="font-body w-full sm:w-auto"
+                disabled={!routeDetails}
+              >
+                <Navigation className="mr-2 h-4 w-4" /> Navigate
+              </Button>
+              <button
                 type="button"
                 onClick={handleSaveTrip}
                 disabled={!routeDetails}
                 className={cn(
                     "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-                    "bg-primary text-primary-foreground hover:bg-primary/90", // from Button variant="default"
-                    "h-9 px-3" // from Button size="sm"
+                    "bg-primary text-primary-foreground hover:bg-primary/90",
+                    "h-9 px-3 w-full sm:w-auto" // Adjusted for consistent height and padding
                 )}
-            >
+              >
                 <Save className="mr-2 h-4 w-4" /> Save Trip
-            </button>
+              </button>
+            </div>
           </div>
         )}
       </div>
     </div>
   );
 }
-    
-
-    
-
-
-
-
-    
-
 
