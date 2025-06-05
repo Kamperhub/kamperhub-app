@@ -10,7 +10,7 @@ import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip } fr
 import { TRIP_LOG_STORAGE_KEY, RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import type { StoredVehicle } from '@/types/vehicle';
 import { VEHICLES_STORAGE_KEY, ACTIVE_VEHICLE_ID_KEY } from '@/types/vehicle';
-import { Button } from '@/components/ui/button'; // Keep for other buttons
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -281,8 +281,7 @@ export function TripPlannerClient() {
   };
 
   const handleSaveTrip = useCallback(() => {
-    console.error('handleSaveTrip function was called!'); 
-    alert('handleSaveTrip function was called!'); 
+    // Removed debug console.error and alert
 
     if (!routeDetails) {
       toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
@@ -605,21 +604,15 @@ export function TripPlannerClient() {
                     >
                         <Navigation className="mr-2 h-4 w-4" /> Navigate
                     </Button>
-                    <button
-                        type="button" 
-                        onClick={() => {
-                            handleSaveTrip();
-                        }}
+                    <Button
+                        onClick={handleSaveTrip}
+                        variant="default" 
+                        size="sm"
+                        className="font-body bg-primary hover:bg-primary/90 text-primary-foreground"
                         disabled={!routeDetails}
-                        className={cn(
-                            "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-                            "h-9 px-3", 
-                            !routeDetails ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed" : "bg-primary hover:bg-primary/90 text-primary-foreground",
-                            "font-body"
-                        )}
                     >
                         <Save className="mr-2 h-4 w-4" /> Save Trip
-                    </button>
+                    </Button>
                 </div>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -655,3 +648,4 @@ export function TripPlannerClient() {
     
 
     
+
