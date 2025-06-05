@@ -290,7 +290,9 @@ export function TripPlannerClient() {
     const tripName = window.prompt("Enter a name for this trip:", `Trip to ${getValues("endLocation")}`);
     if (!tripName) return;
 
-    const tripNotes = window.prompt("Enter any notes for this trip (optional, max 500 characters suggested):", currentTripNotes || "");
+    const tripNotesPromptResult = window.prompt("Enter any notes for this trip (optional, max 500 characters suggested):", currentTripNotes || "");
+    const tripNotes = tripNotesPromptResult === null ? undefined : tripNotesPromptResult;
+
 
     const currentFormData = getValues();
     const newLoggedTrip: LoggedTrip = {
@@ -305,7 +307,7 @@ export function TripPlannerClient() {
       fuelEstimate: fuelEstimate,
       plannedStartDate: currentFormData.dateRange?.from ? currentFormData.dateRange.from.toISOString() : null,
       plannedEndDate: currentFormData.dateRange?.to ? currentFormData.dateRange.to.toISOString() : null,
-      notes: tripNotes === null ? undefined : tripNotes,
+      notes: tripNotes,
     };
 
     try {
@@ -601,27 +603,15 @@ export function TripPlannerClient() {
                     >
                         <Navigation className="mr-2 h-4 w-4" /> Navigate
                     </Button>
-                    <div
-                        className="inline-block" // Retained for potential layout needs, but not for click
-                        style={{ zIndex: 1000, position: 'relative' }} // Retained for stacking
+                    <Button
+                        onClick={handleSaveTrip}
+                        variant="default"
+                        size="sm"
+                        className="font-body"
+                        disabled={!routeDetails}
                     >
-                        <Button
-                            onClick={() => { // onClick handler now directly on the Button
-                                 if (routeDetails) {
-                                   handleSaveTrip();
-                                 } else {
-                                    // This case should ideally be prevented by the button's disabled state
-                                    toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
-                                 }
-                                }}
-                            variant="default"
-                            size="sm"
-                            className="font-body"
-                            disabled={!routeDetails} // Button is disabled if no routeDetails
-                        >
-                            <Save className="mr-2 h-4 w-4" /> Save Trip
-                        </Button>
-                    </div>
+                        <Save className="mr-2 h-4 w-4" /> Save Trip
+                    </Button>
                 </div>
             </CardHeader>
             <CardContent className="space-y-2">
