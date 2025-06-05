@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
-import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search } from 'lucide-react';
+import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from "date-fns";
@@ -65,6 +65,7 @@ export function TripPlannerClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [fuelEstimate, setFuelEstimate] = useState<FuelEstimate | null>(null);
+  const [currentTripNotes, setCurrentTripNotes] = useState<string | null | undefined>(null);
   const [error, setError] = useState<string | null>(null);
   const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
   const { toast } = useToast();
@@ -104,6 +105,7 @@ export function TripPlannerClient() {
           });
           setRouteDetails(recalledTrip.routeDetails);
           setFuelEstimate(recalledTrip.fuelEstimate);
+          setCurrentTripNotes(recalledTrip.notes);
           localStorage.removeItem(RECALLED_TRIP_DATA_KEY);
           toast({ title: "Trip Recalled", description: `"${recalledTrip.name}" loaded into planner.` });
           recalledTripLoaded = true; 
@@ -218,6 +220,7 @@ export function TripPlannerClient() {
     setError(null);
     setRouteDetails(null);
     setFuelEstimate(null);
+    setCurrentTripNotes(null);
     setDirectionsResponse(null); 
     setPointsOfInterest([]);
 
@@ -279,27 +282,19 @@ export function TripPlannerClient() {
   };
 
   const handleSaveTrip = () => {
-    console.log("[KamperHub Save Button] Clicked.");
     if (!routeDetails) {
-      console.error("[KamperHub TripPlannerClient] Save Aborted: routeDetails is falsy.");
       toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
       return;
     }
   
-    console.log("[KamperHub TripPlannerClient] Prompting for trip name...");
     const tripName = window.prompt("Enter a name for this trip:", `Trip to ${getValues("endLocation")}`);
-  
-    if (!tripName) {
-      console.log("[KamperHub TripPlannerClient] Trip name prompt cancelled or empty.");
-      return; 
-    }
-    console.log(`[KamperHub TripPlannerClient] Trip name entered: "${tripName}"`);
+    if (!tripName) return; 
+
+    const tripNotes = window.prompt("Enter any notes for this trip (optional, max 500 characters suggested):", currentTripNotes || "");
+    // User can press cancel for notes, so tripNotes can be null.
+    // If they enter an empty string, it will be saved as such.
   
     const currentFormData = getValues();
-    console.log("[KamperHub TripPlannerClient] Current form data for saving:", currentFormData);
-    console.log("[KamperHub TripPlannerClient] Route details for saving:", routeDetails);
-    console.log("[KamperHub TripPlannerClient] Fuel estimate for saving:", fuelEstimate);
-
     const newLoggedTrip: LoggedTrip = {
       id: Date.now().toString(),
       name: tripName,
@@ -312,17 +307,17 @@ export function TripPlannerClient() {
       fuelEstimate: fuelEstimate,
       plannedStartDate: currentFormData.dateRange?.from ? currentFormData.dateRange.from.toISOString() : null,
       plannedEndDate: currentFormData.dateRange?.to ? currentFormData.dateRange.to.toISOString() : null,
+      notes: tripNotes === null ? undefined : tripNotes, // Store null as undefined, or the string
     };
     
-    console.log("[KamperHub TripPlannerClient] Attempting to save new logged trip:", newLoggedTrip);
     try {
       const existingTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
       const existingTrips: LoggedTrip[] = existingTripsJson ? JSON.parse(existingTripsJson) : [];
       localStorage.setItem(TRIP_LOG_STORAGE_KEY, JSON.stringify([...existingTrips, newLoggedTrip]));
-      console.log("[KamperHub TripPlannerClient] Trip saved successfully to localStorage.");
+      setCurrentTripNotes(newLoggedTrip.notes); // Update current view with notes
       toast({ title: "Trip Saved!", description: `"${tripName}" has been added to your Trip Log.` });
     } catch (error) {
-      console.error("[KamperHub TripPlannerClient] Error saving trip to localStorage:", error);
+      console.error("Error saving trip to localStorage:", error);
       toast({ title: "Error Saving Trip", description: "Could not save trip.", variant: "destructive" });
     }
   };
@@ -609,7 +604,6 @@ export function TripPlannerClient() {
                         <Navigation className="mr-2 h-4 w-4" /> Navigate
                     </Button>
                     <div onClick={() => {
-                         console.log("[KamperHub Save Button] Clicked.");
                          if (routeDetails) {
                            handleSaveTrip();
                          } else {
@@ -653,6 +647,12 @@ export function TripPlannerClient() {
               )}
               {getValues("dateRange")?.to && (
                 <div className="font-body"><strong>Planned End:</strong> {format(getValues("dateRange")!.to!, "PPP")}</div>
+              )}
+              {currentTripNotes && (
+                <div className="font-body mt-2 pt-2 border-t">
+                  <strong className="font-semibold flex items-center"><StickyNote className="mr-2 h-4 w-4 text-primary" />Notes:</strong>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap pl-6">{currentTripNotes}</p>
+                </div>
               )}
             </CardContent>
           </Card>

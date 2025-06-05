@@ -36,6 +36,7 @@ export interface LoggedTrip {
   fuelEstimate: FuelEstimate | null;
   plannedStartDate?: string | null; // Stored as ISO string
   plannedEndDate?: string | null; // Stored as ISO string
+  notes?: string; // Optional notes field
 }
 
 // Key for localStorage

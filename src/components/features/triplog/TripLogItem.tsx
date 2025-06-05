@@ -4,7 +4,7 @@
 import type { LoggedTrip } from '@/types/tripplanner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, Repeat, Route, Fuel, CalendarDays as CalendarIconLucide, CalendarPlus } from 'lucide-react'; // Renamed to avoid conflict
+import { Trash2, Repeat, Route, Fuel, CalendarDays as CalendarIconLucide, CalendarPlus, StickyNote } from 'lucide-react'; // Renamed to avoid conflict
 import { format, parseISO } from 'date-fns';
 
 interface TripLogItemProps {
@@ -65,6 +65,12 @@ export function TripLogItem({ trip, onDelete, onRecall, onAddToCalendar }: TripL
         <div className="text-xs text-muted-foreground">
             Efficiency: {trip.fuelEfficiency} L/100km, Price: ${trip.fuelPrice.toFixed(2)}/L
         </div>
+        {trip.notes && (
+          <div className="font-body mt-2 pt-2 border-t">
+            <p className="text-sm font-semibold flex items-center"><StickyNote className="mr-2 h-4 w-4 text-primary" />Notes:</p>
+            <p className="text-xs text-muted-foreground whitespace-pre-wrap pl-6">{trip.notes}</p>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="flex justify-end gap-2 border-t pt-4">
         <Button variant="ghost" size="sm" onClick={() => onAddToCalendar(trip)} className="font-body text-primary" disabled={!trip.plannedStartDate}>
