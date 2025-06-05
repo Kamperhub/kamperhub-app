@@ -5,82 +5,83 @@
 
 @layer base {
   :root {
-    --background: 47 43% 97%; /* Light Beige #FAF8F1 */
-    --foreground: 0 0% 20%; /* Dark Gray for text */
+    --background: 48 50% 95%; /* Ivory White (from logo) */
+    --foreground: 0 0% 15%; /* Charcoal (from logo text) */
 
-    --card: 47 43% 97%;
-    --card-foreground: 0 0% 20%;
+    --card: 48 50% 95%;
+    --card-foreground: 0 0% 15%;
 
-    --popover: 47 43% 97%;
-    --popover-foreground: 0 0% 20%;
+    --popover: 48 50% 95%;
+    --popover-foreground: 0 0% 15%;
 
-    --primary: 136 29% 30%; /* Forest Green #386641 */
-    --primary-foreground: 47 43% 97%; /* Light Beige for text on primary */
+    --primary: 170 35% 48%; /* Teal (from logo caravan) */
+    --primary-foreground: 0 0% 98%; /* Off-white (for text on primary) */
 
-    --secondary: 136 29% 40%; /* Lighter/muted green */
-    --secondary-foreground: 47 43% 97%;
+    --secondary: 170 30% 65%; /* Lighter/Muted Teal */
+    --secondary-foreground: 0 0% 15%; /* Dark text on secondary */
 
-    --muted: 47 20% 92%; /* Muted beige */
-    --muted-foreground: 0 0% 40%;
+    --muted: 48 30% 90%; /* Lighter Ivory/Beige */
+    --muted-foreground: 0 0% 35%; /* Mid-Gray for text on muted */
 
-    --accent: 358 49% 51%; /* Burnt Orange #BC4749 */
-    --accent-foreground: 47 43% 97%; /* Light Beige for text on accent */
+    --accent: 27 90% 58%; /* Orange (from logo caravan/pin) */
+    --accent-foreground: 0 0% 98%; /* Off-white (for text on accent) */
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 47 20% 88%;
-    --input: 47 20% 94%;
-    --ring: 136 29% 30%; /* Forest Green for focus rings */
-    --radius: 0.5rem;
+    --border: 48 30% 85%; /* Slightly darker than muted */
+    --input: 48 30% 92%; /* Slightly lighter than muted */
+    --ring: 170 35% 48%; /* Teal for focus rings */
 
-    --sidebar-background: 47 43% 95%;
-    --sidebar-foreground: 136 29% 30%;
-    --sidebar-primary: 358 49% 51%;
-    --sidebar-primary-foreground: 47 43% 97%;
-    --sidebar-accent: 136 29% 35%;
-    --sidebar-accent-foreground: 47 43% 97%;
-    --sidebar-border: 47 20% 85%;
-    --sidebar-ring: 358 49% 51%;
+    /* Sidebar Colors to match new branding */
+    --sidebar-background: 48 50% 92%; /* Slightly darker Ivory */
+    --sidebar-foreground: 170 35% 45%; /* Primary Teal (slightly darker for sidebar text) */
+    --sidebar-primary: 27 90% 58%;    /* Accent Orange */
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 170 35% 55%;    /* Slightly darker Teal for sidebar accent */
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 48 30% 80%;     /* Slightly darker border for sidebar */
+    --sidebar-ring: 27 90% 58%;       /* Accent Orange for sidebar ring */
   }
 
   .dark {
-    --background: 0 0% 8%; /* Dark background */
-    --foreground: 0 0% 90%; /* Light text */
+    /* Dark Theme Adjustments - trying to keep the spirit of the new brand */
+    --background: 220 15% 10%; /* Dark Blue-Gray */
+    --foreground: 48 50% 90%; /* Light Ivory */
 
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 90%;
+    --card: 220 15% 12%;
+    --card-foreground: 48 50% 90%;
 
-    --popover: 0 0% 8%;
-    --popover-foreground: 0 0% 90%;
+    --popover: 220 15% 10%;
+    --popover-foreground: 48 50% 90%;
 
-    --primary: 136 29% 45%; /* Brighter Forest Green */
+    --primary: 170 40% 55%; /* Brighter Teal */
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 136 29% 35%;
-    --secondary-foreground: 0 0% 90%;
+    --secondary: 170 35% 40%; /* Darker Muted Teal */
+    --secondary-foreground: 48 50% 85%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 220 15% 20%; /* Darker Muted Gray-Blue */
+    --muted-foreground: 48 30% 60%;
 
-    --accent: 358 49% 60%; /* Brighter Burnt Orange */
+    --accent: 27 85% 65%; /* Brighter Orange */
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 18%;
-    --ring: 136 29% 45%;
+    --border: 220 15% 25%;
+    --input: 220 15% 22%;
+    --ring: 170 40% 55%; /* Brighter Teal for focus rings */
 
-    --sidebar-background: 0 0% 10%;
-    --sidebar-foreground: 0 0% 85%;
-    --sidebar-primary: 358 49% 60%;
+    --sidebar-background: 220 15% 12%;
+    --sidebar-foreground: 170 40% 60%;
+    --sidebar-primary: 27 85% 65%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 136 29% 40%;
-    --sidebar-accent-foreground: 0 0% 90%;
-    --sidebar-border: 0 0% 22%;
-    --sidebar-ring: 358 49% 60%;
+    --sidebar-accent: 170 40% 50%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 220 15% 28%;
+    --sidebar-ring: 27 85% 65%;
   }
 }
 
