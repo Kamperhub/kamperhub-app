@@ -117,14 +117,34 @@ const caravanSupportChatbotFlow = ai.defineFlow(
     inputSchema: CaravanSupportChatbotInputSchema,
     outputSchema: CaravanSupportChatbotOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
-    if (!output) {
-        // This case should ideally be handled by the LLM always producing output according to the schema.
-        // If output is null, it might indicate an issue with the model or prompt interaction.
-        return { answer: "I'm sorry, I wasn't able to generate a response for that. Could you try rephrasing?" };
+  async (input): Promise<CaravanSupportChatbotOutput> => {
+    try {
+      const {output} = await prompt(input);
+      if (!output) {
+        // This case can occur if the model fails to adhere to the output schema
+        // or if there's an unclassified issue during generation.
+        console.warn('CaravanSupportChatbotFlow: AI model returned null output.');
+        return { 
+          answer: "I'm sorry, I had trouble generating a response in the expected format. Could you try rephrasing your question?", 
+          youtubeLink: null 
+        };
+      }
+      return output;
+    } catch (error: any) {
+      console.error("Error in caravanSupportChatbotFlow calling prompt:", error);
+      // Check for specific GoogleGenerativeAI error messages
+      if (error.message && (error.message.includes("503 Service Unavailable") || error.message.includes("overloaded") || error.message.includes("model is overloaded"))) {
+        return { 
+          answer: "The AI assistant is currently experiencing high demand or is temporarily unavailable. Please try again in a few moments.", 
+          youtubeLink: null 
+        };
+      }
+      // For other generic errors caught from the prompt call
+      return { 
+        answer: "An unexpected error occurred while communicating with the AI assistant. Please try again later.", 
+        youtubeLink: null 
+      };
     }
-    return output;
   }
 );
 
