@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from '@/hooks/use-toast';
 import { VehicleForm } from './VehicleForm';
 import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton'; // Added Skeleton import
 
 const VEHICLES_STORAGE_KEY = 'kamperhub_vehicles_list';
 const ACTIVE_VEHICLE_ID_KEY = 'kamperhub_active_vehicle_id';
@@ -19,17 +20,14 @@ export function VehicleManager() {
   const [activeVehicleId, setActiveVehicleId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<StoredVehicle | null>(null);
-  const [isLocalStorageReady, setIsLocalStorageReady] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    setIsLocalStorageReady(true); // Mark localStorage as ready immediately for SSR compatibility
-                                 // Actual localStorage access will happen in subsequent effects.
+    setHasMounted(true); // This runs only on the client, after initial mount
   }, []);
 
-
   useEffect(() => {
-    if (typeof window !== 'undefined') { // Ensure localStorage is available
-      setIsLocalStorageReady(true);
+    if (hasMounted) { // Data loading logic now depends on hasMounted
       try {
         const storedVehicles = localStorage.getItem(VEHICLES_STORAGE_KEY);
         if (storedVehicles) {
@@ -44,19 +42,19 @@ export function VehicleManager() {
         toast({ title: "Error Loading Vehicles", variant: "destructive", description: "Could not load vehicle data. Your saved vehicles might not appear." });
       }
     }
-  }, [toast]);
+  }, [hasMounted, toast]);
 
   const saveVehiclesToStorage = useCallback((updatedVehicles: StoredVehicle[]) => {
-    if (!isLocalStorageReady || typeof window === 'undefined') return;
+    if (!hasMounted || typeof window === 'undefined') return;
     try {
       localStorage.setItem(VEHICLES_STORAGE_KEY, JSON.stringify(updatedVehicles));
     } catch (error) {
       toast({ title: "Error Saving Vehicles", variant: "destructive", description: "Your changes might not be saved." });
     }
-  }, [toast, isLocalStorageReady]);
+  }, [toast, hasMounted]);
 
   const saveActiveVehicleIdToStorage = useCallback((id: string | null) => {
-    if (!isLocalStorageReady || typeof window === 'undefined') return;
+    if (!hasMounted || typeof window === 'undefined') return;
     try {
       if (id) {
         localStorage.setItem(ACTIVE_VEHICLE_ID_KEY, id);
@@ -66,7 +64,7 @@ export function VehicleManager() {
     } catch (error) {
       toast({ title: "Error Saving Active Vehicle", variant: "destructive", description: "Active vehicle selection might not be saved." });
     }
-  }, [toast, isLocalStorageReady]);
+  }, [toast, hasMounted]);
 
   const handleSaveVehicle = (data: VehicleFormData) => {
     let updatedVehicles;
@@ -111,23 +109,32 @@ export function VehicleManager() {
   };
 
   const handleOpenFormForNew = () => {
-    setEditingVehicle(null); // Ensure we are not editing when opening for new
+    setEditingVehicle(null); 
     setIsFormOpen(true);
   };
   
-  if (!isLocalStorageReady && typeof window !== 'undefined') { // Show loading only on client after initial effect check
+  if (!hasMounted) {
+    // This is the initial render on both server and client before useEffect runs.
+    // Keep structure similar to the actual content to minimize hydration issues.
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline">Tow Vehicle Specifications</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle className="font-headline">Tow Vehicles</CardTitle>
+            <Skeleton className="h-9 w-[180px]" /> {/* Placeholder for the button */}
+          </div>
+          <CardDescription className="font-body">
+            Loading vehicle data...
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <p className="font-body">Loading vehicle data...</p>
+        <CardContent className="space-y-4">
+          {/* Placeholder for vehicle list items */}
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full mt-4" />
         </CardContent>
       </Card>
     );
   }
-
 
   return (
     <Card>
@@ -136,7 +143,7 @@ export function VehicleManager() {
           <CardTitle className="font-headline">Tow Vehicles</CardTitle>
           <Dialog open={isFormOpen} onOpenChange={(isOpen) => {
             setIsFormOpen(isOpen);
-            if (!isOpen) setEditingVehicle(null); // Reset editing state when dialog closes
+            if (!isOpen) setEditingVehicle(null); 
           }}>
             <DialogTrigger asChild>
               <Button onClick={handleOpenFormForNew} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body">
@@ -148,7 +155,7 @@ export function VehicleManager() {
                 <DialogTitle className="font-headline">{editingVehicle ? 'Edit Vehicle' : 'Add New Vehicle'}</DialogTitle>
               </DialogHeader>
               <VehicleForm
-                initialData={editingVehicle || undefined} // Pass undefined for new, or existing data for edit
+                initialData={editingVehicle || undefined} 
                 onSave={handleSaveVehicle}
                 onCancel={() => { setIsFormOpen(false); setEditingVehicle(null); }}
               />
@@ -160,7 +167,7 @@ export function VehicleManager() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {vehicles.length === 0 && isLocalStorageReady && ( // Only show "no vehicles" if local storage is ready and list is empty
+        {vehicles.length === 0 && hasMounted && ( 
           <p className="text-muted-foreground text-center font-body py-4">No vehicles added yet. Click "Add New Vehicle" to start.</p>
         )}
         {vehicles.map(vehicle => (

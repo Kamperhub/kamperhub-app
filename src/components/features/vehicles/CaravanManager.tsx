@@ -5,14 +5,15 @@ import { useState, useEffect, useCallback } from 'react';
 import type { StoredCaravan, CaravanFormData } from '@/types/caravan';
 import type { CaravanInventories } from '@/types/inventory'; 
 import { INVENTORY_STORAGE_KEY } from '@/types/inventory'; 
-import type { CaravanChecklists } from '@/types/checklist'; // Import checklist types
-import { CHECKLISTS_STORAGE_KEY } from '@/types/checklist'; // Import checklist storage key
+import type { CaravanChecklists } from '@/types/checklist'; 
+import { CHECKLISTS_STORAGE_KEY } from '@/types/checklist'; 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { CaravanForm } from './CaravanForm';
 import { PlusCircle, Edit3, Trash2, CheckCircle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton'; // Added Skeleton import
 
 const CARAVANS_STORAGE_KEY = 'kamperhub_caravans_list';
 const ACTIVE_CARAVAN_ID_KEY = 'kamperhub_active_caravan_id';
@@ -23,38 +24,37 @@ export function CaravanManager() {
   const [activeCaravanId, setActiveCaravanId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCaravan, setEditingCaravan] = useState<StoredCaravan | null>(null);
-  const [isLocalStorageReady, setIsLocalStorageReady] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    setIsLocalStorageReady(true);
-    if (typeof window !== 'undefined') {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (hasMounted) {
       try {
         const storedCaravans = localStorage.getItem(CARAVANS_STORAGE_KEY);
-        if (storedCaravans) {
-          setCaravans(JSON.parse(storedCaravans));
-        }
+        if (storedCaravans) setCaravans(JSON.parse(storedCaravans));
         const storedActiveId = localStorage.getItem(ACTIVE_CARAVAN_ID_KEY);
-        if (storedActiveId) {
-          setActiveCaravanId(storedActiveId);
-        }
+        if (storedActiveId) setActiveCaravanId(storedActiveId);
       } catch (error) {
         console.error("Error loading caravan data from localStorage:", error);
         toast({ title: "Error Loading Caravans", variant: "destructive" });
       }
     }
-  }, [toast]);
+  }, [hasMounted, toast]);
 
   const saveCaravansToStorage = useCallback((updatedCaravans: StoredCaravan[]) => {
-     if (!isLocalStorageReady || typeof window === 'undefined') return;
+     if (!hasMounted || typeof window === 'undefined') return;
     try {
       localStorage.setItem(CARAVANS_STORAGE_KEY, JSON.stringify(updatedCaravans));
     } catch (error) {
       toast({ title: "Error Saving Caravans", variant: "destructive" });
     }
-  }, [toast, isLocalStorageReady]);
+  }, [toast, hasMounted]);
 
   const saveActiveCaravanIdToStorage = useCallback((id: string | null) => {
-     if (!isLocalStorageReady || typeof window === 'undefined') return;
+     if (!hasMounted || typeof window === 'undefined') return;
     try {
       if (id) {
         localStorage.setItem(ACTIVE_CARAVAN_ID_KEY, id);
@@ -64,7 +64,7 @@ export function CaravanManager() {
     } catch (error) {
       toast({ title: "Error Saving Active Caravan", variant: "destructive" });
     }
-  }, [toast, isLocalStorageReady]);
+  }, [toast, hasMounted]);
 
   const handleSaveCaravan = (data: CaravanFormData) => {
     let updatedCaravans;
@@ -88,15 +88,13 @@ export function CaravanManager() {
   };
 
   const handleDeleteCaravan = (id: string) => {
-    if (!isLocalStorageReady || typeof window === 'undefined') return;
+    if (!hasMounted || typeof window === 'undefined') return;
     const caravanToDelete = caravans.find(c => c.id === id);
     if (window.confirm(`Are you sure you want to delete ${caravanToDelete?.make} ${caravanToDelete?.model}? This will also delete its inventory and checklists.`)) {
-      // Delete caravan
       const updatedCaravans = caravans.filter(c => c.id !== id);
       setCaravans(updatedCaravans);
       saveCaravansToStorage(updatedCaravans);
       
-      // Delete associated inventory
       try {
         const allInventoriesJson = localStorage.getItem(INVENTORY_STORAGE_KEY);
         if (allInventoriesJson) {
@@ -111,7 +109,6 @@ export function CaravanManager() {
         toast({ title: "Error Deleting Inventory", description: "Could not remove associated inventory data.", variant: "destructive" });
       }
 
-      // Delete associated checklists
       try {
         const allChecklistsJson = localStorage.getItem(CHECKLISTS_STORAGE_KEY);
         if (allChecklistsJson) {
@@ -125,7 +122,6 @@ export function CaravanManager() {
         console.error("Error deleting caravan checklists from localStorage:", error);
         toast({ title: "Error Deleting Checklists", description: "Could not remove associated checklist data.", variant: "destructive" });
       }
-
 
       if (activeCaravanId === id) {
         setActiveCaravanId(null);
@@ -147,14 +143,22 @@ export function CaravanManager() {
     setIsFormOpen(true);
   };
 
-  if (!isLocalStorageReady && typeof window !== 'undefined') {
+  if (!hasMounted) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline">Caravan Specifications</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle className="font-headline">Caravans</CardTitle>
+            <Skeleton className="h-9 w-[180px]" /> {/* Placeholder for the button */}
+          </div>
+          <CardDescription className="font-body">
+            Loading caravan data...
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <p className="font-body">Loading caravan data...</p>
+        <CardContent className="space-y-4">
+          {/* Placeholder for caravan list items */}
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full mt-4" />
         </CardContent>
       </Card>
     );
@@ -188,7 +192,7 @@ export function CaravanManager() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {caravans.length === 0 && isLocalStorageReady &&(
+        {caravans.length === 0 && hasMounted &&(
           <p className="text-muted-foreground text-center font-body py-4">No caravans added yet. Click "Add New Caravan" to start.</p>
         )}
         {caravans.map(caravan => (
