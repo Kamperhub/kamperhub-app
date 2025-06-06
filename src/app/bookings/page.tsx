@@ -181,7 +181,7 @@ export default function BookingsPage() {
                   data-ai-hint={link.dataAiHint || 'travel booking'}
                 />
                 <p className="text-muted-foreground font-body text-xs mb-3 line-clamp-2">{link.description}</p>
-                <Button asChild className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground font-body text-xs py-1.5 h-auto">
+                <Button asChild className="w-full bg-secondary hover:bg-secondary/80 text-accent font-body text-xs py-1.5 h-auto">
                   <Link href={link.url} target="_blank" rel="noopener noreferrer sponsored">
                     Book here
                   </Link>
