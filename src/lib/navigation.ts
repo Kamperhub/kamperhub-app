@@ -12,7 +12,7 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { href: '/', label: 'Dashboard', icon: Home, keywords: 'dashboard overview' },
   { href: '/vehicles', label: 'Vehicles', icon: CarFront, keywords: 'caravan tow' },
-  { href: '/inventory', label: 'Inventory', icon: Backpack, keywords: 'camping gear' },
+  { href: '/inventory', label: 'Inventory & Weight Management', icon: Backpack, keywords: 'camping gear' },
   { href: '/checklists', label: 'Checklists', icon: ListChecks, keywords: 'travel list' },
   { href: '/tripplanner', label: 'Trip Planner', icon: Route, keywords: 'route plan' },
   { href: '/triplog', label: 'Trip Log', icon: History, keywords: 'trip history' },
@@ -21,3 +21,4 @@ export const navItems: NavItem[] = [
   { href: '/chatbot', label: 'Chatbot', icon: MessageCircle, keywords: 'support help' },
   { href: '/subscribe', label: 'Subscribe', icon: CreditCard, keywords: 'premium membership' },
 ];
+
