@@ -14,7 +14,7 @@ export default function DashboardPage() {
         <Caravan className="h-16 w-16 mx-auto text-primary mb-4" /> 
         <h1 className="text-4xl md:text-5xl font-headline text-primary mb-2">Welcome to KamperHub</h1>
         <p className="text-lg text-muted-foreground font-body max-w-2xl mx-auto">
-          Your all-in-one companion for safer and more enjoyable caravanning adventures. Manage your vehicle weights, checklists, routes, and more!
+          Inventory & Weight Management
         </p>
       </header>
 
