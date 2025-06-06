@@ -2,7 +2,7 @@
 import type { AiGeneratedArticle } from '@/types/learn';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Eye } from 'lucide-react';
@@ -40,9 +40,8 @@ export function ArticleDisplayCard({ article }: ArticleDisplayCardProps) {
               </DialogDescription>
             </DialogHeader>
             <Separator className="my-3" />
-            {/* Changed flex-grow to flex-1 for the ScrollArea */}
             <ScrollArea className="flex-1 min-h-0"> 
-              <div className="space-y-4 font-body text-foreground pr-4"> {/* Added pr-4 here for scrollbar space */}
+              <div className="space-y-4 font-body text-foreground pr-4">
                 <p className="text-base leading-relaxed whitespace-pre-line">{article.introduction}</p>
                 {article.sections.map((section, index) => (
                   <div key={index} className="space-y-2">
