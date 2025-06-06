@@ -186,7 +186,7 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
         { name: 'Remaining', value: Math.max(0, limitVal - currentVal) },
       ],
       colors: [
-        isOver ? 'hsl(var(--destructive))' : 'hsl(var(--foreground))', // Changed from primary to foreground
+        isOver ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
         'hsl(var(--muted))',
       ],
     };
