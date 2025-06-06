@@ -179,45 +179,148 @@ export const sampleVideos: EducationalVideo[] = [
   }
 ];
 
+const placeholderContent = "Detailed content for this topic will be provided soon. Check back later for helpful tips and advice!";
+const placeholderSection = { heading: "Coming Soon", content: placeholderContent };
+
 export const staticCaravanningArticles: AiGeneratedArticle[] = [
   {
-    topic: "Essential Pre-Departure Caravan Checks",
-    title: "The Ultimate Pre-Departure Checklist for Your Caravan",
-    introduction: "Before you hit the road, a thorough pre-departure check is crucial for a safe and smooth journey. This guide covers the essentials.",
-    sections: [
-      {
-        heading: "Exterior Checks",
-        content: "Walk around your caravan. Check tyres for pressure and wear. Ensure hitches, chains, and electrical connections are secure. Test all lights (indicators, brakes, taillights). Make sure all hatches and windows are closed and locked."
-      },
-      {
-        heading: "Interior Checks",
-        content: "Secure all loose items inside. Cupboards and drawers should be latched. Ensure appliances like the fridge are properly stowed or set for travel mode. Check that water tanks are at desired levels and gas bottles are turned off if required."
-      },
-      {
-        heading: "Vehicle Checks",
-        content: "Don't forget your tow vehicle! Check its tyre pressure, oil, coolant, and brake fluid. Ensure your mirrors provide adequate visibility for towing."
-      }
-    ],
-    conclusion: "Taking a few minutes for these checks can save you a lot of hassle and ensure a more enjoyable trip. Safe travels!"
+    topic: "Arriving at a Campsite for the First Time (and Setting Up)",
+    title: "Arriving at a Campsite for the First Time (and Setting Up)",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
   },
   {
-    topic: "Tips for Reversing a Caravan Safely",
-    title: "Mastering the Art of Reversing Your Caravan",
-    introduction: "Reversing a caravan can be daunting for beginners, but with practice and these tips, you'll be backing up like a pro in no time.",
-    sections: [
-      {
-        heading: "Preparation is Key",
-        content: "Before you start, get out and survey the area. Note any obstacles, slopes, or tight spots. If possible, have a spotter to guide you. Use clear hand signals."
-      },
-      {
-        heading: "The 'Steer Opposite' Rule",
-        content: "Remember, to make the back of the caravan go left, turn your vehicle's steering wheel to the right (and vice versa). Small, slow movements are best. If you get confused, pull forward to straighten up and start again."
-      },
-      {
-        heading: "Use Your Mirrors",
-        content: "Properly adjusted tow mirrors are essential. Learn to use them effectively to see where your caravan is going. Consider installing a reversing camera for better visibility directly behind the van."
-      }
-    ],
-    conclusion: "Patience and practice are your best friends when learning to reverse. Take your time, don't be afraid to ask for help, and soon it will become second nature."
+    topic: "Reversing/Parking the Caravan",
+    title: "Reversing/Parking the Caravan",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
+  },
+  {
+    topic: "Understanding Caravan Weights (ATM, GVM, Tow Ball Weight)",
+    title: "Understanding Caravan Weights (ATM, GVM, Tow Ball Weight)",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
+  },
+  {
+    topic: "Dealing with Flat Tyres or Blowouts",
+    title: "Dealing with Flat Tyres or Blowouts",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
+  },
+  {
+    topic: "Managing Power (12V, 240V, Solar, Batteries)",
+    title: "Managing Power (12V, 240V, Solar, Batteries)",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
+  },
+  {
+    topic: "Water Management (Filling, Emptying, Conserving)",
+    title: "Water Management (Filling, Emptying, Conserving)",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
+  },
+  {
+    topic: "Troubleshooting Appliances (Fridge, Hot Water, Air Con)",
+    title: "Troubleshooting Appliances (Fridge, Hot Water, Air Con)",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
+  },
+  {
+    topic: "Emptying the Toilet Cassette / Black Tank",
+    title: "Emptying the Toilet Cassette / Black Tank",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
+  },
+  {
+    topic: "Navigating Tricky Roads/Tight Spots",
+    title: "Navigating Tricky Roads/Tight Spots",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
+  },
+  {
+    topic: "Dealing with Unexpected Weather (Wind, Rain, Storms)",
+    title: "Dealing with Unexpected Weather (Wind, Rain, Storms)",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
+  },
+  {
+    topic: "Choosing the Right Campsite (for their experience level)",
+    title: "Choosing the Right Campsite (for their experience level)",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
+  },
+  {
+    topic: "Basic Maintenance on the Road",
+    title: "Basic Maintenance on the Road",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
+  },
+  {
+    topic: "Packing and Weight Distribution",
+    title: "Packing and Weight Distribution",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
+  },
+  {
+    topic: "Roadside Assistance & Breakdowns",
+    title: "Roadside Assistance & Breakdowns",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
+  },
+  {
+    topic: "Caravan Security (Theft & Critters)",
+    title: "Caravan Security (Theft & Critters)",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
+  },
+  {
+    topic: "Budgeting & Saving Money on the Road",
+    title: "Budgeting & Saving Money on the Road",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
+  },
+  {
+    topic: "Connecting with Other Caravanners / Building Community",
+    title: "Connecting with Other Caravanners / Building Community",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
+  },
+  {
+    topic: "Understanding Road Rules Specific to Caravans",
+    title: "Understanding Road Rules Specific to Caravans",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
+  },
+  {
+    topic: "Planning Their First Long Trip / Big Lap",
+    title: "Planning Their First Long Trip / Big Lap",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
+  },
+  {
+    topic: "Returning Home and Storing the Caravan",
+    title: "Returning Home and Storing the Caravan",
+    introduction: placeholderContent,
+    sections: [placeholderSection, placeholderSection],
+    conclusion: placeholderContent
   }
 ];
