@@ -3,15 +3,17 @@
 
 import { useState, useRef, useEffect } from 'react';
 import type { ChatMessage } from '@/types/chatbot';
-import { caravanSupportChatbot, type CaravanSupportChatbotInput } from '@/ai/flows/caravan-support-chatbot';
+import { caravanSupportChatbot, type CaravanSupportChatbotInput, type CaravanSupportChatbotOutput } from '@/ai/flows/caravan-support-chatbot';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Send, User, Bot } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'; // Removed AvatarImage as it's not used
+import { Send, User, Bot, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { YouTubeEmbed } from '@/components/features/learn/YouTubeEmbed';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Added Card components
+
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -35,18 +37,20 @@ export function ChatInterface() {
       timestamp: new Date(),
     };
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
     setIsLoading(true);
 
     try {
-      const chatbotInput: CaravanSupportChatbotInput = { question: input };
-      const response = await caravanSupportChatbot(chatbotInput);
+      const chatbotInput: CaravanSupportChatbotInput = { question: currentInput };
+      const response: CaravanSupportChatbotOutput = await caravanSupportChatbot(chatbotInput);
       
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
         text: response.answer,
         youtubeLink: response.youtubeLink,
+        relatedArticleTitle: response.relatedArticleTitle,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, aiMessage]);
@@ -54,11 +58,13 @@ export function ChatInterface() {
       console.error("Chatbot error:", error);
       let specificMessage = "Sorry, I encountered an error processing your request. Please try again.";
       if (error && typeof error.message === 'string') {
-        if (error.message.toLowerCase().includes("service unavailable") || error.message.toLowerCase().includes("overloaded")) {
+        const errorMessageLower = error.message.toLowerCase();
+        if (errorMessageLower.includes("service unavailable") || errorMessageLower.includes("overloaded")) {
           specificMessage = "The AI assistant is currently experiencing high demand or is temporarily unavailable. Please try again in a few moments.";
-        } else if (error.message.toLowerCase().includes("api key not valid")) {
-          // This message is more for the developer if the API key is wrong.
+        } else if (errorMessageLower.includes("api key not valid")) {
           specificMessage = "There seems to be an issue with the AI service configuration. Please try again later.";
+        } else if (errorMessageLower.includes("rate_limit_exceeded") || errorMessageLower.includes("quota")){
+          specificMessage = "The AI assistant has hit a usage limit for the current period. Please try again later.";
         }
       }
       const errorMessageContent: ChatMessage = {
@@ -87,31 +93,48 @@ export function ChatInterface() {
               className={`max-w-[70%] p-3 rounded-lg ${
                 msg.sender === 'user' 
                   ? 'bg-primary text-primary-foreground' 
-                  : 'bg-muted text-muted-foreground'
+                  : 'bg-muted text-muted-foreground' // Changed this line
               }`}
             >
               <p className="text-sm font-body whitespace-pre-wrap">{msg.text}</p>
               {msg.youtubeLink && (
-                <div className="mt-2">
+                <div className="mt-3 pt-2 border-t border-muted-foreground/20">
                    <p className="text-xs font-body mb-1">You might find this video helpful:</p>
-                   <Link href={msg.youtubeLink} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline text-sm font-body">
-                     {msg.youtubeLink}
-                   </Link>
-                   {/* Basic YouTube ID extraction for embed */}
                    {(() => {
                       try {
                         const url = new URL(msg.youtubeLink!);
                         const videoId = url.searchParams.get('v');
                         if (videoId) {
-                           return <div className="mt-2"><YouTubeEmbed videoId={videoId} title="Suggested Video" /></div>;
+                           return <div className="mt-1"><YouTubeEmbed videoId={videoId} title="Suggested Video" /></div>;
                         }
                       } catch (e) { /* invalid URL */ }
-                      return null;
+                      // Fallback to link if embed fails
+                      return <Link href={msg.youtubeLink} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline text-sm font-body">{msg.youtubeLink}</Link>;
                    })()}
                 </div>
               )}
+              {msg.relatedArticleTitle && (
+                <Card className="mt-3 bg-background/50 border-primary/30">
+                  <CardHeader className="p-2">
+                    <CardTitle className="text-xs font-body font-semibold text-primary flex items-center">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Related Article:
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-2 pt-0">
+                    <p className="text-xs font-body text-foreground">
+                      "{msg.relatedArticleTitle}"
+                    </p>
+                    <Link href="/learn" passHref>
+                        <Button variant="link" size="sm" className="text-xs p-0 h-auto mt-1 text-accent hover:underline">
+                            Go to Support Center
+                        </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              )}
               <p className={`text-xs mt-1 ${msg.sender === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground/70'}`}>
-                {new Date(msg.timestamp).toLocaleTimeString()}
+                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
             {msg.sender === 'user' && (
@@ -143,7 +166,7 @@ export function ChatInterface() {
           onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSendMessage()}
           disabled={isLoading}
         />
-        <Button onClick={handleSendMessage} disabled={isLoading} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body">
+        <Button onClick={handleSendMessage} disabled={isLoading || !input.trim()} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body">
           <Send className="h-5 w-5" />
           <span className="sr-only">Send</span>
         </Button>
@@ -151,3 +174,4 @@ export function ChatInterface() {
     </div>
   );
 }
+

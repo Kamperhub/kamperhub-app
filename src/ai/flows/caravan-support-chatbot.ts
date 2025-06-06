@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { staticCaravanningArticles, type AiGeneratedArticle } from '@/types/learn';
 
 const CaravanSupportChatbotInputSchema = z.object({
   question: z.string().describe('The question asked by the user about caravanning.'),
@@ -20,6 +21,7 @@ export type CaravanSupportChatbotInput = z.infer<typeof CaravanSupportChatbotInp
 const CaravanSupportChatbotOutputSchema = z.object({
   answer: z.string().describe('The answer to the user question.'),
   youtubeLink: z.string().optional().nullable().describe('An optional YouTube link that provides more information about the answer.'),
+  relatedArticleTitle: z.string().optional().nullable().describe('The title of a related article from the Support Center, if applicable.')
 });
 export type CaravanSupportChatbotOutput = z.infer<typeof CaravanSupportChatbotOutputSchema>;
 
@@ -57,15 +59,58 @@ const getFaqAnswer = ai.defineTool(
     outputSchema: z.string().optional().describe('The answer from the FAQ if a match is found, otherwise undefined.'),
   },
   async ({ topicKeywords }) => {
-    const lowerTopicKeywords = topicKeywords.toLowerCase();
+    const lowerTopicKeywords = topicKeywords.toLowerCase().split(/\s+/).filter(kw => kw.length > 2); // Split into words
     for (const faq of faqData) {
-      if (faq.keywords.some(kw => lowerTopicKeywords.includes(kw.toLowerCase()))) {
+      if (faq.keywords.some(kw => lowerTopicKeywords.some(userKw => kw.toLowerCase().includes(userKw)))) {
         return faq.answer;
       }
     }
     return undefined; // No specific FAQ found
   }
 );
+
+const getArticleInfoTool = ai.defineTool(
+  {
+    name: 'getArticleInfoTool',
+    description: 'Searches the static article database for relevant information based on user keywords. Use this if no direct FAQ answer is found.',
+    inputSchema: z.object({
+      searchKeywords: z.string().describe('Keywords from the user question to find a relevant article (e.g., "parking caravan", "battery management").'),
+    }),
+    outputSchema: z.object({
+      title: z.string(),
+      summary: z.string(), // The introduction of the article
+      topic: z.string(),
+    }).optional().describe('The title, introduction (as summary), and topic of a relevant article if found, otherwise undefined.'),
+  },
+  async ({ searchKeywords }) => {
+    const lowerKeywords = searchKeywords.toLowerCase().split(/\s+/).filter(kw => kw.length > 2); // Split into words, ignore small words
+    if (lowerKeywords.length === 0) return undefined;
+
+    for (const article of staticCaravanningArticles) {
+      const searchableText = `${article.topic.toLowerCase()} ${article.title.toLowerCase()} ${article.introduction.toLowerCase()}`;
+      if (lowerKeywords.every(kw => searchableText.includes(kw))) { // All keywords must be present
+        return {
+          title: article.title,
+          summary: article.introduction,
+          topic: article.topic,
+        };
+      }
+    }
+    // Fallback: check if any keyword matches
+     for (const article of staticCaravanningArticles) {
+      const searchableText = `${article.topic.toLowerCase()} ${article.title.toLowerCase()} ${article.introduction.toLowerCase()}`;
+      if (lowerKeywords.some(kw => searchableText.includes(kw))) {
+        return {
+          title: article.title,
+          summary: article.introduction,
+          topic: article.topic,
+        };
+      }
+    }
+    return undefined;
+  }
+);
+
 
 const findYoutubeLink = ai.defineTool(
   {
@@ -77,14 +122,12 @@ const findYoutubeLink = ai.defineTool(
     outputSchema: z.string().optional(),
   },
   async (input) => {
-    // TODO: Implement the logic to find a relevant YouTube video link based on the user question.
-    // This is a placeholder implementation. Replace it with your actual implementation.
-    // Example:
+    // This is a placeholder implementation.
     if (input.searchQuery.toLowerCase().includes('weight limits')) {
-      return 'https://www.youtube.com/watch?v=M7lc1UVf-VE'; // Example: Understanding Caravan Weights
+      return 'https://www.youtube.com/watch?v=M7lc1UVf-VE';
     }
     if (input.searchQuery.toLowerCase().includes('awning')) {
-        return 'https://www.youtube.com/watch?v=L_jWHffIx5E'; // Example: Setting up campsite
+        return 'https://www.youtube.com/watch?v=L_jWHffIx5E';
     }
     return undefined;
   }
@@ -98,14 +141,16 @@ const prompt = ai.definePrompt({
   name: 'caravanSupportChatbotPrompt',
   input: {schema: CaravanSupportChatbotInputSchema},
   output: {schema: CaravanSupportChatbotOutputSchema},
-  tools: [getFaqAnswer, findYoutubeLink], // Added getFaqAnswer tool
+  tools: [getFaqAnswer, getArticleInfoTool, findYoutubeLink],
   prompt: `You are a friendly and helpful caravan support chatbot for KamperHub. Your primary goal is to provide accurate and useful answers to user questions about caravanning.
 
 When a user asks a question:
-1. First, use the 'getFaqAnswer' tool to check if there's a pre-defined answer for the topic in our knowledge base. Provide the keywords from the user's question to the tool.
-2. If the 'getFaqAnswer' tool returns an answer, use this information as the core of your response. You can rephrase it slightly to be more conversational if needed, but the factual content should come from the tool's output.
-3. If the 'getFaqAnswer' tool does not return an answer (meaning it's not in our FAQ), then answer the question to the best of your general knowledge about caravanning.
-4. Regardless of whether an FAQ answer was found or not, if you believe a YouTube video would further help the user, use the 'findYoutubeLink' tool with a relevant search query to find a video link and include it in your response.
+1. First, use the 'getFaqAnswer' tool to check if there's a pre-defined answer for the topic in our local knowledge base. Provide relevant keywords from the user's question to this tool.
+2. If the 'getFaqAnswer' tool returns an answer, use this information as the core of your response. Rephrase it slightly to be conversational if needed, but ensure the factual content comes from the tool's output. Set 'relatedArticleTitle' to null.
+3. If 'getFaqAnswer' does not return an answer, then use the 'getArticleInfoTool' with keywords from the user's question to search our published articles.
+4. If the 'getArticleInfoTool' returns an article (title, summary, topic), base your answer on the provided 'summary'. Also, set the 'relatedArticleTitle' output field to the 'title' of the article found. You can additionally mention to the user that more details are available in the article titled "[Article Title]" in our Support Center.
+5. If neither 'getFaqAnswer' nor 'getArticleInfoTool' provides a specific answer, then answer the question to the best of your general knowledge about caravanning. Set 'relatedArticleTitle' to null in this case.
+6. Regardless of how the answer was sourced, if you believe a YouTube video would further help the user, use the 'findYoutubeLink' tool with a relevant search query to find a video link and include it in your 'youtubeLink' output field. Otherwise, set 'youtubeLink' to null.
 
 User's Question: {{{question}}}
 `,
@@ -121,39 +166,40 @@ const caravanSupportChatbotFlow = ai.defineFlow(
     try {
       const {output} = await prompt(input);
       if (!output) {
-        // This case can occur if the model fails to adhere to the output schema
-        // or if there's an unclassified issue during generation.
         console.warn('CaravanSupportChatbotFlow: AI model returned null output.');
         return { 
           answer: "I'm sorry, I had trouble generating a response in the expected format. Could you try rephrasing your question?", 
-          youtubeLink: null 
+          youtubeLink: null,
+          relatedArticleTitle: null,
         };
       }
-      return output;
+      // Ensure relatedArticleTitle is explicitly null if not set by the model, as per schema
+      return {
+        answer: output.answer,
+        youtubeLink: output.youtubeLink || null,
+        relatedArticleTitle: output.relatedArticleTitle || null,
+      };
     } catch (error: any) {
       console.error("Error in caravanSupportChatbotFlow calling prompt:", error);
       
+      let answer = "An unexpected error occurred while communicating with the AI assistant. Please try again later.";
       if (error.message) {
         const errorMessage = error.message.toLowerCase();
-        if (errorMessage.includes("503 service unavailable") || errorMessage.includes("overloaded") || errorMessage.includes("model is overloaded")) {
-          return { 
-            answer: "The AI assistant is currently experiencing high demand or is temporarily unavailable. Please try again in a few moments.", 
-            youtubeLink: null 
-          };
-        }
-        if (errorMessage.includes("429") || errorMessage.includes("quota") || errorMessage.includes("rate limit")) {
-          return {
-            answer: "The AI assistant has hit a usage limit for the current period. Please try again later. If this issue persists, please check API plan details.",
-            youtubeLink: null
-          };
+        if (errorMessage.includes("service unavailable") || errorMessage.includes("overloaded") || errorMessage.includes("model is overloaded")) {
+          answer = "The AI assistant is currently experiencing high demand or is temporarily unavailable. Please try again in a few moments.";
+        } else if (errorMessage.includes("429") || errorMessage.includes("quota") || errorMessage.includes("rate limit")) {
+          answer = "The AI assistant has hit a usage limit for the current period. Please try again later. If this issue persists, please check API plan details.";
+        } else if (errorMessage.includes("api key not valid")){
+           answer = "There seems to be an issue with the AI service configuration. Please contact support if this persists.";
         }
       }
       
-      // For other generic errors caught from the prompt call
       return { 
-        answer: "An unexpected error occurred while communicating with the AI assistant. Please try again later.", 
-        youtubeLink: null 
+        answer: answer, 
+        youtubeLink: null,
+        relatedArticleTitle: null,
       };
     }
   }
 );
+
