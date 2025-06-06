@@ -35,36 +35,39 @@ export function ArticleDisplayCard({ article }: ArticleDisplayCardProps) {
           </DialogTrigger>
           <DialogContent 
             className={cn(
-              // Base shadcn styles are applied by default. We are overriding/extending.
-              // Remove default padding, ensure flex column layout, and manage overflow.
-              "p-0 flex flex-col", // Remove p-6, explicitly set flex flex-col
-              "sm:max-w-3xl max-h-[90vh] overflow-hidden" // Size constraints
+              "p-0 flex flex-col", 
+              "sm:max-w-3xl max-h-[90vh] overflow-hidden" 
             )}
           >
-            <DialogHeader className="px-6 pt-6 pb-4"> {/* Add padding here */}
+            <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
               <DialogTitle className="font-headline text-2xl text-primary">{article.title}</DialogTitle>
               <DialogDescription className="font-body text-muted-foreground">
                 Topic: {article.topic}
               </DialogDescription>
             </DialogHeader>
-            <Separator className="mx-6 my-0" /> {/* Separator between header and scrollable content */}
-            <ScrollArea className="flex-1 min-h-0"> {/* ScrollArea takes remaining space */}
-              <div className="px-6 py-4 space-y-4 font-body text-foreground"> {/* Padding for content inside scroll area */}
-                <p className="text-base leading-relaxed whitespace-pre-line">{article.introduction}</p>
-                {article.sections.map((section, index) => (
-                  <div key={index} className="space-y-2">
-                    <h3 className="font-headline text-lg font-semibold text-primary">{section.heading}</h3>
-                    <p className="text-base leading-relaxed whitespace-pre-line">{section.content}</p>
+            <Separator className="mx-6 my-0 flex-shrink-0" />
+            
+            {/* Wrapper for the scrollable area */}
+            <div className="flex-1 min-h-0 overflow-y-hidden"> 
+              <ScrollArea className="h-full w-full"> 
+                <div className="px-6 py-4 space-y-4 font-body text-foreground">
+                  <p className="text-base leading-relaxed whitespace-pre-line">{article.introduction}</p>
+                  {article.sections.map((section, index) => (
+                    <div key={index} className="space-y-2">
+                      <h3 className="font-headline text-lg font-semibold text-primary">{section.heading}</h3>
+                      <p className="text-base leading-relaxed whitespace-pre-line">{section.content}</p>
+                    </div>
+                  ))}
+                  <Separator className="my-2" />
+                  <div>
+                    <h3 className="font-headline text-lg font-semibold text-primary">Conclusion</h3>
+                    <p className="text-base leading-relaxed whitespace-pre-line">{article.conclusion}</p>
                   </div>
-                ))}
-                <Separator className="my-2" />
-                <div>
-                  <h3 className="font-headline text-lg font-semibold text-primary">Conclusion</h3>
-                  <p className="text-base leading-relaxed whitespace-pre-line">{article.conclusion}</p>
                 </div>
-              </div>
-            </ScrollArea>
-            <DialogFooter className="px-6 pb-6 pt-4 border-t"> {/* Add padding here */}
+              </ScrollArea>
+            </div>
+
+            <DialogFooter className="px-6 pb-6 pt-4 border-t flex-shrink-0">
                 <DialogClose asChild>
                     <Button type="button" variant="outline" className="font-body">
                         Close
@@ -77,3 +80,4 @@ export function ArticleDisplayCard({ article }: ArticleDisplayCardProps) {
     </Card>
   );
 }
+
