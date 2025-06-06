@@ -74,6 +74,13 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     dataAiHint: 'australia park',
   },
   {
+    id: 'nzParks',
+    name: 'New Zealand National Parks',
+    url: 'https://www.newzealand.com/au/national-parks/',
+    description: "Discover and plan visits to New Zealand's stunning national parks.",
+    dataAiHint: 'newzealand nature',
+  },
+  {
     id: 'europeParks',
     name: 'European National Parks',
     url: 'https://national-parks.org/europe',
