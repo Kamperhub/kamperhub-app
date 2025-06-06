@@ -126,11 +126,11 @@ export default function InventoryPage() {
   if (!isLocalStorageReady || isLoading) {
     return (
       <div className="space-y-8">
-        <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
+        <h1 className="text-3xl font-headline mb-6 text-foreground flex items-center">
           <Backpack className="mr-3 h-8 w-8" /> Inventory & Weight Management
         </h1>
         <div className="flex items-center justify-center py-10">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
+          <Loader2 className="h-8 w-8 animate-spin text-foreground mr-3" />
           <p className="font-body text-lg">Loading caravan specifications &amp; inventory...</p>
         </div>
       </div>
@@ -140,7 +140,7 @@ export default function InventoryPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
+        <h1 className="text-3xl font-headline mb-6 text-foreground flex items-center">
           <Backpack className="mr-3 h-8 w-8" /> Inventory & Weight Management
         </h1>
         <p className="text-muted-foreground font-body mb-6">
@@ -157,13 +157,13 @@ export default function InventoryPage() {
       )}
 
       {!error && (!caravanSpecs || caravanSpecs.tareMass === 0 || !activeCaravanId) && (
-        <Alert variant="default" className="mb-6 bg-primary/10 border-primary/30">
-          <Settings className="h-4 w-4 text-primary" />
-          <AlertTitle className="font-headline text-primary">Active Caravan Required for Inventory</AlertTitle>
-          <AlertDescription className="font-body text-primary/80">
+        <Alert variant="default" className="mb-6 bg-muted border-border">
+          <Settings className="h-4 w-4 text-foreground" />
+          <AlertTitle className="font-headline text-foreground">Active Caravan Required for Inventory</AlertTitle>
+          <AlertDescription className="font-body text-muted-foreground">
             To manage inventory items and get accurate weight calculations, please add a caravan and set it as active in the 'Vehicles' section.
             <Link href="/vehicles" passHref>
-              <Button variant="link" className="p-0 h-auto ml-1 text-primary hover:underline font-body">Go to Vehicles</Button>
+              <Button variant="link" className="p-0 h-auto ml-1 text-foreground hover:underline font-body">Go to Vehicles</Button>
             </Link>
              Currently, weight calculations are based on default zero values and inventory management is disabled.
           </AlertDescription>

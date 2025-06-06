@@ -155,9 +155,9 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
       <CardContent className="space-y-6">
         {isFormDisabled && (
             <Alert variant="default" className="bg-muted">
-                <AlertTriangle className="h-4 w-4 text-primary" />
-                <AlertTitle className="font-headline text-primary">Select Active Caravan</AlertTitle>
-                <AlertDescription className="font-body text-primary/80">
+                <AlertTriangle className="h-4 w-4 text-foreground" />
+                <AlertTitle className="font-headline text-foreground">Select Active Caravan</AlertTitle>
+                <AlertDescription className="font-body text-muted-foreground">
                 Inventory management is disabled. Please set an active caravan in the 'Vehicles' section to add or modify items.
                 </AlertDescription>
             </Alert>
@@ -244,7 +244,7 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
             </AlertDescription>
             {caravanSpecs.atm > 0 && (
               <>
-                <Progress value={Math.min(atmUsagePercentage, 100)} className="mt-2 [&>div]:bg-primary" />
+                <Progress value={Math.min(atmUsagePercentage, 100)} className="mt-2 [&>div]:bg-foreground" />
                 {atmUsagePercentage > 100 &&  <Progress value={atmUsagePercentage - 100} className="mt-1 [&>div]:bg-destructive" />}
               </>
             )}
@@ -269,7 +269,7 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
                 )}
                 </AlertDescription>
                 <>
-                    <Progress value={Math.min(gtmUsagePercentage, 100)} className="mt-2 [&>div]:bg-primary" />
+                    <Progress value={Math.min(gtmUsagePercentage, 100)} className="mt-2 [&>div]:bg-foreground" />
                     {gtmUsagePercentage > 100 &&  <Progress value={gtmUsagePercentage - 100} className="mt-1 [&>div]:bg-destructive" />}
                 </>
             </Alert>
@@ -292,7 +292,7 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
                 )}
                 </AlertDescription>
                  <>
-                    <Progress value={Math.min(towballUsagePercentage, 100)} className="mt-2 [&>div]:bg-primary" />
+                    <Progress value={Math.min(towballUsagePercentage, 100)} className="mt-2 [&>div]:bg-foreground" />
                     {towballUsagePercentage > 100 &&  <Progress value={towballUsagePercentage - 100} className="mt-1 [&>div]:bg-destructive" />}
                  </>
             </Alert>
