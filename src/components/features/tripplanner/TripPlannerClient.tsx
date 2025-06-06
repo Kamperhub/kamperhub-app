@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useForm, type SubmitHandler, Controller, type Control, type UseFormSetValue, type FieldErrors, FieldPath } from 'react-hook-form';
+import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { usePathname } from 'next/navigation';
@@ -13,8 +13,10 @@ import { VEHICLES_STORAGE_KEY, ACTIVE_VEHICLE_ID_KEY } from '@/types/vehicle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
 import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -65,11 +67,16 @@ export function TripPlannerClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [fuelEstimate, setFuelEstimate] = useState<FuelEstimate | null>(null);
-  const [currentTripNotes, setCurrentTripNotes] = useState<string | null | undefined>(undefined);
+  const [currentTripNotes, setCurrentTripNotes] = useState<string | undefined>(undefined); // For internal state of notes input *before* saving
   const [error, setError] = useState<string | null>(null);
   const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
   const { toast } = useToast();
   const pathname = usePathname();
+
+  const [isSaveTripDialogOpen, setIsSaveTripDialogOpen] = useState(false);
+  const [pendingTripName, setPendingTripName] = useState('');
+  const [pendingTripNotes, setPendingTripNotes] = useState('');
+
 
   const map = useMap();
   const polylineRef = useRef<google.maps.Polyline | null>(null);
@@ -105,7 +112,7 @@ export function TripPlannerClient() {
           });
           setRouteDetails(recalledTrip.routeDetails);
           setFuelEstimate(recalledTrip.fuelEstimate);
-          setCurrentTripNotes(recalledTrip.notes);
+          setCurrentTripNotes(recalledTrip.notes || ''); // Ensure currentTripNotes is a string for Textarea
           localStorage.removeItem(RECALLED_TRIP_DATA_KEY);
           toast({ title: "Trip Recalled", description: `"${recalledTrip.name}" loaded into planner.` });
           recalledTripLoaded = true;
@@ -342,45 +349,30 @@ export function TripPlannerClient() {
     });
   }, [map, toast]);
 
-  const handleSaveTrip = useCallback(() => {
+  const handleOpenSaveTripDialog = useCallback(() => {
     if (!routeDetails) {
       toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
       return;
     }
-
-    let tripName: string | null = null;
-    try {
-      tripName = window.prompt("Enter a name for this trip:", `Trip to ${getValues("endLocation")}`);
-    } catch (e: any) {
-      console.error("Error during trip name prompt:", e.name, e.message, e.stack);
-      toast({ title: "Prompt Error", description: `Failed to get trip name: ${e.message}`, variant: "destructive" });
-      return;
-    }
-
-    if (tripName === null) {
-      toast({ title: "Save Canceled", description: "The trip name prompt was dismissed or canceled. Please enter a name to save the trip.", variant: "default" });
-      return;
-    }
-    if (!tripName.trim()) {
+    setPendingTripName(`Trip to ${getValues("endLocation") || 'Destination'}`);
+    setPendingTripNotes(currentTripNotes || '');
+    setIsSaveTripDialogOpen(true);
+  }, [routeDetails, getValues, currentTripNotes, toast]);
+  
+  const handleConfirmSaveTrip = useCallback(() => {
+    if (!pendingTripName.trim()) {
       toast({ title: "Invalid Name", description: "Trip name cannot be empty.", variant: "destructive" });
       return;
     }
-
-    let tripNotesPromptResult: string | null = null;
-    try {
-      tripNotesPromptResult = window.prompt("Enter any notes for this trip (optional, max 500 characters suggested):", currentTripNotes || "");
-    } catch (e: any) {
-      console.error("Error during trip notes prompt:", e.name, e.message, e.stack);
-      toast({ title: "Prompt Error", description: `Failed to get trip notes: ${e.message}`, variant: "destructive" });
-      return;
+    if (!routeDetails) { // Should not happen if dialog is opened correctly
+        toast({ title: "Error", description: "Route details are missing.", variant: "destructive" });
+        return;
     }
-    
-    setCurrentTripNotes(tripNotesPromptResult); 
 
     const currentFormData = getValues();
     const newLoggedTrip: LoggedTrip = {
       id: Date.now().toString(),
-      name: tripName,
+      name: pendingTripName.trim(),
       timestamp: new Date().toISOString(),
       startLocationDisplay: currentFormData.startLocation,
       endLocationDisplay: currentFormData.endLocation,
@@ -390,8 +382,10 @@ export function TripPlannerClient() {
       fuelEstimate: fuelEstimate,
       plannedStartDate: currentFormData.dateRange?.from ? currentFormData.dateRange.from.toISOString() : null,
       plannedEndDate: currentFormData.dateRange?.to ? currentFormData.dateRange.to.toISOString() : null,
-      notes: tripNotesPromptResult, 
+      notes: pendingTripNotes.trim() || undefined, 
     };
+    
+    setCurrentTripNotes(pendingTripNotes.trim() || undefined); // Update main page notes immediately
 
     try {
       const existingTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
@@ -403,26 +397,17 @@ export function TripPlannerClient() {
           console.error('Error parsing existing trips from localStorage:', parseError.name, parseError.message, parseError.stack);
           toast({
             title: "Data Corruption Warning",
-            description: "Could not read previously saved trips due to data format issues. New trip will be saved. Old data might be affected.",
+            description: "Could not read previously saved trips. Old data might be affected.",
             variant: "destructive",
             duration: 7000,
           });
-          existingTrips = []; 
         }
       }
       
       const updatedTripsArray = [...existingTrips, newLoggedTrip];
-      let jsonToSave;
-      try {
-        jsonToSave = JSON.stringify(updatedTripsArray);
-      } catch (stringifyError: any) {
-        console.error("Error stringifying updated trips array:", stringifyError.name, stringifyError.message, stringifyError.stack);
-        toast({ title: "Serialization Error", description: `Could not prepare trip data for saving: ${stringifyError.message}`, variant: "destructive" });
-        return;
-      }
-
-      localStorage.setItem(TRIP_LOG_STORAGE_KEY, jsonToSave);
-      toast({ title: "Trip Saved!", description: `"${tripName}" has been added to your Trip Log.` });
+      localStorage.setItem(TRIP_LOG_STORAGE_KEY, JSON.stringify(updatedTripsArray));
+      toast({ title: "Trip Saved!", description: `"${newLoggedTrip.name}" has been added to your Trip Log.` });
+      setIsSaveTripDialogOpen(false);
     } catch (storageError: any) {
       console.error("Critical Storage Error:", storageError.name, storageError.message, storageError.stack);
       toast({ 
@@ -432,7 +417,7 @@ export function TripPlannerClient() {
         duration: 9000
       });
     }
-  }, [routeDetails, getValues, fuelEstimate, currentTripNotes, setCurrentTripNotes, toast]);
+  }, [routeDetails, getValues, fuelEstimate, toast, pendingTripName, pendingTripNotes]);
 
 
   const mapHeight = "400px"; 
@@ -441,6 +426,7 @@ export function TripPlannerClient() {
 
 
   return (
+    <>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <Card className="md:col-span-1">
         <CardHeader>
@@ -538,6 +524,17 @@ export function TripPlannerClient() {
                 )}
               />
               {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
+            </div>
+             <div>
+              <Label htmlFor="currentTripNotes" className="font-body">Trip Notes (optional)</Label>
+              <Textarea
+                id="currentTripNotes"
+                value={currentTripNotes || ''}
+                onChange={(e) => setCurrentTripNotes(e.target.value)}
+                placeholder="e.g., Remember to book ferry tickets, stop at the Big Pineapple..."
+                className="font-body"
+                rows={3}
+              />
             </div>
             <Button type="submit" disabled={isLoading || !isGoogleApiReady} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -682,7 +679,7 @@ export function TripPlannerClient() {
                 <Navigation className="mr-2 h-4 w-4" /> Navigate
               </Button>
               <Button
-                onClick={handleSaveTrip}
+                onClick={handleOpenSaveTripDialog}
                 variant="default"
                 size="sm"
                 className="font-body w-full bg-primary hover:bg-primary/90 text-primary-foreground"
@@ -695,6 +692,50 @@ export function TripPlannerClient() {
         )}
       </div>
     </div>
+
+    <Dialog open={isSaveTripDialogOpen} onOpenChange={setIsSaveTripDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="font-headline">Save Trip</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="tripName" className="text-right font-body">
+                Name
+              </Label>
+              <Input
+                id="tripName"
+                value={pendingTripName}
+                onChange={(e) => setPendingTripName(e.target.value)}
+                className="col-span-3 font-body"
+                placeholder="e.g., Coastal Adventure QLD"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="tripNotes" className="text-right font-body">
+                Notes
+              </Label>
+              <Textarea
+                id="tripNotes"
+                value={pendingTripNotes}
+                onChange={(e) => setPendingTripNotes(e.target.value)}
+                className="col-span-3 font-body"
+                placeholder="Any specific details for this trip..."
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsSaveTripDialogOpen(false)} className="font-body">
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleConfirmSaveTrip} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body">
+              Save Trip
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
