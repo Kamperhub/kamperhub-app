@@ -251,11 +251,11 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
           </div>
           <div>
             <Label htmlFor="itemWeight" className="font-body">Weight per Item (kg)</Label>
-            <Input id="itemWeight" type="number" value={itemWeight} onChange={(e) => setItemWeight(e.target.value)} placeholder="e.g., 2.5" className="font-body" disabled={isFormDisabled}/>
+            <Input id="itemWeight" type="number" value={itemWeight} onChange={(e) => setItemWeight(e.target.value)} placeholder="e.g., 2.5" className="font-body bg-white dark:bg-neutral-800" disabled={isFormDisabled}/>
           </div>
           <div>
             <Label htmlFor="itemQuantity" className="font-body">Quantity</Label>
-            <Input id="itemQuantity" type="number" min="1" value={itemQuantity} onChange={(e) => setItemQuantity(e.target.value)} placeholder="e.g., 2" className="font-body" disabled={isFormDisabled}/>
+            <Input id="itemQuantity" type="number" min="1" value={itemQuantity} onChange={(e) => setItemQuantity(e.target.value)} placeholder="e.g., 2" className="font-body bg-white dark:bg-neutral-800" disabled={isFormDisabled}/>
           </div>
           <Button onClick={handleAddItem} className="md:col-span-3 bg-accent hover:bg-accent/90 text-accent-foreground font-body" disabled={isFormDisabled}>
             <PlusCircle className="mr-2 h-4 w-4" /> {editingItem ? 'Update Item' : 'Add Item'}
