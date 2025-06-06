@@ -1,4 +1,7 @@
 
+import type { LucideIcon } from 'lucide-react';
+import { Hotel, PlaneTakeoff, Building2, Home, BedSingle, MapPin, Trees, MountainSnow, Leaf, TreePine, Mountain, Tent } from 'lucide-react';
+
 export interface BookingEntry {
   id: string;
   siteName: string;
@@ -20,23 +23,26 @@ export interface AffiliateLink {
   url: string;
   description?: string;
   dataAiHint?: string; // For placeholder image on affiliate card
+  icon?: LucideIcon;
 }
 
 // Example affiliate links - to be managed by the developer
 export const sampleAffiliateLinks: AffiliateLink[] = [
-  { 
-    id: 'bookingcom', 
-    name: 'Booking.com', 
-    url: 'https://www.booking.com/index.html?aid=YOUR_AFFILIATE_ID', 
+  {
+    id: 'bookingcom',
+    name: 'Booking.com',
+    url: 'https://www.booking.com/index.html?aid=YOUR_AFFILIATE_ID',
     description: 'Wide range of hotels, homes, and more.',
     dataAiHint: 'hotel travel',
+    icon: Hotel,
   },
-  { 
-    id: 'expedia', 
-    name: 'Expedia', 
-    url: 'https://www.expedia.com/?AID=YOUR_AFFILIATE_ID', 
+  {
+    id: 'expedia',
+    name: 'Expedia',
+    url: 'https://www.expedia.com/?AID=YOUR_AFFILIATE_ID',
     description: 'Book flights, hotels, car rentals, and activities.',
     dataAiHint: 'flight booking',
+    icon: PlaneTakeoff,
   },
   {
     id: 'agoda',
@@ -44,6 +50,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     url: 'https://www.agoda.com/?CID=YOUR_AFFILIATE_ID',
     description: 'Great deals on hotels and accommodations worldwide.',
     dataAiHint: 'accommodation deal',
+    icon: Building2,
   },
   {
     id: 'airbnb',
@@ -51,6 +58,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     url: 'https://www.airbnb.com/?af=YOUR_AFFILIATE_ID',
     description: 'Unique stays and experiences, from homes to cabins.',
     dataAiHint: 'unique stay',
+    icon: Home,
   },
   {
     id: 'hostelworld',
@@ -58,6 +66,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     url: 'https://www.hostelworld.com/?source=YOUR_AFFILIATE_SOURCE',
     description: 'Hostels, budget stays, and some campsites.',
     dataAiHint: 'budget travel',
+    icon: BedSingle,
   },
   {
     id: 'wotif',
@@ -65,6 +74,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     url: 'https://www.wotif.com/?mc=YOUR_AFFILIATE_CODE',
     description: 'Great deals on hotels, flights, and packages in AU & NZ.',
     dataAiHint: 'australia travel',
+    icon: MapPin,
   },
   {
     id: 'australiaParks',
@@ -72,6 +82,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     url: 'https://parksaustralia.gov.au/',
     description: "Explore and book campsites in Australia's national parks.",
     dataAiHint: 'australia park',
+    icon: Trees,
   },
   {
     id: 'nzParks',
@@ -79,6 +90,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     url: 'https://www.newzealand.com/au/national-parks/',
     description: "Discover and plan visits to New Zealand's stunning national parks.",
     dataAiHint: 'newzealand nature',
+    icon: MountainSnow,
   },
   {
     id: 'europeParks',
@@ -86,6 +98,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     url: 'https://national-parks.org/europe',
     description: "Discover national parks across Europe.",
     dataAiHint: 'europe nature',
+    icon: Leaf,
   },
   {
     id: 'ukParks',
@@ -93,6 +106,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     url: 'https://www.cnp.org.uk/our-national-parks/why-we-campaign/access/wild-camping/',
     description: "Information on national parks and wild camping in the UK.",
     dataAiHint: 'uk camping',
+    icon: TreePine,
   },
   {
     id: 'usaParks',
@@ -100,6 +114,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     url: 'https://www.nps.gov/findapark/index.htm',
     description: "Find and explore national parks in the United States.",
     dataAiHint: 'usa nature',
+    icon: Mountain,
   },
   {
     id: 'asiaWildCamping',
@@ -107,6 +122,6 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     url: 'https://www.caravanya.com/en/wildcamping-in-asia/',
     description: "Guide to wild camping spots across Asia.",
     dataAiHint: 'asia adventure',
+    icon: Tent,
   },
 ];
-

@@ -12,7 +12,7 @@ import { BookingForm } from '@/components/features/bookings/BookingForm';
 import { BookingList } from '@/components/features/bookings/BookingList';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import Image from 'next/image';
+// Removed Image import as it's no longer used for affiliate links
 import Link from 'next/link';
 
 export default function BookingsPage() {
@@ -52,22 +52,22 @@ export default function BookingsPage() {
 
   const handleSaveBooking = (data: Omit<BookingEntry, 'id' | 'timestamp'>) => {
     let updatedBookings;
-    const bookingData = { 
-      ...data, 
-      checkInDate: data.checkInDate, 
-      checkOutDate: data.checkOutDate 
+    const bookingData = {
+      ...data,
+      checkInDate: data.checkInDate,
+      checkOutDate: data.checkOutDate
     };
 
     if (editingBooking) {
-      updatedBookings = bookings.map(b => 
+      updatedBookings = bookings.map(b =>
         b.id === editingBooking.id ? { ...editingBooking, ...bookingData, timestamp: new Date().toISOString() } : b
       );
       toast({ title: "Booking Updated", description: `Booking for ${data.siteName} updated.` });
     } else {
-      const newBooking: BookingEntry = { 
-        ...bookingData, 
-        id: Date.now().toString(), 
-        timestamp: new Date().toISOString() 
+      const newBooking: BookingEntry = {
+        ...bookingData,
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString()
       };
       updatedBookings = [...bookings, newBooking];
       toast({ title: "Booking Added", description: `Booking for ${data.siteName} added.` });
@@ -144,7 +144,7 @@ export default function BookingsPage() {
         <Info className="h-4 w-4 text-primary" />
         <AlertTitle className="font-headline text-primary">Manual Booking Log</AlertTitle>
         <AlertDescription className="font-body text-primary/80">
-          This section is for manually logging bookings you've made externally. 
+          This section is for manually logging bookings you've made externally.
           KamperHub does not integrate directly with booking platforms for automated tracking.
           Booking data is stored locally in your browser.
         </AlertDescription>
@@ -159,29 +159,26 @@ export default function BookingsPage() {
       <div className="pt-8">
         <h2 className="text-2xl font-headline text-primary mb-4">Book Your Stay</h2>
         <p className="text-muted-foreground font-body mb-6">
-          Explore these popular platforms to find and book your next caravan park or campsite. 
-          (Note: These are affiliate link placeholders. Replace URLs with your actual affiliate links.)
+          Explore these popular platforms to find and book your next caravan park or campsite.
+          (Note: Some URLs may contain placeholder affiliate IDs. Replace with your actual affiliate links.)
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {sampleAffiliateLinks.map(link => (
-            <Card key={link.id} className="hover:shadow-xl transition-shadow duration-300">
-              <CardHeader>
+            <Card key={link.id} className="hover:shadow-xl transition-shadow duration-300 flex flex-col">
+              <CardHeader className="flex-grow-0">
                 <CardTitle className="font-headline text-base text-primary flex items-center justify-between">
                   {link.name}
                   <ExternalLink className="h-4 w-4 text-accent" />
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Image
-                  src={`https://placehold.co/300x200.png`}
-                  alt={`${link.name} placeholder image`}
-                  width={300}
-                  height={200}
-                  className="rounded-md object-cover aspect-video mb-3"
-                  data-ai-hint={link.dataAiHint || 'travel booking'}
-                />
-                <p className="text-muted-foreground font-body text-xs mb-3 line-clamp-2">{link.description}</p>
-                <Button asChild className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-body text-xs py-1.5 h-auto">
+              <CardContent className="flex flex-col flex-grow">
+                {link.icon && (
+                  <div className="flex justify-center items-center h-32 w-full bg-muted/10 rounded-md mb-3">
+                    <link.icon className="h-16 w-16 text-primary opacity-75" />
+                  </div>
+                )}
+                <p className="text-muted-foreground font-body text-xs mb-3 line-clamp-2 flex-grow">{link.description}</p>
+                <Button asChild className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-body text-xs py-1.5 h-auto mt-auto">
                   <Link href={link.url} target="_blank" rel="noopener noreferrer sponsored">
                     Book here
                   </Link>
@@ -194,4 +191,3 @@ export default function BookingsPage() {
     </div>
   );
 }
-
