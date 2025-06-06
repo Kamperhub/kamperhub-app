@@ -164,13 +164,11 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
   const getAlertStylingVariant = (currentValue: number, limit: number) => {
     if (limit <= 0) return "default"; // Limit not set or invalid
     if (currentValue > limit) return "destructive";
-    // if (currentValue > limit * 0.9) return "default"; // Potential warning, but keep default for now
     return "default";
   };
   
   const isFormDisabled = !activeCaravanId;
 
-  // Chart Data Preparation
   const prepareChartData = (currentVal: number, limitVal: number) => {
     const isLimitNotSet = limitVal <= 0;
     const isOver = !isLimitNotSet && currentVal > limitVal;
@@ -188,7 +186,7 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
         { name: 'Remaining', value: Math.max(0, limitVal - currentVal) },
       ],
       colors: [
-        isOver ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
+        isOver ? 'hsl(var(--destructive))' : 'hsl(var(--foreground))', // Changed from primary to foreground
         'hsl(var(--muted))',
       ],
     };
@@ -336,7 +334,6 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 my-6">
-            {/* ATM Chart */}
             <div className="flex flex-col items-center p-3 border rounded-lg shadow-sm bg-card">
               <ResponsiveContainer width="100%" height={150}>
                 <PieChart>
@@ -363,13 +360,15 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
                   <Tooltip formatter={(value: number, name: string) => [`${value.toFixed(1)} kg`, name.startsWith("N/A") ? "Limit N/A" : name]} />
                 </PieChart>
               </ResponsiveContainer>
-               <p className={`text-xs mt-2 text-center font-body ${currentCaravanMass > caravanSpecs.atm && caravanSpecs.atm > 0 ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
-                 Total: {currentCaravanMass.toFixed(1)}kg
-                 {caravanSpecs.atm > 0 && ` / Limit: ${caravanSpecs.atm.toFixed(0)}kg`}
-              </p>
+              {caravanSpecs.atm > 0 && (
+                <p className={`text-xs mt-2 text-center font-body ${currentCaravanMass > caravanSpecs.atm ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
+                  {currentCaravanMass > caravanSpecs.atm 
+                    ? "Over ATM! Try removing heavy items or choosing lighter alternatives." 
+                    : "ATM looks good! Well managed."}
+                </p>
+              )}
             </div>
 
-            {/* GTM Chart */}
             <div className="flex flex-col items-center p-3 border rounded-lg shadow-sm bg-card">
               <ResponsiveContainer width="100%" height={150}>
                 <PieChart>
@@ -396,13 +395,15 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
                   <Tooltip formatter={(value: number, name: string) => [`${value.toFixed(1)} kg`, name.startsWith("N/A") ? "Limit N/A" : name]} />
                 </PieChart>
               </ResponsiveContainer>
-              <p className={`text-xs mt-2 text-center font-body ${currentLoadOnAxles > caravanSpecs.gtm && caravanSpecs.gtm > 0 ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
-                 Axle Load: {currentLoadOnAxles.toFixed(1)}kg
-                 {caravanSpecs.gtm > 0 && ` / Limit: ${caravanSpecs.gtm.toFixed(0)}kg`}
-              </p>
+              {caravanSpecs.gtm > 0 && (
+                <p className={`text-xs mt-2 text-center font-body ${currentLoadOnAxles > caravanSpecs.gtm ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
+                  {currentLoadOnAxles > caravanSpecs.gtm
+                    ? "Over GTM! Reduce overall load or move heavier items closer to axles."
+                    : "GTM is well balanced. Keep it up!"}
+                </p>
+              )}
             </div>
 
-            {/* Towball Chart */}
             <div className="flex flex-col items-center p-3 border rounded-lg shadow-sm bg-card">
               <ResponsiveContainer width="100%" height={150}>
                 <PieChart>
@@ -429,10 +430,13 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
                   <Tooltip formatter={(value: number, name: string) => [`${value.toFixed(1)} kg`, name.startsWith("N/A") ? "Limit N/A" : name]} />
                 </PieChart>
               </ResponsiveContainer>
-              <p className={`text-xs mt-2 text-center font-body ${estimatedTowballDownload > caravanSpecs.maxTowballDownload && caravanSpecs.maxTowballDownload > 0 ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
-                 Est. Load: {estimatedTowballDownload.toFixed(1)}kg
-                 {caravanSpecs.maxTowballDownload > 0 && ` / Limit: ${caravanSpecs.maxTowballDownload.toFixed(0)}kg`}
-              </p>
+              {caravanSpecs.maxTowballDownload > 0 && (
+                <p className={`text-xs mt-2 text-center font-body ${estimatedTowballDownload > caravanSpecs.maxTowballDownload ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
+                  {estimatedTowballDownload > caravanSpecs.maxTowballDownload
+                    ? "Towball heavy! Move weight further back (behind axles if possible)."
+                    : "Towball load is optimal. Great job!"}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -455,3 +459,6 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
     </Card>
   );
 }
+
+
+    
