@@ -12,13 +12,39 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Trash2, PlusCircle, Edit3, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label as RechartsLabel } from 'recharts';
 
 interface InventoryListProps {
   caravanSpecs: CaravanWeightData;
   initialCaravanInventory: InventoryItem[];
   activeCaravanId: string | null;
 }
+
+const DonutChartCustomLabel = ({ viewBox, value, limit, unit, name }: { viewBox?: { cx?: number, cy?: number }, value: number, limit: number, unit: string, name: string }) => {
+  const { cx, cy } = viewBox || { cx: 0, cy: 0 };
+  const isLimitNotSet = limit <= 0;
+  const percentage = !isLimitNotSet ? ((value / limit) * 100) : 0;
+  const isOverLimit = !isLimitNotSet && value > limit;
+
+  return (
+    <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" className="font-body">
+      <tspan x={cx} dy="-1.5em" className="text-xs fill-muted-foreground">{name}</tspan>
+      <tspan x={cx} dy="1.2em" className={`text-xl font-bold font-headline ${isOverLimit ? 'fill-destructive' : 'fill-foreground'}`}>
+        {value.toFixed(1)}{unit}
+      </tspan>
+      {!isLimitNotSet ? (
+        <tspan x={cx} dy="1.4em" className="text-xs fill-muted-foreground">
+          ({percentage.toFixed(0)}% of {limit.toFixed(0)}{unit})
+        </tspan>
+      ) : (
+        <tspan x={cx} dy="1.4em" className="text-xs fill-muted-foreground">
+          (Limit N/A)
+        </tspan>
+      )}
+    </text>
+  );
+};
+
 
 export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCaravanId }: InventoryListProps) {
   const [items, setItems] = useState<InventoryItem[]>(initialCaravanInventory || []);
@@ -66,10 +92,6 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
   const estimatedTowballDownload = totalWeight * 0.1; 
   const currentLoadOnAxles = currentCaravanMass - estimatedTowballDownload;
   const remainingPayloadGTM = caravanSpecs.gtm > 0 ? caravanSpecs.gtm - currentLoadOnAxles : 0;
-
-  const atmUsagePercentage = caravanSpecs.atm > 0 ? (currentCaravanMass / caravanSpecs.atm) * 100 : 0;
-  const gtmUsagePercentage = caravanSpecs.gtm > 0 ? (currentLoadOnAxles / caravanSpecs.gtm) * 100 : 0;
-  const towballUsagePercentage = caravanSpecs.maxTowballDownload > 0 ? (estimatedTowballDownload / caravanSpecs.maxTowballDownload) * 100 : 0;
 
   const handleAddItem = () => {
     if (!activeCaravanId) {
@@ -140,12 +162,41 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
   };
 
   const getAlertStylingVariant = (currentValue: number, limit: number) => {
-    if (limit <= 0) return "default";
+    if (limit <= 0) return "default"; // Limit not set or invalid
     if (currentValue > limit) return "destructive";
+    // if (currentValue > limit * 0.9) return "default"; // Potential warning, but keep default for now
     return "default";
   };
   
   const isFormDisabled = !activeCaravanId;
+
+  // Chart Data Preparation
+  const prepareChartData = (currentVal: number, limitVal: number) => {
+    const isLimitNotSet = limitVal <= 0;
+    const isOver = !isLimitNotSet && currentVal > limitVal;
+
+    if (isLimitNotSet) {
+      return {
+        data: [{ name: 'N/A', value: 100 }],
+        colors: ['hsl(var(--muted))'],
+      };
+    }
+    
+    return {
+      data: [
+        { name: 'Used', value: currentVal },
+        { name: 'Remaining', value: Math.max(0, limitVal - currentVal) },
+      ],
+      colors: [
+        isOver ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
+        'hsl(var(--muted))',
+      ],
+    };
+  };
+
+  const atmChart = prepareChartData(currentCaravanMass, caravanSpecs.atm);
+  const gtmChart = prepareChartData(currentLoadOnAxles, caravanSpecs.gtm);
+  const towballChart = prepareChartData(estimatedTowballDownload, caravanSpecs.maxTowballDownload);
 
   return (
     <Card>
@@ -154,7 +205,7 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
       </CardHeader>
       <CardContent className="space-y-6">
         {isFormDisabled && (
-            <Alert variant="default" className="bg-muted">
+            <Alert variant="default" className="bg-muted border-border">
                 <AlertTriangle className="h-4 w-4 text-foreground" />
                 <AlertTitle className="font-headline text-foreground">Select Active Caravan</AlertTitle>
                 <AlertDescription className="font-body text-muted-foreground">
@@ -226,13 +277,13 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
               {caravanSpecs.atm > 0 ? (
                 <>
                   Remaining Payload (ATM): {remainingPayloadATM.toFixed(1)} kg.
-                  {atmUsagePercentage > 100 ? (
+                  {currentCaravanMass > caravanSpecs.atm ? (
                     <>
                       <br />
                       <span className="font-semibold">You are OVER the ATM limit!</span>
                       {" Suggestions: Remove heavy items, choose lighter alternatives, or reduce quantities."}
                     </>
-                  ) : atmUsagePercentage > 90 ? (
+                  ) : currentCaravanMass > caravanSpecs.atm * 0.9 ? (
                     " You are nearing the ATM limit."
                   ) : (
                     "" 
@@ -242,12 +293,6 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
                 "ATM not specified for active caravan. Cannot calculate usage."
               )}
             </AlertDescription>
-            {caravanSpecs.atm > 0 && (
-              <>
-                <Progress value={Math.min(atmUsagePercentage, 100)} className="mt-2 [&>div]:bg-foreground" />
-                {atmUsagePercentage > 100 &&  <Progress value={atmUsagePercentage - 100} className="mt-1 [&>div]:bg-destructive" />}
-              </>
-            )}
           </Alert>
 
           {caravanSpecs.gtm > 0 && (
@@ -256,22 +301,18 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
                 <AlertDescription className="font-body">
                 Remaining Payload (GTM): {remainingPayloadGTM.toFixed(1)} kg. 
                 Ensure proper weight distribution as towball download significantly impacts GTM.
-                {gtmUsagePercentage > 100 ? (
+                {currentLoadOnAxles > caravanSpecs.gtm ? (
                     <>
                         <br />
                         <span className="font-semibold">You may be OVER the GTM limit!</span>
                         {" Suggestions: Reduce overall load or try moving heavier items closer to the caravan's axles."}
                     </>
-                ) : gtmUsagePercentage > 90 ? (
+                ) : currentLoadOnAxles > caravanSpecs.gtm * 0.9 ? (
                     " You are nearing the GTM limit."
                 ) : (
                     ""
                 )}
                 </AlertDescription>
-                <>
-                    <Progress value={Math.min(gtmUsagePercentage, 100)} className="mt-2 [&>div]:bg-foreground" />
-                    {gtmUsagePercentage > 100 &&  <Progress value={gtmUsagePercentage - 100} className="mt-1 [&>div]:bg-destructive" />}
-                </>
             </Alert>
           )}
            
@@ -281,7 +322,7 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
                 <AlertDescription className="font-body">
                 Remaining Capacity (Towball): {(caravanSpecs.maxTowballDownload - estimatedTowballDownload).toFixed(1)} kg. 
                 Adjust load distribution for optimal towball mass (typically 7-15% of ATM).
-                {towballUsagePercentage > 100 ? (
+                {estimatedTowballDownload > caravanSpecs.maxTowballDownload ? (
                     <>
                         <br />
                         <span className="font-semibold">Your estimated towball download might EXCEED the limit!</span>
@@ -291,12 +332,109 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
                     ""
                 )}
                 </AlertDescription>
-                 <>
-                    <Progress value={Math.min(towballUsagePercentage, 100)} className="mt-2 [&>div]:bg-foreground" />
-                    {towballUsagePercentage > 100 &&  <Progress value={towballUsagePercentage - 100} className="mt-1 [&>div]:bg-destructive" />}
-                 </>
             </Alert>
           )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 my-6">
+            {/* ATM Chart */}
+            <div className="flex flex-col items-center p-3 border rounded-lg shadow-sm bg-card">
+              <ResponsiveContainer width="100%" height={150}>
+                <PieChart>
+                  <Pie
+                    data={atmChart.data}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={60}
+                    innerRadius={40}
+                    fill="#8884d8"
+                    dataKey="value"
+                    stroke="hsl(var(--background))" 
+                    strokeWidth={2}
+                  >
+                    {atmChart.data.map((entry, index) => (
+                      <Cell key={`cell-atm-${index}`} fill={atmChart.colors[index % atmChart.colors.length]} />
+                    ))}
+                     <RechartsLabel 
+                        content={<DonutChartCustomLabel name="ATM" value={currentCaravanMass} limit={caravanSpecs.atm} unit="kg" />} 
+                        position="center" 
+                    />
+                  </Pie>
+                  <Tooltip formatter={(value: number, name: string) => [`${value.toFixed(1)} kg`, name.startsWith("N/A") ? "Limit N/A" : name]} />
+                </PieChart>
+              </ResponsiveContainer>
+               <p className={`text-xs mt-2 text-center font-body ${currentCaravanMass > caravanSpecs.atm && caravanSpecs.atm > 0 ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
+                 Total: {currentCaravanMass.toFixed(1)}kg
+                 {caravanSpecs.atm > 0 && ` / Limit: ${caravanSpecs.atm.toFixed(0)}kg`}
+              </p>
+            </div>
+
+            {/* GTM Chart */}
+            <div className="flex flex-col items-center p-3 border rounded-lg shadow-sm bg-card">
+              <ResponsiveContainer width="100%" height={150}>
+                <PieChart>
+                  <Pie
+                    data={gtmChart.data}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={60}
+                    innerRadius={40}
+                    fill="#8884d8"
+                    dataKey="value"
+                    stroke="hsl(var(--background))"
+                    strokeWidth={2}
+                  >
+                    {gtmChart.data.map((entry, index) => (
+                      <Cell key={`cell-gtm-${index}`} fill={gtmChart.colors[index % gtmChart.colors.length]} />
+                    ))}
+                    <RechartsLabel 
+                        content={<DonutChartCustomLabel name="GTM" value={currentLoadOnAxles} limit={caravanSpecs.gtm} unit="kg" />} 
+                        position="center" 
+                    />
+                  </Pie>
+                  <Tooltip formatter={(value: number, name: string) => [`${value.toFixed(1)} kg`, name.startsWith("N/A") ? "Limit N/A" : name]} />
+                </PieChart>
+              </ResponsiveContainer>
+              <p className={`text-xs mt-2 text-center font-body ${currentLoadOnAxles > caravanSpecs.gtm && caravanSpecs.gtm > 0 ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
+                 Axle Load: {currentLoadOnAxles.toFixed(1)}kg
+                 {caravanSpecs.gtm > 0 && ` / Limit: ${caravanSpecs.gtm.toFixed(0)}kg`}
+              </p>
+            </div>
+
+            {/* Towball Chart */}
+            <div className="flex flex-col items-center p-3 border rounded-lg shadow-sm bg-card">
+              <ResponsiveContainer width="100%" height={150}>
+                <PieChart>
+                  <Pie
+                    data={towballChart.data}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={60}
+                    innerRadius={40}
+                    fill="#8884d8"
+                    dataKey="value"
+                    stroke="hsl(var(--background))"
+                    strokeWidth={2}
+                  >
+                    {towballChart.data.map((entry, index) => (
+                      <Cell key={`cell-towball-${index}`} fill={towballChart.colors[index % towballChart.colors.length]} />
+                    ))}
+                     <RechartsLabel 
+                        content={<DonutChartCustomLabel name="Towball" value={estimatedTowballDownload} limit={caravanSpecs.maxTowballDownload} unit="kg" />} 
+                        position="center" 
+                    />
+                  </Pie>
+                  <Tooltip formatter={(value: number, name: string) => [`${value.toFixed(1)} kg`, name.startsWith("N/A") ? "Limit N/A" : name]} />
+                </PieChart>
+              </ResponsiveContainer>
+              <p className={`text-xs mt-2 text-center font-body ${estimatedTowballDownload > caravanSpecs.maxTowballDownload && caravanSpecs.maxTowballDownload > 0 ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
+                 Est. Load: {estimatedTowballDownload.toFixed(1)}kg
+                 {caravanSpecs.maxTowballDownload > 0 && ` / Limit: ${caravanSpecs.maxTowballDownload.toFixed(0)}kg`}
+              </p>
+            </div>
+          </div>
         </div>
 
       </CardContent>
@@ -317,3 +455,4 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
     </Card>
   );
 }
+
