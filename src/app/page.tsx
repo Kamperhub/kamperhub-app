@@ -1,6 +1,5 @@
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { navItems } from '@/lib/navigation';
 import { Caravan } from 'lucide-react'; 
@@ -28,22 +27,15 @@ export default function DashboardPage() {
                   <feature.icon className="w-10 h-10 text-accent" />
                   <CardTitle className="text-2xl font-headline">{feature.label}</CardTitle>
                 </CardHeader>
-                <CardContent className="flex-grow">
-                  <p className="text-muted-foreground font-body">
+                <CardContent className="flex-grow flex flex-col">
+                  <p className="text-muted-foreground font-body mb-4">
                     {feature.href === '/subscribe' 
                       ? "Unlock premium features and support KamperHub."
                       : `Access tools and information for ${feature.label.toLowerCase()} to enhance your caravanning experience.`
                     }
                   </p>
-                  <div className="mt-4">
-                    <Image 
-                      src="https://placehold.co/600x400.png"
-                      alt={`${feature.label} placeholder image`}
-                      width={600}
-                      height={400}
-                      className="rounded-md object-cover aspect-video"
-                      data-ai-hint={feature.keywords || 'travel adventure'}
-                    />
+                  <div className="mt-auto flex justify-center items-center h-40 w-full bg-muted/20 rounded-md p-6">
+                    <feature.icon className="w-24 h-24 text-primary opacity-75" />
                   </div>
                 </CardContent>
               </Card>
@@ -54,4 +46,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
