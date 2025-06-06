@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Eye } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ArticleDisplayCardProps {
   article: AiGeneratedArticle;
@@ -32,16 +33,23 @@ export function ArticleDisplayCard({ article }: ArticleDisplayCardProps) {
               <Eye className="mr-2 h-4 w-4" /> Read Full Article
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col overflow-y-hidden">
-            <DialogHeader>
+          <DialogContent 
+            className={cn(
+              // Base shadcn styles are applied by default. We are overriding/extending.
+              // Remove default padding, ensure flex column layout, and manage overflow.
+              "p-0 flex flex-col", // Remove p-6, explicitly set flex flex-col
+              "sm:max-w-3xl max-h-[90vh] overflow-hidden" // Size constraints
+            )}
+          >
+            <DialogHeader className="px-6 pt-6 pb-4"> {/* Add padding here */}
               <DialogTitle className="font-headline text-2xl text-primary">{article.title}</DialogTitle>
               <DialogDescription className="font-body text-muted-foreground">
                 Topic: {article.topic}
               </DialogDescription>
             </DialogHeader>
-            <Separator className="my-2" />
-            <ScrollArea className="flex-1 min-h-0">
-              <div className="space-y-4 font-body text-foreground p-1">
+            <Separator className="mx-6 my-0" /> {/* Separator between header and scrollable content */}
+            <ScrollArea className="flex-1 min-h-0"> {/* ScrollArea takes remaining space */}
+              <div className="px-6 py-4 space-y-4 font-body text-foreground"> {/* Padding for content inside scroll area */}
                 <p className="text-base leading-relaxed whitespace-pre-line">{article.introduction}</p>
                 {article.sections.map((section, index) => (
                   <div key={index} className="space-y-2">
@@ -56,7 +64,7 @@ export function ArticleDisplayCard({ article }: ArticleDisplayCardProps) {
                 </div>
               </div>
             </ScrollArea>
-            <DialogFooter className="mt-2 pt-2 border-t">
+            <DialogFooter className="px-6 pb-6 pt-4 border-t"> {/* Add padding here */}
                 <DialogClose asChild>
                     <Button type="button" variant="outline" className="font-body">
                         Close
