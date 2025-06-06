@@ -23,14 +23,15 @@ interface InventoryListProps {
 const DonutChartCustomLabel = ({ viewBox, value, limit, unit, name }: { viewBox?: { cx?: number, cy?: number }, value: number, limit: number, unit: string, name: string }) => {
   const { cx, cy } = viewBox || { cx: 0, cy: 0 };
   const isLimitNotSet = limit <= 0;
-  const percentage = !isLimitNotSet ? ((value / limit) * 100) : 0;
+  const percentage = !isLimitNotSet && limit > 0 ? ((value / limit) * 100) : 0;
   const isOverLimit = !isLimitNotSet && value > limit;
+  const displayValue = typeof value === 'number' && !isNaN(value) ? value.toFixed(0) : '--';
 
   return (
     <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" className="font-body">
       <tspan x={cx} dy="-1.5em" className="text-xs fill-muted-foreground">{name}</tspan>
       <tspan x={cx} dy="1.2em" className={`text-xl font-bold font-headline ${isOverLimit ? 'fill-destructive' : 'fill-foreground'}`}>
-        {value.toFixed(0)}{unit}
+        {displayValue}{unit}
       </tspan>
       {!isLimitNotSet ? (
         <tspan x={cx} dy="1.4em" className="text-xs fill-muted-foreground">
@@ -172,6 +173,7 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
   const prepareChartData = (currentVal: number, limitVal: number) => {
     const isLimitNotSet = limitVal <= 0;
     const isOver = !isLimitNotSet && currentVal > limitVal;
+    const safeCurrentVal = typeof currentVal === 'number' && !isNaN(currentVal) ? currentVal : 0;
 
     if (isLimitNotSet) {
       return {
@@ -182,8 +184,8 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
     
     return {
       data: [
-        { name: 'Used', value: currentVal },
-        { name: 'Remaining', value: Math.max(0, limitVal - currentVal) },
+        { name: 'Used', value: safeCurrentVal },
+        { name: 'Remaining', value: Math.max(0, limitVal - safeCurrentVal) },
       ],
       colors: [
         isOver ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
@@ -195,6 +197,10 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
   const atmChart = prepareChartData(currentCaravanMass, caravanSpecs.atm);
   const gtmChart = prepareChartData(currentLoadOnAxles, caravanSpecs.gtm);
   const towballChart = prepareChartData(estimatedTowballDownload, caravanSpecs.maxTowballDownload);
+
+  const formatTooltipValue = (value: number) => {
+    return typeof value === 'number' && !isNaN(value) ? value.toFixed(1) : '--';
+  };
 
   return (
     <Card>
@@ -357,7 +363,7 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
                         position="center" 
                     />
                   </Pie>
-                  <Tooltip formatter={(value: number, name: string) => [`${value.toFixed(1)} kg`, name.startsWith("N/A") ? "Limit N/A" : name]} />
+                  <Tooltip formatter={(value: number, name: string) => [`${formatTooltipValue(value)} kg`, name.startsWith("N/A") ? "Limit N/A" : name]} />
                 </PieChart>
               </ResponsiveContainer>
               {caravanSpecs.atm > 0 && (
@@ -365,6 +371,11 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
                   {currentCaravanMass > caravanSpecs.atm 
                     ? "Over ATM! Try removing heavy items or choosing lighter alternatives." 
                     : "ATM looks good! Well managed."}
+                </p>
+              )}
+               {caravanSpecs.atm <= 0 && (
+                <p className="text-xs mt-2 text-center font-body text-muted-foreground">
+                  Set ATM limit in caravan specs for tips.
                 </p>
               )}
             </div>
@@ -392,7 +403,7 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
                         position="center" 
                     />
                   </Pie>
-                  <Tooltip formatter={(value: number, name: string) => [`${value.toFixed(1)} kg`, name.startsWith("N/A") ? "Limit N/A" : name]} />
+                  <Tooltip formatter={(value: number, name: string) => [`${formatTooltipValue(value)} kg`, name.startsWith("N/A") ? "Limit N/A" : name]} />
                 </PieChart>
               </ResponsiveContainer>
               {caravanSpecs.gtm > 0 && (
@@ -400,6 +411,11 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
                   {currentLoadOnAxles > caravanSpecs.gtm
                     ? "Over GTM! Reduce overall load or move heavier items closer to axles."
                     : "GTM is well balanced. Keep it up!"}
+                </p>
+              )}
+               {caravanSpecs.gtm <= 0 && (
+                <p className="text-xs mt-2 text-center font-body text-muted-foreground">
+                  Set GTM limit in caravan specs for tips.
                 </p>
               )}
             </div>
@@ -427,7 +443,7 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
                         position="center" 
                     />
                   </Pie>
-                  <Tooltip formatter={(value: number, name: string) => [`${value.toFixed(1)} kg`, name.startsWith("N/A") ? "Limit N/A" : name]} />
+                  <Tooltip formatter={(value: number, name: string) => [`${formatTooltipValue(value)} kg`, name.startsWith("N/A") ? "Limit N/A" : name]} />
                 </PieChart>
               </ResponsiveContainer>
               {caravanSpecs.maxTowballDownload > 0 && (
@@ -435,6 +451,11 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
                   {estimatedTowballDownload > caravanSpecs.maxTowballDownload
                     ? "Towball heavy! Move weight further back (behind axles if possible)."
                     : "Towball load is optimal. Great job!"}
+                </p>
+              )}
+               {caravanSpecs.maxTowballDownload <= 0 && (
+                <p className="text-xs mt-2 text-center font-body text-muted-foreground">
+                  Set max towball limit in caravan specs for tips.
                 </p>
               )}
             </div>
@@ -459,6 +480,3 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
     </Card>
   );
 }
-
-
-    
