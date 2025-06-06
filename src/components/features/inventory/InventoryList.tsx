@@ -97,7 +97,8 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
   const tareMass = useMemo(() => (typeof caravanSpecs.tareMass === 'number' && !isNaN(caravanSpecs.tareMass) ? caravanSpecs.tareMass : 0), [caravanSpecs.tareMass]);
 
   const currentCaravanMass = useMemo(() => {
-    return tareMass + totalWeight;
+    const calculatedMass = tareMass + totalWeight;
+    return typeof calculatedMass === 'number' && !isNaN(calculatedMass) ? calculatedMass : 0;
   }, [tareMass, totalWeight]);
   
   const remainingPayloadATM = useMemo(() => {
@@ -110,7 +111,8 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
   }, [totalWeight]);
 
   const currentLoadOnAxles = useMemo(() => {
-    return currentCaravanMass - estimatedTowballDownload;
+    const calculatedLoad = currentCaravanMass - estimatedTowballDownload;
+    return typeof calculatedLoad === 'number' && !isNaN(calculatedLoad) ? calculatedLoad : 0;
   }, [currentCaravanMass, estimatedTowballDownload]);
 
   const remainingPayloadGTM = useMemo(() => {
@@ -245,7 +247,7 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div>
             <Label htmlFor="itemName" className="font-body">Item Name</Label>
-            <Input id="itemName" value={itemName} onChange={(e) => setItemName(e.target.value)} placeholder="e.g., Camping Chair" className="font-body" disabled={isFormDisabled}/>
+            <Input id="itemName" value={itemName} onChange={(e) => setItemName(e.target.value)} placeholder="e.g., Camping Chair" className="font-body bg-white dark:bg-neutral-800" disabled={isFormDisabled}/>
           </div>
           <div>
             <Label htmlFor="itemWeight" className="font-body">Weight per Item (kg)</Label>
