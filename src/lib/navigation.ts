@@ -20,3 +20,4 @@ export const navItems: NavItem[] = [
   { href: '/learn', label: 'Support', icon: BookOpen, keywords: 'support help guide' },
   { href: '/subscribe', label: 'Subscribe', icon: CreditCard, keywords: 'premium membership' },
 ];
+
