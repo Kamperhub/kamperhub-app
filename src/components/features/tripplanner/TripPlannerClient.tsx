@@ -352,14 +352,14 @@ export function TripPlannerClient() {
     try {
       tripName = window.prompt("Enter a name for this trip:", `Trip to ${getValues("endLocation")}`);
     } catch (e: any) {
-      console.error("Error during trip name prompt:", e);
+      console.error("Error during trip name prompt:", e.name, e.message, e.stack);
       toast({ title: "Prompt Error", description: `Failed to get trip name: ${e.message}`, variant: "destructive" });
       return;
     }
 
     if (tripName === null) {
-      toast({ title: "Save Canceled", description: "Trip name entry was canceled by the user.", variant: "default" });
-      return; 
+      toast({ title: "Save Canceled", description: "The trip name prompt was dismissed or canceled. Please enter a name to save the trip.", variant: "default" });
+      return;
     }
     if (!tripName.trim()) {
       toast({ title: "Invalid Name", description: "Trip name cannot be empty.", variant: "destructive" });
@@ -370,13 +370,11 @@ export function TripPlannerClient() {
     try {
       tripNotesPromptResult = window.prompt("Enter any notes for this trip (optional, max 500 characters suggested):", currentTripNotes || "");
     } catch (e: any) {
-      console.error("Error during trip notes prompt:", e);
+      console.error("Error during trip notes prompt:", e.name, e.message, e.stack);
       toast({ title: "Prompt Error", description: `Failed to get trip notes: ${e.message}`, variant: "destructive" });
       return;
     }
     
-    // If user cancels notes prompt, tripNotesPromptResult is null.
-    // We update currentTripNotes state regardless for UI consistency if it shows current plan notes.
     setCurrentTripNotes(tripNotesPromptResult); 
 
     const currentFormData = getValues();
@@ -392,7 +390,7 @@ export function TripPlannerClient() {
       fuelEstimate: fuelEstimate,
       plannedStartDate: currentFormData.dateRange?.from ? currentFormData.dateRange.from.toISOString() : null,
       plannedEndDate: currentFormData.dateRange?.to ? currentFormData.dateRange.to.toISOString() : null,
-      notes: tripNotesPromptResult, // Save null if cancelled, "" if empty, or the string
+      notes: tripNotesPromptResult, 
     };
 
     try {
@@ -664,7 +662,7 @@ export function TripPlannerClient() {
                   {getValues("dateRange")?.to && (
                     <div className="font-body text-sm"><strong>Planned End:</strong> {format(getValues("dateRange")!.to!, "PPP")}</div>
                   )}
-                  {currentTripNotes !== undefined && ( // Check if notes are defined (can be null or string)
+                  {currentTripNotes !== undefined && ( 
                     <div className="font-body mt-1 pt-1 border-t">
                       <strong className="text-sm flex items-center"><StickyNote className="mr-2 h-4 w-4 text-primary" />Notes:</strong>
                       <p className="text-xs text-muted-foreground whitespace-pre-wrap pl-6">{currentTripNotes || <i>No notes.</i>}</p>
