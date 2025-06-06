@@ -455,4 +455,3 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
     </Card>
   );
 }
-
