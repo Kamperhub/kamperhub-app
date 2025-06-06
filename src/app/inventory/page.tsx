@@ -127,7 +127,7 @@ export default function InventoryPage() {
     return (
       <div className="space-y-8">
         <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
-          <Backpack className="mr-3 h-8 w-8" /> Inventory
+          <Backpack className="mr-3 h-8 w-8" /> Inventory & Weight Management
         </h1>
         <div className="flex items-center justify-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
@@ -141,7 +141,7 @@ export default function InventoryPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
-          <Backpack className="mr-3 h-8 w-8" /> Inventory
+          <Backpack className="mr-3 h-8 w-8" /> Inventory & Weight Management
         </h1>
         <p className="text-muted-foreground font-body mb-6">
           {getDescriptiveText()}
