@@ -15,13 +15,13 @@ export function ArticleDisplayCard({ article }: ArticleDisplayCardProps) {
   return (
     <Card className="shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col">
       <CardHeader className="pb-4">
-        <CardTitle className="font-headline text-xl text-primary">{article.title}</CardTitle>
+        <CardTitle className="font-headline text-xl text-primary leading-tight">{article.title}</CardTitle>
         <CardDescription className="font-body text-sm text-muted-foreground pt-1">
           Topic: {article.topic}
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0 flex-grow">
-        <p className="font-body text-sm text-muted-foreground line-clamp-3">
+        <p className="font-body text-sm text-muted-foreground line-clamp-4">
           {article.introduction}
         </p>
       </CardContent>
@@ -32,16 +32,16 @@ export function ArticleDisplayCard({ article }: ArticleDisplayCardProps) {
               <Eye className="mr-2 h-4 w-4" /> Read Full Article
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
+          <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col overflow-y-hidden">
             <DialogHeader>
               <DialogTitle className="font-headline text-2xl text-primary">{article.title}</DialogTitle>
               <DialogDescription className="font-body text-muted-foreground">
                 Topic: {article.topic}
               </DialogDescription>
             </DialogHeader>
-            <Separator className="my-3" />
-            <ScrollArea className="flex-1 min-h-0"> 
-              <div className="space-y-4 font-body text-foreground pr-4">
+            <Separator className="my-2" />
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="space-y-4 font-body text-foreground p-1">
                 <p className="text-base leading-relaxed whitespace-pre-line">{article.introduction}</p>
                 {article.sections.map((section, index) => (
                   <div key={index} className="space-y-2">
@@ -49,14 +49,14 @@ export function ArticleDisplayCard({ article }: ArticleDisplayCardProps) {
                     <p className="text-base leading-relaxed whitespace-pre-line">{section.content}</p>
                   </div>
                 ))}
-                <Separator className="my-4" />
+                <Separator className="my-2" />
                 <div>
                   <h3 className="font-headline text-lg font-semibold text-primary">Conclusion</h3>
                   <p className="text-base leading-relaxed whitespace-pre-line">{article.conclusion}</p>
                 </div>
               </div>
             </ScrollArea>
-            <DialogFooter className="mt-4 pt-4 border-t">
+            <DialogFooter className="mt-2 pt-2 border-t">
                 <DialogClose asChild>
                     <Button type="button" variant="outline" className="font-body">
                         Close
