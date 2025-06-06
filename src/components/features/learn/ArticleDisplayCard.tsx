@@ -3,7 +3,7 @@ import type { AiGeneratedArticle } from '@/types/learn';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
+// ScrollArea import is removed for this test
 import { Separator } from '@/components/ui/separator';
 import { Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -33,7 +33,7 @@ export function ArticleDisplayCard({ article }: ArticleDisplayCardProps) {
               <Eye className="mr-2 h-4 w-4" /> Read Full Article
             </Button>
           </DialogTrigger>
-          <DialogContent 
+          <DialogContent
             className={cn(
               "p-0 flex flex-col", 
               "sm:max-w-3xl max-h-[90vh] overflow-hidden" 
@@ -47,24 +47,22 @@ export function ArticleDisplayCard({ article }: ArticleDisplayCardProps) {
             </DialogHeader>
             <Separator className="mx-6 my-0 flex-shrink-0" />
             
-            {/* Wrapper for the scrollable area */}
-            <div className="flex-1 min-h-0 overflow-y-hidden"> 
-              <ScrollArea className="h-full w-full"> 
-                <div className="px-6 py-4 space-y-4 font-body text-foreground">
-                  <p className="text-base leading-relaxed whitespace-pre-line">{article.introduction}</p>
-                  {article.sections.map((section, index) => (
-                    <div key={index} className="space-y-2">
-                      <h3 className="font-headline text-lg font-semibold text-primary">{section.heading}</h3>
-                      <p className="text-base leading-relaxed whitespace-pre-line">{section.content}</p>
-                    </div>
-                  ))}
-                  <Separator className="my-2" />
-                  <div>
-                    <h3 className="font-headline text-lg font-semibold text-primary">Conclusion</h3>
-                    <p className="text-base leading-relaxed whitespace-pre-line">{article.conclusion}</p>
+            {/* This div is now responsible for scrolling its content */}
+            <div className="flex-1 overflow-y-auto"> 
+              <div className="px-6 py-4 space-y-4 font-body text-foreground">
+                <p className="text-base leading-relaxed whitespace-pre-line">{article.introduction}</p>
+                {article.sections.map((section, index) => (
+                  <div key={index} className="space-y-2">
+                    <h3 className="font-headline text-lg font-semibold text-primary">{section.heading}</h3>
+                    <p className="text-base leading-relaxed whitespace-pre-line">{section.content}</p>
                   </div>
+                ))}
+                <Separator className="my-2" />
+                <div>
+                  <h3 className="font-headline text-lg font-semibold text-primary">Conclusion</h3>
+                  <p className="text-base leading-relaxed whitespace-pre-line">{article.conclusion}</p>
                 </div>
-              </ScrollArea>
+              </div>
             </div>
 
             <DialogFooter className="px-6 pb-6 pt-4 border-t flex-shrink-0">
@@ -80,4 +78,3 @@ export function ArticleDisplayCard({ article }: ArticleDisplayCardProps) {
     </Card>
   );
 }
-
