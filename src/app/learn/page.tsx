@@ -1,66 +1,21 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react'; // Removed useEffect
 import Link from 'next/link';
 import { VideoCard } from '@/components/features/learn/VideoCard';
 import { ArticleDisplayCard } from '@/components/features/learn/ArticleDisplayCard';
-import { sampleVideos, type AiGeneratedArticle } from '@/types/learn';
-import { generateCaravanningArticle, type ArticleGeneratorInput } from '@/ai/flows/article-generator-flow';
-import { Loader2, FileText, Youtube, AlertTriangle, MessageSquare, Video } from 'lucide-react';
+import { sampleVideos, staticCaravanningArticles, type AiGeneratedArticle } from '@/types/learn'; // Import staticCaravanningArticles
+// Removed generateCaravanningArticle and ArticleGeneratorInput imports
+import { FileText, Youtube, MessageSquare, Video } from 'lucide-react'; // Removed Loader2, AlertTriangle
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-
-const articleTopics: string[] = [
-  "Essential Pre-Departure Caravan Checks",
-  "Tips for Reversing a Caravan Safely",
-  "Understanding Caravan Tow Ball Weight",
-];
+// Removed Alert, AlertTitle, AlertDescription related to AI errors
 
 export default function SupportPage() {
-  const [generatedArticles, setGeneratedArticles] = useState<AiGeneratedArticle[]>([]);
-  const [isLoadingArticles, setIsLoadingArticles] = useState(true);
-  const [articleErrors, setArticleErrors] = useState<string[]>([]);
-  const [showRateLimitError, setShowRateLimitError] = useState(false);
-
-  useEffect(() => {
-    async function fetchArticles() {
-      setIsLoadingArticles(true);
-      setShowRateLimitError(false); // Reset per fetch attempt
-      const newArticles: AiGeneratedArticle[] = [];
-      const localErrors: string[] = [];
-
-      for (const topic of articleTopics) {
-        try {
-          const input: ArticleGeneratorInput = { topic };
-          const article = await generateCaravanningArticle(input);
-          newArticles.push(article);
-        } catch (error: any) {
-          console.error(`Failed to generate article for topic "${topic}":`, error);
-          if (error.message && error.message.startsWith("RATE_LIMIT_EXCEEDED")) {
-            setShowRateLimitError(true); // Set specific state for rate limit error
-            // Add a general message about rate limits to errors if it's the first time we see it for this fetch
-            if (!localErrors.some(e => e.includes("API rate limits"))) {
-                 localErrors.push(`Article generation is impacted by API rate limits. Some articles may not load. Please check your Gemini API quota and billing details.`);
-            }
-          } else if (error.message && error.message.startsWith("AI_MODEL_OUTPUT_ERROR")) {
-            localErrors.push(`Article for "${topic}" generation issue: Model did not return expected output. Details: ${error.message}`);
-          } else if (error.message && error.message.startsWith("AI_PROMPT_ERROR")) {
-            localErrors.push(`Article for "${topic}" generation failed: Error calling AI prompt. Details: ${error.message}`);
-          }
-          else {
-            localErrors.push(`Could not generate article for "${topic}". An unexpected error occurred: ${error.message || 'Unknown error'}`);
-          }
-        }
-      }
-      setGeneratedArticles(newArticles);
-      setArticleErrors(localErrors);
-      setIsLoadingArticles(false);
-    }
-    fetchArticles();
-  }, []);
+  // Articles are now static, no loading or error states needed for them here
+  const articles: AiGeneratedArticle[] = staticCaravanningArticles;
 
   return (
     <div className="space-y-8">
@@ -76,8 +31,8 @@ export default function SupportPage() {
           <TabsTrigger value="videos" className="font-body text-sm sm:text-base">
             <Video className="mr-2 h-5 w-5" /> Educational Videos
           </TabsTrigger>
-          <TabsTrigger value="blogs" className="font-body text-sm sm:text-base">
-            <FileText className="mr-2 h-5 w-5" /> AI Generated Blogs
+          <TabsTrigger value="articles" className="font-body text-sm sm:text-base"> {/* Changed value and label */}
+            <FileText className="mr-2 h-5 w-5" /> Articles & Guides
           </TabsTrigger>
           <TabsTrigger value="chatbot" className="font-body text-sm sm:text-base">
             <MessageSquare className="mr-2 h-5 w-5" /> AI Chatbot
@@ -105,60 +60,23 @@ export default function SupportPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="blogs">
+        <TabsContent value="articles"> {/* Changed value */}
           <Card>
             <CardHeader>
               <CardTitle className="font-headline text-2xl text-primary flex items-center">
                 <FileText className="h-7 w-7 text-primary mr-3" />
-                AI Generated Blogs
+                Articles & Guides {/* Changed title */}
               </CardTitle>
               <p className="text-muted-foreground font-body">
-                AI-powered articles covering various caravanning topics. Content is generated on page load and may vary.
+                Helpful articles and guides covering various caravanning topics.
               </p>
             </CardHeader>
             <CardContent>
-              {showRateLimitError && (
-                <Alert variant="destructive" className="mb-6">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle className="font-headline">API Rate Limit Exceeded</AlertTitle>
-                  <AlertDescription className="font-body">
-                    Article generation is temporarily unavailable because the API usage limits have been reached. 
-                    Please check your Google Cloud project's Gemini API quotas and billing details. Some articles may not have loaded.
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {isLoadingArticles && (
+              {articles.length === 0 ? (
+                <p className="text-muted-foreground font-body text-center py-6">No articles available at the moment.</p>
+              ) : (
                 <div className="grid grid-cols-1 gap-6">
-                  {articleTopics.map(topic => (
-                    <Card key={topic} className="shadow-lg">
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-center py-10">
-                          <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
-                          <p className="font-body text-lg">Generating article on: {topic}...</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-              {!isLoadingArticles && articleErrors.length > 0 && !showRateLimitError && ( // Don't show individual errors if global rate limit error is shown
-                <div className="space-y-2 mb-4">
-                  {articleErrors.map((errorMsg, index) => (
-                    <Alert key={index} variant="default" className="bg-orange-50 border-orange-300 text-orange-700">
-                      <AlertTriangle className="h-4 w-4 text-orange-500" />
-                      <AlertTitle className="font-headline text-orange-700">Article Generation Issue</AlertTitle>
-                      <AlertDescription className="font-body">{errorMsg}</AlertDescription>
-                    </Alert>
-                  ))}
-                </div>
-              )}
-              {!isLoadingArticles && generatedArticles.length === 0 && articleErrors.length === 0 && !showRateLimitError && (
-                <p className="text-muted-foreground font-body text-center py-6">No articles generated yet, or an issue occurred.</p>
-              )}
-              {!isLoadingArticles && generatedArticles.length > 0 && (
-                <div className="grid grid-cols-1 gap-6">
-                  {generatedArticles.map((article, index) => (
+                  {articles.map((article, index) => (
                     <ArticleDisplayCard key={index} article={article} />
                   ))}
                 </div>
