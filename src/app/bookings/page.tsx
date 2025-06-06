@@ -162,26 +162,26 @@ export default function BookingsPage() {
           Explore these popular platforms to find and book your next caravan park or campsite. 
           (Note: These are affiliate link placeholders. Replace URLs with your actual affiliate links.)
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {sampleAffiliateLinks.map(link => (
             <Card key={link.id} className="hover:shadow-xl transition-shadow duration-300">
               <CardHeader>
-                <CardTitle className="font-headline text-xl text-primary flex items-center justify-between">
+                <CardTitle className="font-headline text-base text-primary flex items-center justify-between">
                   {link.name}
-                  <ExternalLink className="h-5 w-5 text-accent" />
+                  <ExternalLink className="h-4 w-4 text-accent" />
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <Image
-                  src={`https://placehold.co/600x400.png`}
+                  src={`https://placehold.co/300x200.png`}
                   alt={`${link.name} placeholder image`}
-                  width={600}
-                  height={400}
-                  className="rounded-md object-cover aspect-video mb-4"
+                  width={300}
+                  height={200}
+                  className="rounded-md object-cover aspect-video mb-3"
                   data-ai-hint={link.dataAiHint || 'travel booking'}
                 />
-                <p className="text-muted-foreground font-body text-sm mb-4">{link.description}</p>
-                <Button asChild className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground font-body">
+                <p className="text-muted-foreground font-body text-xs mb-3 line-clamp-2">{link.description}</p>
+                <Button asChild className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground font-body text-xs py-1.5 h-auto">
                   <Link href={link.url} target="_blank" rel="noopener noreferrer sponsored">
                     Visit {link.name}
                   </Link>
@@ -194,3 +194,4 @@ export default function BookingsPage() {
     </div>
   );
 }
+
