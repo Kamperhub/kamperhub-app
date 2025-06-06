@@ -8,11 +8,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { VehicleForm } from './VehicleForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton'; // Added Skeleton import
+import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, ShieldAlert } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useSubscription } from '@/hooks/useSubscription'; // Import useSubscription
+import Link from 'next/link';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 
 const VEHICLES_STORAGE_KEY = 'kamperhub_vehicles_list';
 const ACTIVE_VEHICLE_ID_KEY = 'kamperhub_active_vehicle_id';
+const FREE_TIER_VEHICLE_LIMIT = 1; // Define free tier limit
 
 export function VehicleManager() {
   const { toast } = useToast();
@@ -21,13 +26,14 @@ export function VehicleManager() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<StoredVehicle | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
+  const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription(); // Get subscription status
 
   useEffect(() => {
-    setHasMounted(true); // This runs only on the client, after initial mount
+    setHasMounted(true);
   }, []);
 
   useEffect(() => {
-    if (hasMounted) { // Data loading logic now depends on hasMounted
+    if (hasMounted) {
       try {
         const storedVehicles = localStorage.getItem(VEHICLES_STORAGE_KEY);
         if (storedVehicles) {
@@ -67,6 +73,16 @@ export function VehicleManager() {
   }, [toast, hasMounted]);
 
   const handleSaveVehicle = (data: VehicleFormData) => {
+    if (!isSubscribed && vehicles.length >= FREE_TIER_VEHICLE_LIMIT && !editingVehicle) {
+      toast({
+        title: "Free Limit Reached",
+        description: `You can only add ${FREE_TIER_VEHICLE_LIMIT} vehicle on the free plan. Upgrade to Pro for unlimited vehicles.`,
+        variant: "destructive",
+      });
+      setIsFormOpen(false);
+      return;
+    }
+
     let updatedVehicles;
     if (editingVehicle) {
       updatedVehicles = vehicles.map(v => v.id === editingVehicle.id ? { ...editingVehicle, ...data } : v);
@@ -109,32 +125,47 @@ export function VehicleManager() {
   };
 
   const handleOpenFormForNew = () => {
-    setEditingVehicle(null); 
+    if (!isSubscribed && vehicles.length >= FREE_TIER_VEHICLE_LIMIT) {
+      toast({
+        title: "Upgrade to Pro",
+        description: `Manage more than ${FREE_TIER_VEHICLE_LIMIT} vehicle with KamperHub Pro!`,
+        variant: "default",
+        className: "bg-primary text-primary-foreground",
+        action: (
+          <Link href="/subscribe">
+            <Button variant="outline" size="sm" className="ml-auto text-primary-foreground border-primary-foreground hover:bg-primary-foreground hover:text-primary">
+              Upgrade
+            </Button>
+          </Link>
+        ),
+      });
+      return;
+    }
+    setEditingVehicle(null);
     setIsFormOpen(true);
   };
-  
-  if (!hasMounted) {
-    // This is the initial render on both server and client before useEffect runs.
-    // Keep structure similar to the actual content to minimize hydration issues.
+
+  if (!hasMounted || isSubscriptionLoading) {
     return (
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle className="font-headline">Tow Vehicles</CardTitle>
-            <Skeleton className="h-9 w-[180px]" /> {/* Placeholder for the button */}
+            <Skeleton className="h-9 w-[180px]" />
           </div>
           <CardDescription className="font-body">
             Loading vehicle data...
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Placeholder for vehicle list items */}
           <Skeleton className="h-20 w-full" />
           <Skeleton className="h-20 w-full mt-4" />
         </CardContent>
       </Card>
     );
   }
+
+  const canAddMoreVehicles = isSubscribed || vehicles.length < FREE_TIER_VEHICLE_LIMIT;
 
   return (
     <Card>
@@ -143,10 +174,10 @@ export function VehicleManager() {
           <CardTitle className="font-headline">Tow Vehicles</CardTitle>
           <Dialog open={isFormOpen} onOpenChange={(isOpen) => {
             setIsFormOpen(isOpen);
-            if (!isOpen) setEditingVehicle(null); 
+            if (!isOpen) setEditingVehicle(null);
           }}>
             <DialogTrigger asChild>
-              <Button onClick={handleOpenFormForNew} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body">
+              <Button onClick={handleOpenFormForNew} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body" disabled={!canAddMoreVehicles && !editingVehicle}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Add New Vehicle
               </Button>
             </DialogTrigger>
@@ -155,7 +186,7 @@ export function VehicleManager() {
                 <DialogTitle className="font-headline">{editingVehicle ? 'Edit Vehicle' : 'Add New Vehicle'}</DialogTitle>
               </DialogHeader>
               <VehicleForm
-                initialData={editingVehicle || undefined} 
+                initialData={editingVehicle || undefined}
                 onSave={handleSaveVehicle}
                 onCancel={() => { setIsFormOpen(false); setEditingVehicle(null); }}
               />
@@ -164,10 +195,24 @@ export function VehicleManager() {
         </div>
         <CardDescription className="font-body">
           Manage your tow vehicles. Select one as active for trip planning.
+          {!isSubscribed && ` Free plan: ${FREE_TIER_VEHICLE_LIMIT} vehicle limit.`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {vehicles.length === 0 && hasMounted && ( 
+        {!isSubscribed && vehicles.length >= FREE_TIER_VEHICLE_LIMIT && (
+          <Alert variant="default" className="bg-primary/10 border-primary/30">
+            <ShieldAlert className="h-4 w-4 text-primary" />
+            <AlertTitle className="font-headline text-primary">Free Tier Limit Reached</AlertTitle>
+            <AlertDescription className="font-body text-primary/80">
+              You've reached the maximum of {FREE_TIER_VEHICLE_LIMIT} vehicle for the free plan.
+              <Link href="/subscribe" passHref>
+                <Button variant="link" className="p-0 h-auto ml-1 text-primary hover:underline font-body">Upgrade to Pro</Button>
+              </Link>
+              &nbsp;to add unlimited vehicles.
+            </AlertDescription>
+          </Alert>
+        )}
+        {vehicles.length === 0 && hasMounted && (
           <p className="text-muted-foreground text-center font-body py-4">No vehicles added yet. Click "Add New Vehicle" to start.</p>
         )}
         {vehicles.map(vehicle => (

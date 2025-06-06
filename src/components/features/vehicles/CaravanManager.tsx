@@ -3,20 +3,25 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { StoredCaravan, CaravanFormData } from '@/types/caravan';
-import type { CaravanInventories } from '@/types/inventory'; 
-import { INVENTORY_STORAGE_KEY } from '@/types/inventory'; 
-import type { CaravanChecklists } from '@/types/checklist'; 
-import { CHECKLISTS_STORAGE_KEY } from '@/types/checklist'; 
+import type { CaravanInventories } from '@/types/inventory';
+import { INVENTORY_STORAGE_KEY } from '@/types/inventory';
+import type { CaravanChecklists } from '@/types/checklist';
+import { CHECKLISTS_STORAGE_KEY } from '@/types/checklist';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { CaravanForm } from './CaravanForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton'; // Added Skeleton import
+import { PlusCircle, Edit3, Trash2, CheckCircle, ShieldAlert } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useSubscription } from '@/hooks/useSubscription'; // Import useSubscription
+import Link from 'next/link';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 
 const CARAVANS_STORAGE_KEY = 'kamperhub_caravans_list';
 const ACTIVE_CARAVAN_ID_KEY = 'kamperhub_active_caravan_id';
+const FREE_TIER_CARAVAN_LIMIT = 1; // Define free tier limit
 
 export function CaravanManager() {
   const { toast } = useToast();
@@ -25,6 +30,7 @@ export function CaravanManager() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCaravan, setEditingCaravan] = useState<StoredCaravan | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
+  const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription(); // Get subscription status
 
   useEffect(() => {
     setHasMounted(true);
@@ -67,6 +73,16 @@ export function CaravanManager() {
   }, [toast, hasMounted]);
 
   const handleSaveCaravan = (data: CaravanFormData) => {
+    if (!isSubscribed && caravans.length >= FREE_TIER_CARAVAN_LIMIT && !editingCaravan) {
+      toast({
+        title: "Free Limit Reached",
+        description: `You can only add ${FREE_TIER_CARAVAN_LIMIT} caravan on the free plan. Upgrade to Pro for unlimited caravans.`,
+        variant: "destructive",
+      });
+      setIsFormOpen(false);
+      return;
+    }
+
     let updatedCaravans;
     if (editingCaravan) {
       updatedCaravans = caravans.map(c => c.id === editingCaravan.id ? { ...c, ...data } : c);
@@ -94,7 +110,7 @@ export function CaravanManager() {
       const updatedCaravans = caravans.filter(c => c.id !== id);
       setCaravans(updatedCaravans);
       saveCaravansToStorage(updatedCaravans);
-      
+
       try {
         const allInventoriesJson = localStorage.getItem(INVENTORY_STORAGE_KEY);
         if (allInventoriesJson) {
@@ -137,32 +153,49 @@ export function CaravanManager() {
     const caravan = caravans.find(c => c.id === id);
     toast({ title: "Active Caravan Set", description: `${caravan?.make} ${caravan?.model} is now active.` });
   };
-  
+
   const handleOpenFormForNew = () => {
+    if (!isSubscribed && caravans.length >= FREE_TIER_CARAVAN_LIMIT) {
+      toast({
+        title: "Upgrade to Pro",
+        description: `Manage more than ${FREE_TIER_CARAVAN_LIMIT} caravan with KamperHub Pro!`,
+        variant: "default",
+        className: "bg-primary text-primary-foreground",
+        action: (
+          <Link href="/subscribe">
+            <Button variant="outline" size="sm" className="ml-auto text-primary-foreground border-primary-foreground hover:bg-primary-foreground hover:text-primary">
+              Upgrade
+            </Button>
+          </Link>
+        ),
+      });
+      return;
+    }
     setEditingCaravan(null);
     setIsFormOpen(true);
   };
 
-  if (!hasMounted) {
+  if (!hasMounted || isSubscriptionLoading) {
     return (
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle className="font-headline">Caravans</CardTitle>
-            <Skeleton className="h-9 w-[180px]" /> {/* Placeholder for the button */}
+            <Skeleton className="h-9 w-[180px]" />
           </div>
           <CardDescription className="font-body">
             Loading caravan data...
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Placeholder for caravan list items */}
           <Skeleton className="h-20 w-full" />
           <Skeleton className="h-20 w-full mt-4" />
         </CardContent>
       </Card>
     );
   }
+
+  const canAddMoreCaravans = isSubscribed || caravans.length < FREE_TIER_CARAVAN_LIMIT;
 
   return (
     <Card>
@@ -171,7 +204,7 @@ export function CaravanManager() {
           <CardTitle className="font-headline">Caravans</CardTitle>
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogTrigger asChild>
-              <Button onClick={handleOpenFormForNew} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body">
+              <Button onClick={handleOpenFormForNew} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body" disabled={!canAddMoreCaravans && !editingCaravan}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Add New Caravan
               </Button>
             </DialogTrigger>
@@ -189,9 +222,23 @@ export function CaravanManager() {
         </div>
         <CardDescription className="font-body">
           Manage your caravans. Select one as active for inventory and planning.
+          {!isSubscribed && ` Free plan: ${FREE_TIER_CARAVAN_LIMIT} caravan limit.`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {!isSubscribed && caravans.length >= FREE_TIER_CARAVAN_LIMIT && (
+          <Alert variant="default" className="bg-primary/10 border-primary/30">
+            <ShieldAlert className="h-4 w-4 text-primary" />
+            <AlertTitle className="font-headline text-primary">Free Tier Limit Reached</AlertTitle>
+            <AlertDescription className="font-body text-primary/80">
+              You've reached the maximum of {FREE_TIER_CARAVAN_LIMIT} caravan for the free plan.
+              <Link href="/subscribe" passHref>
+                <Button variant="link" className="p-0 h-auto ml-1 text-primary hover:underline font-body">Upgrade to Pro</Button>
+              </Link>
+              &nbsp;to add unlimited caravans.
+            </AlertDescription>
+          </Alert>
+        )}
         {caravans.length === 0 && hasMounted &&(
           <p className="text-muted-foreground text-center font-body py-4">No caravans added yet. Click "Add New Caravan" to start.</p>
         )}
