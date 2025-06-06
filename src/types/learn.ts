@@ -186,9 +186,26 @@ export const staticCaravanningArticles: AiGeneratedArticle[] = [
   {
     topic: "Arriving at a Campsite for the First Time (and Setting Up)",
     title: "Arriving at a Campsite for the First Time (and Setting Up)",
-    introduction: placeholderContent,
-    sections: [placeholderSection, placeholderSection],
-    conclusion: placeholderContent
+    introduction: "Welcome to your first campsite adventure! This guide will walk you through the essential steps for a smooth arrival and setup, ensuring you can relax and enjoy your trip from the get-go. We'll cover everything from pre-arrival checks to getting your caravan perfectly levelled.",
+    sections: [
+      { 
+        heading: "Pre-Arrival Reconnaissance",
+        content: "Before you even think about unhitching, take a moment to assess your allocated site. Check for overhead obstructions like low branches, note the ground conditions (is it level, soft, or rocky?), and identify where your hookups (power, water, sullage) are located. This quick survey can save you a lot of repositioning later."
+      },
+      { 
+        heading: "Positioning and Unhitching Your Caravan",
+        content: "Carefully maneuver your caravan into the desired position on your site, considering access to amenities, views, and privacy. Once you're happy, ensure your tow vehicle's handbrake is firmly engaged and the caravan handbrake is on. Then, proceed with unhitching: raise the jockey wheel, disconnect safety chains, the breakaway cable, and the electrical plug."
+      },
+      { 
+        heading: "Levelling and Stabilising for Comfort",
+        content: "A level caravan is key for comfort and for appliances like your fridge to work correctly. Use levelling ramps or blocks under the wheels on the lower side, checking with a spirit level inside the caravan (on the floor or a benchtop). Once side-to-side levelling is done, use the jockey wheel for front-to-back levelling. Finally, lower your corner steadies until they are firm on the ground – remember, they are for stabilising, not for lifting the caravan's weight."
+      },
+      {
+        heading: "Connecting Utilities and Final Touches",
+        content: "With your caravan stable, it's time to connect to site services. Plug in your 240V power lead, connect your food-grade water hose to the inlet, and set up your sullage (grey water) hose to the appropriate drain. Turn on your gas bottles if needed. Inside, open windows for ventilation, turn on the fridge, and start unpacking. Now you can set up your awning and outdoor gear!"
+      }
+    ],
+    conclusion: "Congratulations, you've successfully set up your caravan! Take a moment to appreciate your work, perhaps with a well-deserved cuppa. Every setup gets quicker with practice. Now, go explore and enjoy your surroundings!"
   },
   {
     topic: "Reversing/Parking the Caravan",
