@@ -342,51 +342,43 @@ export function TripPlannerClient() {
     });
   }, [map, toast]);
 
-
   const handleSaveTrip = useCallback(() => {
-    console.log('handleSaveTrip called. RouteDetails:', routeDetails);
-    console.log('Form Values:', getValues());
-    console.log('Fuel Estimate:', fuelEstimate);
-    console.log('Current Trip Notes (at start of handleSaveTrip):', currentTripNotes);
-
     if (!routeDetails) {
-      console.log('Exiting handleSaveTrip because !routeDetails');
       toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
       return;
     }
 
     let tripName: string | null = null;
     try {
-      console.log('Attempting to prompt for trip name.');
       tripName = window.prompt("Enter a name for this trip:", `Trip to ${getValues("endLocation")}`);
-      console.log('Trip name prompt result:', tripName);
-    } catch (promptError: any) {
-      console.error("Error during trip name prompt:", promptError);
-      toast({ title: "Prompt Error", description: `Could not get trip name: ${promptError.message}`, variant: "destructive"});
+    } catch (e: any) {
+      console.error("Error during trip name prompt:", e);
+      toast({ title: "Prompt Error", description: `Failed to get trip name: ${e.message}`, variant: "destructive" });
       return;
     }
 
-    if (!tripName) {
-      console.log('Trip name prompt was cancelled or empty. Exiting save.');
+    if (tripName === null) {
+      toast({ title: "Save Canceled", description: "Trip name entry was canceled by the user.", variant: "default" });
+      return; 
+    }
+    if (!tripName.trim()) {
+      toast({ title: "Invalid Name", description: "Trip name cannot be empty.", variant: "destructive" });
       return;
     }
 
     let tripNotesPromptResult: string | null = null;
     try {
-      console.log('Attempting to prompt for trip notes. Current notes:', currentTripNotes);
       tripNotesPromptResult = window.prompt("Enter any notes for this trip (optional, max 500 characters suggested):", currentTripNotes || "");
-      console.log('Trip notes prompt result:', tripNotesPromptResult);
-    } catch (promptError: any) {
-      console.error("Error during trip notes prompt:", promptError);
-      toast({ title: "Prompt Error", description: `Could not get trip notes: ${promptError.message}`, variant: "destructive"});
-      return; 
+    } catch (e: any) {
+      console.error("Error during trip notes prompt:", e);
+      toast({ title: "Prompt Error", description: `Failed to get trip notes: ${e.message}`, variant: "destructive" });
+      return;
     }
     
-    const tripNotesToSave = tripNotesPromptResult === null ? undefined : tripNotesPromptResult;
-    setCurrentTripNotes(tripNotesToSave); 
-    console.log('Final trip notes to be saved (after prompt, from variable):', tripNotesToSave);
+    // If user cancels notes prompt, tripNotesPromptResult is null.
+    // We update currentTripNotes state regardless for UI consistency if it shows current plan notes.
+    setCurrentTripNotes(tripNotesPromptResult); 
 
-    console.log('About to create newLoggedTrip object.');
     const currentFormData = getValues();
     const newLoggedTrip: LoggedTrip = {
       id: Date.now().toString(),
@@ -400,55 +392,47 @@ export function TripPlannerClient() {
       fuelEstimate: fuelEstimate,
       plannedStartDate: currentFormData.dateRange?.from ? currentFormData.dateRange.from.toISOString() : null,
       plannedEndDate: currentFormData.dateRange?.to ? currentFormData.dateRange.to.toISOString() : null,
-      notes: tripNotesToSave,
+      notes: tripNotesPromptResult, // Save null if cancelled, "" if empty, or the string
     };
-    console.log('newLoggedTrip object created:', newLoggedTrip);
 
     try {
-      console.log('Attempting to read existing trips from localStorage. Key:', TRIP_LOG_STORAGE_KEY);
       const existingTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
-      console.log('Raw existingTripsJson from localStorage:', existingTripsJson);
-
       let existingTrips: LoggedTrip[] = [];
       if (existingTripsJson && existingTripsJson.trim() !== "") {
         try {
           existingTrips = JSON.parse(existingTripsJson);
-          console.log('Successfully parsed existing trips:', existingTrips);
         } catch (parseError: any) {
-          console.error('Error parsing existing trips from localStorage:', parseError);
+          console.error('Error parsing existing trips from localStorage:', parseError.name, parseError.message, parseError.stack);
           toast({
             title: "Data Corruption Warning",
-            description: "Could not read previously saved trips. New trip will be saved. Old data might be affected if corrupted.",
+            description: "Could not read previously saved trips due to data format issues. New trip will be saved. Old data might be affected.",
             variant: "destructive",
             duration: 7000,
           });
-          // Attempt to save new trip by resetting existingTrips, old data might be lost or still there if only new one is saved separately
           existingTrips = []; 
         }
-      } else {
-        console.log('No existing trips found or localStorage item is empty/null.');
       }
-
-      console.log('Preparing to add new trip to existing trips. New trip:', newLoggedTrip, 'Existing trips array (potentially reset):', existingTrips);
-      const updatedTripsArray = [...existingTrips, newLoggedTrip];
-      console.log('Updated trips array (before stringify):', updatedTripsArray);
       
+      const updatedTripsArray = [...existingTrips, newLoggedTrip];
       let jsonToSave;
       try {
         jsonToSave = JSON.stringify(updatedTripsArray);
-        console.log('JSON string to save to localStorage (first 500 chars):', jsonToSave.substring(0, 500) + (jsonToSave.length > 500 ? '...' : ''));
       } catch (stringifyError: any) {
-        console.error("Error stringifying updated trips array:", stringifyError);
+        console.error("Error stringifying updated trips array:", stringifyError.name, stringifyError.message, stringifyError.stack);
         toast({ title: "Serialization Error", description: `Could not prepare trip data for saving: ${stringifyError.message}`, variant: "destructive" });
         return;
       }
 
       localStorage.setItem(TRIP_LOG_STORAGE_KEY, jsonToSave);
-      console.log('Successfully saved to localStorage.');
       toast({ title: "Trip Saved!", description: `"${tripName}" has been added to your Trip Log.` });
     } catch (storageError: any) {
-      console.error("Outer Storage Error (e.g., localStorage full or other critical issue):", storageError);
-      toast({ title: "Critical Storage Error", description: `Could not save trip: ${storageError.message}. LocalStorage might be full or disabled.`, variant: "destructive" });
+      console.error("Critical Storage Error:", storageError.name, storageError.message, storageError.stack);
+      toast({ 
+        title: "Critical Storage Error", 
+        description: `Could not save trip: ${storageError.message || 'Unknown storage error'}. LocalStorage might be full or disabled.`, 
+        variant: "destructive",
+        duration: 9000
+      });
     }
   }, [routeDetails, getValues, fuelEstimate, currentTripNotes, setCurrentTripNotes, toast]);
 
@@ -680,7 +664,7 @@ export function TripPlannerClient() {
                   {getValues("dateRange")?.to && (
                     <div className="font-body text-sm"><strong>Planned End:</strong> {format(getValues("dateRange")!.to!, "PPP")}</div>
                   )}
-                  {currentTripNotes !== undefined && (
+                  {currentTripNotes !== undefined && ( // Check if notes are defined (can be null or string)
                     <div className="font-body mt-1 pt-1 border-t">
                       <strong className="text-sm flex items-center"><StickyNote className="mr-2 h-4 w-4 text-primary" />Notes:</strong>
                       <p className="text-xs text-muted-foreground whitespace-pre-wrap pl-6">{currentTripNotes || <i>No notes.</i>}</p>
@@ -715,3 +699,4 @@ export function TripPlannerClient() {
     </div>
   );
 }
+
