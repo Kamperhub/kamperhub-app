@@ -1,4 +1,3 @@
-
 "use client"; 
 
 import { useState, useEffect } from 'react';
@@ -13,7 +12,7 @@ import { INVENTORY_STORAGE_KEY } from '@/types/inventory';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { AlertTriangle, Settings, Loader2, Car, Home } from 'lucide-react'; 
+import { AlertTriangle, Settings, Loader2, Car, Home, Backpack } from 'lucide-react'; 
 
 const defaultCaravanSpecs: CaravanWeightData = {
   tareMass: 0,
@@ -126,10 +125,12 @@ export default function InventoryPage() {
   if (!isLocalStorageReady || isLoading) {
     return (
       <div className="space-y-8">
-        <h1 className="text-3xl font-headline mb-6 text-primary">Inventory & Weight Management</h1>
+        <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
+          <Backpack className="mr-3 h-8 w-8" /> Inventory
+        </h1>
         <div className="flex items-center justify-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
-          <p className="font-body text-lg">Loading caravan specifications & inventory...</p>
+          <p className="font-body text-lg">Loading caravan specifications &amp; inventory...</p>
         </div>
       </div>
     );
@@ -138,7 +139,9 @@ export default function InventoryPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-headline mb-6 text-primary">Inventory & Weight Management</h1>
+        <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
+          <Backpack className="mr-3 h-8 w-8" /> Inventory
+        </h1>
         <p className="text-muted-foreground font-body mb-6">
           {getDescriptiveText()}
         </p>
