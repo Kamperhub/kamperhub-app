@@ -90,16 +90,19 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
       return sum + (weight * quantity);
     }, 0);
   }, [items]);
+  
+  const atmLimit = useMemo(() => (typeof caravanSpecs.atm === 'number' && !isNaN(caravanSpecs.atm) ? caravanSpecs.atm : 0), [caravanSpecs.atm]);
+  const gtmLimit = useMemo(() => (typeof caravanSpecs.gtm === 'number' && !isNaN(caravanSpecs.gtm) ? caravanSpecs.gtm : 0), [caravanSpecs.gtm]);
+  const maxTowballDownloadLimit = useMemo(() => (typeof caravanSpecs.maxTowballDownload === 'number' && !isNaN(caravanSpecs.maxTowballDownload) ? caravanSpecs.maxTowballDownload : 0), [caravanSpecs.maxTowballDownload]);
+  const tareMass = useMemo(() => (typeof caravanSpecs.tareMass === 'number' && !isNaN(caravanSpecs.tareMass) ? caravanSpecs.tareMass : 0), [caravanSpecs.tareMass]);
 
   const currentCaravanMass = useMemo(() => {
-    const tare = typeof caravanSpecs.tareMass === 'number' && !isNaN(caravanSpecs.tareMass) ? caravanSpecs.tareMass : 0;
-    return tare + totalWeight;
-  }, [caravanSpecs.tareMass, totalWeight]);
+    return tareMass + totalWeight;
+  }, [tareMass, totalWeight]);
   
   const remainingPayloadATM = useMemo(() => {
-    const atm = typeof caravanSpecs.atm === 'number' && !isNaN(caravanSpecs.atm) ? caravanSpecs.atm : 0;
-    return atm > 0 ? atm - currentCaravanMass : 0;
-  }, [caravanSpecs.atm, currentCaravanMass]);
+    return atmLimit > 0 ? atmLimit - currentCaravanMass : 0;
+  }, [atmLimit, currentCaravanMass]);
   
   const estimatedTowballDownload = useMemo(() => {
     const calculated = totalWeight * 0.1; // 10% of payload
@@ -111,9 +114,8 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
   }, [currentCaravanMass, estimatedTowballDownload]);
 
   const remainingPayloadGTM = useMemo(() => {
-    const gtm = typeof caravanSpecs.gtm === 'number' && !isNaN(caravanSpecs.gtm) ? caravanSpecs.gtm : 0;
-    return gtm > 0 ? gtm - currentLoadOnAxles : 0;
-  }, [caravanSpecs.gtm, currentLoadOnAxles]);
+    return gtmLimit > 0 ? gtmLimit - currentLoadOnAxles : 0;
+  }, [gtmLimit, currentLoadOnAxles]);
 
 
   const handleAddItem = () => {
@@ -198,7 +200,6 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
     const safeCurrentVal = typeof currentVal === 'number' && !isNaN(currentVal) ? currentVal : 0;
     const isOver = !isLimitNotSet && safeCurrentVal > safeLimitVal;
     
-
     if (isLimitNotSet) {
       return {
         data: [{ name: 'N/A', value: 100 }],
@@ -218,10 +219,6 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
     };
   };
   
-  const atmLimit = typeof caravanSpecs.atm === 'number' && !isNaN(caravanSpecs.atm) ? caravanSpecs.atm : 0;
-  const gtmLimit = typeof caravanSpecs.gtm === 'number' && !isNaN(caravanSpecs.gtm) ? caravanSpecs.gtm : 0;
-  const maxTowballDownloadLimit = typeof caravanSpecs.maxTowballDownload === 'number' && !isNaN(caravanSpecs.maxTowballDownload) ? caravanSpecs.maxTowballDownload : 0;
-
   const atmChart = prepareChartData(currentCaravanMass, atmLimit);
   const gtmChart = prepareChartData(currentLoadOnAxles, gtmLimit);
   const towballChart = prepareChartData(estimatedTowballDownload, maxTowballDownloadLimit);
@@ -301,8 +298,16 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
 
 
         <div className="space-y-4 pt-4">
-          <h3 className="text-xl font-headline text-primary">Weight Summary & Compliance</h3>
+          <h3 className="text-xl font-headline text-foreground">Weight Summary &amp; Compliance</h3>
           
+          <Alert variant="default" className="mb-4 bg-yellow-50 border-yellow-300 text-yellow-700">
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+            <AlertTitle className="font-headline text-yellow-700">Important Weighbridge Notice</AlertTitle>
+            <AlertDescription className="font-body">
+              Always verify weights at a certified weighbridge. This application provides estimates only and should not be relied upon for legal compliance or absolute safety.
+            </AlertDescription>
+          </Alert>
+
           <Alert variant={getAlertStylingVariant(currentCaravanMass, atmLimit)}>
             <AlertTitle className="font-headline">ATM Status: {currentCaravanMass.toFixed(1)}kg / {atmLimit > 0 ? atmLimit.toFixed(0) : 'N/A'}kg</AlertTitle>
             <AlertDescription className="font-body">
@@ -489,16 +494,13 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
 
       </CardContent>
       <CardFooter className="flex flex-col items-start text-sm pt-4">
-        <p className="font-body text-accent font-semibold mb-2">
-          Important: Always verify weights at a weighbridge. This application provides estimates only and should not be relied upon for legal compliance.
-        </p>
         <div className="text-muted-foreground font-body space-y-1">
           <p>
             <strong>Your Active Caravan's Specifications:</strong><br />
-            <strong>Tare Mass:</strong> { (typeof caravanSpecs.tareMass === 'number' && !isNaN(caravanSpecs.tareMass) && caravanSpecs.tareMass > 0) ? `${caravanSpecs.tareMass.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Base weight of the empty caravan)</span><br />
-            <strong>ATM (Aggregate Trailer Mass):</strong> { (typeof caravanSpecs.atm === 'number' && !isNaN(caravanSpecs.atm) && caravanSpecs.atm > 0) ? `${caravanSpecs.atm.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max loaded weight, uncoupled)</span><br />
-            <strong>GTM (Gross Trailer Mass):</strong> { (typeof caravanSpecs.gtm === 'number' && !isNaN(caravanSpecs.gtm) && caravanSpecs.gtm > 0) ? `${caravanSpecs.gtm.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max weight on axles, coupled)</span><br />
-            <strong>Max Towball Download:</strong> { (typeof caravanSpecs.maxTowballDownload === 'number' && !isNaN(caravanSpecs.maxTowballDownload) && caravanSpecs.maxTowballDownload > 0) ? `${caravanSpecs.maxTowballDownload.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max downward force on towbar)</span>
+            <strong>Tare Mass:</strong> { (tareMass > 0) ? `${tareMass.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Base weight of the empty caravan)</span><br />
+            <strong>ATM (Aggregate Trailer Mass):</strong> { (atmLimit > 0) ? `${atmLimit.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max loaded weight, uncoupled)</span><br />
+            <strong>GTM (Gross Trailer Mass):</strong> { (gtmLimit > 0) ? `${gtmLimit.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max weight on axles, coupled)</span><br />
+            <strong>Max Towball Download:</strong> { (maxTowballDownloadLimit > 0) ? `${maxTowballDownloadLimit.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max downward force on towbar)</span>
           </p>
         </div>
       </CardFooter>
