@@ -40,8 +40,11 @@ export default function SupportPage() {
         } catch (error: any) {
           console.error(`Failed to generate article for topic "${topic}":`, error);
           if (error.message && error.message.startsWith("RATE_LIMIT_EXCEEDED")) {
-            setShowRateLimitError(true);
-            localErrors.push(`Article for "${topic}" could not be generated due to API rate limits. Please check your Gemini API quota and billing details.`);
+            setShowRateLimitError(true); // Set specific state for rate limit error
+            // Add a general message about rate limits to errors if it's the first time we see it for this fetch
+            if (!localErrors.some(e => e.includes("API rate limits"))) {
+                 localErrors.push(`Article generation is impacted by API rate limits. Some articles may not load. Please check your Gemini API quota and billing details.`);
+            }
           } else if (error.message && error.message.startsWith("AI_MODEL_OUTPUT_ERROR")) {
             localErrors.push(`Article for "${topic}" generation issue: Model did not return expected output. Details: ${error.message}`);
           } else if (error.message && error.message.startsWith("AI_PROMPT_ERROR")) {
@@ -139,7 +142,7 @@ export default function SupportPage() {
                   ))}
                 </div>
               )}
-              {!isLoadingArticles && articleErrors.length > 0 && (
+              {!isLoadingArticles && articleErrors.length > 0 && !showRateLimitError && ( // Don't show individual errors if global rate limit error is shown
                 <div className="space-y-2 mb-4">
                   {articleErrors.map((errorMsg, index) => (
                     <Alert key={index} variant="default" className="bg-orange-50 border-orange-300 text-orange-700">
