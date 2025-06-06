@@ -87,7 +87,7 @@ export function ChatInterface() {
               className={`max-w-[70%] p-3 rounded-lg ${
                 msg.sender === 'user' 
                   ? 'bg-primary text-primary-foreground' 
-                  : 'bg-secondary text-secondary-foreground'
+                  : 'bg-muted text-muted-foreground'
               }`}
             >
               <p className="text-sm font-body whitespace-pre-wrap">{msg.text}</p>
@@ -110,7 +110,7 @@ export function ChatInterface() {
                    })()}
                 </div>
               )}
-              <p className={`text-xs mt-1 ${msg.sender === 'user' ? 'text-primary-foreground/70' : 'text-secondary-foreground/70'}`}>
+              <p className={`text-xs mt-1 ${msg.sender === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground/70'}`}>
                 {new Date(msg.timestamp).toLocaleTimeString()}
               </p>
             </div>
@@ -126,7 +126,7 @@ export function ChatInterface() {
             <Avatar className="h-8 w-8">
               <AvatarFallback><Bot /></AvatarFallback>
             </Avatar>
-            <div className="max-w-[70%] p-3 rounded-lg bg-secondary text-secondary-foreground">
+            <div className="max-w-[70%] p-3 rounded-lg bg-muted text-muted-foreground">
               <Skeleton className="h-4 w-32 mb-2" />
               <Skeleton className="h-4 w-24" />
             </div>
