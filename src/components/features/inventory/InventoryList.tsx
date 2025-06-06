@@ -30,11 +30,11 @@ const DonutChartCustomLabel = ({ viewBox, value, limit, unit, name }: { viewBox?
     <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" className="font-body">
       <tspan x={cx} dy="-1.5em" className="text-xs fill-muted-foreground">{name}</tspan>
       <tspan x={cx} dy="1.2em" className={`text-xl font-bold font-headline ${isOverLimit ? 'fill-destructive' : 'fill-foreground'}`}>
-        {value.toFixed(1)}{unit}
+        {value.toFixed(0)}{unit}
       </tspan>
       {!isLimitNotSet ? (
         <tspan x={cx} dy="1.4em" className="text-xs fill-muted-foreground">
-          ({percentage.toFixed(0)}% of {limit.toFixed(0)}{unit})
+          ({percentage.toFixed(0)}%)
         </tspan>
       ) : (
         <tspan x={cx} dy="1.4em" className="text-xs fill-muted-foreground">
