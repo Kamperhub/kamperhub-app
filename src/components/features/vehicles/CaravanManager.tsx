@@ -8,8 +8,6 @@ import type { StoredWDH } from '@/types/wdh';
 import { WDHS_STORAGE_KEY, ACTIVE_WDH_ID_KEY } from '@/types/wdh';
 import type { CaravanInventories } from '@/types/inventory';
 import { INVENTORY_STORAGE_KEY } from '@/types/inventory';
-import type { CaravanChecklists } from '@/types/checklist';
-import { CHECKLISTS_STORAGE_KEY } from '@/types/checklist';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -60,7 +58,6 @@ export function CaravanManager() {
         const storedCaravans = localStorage.getItem(CARAVANS_STORAGE_KEY);
         if (storedCaravans) {
           const parsedCaravans: StoredCaravan[] = JSON.parse(storedCaravans);
-          // Sanitize data: ensure storageLocations and waterTanks are always arrays
           const sanitizedCaravans = parsedCaravans.map(c => ({
             ...c,
             storageLocations: Array.isArray(c.storageLocations) ? c.storageLocations : [],
@@ -186,20 +183,6 @@ export function CaravanManager() {
     }
 
     try {
-      const allChecklistsJson = localStorage.getItem(CHECKLISTS_STORAGE_KEY);
-      if (allChecklistsJson) {
-        const allChecklists: CaravanChecklists = JSON.parse(allChecklistsJson);
-        if (allChecklists[idToDelete]) {
-          delete allChecklists[idToDelete];
-          localStorage.setItem(CHECKLISTS_STORAGE_KEY, JSON.stringify(allChecklists));
-        }
-      }
-    } catch (error) {
-      console.error("Error deleting caravan checklists from localStorage:", error);
-      toast({ title: "Error Deleting Checklists", description: "Could not remove associated checklist data.", variant: "destructive" });
-    }
-
-    try {
       localStorage.removeItem(`${WATER_TANK_LEVELS_STORAGE_KEY_PREFIX}${idToDelete}`);
     } catch (error) {
       console.error("Error deleting caravan water tank levels from localStorage:", error);
@@ -211,7 +194,7 @@ export function CaravanManager() {
       saveActiveCaravanIdToStorage(null);
       saveActiveWdhIdToStorage(null);
     }
-    toast({ title: "Caravan Deleted", description: `${deleteDialogState.caravanName} and all its associated data have been removed.` });
+    toast({ title: "Caravan Deleted", description: `${deleteDialogState.caravanName} and its associated inventory/water levels data have been removed. Trip-specific checklists remain.` });
     setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' });
   };
 
@@ -470,7 +453,7 @@ export function CaravanManager() {
           <div className="py-4">
             <p className="font-body">
               Are you sure you want to delete the caravan: <strong>{deleteDialogState.caravanName}</strong>?
-              This action cannot be undone and will delete all associated inventory, checklists, and water tank levels.
+              This action cannot be undone and will delete all associated inventory and water tank levels. Trip-specific checklists remain.
             </p>
             <p className="font-body mt-2">
               To confirm, please type "<strong>DELETE</strong>" in the box below.
@@ -501,3 +484,6 @@ export function CaravanManager() {
     </>
   );
 }
+    
+
+    
