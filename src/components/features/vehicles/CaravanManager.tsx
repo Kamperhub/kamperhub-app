@@ -164,7 +164,7 @@ export function CaravanManager() {
       if (activeCaravanId === id) {
         setActiveCaravanId(null);
         saveActiveCaravanIdToStorage(null);
-        saveActiveWdhIdToStorage(null); // Also clear active WDH if the active caravan is deleted
+        saveActiveWdhIdToStorage(null); 
       }
       toast({ title: "Caravan Deleted", description: `${caravanToDelete?.make} ${caravanToDelete?.model}, its inventory, and checklists have been removed.` });
     }
@@ -295,12 +295,12 @@ export function CaravanManager() {
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="font-semibold font-body text-lg">{caravan.year} {caravan.make} {caravan.model}</h3>
-                <div className="text-sm text-muted-foreground font-body grid grid-cols-2 md:grid-cols-3 gap-x-4">
+                <div className="text-sm text-muted-foreground font-body grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1">
                   <span>Tare: {caravan.tareMass}kg</span>
                   <span>ATM: {caravan.atm}kg</span>
                   <span>GTM: {caravan.gtm}kg</span>
                   <span>Towball: {caravan.maxTowballDownload}kg</span>
-                  <span className="flex items-center"><Settings2 className="w-3 h-3 mr-1 text-primary/70"/> Axles: {caravan.numberOfAxles}</span>
+                  <span className="flex items-center"><Settings2 className="w-3 h-3 mr-1 text-primary/70"/> Axles: {typeof caravan.numberOfAxles === 'number' ? caravan.numberOfAxles : 'N/A'}</span>
                   {caravan.associatedWdhId && getWdhNameById(caravan.associatedWdhId) && (
                      <span className="flex items-center col-span-full sm:col-span-1"><LinkIcon className="w-3 h-3 mr-1 text-primary/70"/> WDH: {getWdhNameById(caravan.associatedWdhId)}</span>
                   )}
@@ -331,3 +331,4 @@ export function CaravanManager() {
     </Card>
   );
 }
+
