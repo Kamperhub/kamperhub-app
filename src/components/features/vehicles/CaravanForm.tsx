@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { CaravanFormData } from '@/types/caravan';
+import type { CaravanFormData } from '@/types/caravan'; // Assuming new fields will be added here later
 import type { StoredWDH } from '@/types/wdh';
 import { WDHS_STORAGE_KEY } from '@/types/wdh';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, XCircle } from 'lucide-react';
 
+// Assuming CaravanFormData will be updated to include these new fields
+// If not, this schema will cause type errors with the StoredCaravan type later.
 const caravanSchema = z.object({
   make: z.string().min(1, "Make is required"),
   model: z.string().min(1, "Model is required"),
@@ -24,31 +26,63 @@ const caravanSchema = z.object({
   maxTowballDownload: z.coerce.number().positive("Max Towball Download must be positive"),
   numberOfAxles: z.coerce.number().int().min(1, "Must have at least 1 axle").max(4, "Number of axles seems high (max 4)"),
   associatedWdhId: z.string().nullable().optional(),
+  overallLength: z.coerce.number().min(1000, "Overall length seems too short (min 1000mm)").optional().nullable(),
+  bodyLength: z.coerce.number().min(1000, "Body length seems too short (min 1000mm)").optional().nullable(),
+  overallHeight: z.coerce.number().min(1000, "Overall height seems too short (min 1000mm)").optional().nullable(),
+  hitchToAxleCenterDistance: z.coerce.number().min(100, "Hitch to axle distance seems too short (min 100mm)").optional().nullable(),
+  interAxleSpacing: z.coerce.number().min(100, "Inter-axle spacing seems too short (min 100mm)").optional().nullable(),
+}).refine(data => {
+    if (data.bodyLength && data.overallLength && data.bodyLength > data.overallLength) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Body length cannot be greater than overall length.",
+    path: ["bodyLength"],
 });
 
+// Temporarily using a broader type for the form data until CaravanFormData is updated
+type ExtendedCaravanFormData = CaravanFormData & {
+  overallLength?: number | null;
+  bodyLength?: number | null;
+  overallHeight?: number | null;
+  hitchToAxleCenterDistance?: number | null;
+  interAxleSpacing?: number | null;
+};
+
 interface CaravanFormProps {
-  initialData?: CaravanFormData;
-  onSave: (data: CaravanFormData) => void;
+  initialData?: ExtendedCaravanFormData; // Use extended type for initialData
+  onSave: (data: ExtendedCaravanFormData) => void; // Use extended type for onSave
   onCancel: () => void;
   isLoading?: boolean;
 }
 
 export function CaravanForm({ initialData, onSave, onCancel, isLoading }: CaravanFormProps) {
   const [availableWdhs, setAvailableWdhs] = useState<StoredWDH[]>([]);
-  const { control, register, handleSubmit, formState: { errors }, reset, setValue } = useForm<CaravanFormData>({
+
+  const defaultFormValues: ExtendedCaravanFormData = {
+    make: '',
+    model: '',
+    year: new Date().getFullYear(),
+    tareMass: 0,
+    atm: 0,
+    gtm: 0,
+    maxTowballDownload: 0,
+    numberOfAxles: 1,
+    associatedWdhId: null,
+    overallLength: null,
+    bodyLength: null,
+    overallHeight: null,
+    hitchToAxleCenterDistance: null,
+    interAxleSpacing: null,
+  };
+
+  const { control, register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<ExtendedCaravanFormData>({
     resolver: zodResolver(caravanSchema),
-    defaultValues: initialData || {
-      make: '',
-      model: '',
-      year: new Date().getFullYear(),
-      tareMass: 0,
-      atm: 0,
-      gtm: 0,
-      maxTowballDownload: 0,
-      numberOfAxles: 1,
-      associatedWdhId: null,
-    },
+    defaultValues: initialData ? { ...defaultFormValues, ...initialData } : defaultFormValues,
   });
+
+  const numberOfAxles = watch("numberOfAxles");
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -60,30 +94,20 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
   }, []);
   
   useEffect(() => {
-    if (initialData) {
-      reset({
-        ...initialData,
-        associatedWdhId: initialData.associatedWdhId || null,
-      });
-    } else {
-       reset({
-        make: '',
-        model: '',
-        year: new Date().getFullYear(),
-        tareMass: 0,
-        atm: 0,
-        gtm: 0,
-        maxTowballDownload: 0,
-        numberOfAxles: 1,
-        associatedWdhId: null,
-      });
-    }
-  }, [initialData, reset]);
+    // Reset the form if initialData changes or to set initial default values
+    reset(initialData ? { ...defaultFormValues, ...initialData, associatedWdhId: initialData.associatedWdhId || null } : defaultFormValues);
+  }, [initialData, reset]); // Removed defaultFormValues from dependency array as it's stable
 
-
-  const onSubmit: SubmitHandler<CaravanFormData> = (data) => {
-    onSave(data);
-    // Reset is handled by dialog close or manager
+  const onSubmit: SubmitHandler<ExtendedCaravanFormData> = (data) => {
+    const numericData = {
+      ...data,
+      overallLength: data.overallLength ? Number(data.overallLength) : null,
+      bodyLength: data.bodyLength ? Number(data.bodyLength) : null,
+      overallHeight: data.overallHeight ? Number(data.overallHeight) : null,
+      hitchToAxleCenterDistance: data.hitchToAxleCenterDistance ? Number(data.hitchToAxleCenterDistance) : null,
+      interAxleSpacing: data.interAxleSpacing ? Number(data.interAxleSpacing) : null,
+    };
+    onSave(numericData);
   };
 
   return (
@@ -117,13 +141,13 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
         <div>
           <Label htmlFor="tareMass" className="font-body">Tare Mass (kg)</Label>
           <Input id="tareMass" type="number" {...register("tareMass")} placeholder="e.g., 1800" className="font-body" />
-          <p className="text-xs text-muted-foreground font-body mt-1">Weight of the empty caravan (no water, gas, payload).</p>
+          <p className="text-xs text-muted-foreground font-body mt-1">Weight of the empty caravan.</p>
           {errors.tareMass && <p className="text-sm text-destructive font-body mt-1">{errors.tareMass.message}</p>}
         </div>
         <div>
           <Label htmlFor="atm" className="font-body">Aggregate Trailer Mass (ATM) (kg)</Label>
           <Input id="atm" type="number" {...register("atm")} placeholder="e.g., 2500" className="font-body" />
-          <p className="text-xs text-muted-foreground font-body mt-1">Max total weight of the loaded caravan (uncoupled).</p>
+          <p className="text-xs text-muted-foreground font-body mt-1">Max total weight of loaded caravan (uncoupled).</p>
           {errors.atm && <p className="text-sm text-destructive font-body mt-1">{errors.atm.message}</p>}
         </div>
       </div>
@@ -137,10 +161,48 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
         <div>
           <Label htmlFor="maxTowballDownload" className="font-body">Max Towball Download (kg)</Label>
           <Input id="maxTowballDownload" type="number" {...register("maxTowballDownload")} placeholder="e.g., 250" className="font-body" />
-          <p className="text-xs text-muted-foreground font-body mt-1">Max weight the caravan can put on the towball.</p>
+          <p className="text-xs text-muted-foreground font-body mt-1">Max weight caravan can put on towball.</p>
           {errors.maxTowballDownload && <p className="text-sm text-destructive font-body mt-1">{errors.maxTowballDownload.message}</p>}
         </div>
       </div>
+      
+      {/* New dimension fields from user's snippet */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="overallLength" className="font-body">Overall Length (mm) (Optional)</Label>
+          <Input id="overallLength" type="number" {...register("overallLength")} placeholder="e.g., 7500 (incl. drawbar)" className="font-body" />
+          {errors.overallLength && <p className="text-sm text-destructive font-body mt-1">{errors.overallLength.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="bodyLength" className="font-body">Body Length (mm) (Optional)</Label>
+          <Input id="bodyLength" type="number" {...register("bodyLength")} placeholder="e.g., 6000 (caravan body)" className="font-body" />
+          {errors.bodyLength && <p className="text-sm text-destructive font-body mt-1">{errors.bodyLength.message}</p>}
+        </div>
+      </div>
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="overallHeight" className="font-body">Overall Height (mm) (Optional)</Label>
+          <Input id="overallHeight" type="number" {...register("overallHeight")} placeholder="e.g., 2900 (ground to top)" className="font-body" />
+          {errors.overallHeight && <p className="text-sm text-destructive font-body mt-1">{errors.overallHeight.message}</p>}
+        </div>
+         <div>
+          <Label htmlFor="hitchToAxleCenterDistance" className="font-body">Hitch to Axle Center (mm) (Optional)</Label>
+          <Input id="hitchToAxleCenterDistance" type="number" {...register("hitchToAxleCenterDistance")} placeholder="e.g., 4000" className="font-body" />
+          <p className="text-xs text-muted-foreground font-body mt-1">Coupling to center of axle(s).</p>
+          {errors.hitchToAxleCenterDistance && <p className="text-sm text-destructive font-body mt-1">{errors.hitchToAxleCenterDistance.message}</p>}
+        </div>
+      </div>
+      
+      {Number(numberOfAxles) > 1 && (
+        <div>
+            <Label htmlFor="interAxleSpacing" className="font-body">Inter-Axle Spacing (mm) (Optional)</Label>
+            <Input id="interAxleSpacing" type="number" {...register("interAxleSpacing")} placeholder="e.g., 1000 (for tandem)" className="font-body" />
+            <p className="text-xs text-muted-foreground font-body mt-1">Distance between consecutive axles.</p>
+            {errors.interAxleSpacing && <p className="text-sm text-destructive font-body mt-1">{errors.interAxleSpacing.message}</p>}
+        </div>
+      )}
+      {/* End of new dimension fields */}
+
        <div>
         <Label htmlFor="associatedWdhId" className="font-body">Associated WDH (Optional)</Label>
         <Controller
