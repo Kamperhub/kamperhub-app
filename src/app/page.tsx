@@ -1,24 +1,92 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Caravan, Route, History, CheckSquare, BarChart3 } from 'lucide-react';
-import type { LoggedTrip } from '@/types/tripplanner';
-import { TRIP_LOG_STORAGE_KEY } from '@/types/tripplanner';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import type { NavItem } from '@/lib/navigation';
+import { navItems } from '@/lib/navigation';
+import { GripVertical } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
-interface TripStats {
-  totalTrips: number;
-  totalDistanceKm: number;
-  completedTripsCount: number;
+const DASHBOARD_CARD_ORDER_KEY = 'kamperhub_dashboard_card_order_v2';
+
+interface SortableNavItemCardProps {
+  item: NavItem;
 }
 
+function SortableNavItemCard({ item }: SortableNavItemCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.href }); // Use a unique, stable ID like href
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+    opacity: isDragging ? 0.8 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="touch-none">
+      <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 relative">
+        <button
+          {...attributes}
+          {...listeners}
+          aria-label={`Drag ${item.label} card`}
+          className="absolute top-2 right-2 p-1 cursor-grab active:cursor-grabbing opacity-50 hover:opacity-100 focus:opacity-100 focus:ring-2 focus:ring-ring rounded"
+        >
+          <GripVertical className="h-5 w-5 text-muted-foreground" />
+        </button>
+        <Link href={item.href} className="flex flex-col h-full">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <item.icon className="w-8 h-8 text-primary" />
+              <CardTitle className="font-headline text-2xl text-primary">{item.label}</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="flex-grow flex flex-col justify-between">
+            <CardDescription className="font-body text-sm mb-4">
+              Access tools and information for {item.label.toLowerCase()} to enhance your caravanning experience.
+            </CardDescription>
+            <div className="mt-auto opacity-10 flex justify-center">
+              <item.icon className="w-24 h-24 text-primary" />
+            </div>
+          </CardContent>
+        </Link>
+      </Card>
+    </div>
+  );
+}
+
+
 export default function DashboardPage() {
-  const [tripStats, setTripStats] = useState<TripStats | null>(null);
+  const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>(() => {
+    // Initialize with default navItems, order will be applied in useEffect
+    return [...navItems];
+  });
   const [hasMounted, setHasMounted] = useState(false);
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
 
   useEffect(() => {
     setHasMounted(true);
@@ -27,159 +95,134 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!hasMounted) return;
 
-    setIsLoadingStats(true);
     try {
-      const storedTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
-      if (storedTripsJson) {
-        const loggedTrips: LoggedTrip[] = JSON.parse(storedTripsJson);
-        
-        const totalTrips = loggedTrips.length;
-        const totalDistanceKm = loggedTrips.reduce((sum, trip) => {
-          const distance = trip.routeDetails?.distanceValue || 0;
-          return sum + (distance / 1000); // Convert meters to km
-        }, 0);
-        const completedTripsCount = loggedTrips.filter(trip => trip.isCompleted).length;
+      const savedOrderJson = localStorage.getItem(DASHBOARD_CARD_ORDER_KEY);
+      if (savedOrderJson) {
+        const savedOrderHrefs: string[] = JSON.parse(savedOrderJson);
+        // Reconstruct orderedNavItems based on saved hrefs, ensuring all navItems are present
+        // and new ones are appended if not in saved order
+        const newOrderedItems: NavItem[] = [];
+        const navItemsMap = new Map(navItems.map(item => [item.href, item]));
 
-        setTripStats({
-          totalTrips,
-          totalDistanceKm,
-          completedTripsCount,
+        savedOrderHrefs.forEach(href => {
+          const item = navItemsMap.get(href);
+          if (item) {
+            newOrderedItems.push(item);
+            navItemsMap.delete(href); // Remove from map to track remaining items
+          }
         });
+        // Add any new navItems that weren't in the saved order
+        navItemsMap.forEach(item => newOrderedItems.push(item));
+        setOrderedNavItems(newOrderedItems);
       } else {
-        setTripStats({ // Default stats if no trips logged
-          totalTrips: 0,
-          totalDistanceKm: 0,
-          completedTripsCount: 0,
-        });
+        // No saved order, use the default from navItems.ts
+        setOrderedNavItems([...navItems]);
       }
-    } catch (e) {
-      console.error("Error processing trip stats:", e);
-      setTripStats(null); // Indicate error or allow fallback
-    } finally {
-      setIsLoadingStats(false);
+    } catch (error) {
+        console.error("Error loading card order from localStorage:", error);
+        setOrderedNavItems([...navItems]); // Fallback to default
     }
   }, [hasMounted]);
-  
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (active.id !== over?.id && over) {
+      setOrderedNavItems((items) => {
+        const oldIndex = items.findIndex((item) => item.href === active.id);
+        const newIndex = items.findIndex((item) => item.href === over.id);
+        const newOrder = arrayMove(items, oldIndex, newIndex);
+        
+        if (hasMounted) {
+            try {
+                const newOrderHrefs = newOrder.map(item => item.href);
+                localStorage.setItem(DASHBOARD_CARD_ORDER_KEY, JSON.stringify(newOrderHrefs));
+            } catch (error) {
+                console.error("Error saving card order to localStorage:", error);
+            }
+        }
+        return newOrder;
+      });
+    }
+  }, [hasMounted]);
+
   if (!hasMounted) {
-    // Show a basic loading state for initial mount
+    // Optional: Render a loading state or null
     return (
-      <div className="space-y-8">
-        <header className="text-center py-8">
-          <Caravan className="h-16 w-16 mx-auto text-primary mb-4 animate-pulse" />
-          <h1 className="text-4xl md:text-5xl font-headline text-primary mb-2">Welcome to KamperHub</h1>
-          <p className="text-lg text-muted-foreground font-body max-w-2xl mx-auto">
-            Loading your dashboard...
-          </p>
-        </header>
-      </div>
+         <div className="space-y-8">
+            <header className="text-center py-8">
+              <Card className="animate-pulse h-16 w-1/2 mx-auto bg-muted" />
+              <CardTitle className="text-4xl md:text-5xl font-headline text-primary mb-2 mt-4">
+                <div className="h-10 bg-muted rounded w-3/4 mx-auto"></div>
+              </CardTitle>
+              <CardDescription className="text-lg text-muted-foreground font-body max-w-xl mx-auto">
+                <div className="h-4 bg-muted rounded w-full mb-1"></div>
+                <div className="h-4 bg-muted rounded w-2/3 mx-auto"></div>
+              </CardDescription>
+            </header>
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                <Card key={i} className="h-64 animate-pulse">
+                    <CardHeader className="pb-3">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-muted rounded-full"></div>
+                            <div className="h-8 bg-muted rounded w-1/2"></div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="flex-grow flex flex-col justify-between">
+                        <div className="space-y-2">
+                            <div className="h-4 bg-muted rounded w-full"></div>
+                            <div className="h-4 bg-muted rounded w-5/6"></div>
+                        </div>
+                         <div className="mt-auto opacity-10 flex justify-center">
+                           <div className="w-24 h-24 bg-muted rounded-md"></div>
+                        </div>
+                    </CardContent>
+                </Card>
+                ))}
+            </div>
+        </div>
     );
   }
 
   return (
     <div className="space-y-8">
       <header className="text-center py-8">
-        <Caravan className="h-16 w-16 mx-auto text-primary mb-4" />
+        <Link href="/" passHref>
+          <img
+            src="/kamperhub-logo.png"
+            alt="KamperHub Logo"
+            className="h-16 w-auto mx-auto mb-4 transition-transform hover:scale-105"
+          />
+        </Link>
         <h1 className="text-4xl md:text-5xl font-headline text-primary mb-2">Welcome to KamperHub</h1>
-        <p className="text-lg text-muted-foreground font-body max-w-2xl mx-auto">
-          Your ultimate caravanning companion. See your trip achievements below!
+        <p className="text-lg text-muted-foreground font-body max-w-xl mx-auto">
+          Your ultimate caravanning companion. Arrange your dashboard for quick access to features.
         </p>
       </header>
 
-      <section>
-        <h2 className="text-3xl font-headline text-center mb-8 text-primary flex items-center justify-center">
-            <BarChart3 className="w-8 h-8 mr-3 text-accent" />
-            Your Journey So Far
-        </h2>
-        {isLoadingStats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader>
-                  <div className="h-6 bg-muted rounded w-1/2"></div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-10 bg-muted rounded w-1/3"></div>
-                  <div className="h-4 bg-muted rounded w-3/4 mt-2"></div>
-                </CardContent>
-              </Card>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={orderedNavItems.map(item => item.href)}
+          strategy={rectSortingStrategy}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {orderedNavItems.map((item) => (
+              <SortableNavItemCard key={item.href} item={item} />
             ))}
           </div>
-        )}
-
-        {!isLoadingStats && tripStats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium font-body">Total Trips Logged</CardTitle>
-                <History className="h-5 w-5 text-accent" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold font-headline text-primary">{tripStats.totalTrips}</div>
-                <p className="text-xs text-muted-foreground font-body">
-                  Keep exploring and logging your adventures!
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium font-body">Total Kilometers Travelled</CardTitle>
-                <Route className="h-5 w-5 text-accent" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold font-headline text-primary">{tripStats.totalDistanceKm.toFixed(0)} km</div>
-                <p className="text-xs text-muted-foreground font-body">
-                  Every kilometer tells a story.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium font-body">Trips Completed</CardTitle>
-                <CheckSquare className="h-5 w-5 text-accent" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold font-headline text-primary">{tripStats.completedTripsCount}</div>
-                <p className="text-xs text-muted-foreground font-body">
-                  Successfully concluded adventures.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-        
-        {!isLoadingStats && tripStats?.totalTrips === 0 && (
-            <Card className="col-span-full text-center py-10 shadow-lg">
-                <CardHeader>
-                    <CardTitle className="font-headline text-2xl text-primary">Ready for Adventure?</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <p className="font-body text-muted-foreground">
-                        You haven't logged any trips yet. It's time to start planning your first journey!
-                    </p>
-                    <Link href="/tripplanner" passHref>
-                        <Button className="bg-accent hover:bg-accent/90 text-accent-foreground font-body">
-                            <Route className="mr-2 h-4 w-4" /> Plan Your First Trip
-                        </Button>
-                    </Link>
-                </CardContent>
-            </Card>
-        )}
-
-        {!isLoadingStats && !tripStats && (
-            <Card className="col-span-full text-center py-10 shadow-lg">
-                <CardHeader>
-                    <CardTitle className="font-headline text-2xl text-destructive">Oops!</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="font-body text-muted-foreground">
-                        Could not load your trip statistics at the moment. Please try again later.
-                    </p>
-                </CardContent>
-            </Card>
-        )}
-      </section>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }
