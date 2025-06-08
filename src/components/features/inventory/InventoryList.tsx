@@ -12,12 +12,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, Settings2, Link2 as Link2Icon, StickyNote, PackageSearch, Droplet } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, Settings2, Link2 as Link2Icon, StickyNote, PackageSearch, Droplet, Archive } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label as RechartsLabel } from 'recharts';
 import { Slider } from "@/components/ui/slider";
+import { Progress } from '@/components/ui/progress';
 
 interface InventoryListProps {
   caravanSpecs: CaravanWeightData;
@@ -137,11 +138,7 @@ export function InventoryList({
     return atmLimit > 0 ? atmLimit - currentCaravanMass : 0;
   }, [atmLimit, currentCaravanMass]);
   
-  // For simplicity, current towball calculation doesn't consider water tank positions for now.
-  // A more advanced calculation would distribute water weight based on tank longitudinal position.
   const estimatedTowballDownload = useMemo(() => {
-    // Simplified: 10% of combined inventory and water payload on towball.
-    // More accurate calculation would involve distributing item weights based on their location.
     const totalPayloadWeight = totalInventoryWeight + totalWaterWeight;
     const calculated = totalPayloadWeight * 0.1; 
     return typeof calculated === 'number' && !isNaN(calculated) ? Math.max(0, calculated) : 0;
@@ -287,25 +284,50 @@ export function InventoryList({
     return typeof value === 'number' && !isNaN(value) ? value.toFixed(1) : '--';
   };
 
-  const combinedStorageLocations = useMemo(() => {
+  const enrichedCombinedStorageLocations = useMemo(() => {
     const caravanLocs = (activeCaravanStorageLocations || []).map(loc => ({
-      id: `cv-${loc.id}`, // Ensure unique ID across types
-      name: `CV: ${loc.name} (${loc.longitudinalPosition} / ${loc.lateralPosition})`,
-      originalId: loc.id,
+      id: `cv-${loc.id}`,
+      name: `CV: ${loc.name}`,
+      details: `(${loc.longitudinalPosition} / ${loc.lateralPosition})`,
+      maxWeightCapacityKg: loc.maxWeightCapacityKg,
+      type: 'caravan' as 'caravan' | 'vehicle',
     }));
     const vehicleLocs = (activeVehicleStorageLocations || []).map(loc => ({
-      id: `veh-${loc.id}`, // Ensure unique ID
-      name: `VEH: ${loc.name} (${loc.longitudinalPosition} / ${loc.lateralPosition})`,
-      originalId: loc.id,
+      id: `veh-${loc.id}`,
+      name: `VEH: ${loc.name}`,
+      details: `(${loc.longitudinalPosition} / ${loc.lateralPosition})`,
+      maxWeightCapacityKg: loc.maxWeightCapacityKg,
+      type: 'vehicle' as 'caravan' | 'vehicle',
     }));
     return [...caravanLocs, ...vehicleLocs];
   }, [activeCaravanStorageLocations, activeVehicleStorageLocations]);
 
   const getLocationNameById = (locationIdWithPrefix: string | null | undefined): string => {
     if (!locationIdWithPrefix) return 'Unassigned';
-    const foundLocation = combinedStorageLocations.find(loc => loc.id === locationIdWithPrefix);
-    return foundLocation ? foundLocation.name.replace(/^(CV: |VEH: )/, '') : 'Unknown Location';
+    const foundLocation = enrichedCombinedStorageLocations.find(loc => loc.id === locationIdWithPrefix);
+    return foundLocation ? `${foundLocation.name} ${foundLocation.details}` : 'Unknown Location';
   };
+  
+  const capacityTrackedLocations = useMemo(() => {
+    return enrichedCombinedStorageLocations.filter(
+      loc => typeof loc.maxWeightCapacityKg === 'number' && loc.maxWeightCapacityKg > 0
+    );
+  }, [enrichedCombinedStorageLocations]);
+
+  const locationWeights = useMemo(() => {
+    const weightsMap = new Map<string, number>();
+    // Initialize all capacity-tracked locations with 0 weight
+    capacityTrackedLocations.forEach(loc => weightsMap.set(loc.id, 0));
+
+    items.forEach(item => {
+      if (item.locationId && weightsMap.has(item.locationId)) {
+        const currentWeight = weightsMap.get(item.locationId) || 0;
+        const itemTotalWeight = (typeof item.weight === 'number' ? item.weight : 0) * (typeof item.quantity === 'number' ? item.quantity : 0);
+        weightsMap.set(item.locationId, currentWeight + itemTotalWeight);
+      }
+    });
+    return weightsMap;
+  }, [items, capacityTrackedLocations]);
 
 
   return (
@@ -341,19 +363,19 @@ export function InventoryList({
             <Select
               value={itemLocationId || "none"}
               onValueChange={(value) => setItemLocationId(value === "none" ? null : value)}
-              disabled={isFormDisabled || combinedStorageLocations.length === 0}
+              disabled={isFormDisabled || enrichedCombinedStorageLocations.length === 0}
             >
               <SelectTrigger className="font-body bg-white dark:bg-neutral-800">
                 <SelectValue placeholder="Select location" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Unassigned</SelectItem>
-                {combinedStorageLocations.map(loc => (
-                  <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                {enrichedCombinedStorageLocations.map(loc => (
+                  <SelectItem key={loc.id} value={loc.id}>{loc.name} {loc.details}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {activeCaravanId && combinedStorageLocations.length === 0 && (
+            {activeCaravanId && enrichedCombinedStorageLocations.length === 0 && (
                  <p className="text-xs text-muted-foreground font-body mt-1">No storage locations defined for active caravan/vehicle. Add them in 'Vehicles'.</p>
             )}
           </div>
@@ -405,59 +427,102 @@ export function InventoryList({
              <p className="text-muted-foreground text-center font-body">No inventory items added for the active caravan yet.</p>
         )}
 
-        {/* Water Tank Levels Section */}
         {activeCaravanId && activeCaravanWaterTanks && activeCaravanWaterTanks.length > 0 && (
           <Card className="mt-6">
             <CardHeader>
               <CardTitle className="font-headline flex items-center"><Droplet className="mr-2 h-5 w-5 text-primary" />Water Tank Status</CardTitle>
-              <CardContent className="pt-4 px-2 space-y-4">
-                {activeCaravanWaterTanks.map(tank => (
-                  <div key={tank.id} className="space-y-2 border-b pb-3 last:border-b-0 last:pb-0">
-                    <div className="flex justify-between items-center">
-                      <Label htmlFor={`water-${tank.id}`} className="font-body font-medium">
-                        {tank.name} ({tank.capacityLiters}L - {tank.type})
-                      </Label>
-                       <span className="text-sm font-body text-muted-foreground">
-                          {waterTankLevels[tank.id] || 0}% ({((tank.capacityLiters * (waterTankLevels[tank.id] || 0)) / 100).toFixed(1)} kg)
-                       </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Input
-                            id={`water-${tank.id}`}
-                            type="number"
-                            min="0"
-                            max="100"
-                            value={waterTankLevels[tank.id] || 0}
-                            onChange={(e) => onUpdateWaterTankLevel(tank.id, parseInt(e.target.value, 10) || 0)}
-                            className="font-body h-8 w-20 text-sm"
-                            disabled={isFormDisabled}
-                        />
-                        <Slider
-                            value={[waterTankLevels[tank.id] || 0]}
-                            onValueChange={(value) => onUpdateWaterTankLevel(tank.id, value[0])}
-                            max={100}
-                            step={5}
-                            className="flex-grow"
-                            disabled={isFormDisabled}
-                        />
-                    </div>
-                    <p className="text-xs text-muted-foreground font-body">
-                      Position: {tank.longitudinalPosition} / {tank.lateralPosition}
-                      {tank.distanceFromAxleCenterMm !== null && ` (${tank.distanceFromAxleCenterMm > 0 ? '+' : ''}${tank.distanceFromAxleCenterMm}mm from axle)`}
-                    </p>
-                  </div>
-                ))}
-                <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-700 text-xs mt-2">
-                  <Droplet className="h-4 w-4 text-blue-600" />
-                  <AlertTitle className="font-headline text-blue-700">Note</AlertTitle>
-                  <AlertDescription className="font-body">
-                    Water weight is calculated at 1kg per liter. Fill levels are saved per caravan.
-                    Current towball mass estimation includes water weight simply as 10% of total payload, but does not yet account for precise tank locations for towball mass.
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
             </CardHeader>
-             <TableCaption className="font-body text-base mt-2">Total Water Weight: {totalWaterWeight.toFixed(1)} kg</TableCaption>
+            <CardContent className="pt-4 px-2 space-y-4">
+              {activeCaravanWaterTanks.map(tank => (
+                <div key={tank.id} className="space-y-2 border-b pb-3 last:border-b-0 last:pb-0">
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor={`water-${tank.id}`} className="font-body font-medium">
+                      {tank.name} ({tank.capacityLiters}L - {tank.type})
+                    </Label>
+                     <span className="text-sm font-body text-muted-foreground">
+                        {waterTankLevels[tank.id] || 0}% ({((tank.capacityLiters * (waterTankLevels[tank.id] || 0)) / 100).toFixed(1)} kg)
+                     </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                      <Input
+                          id={`water-${tank.id}`}
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={waterTankLevels[tank.id] || 0}
+                          onChange={(e) => onUpdateWaterTankLevel(tank.id, parseInt(e.target.value, 10) || 0)}
+                          className="font-body h-8 w-20 text-sm"
+                          disabled={isFormDisabled}
+                      />
+                      <Slider
+                          value={[waterTankLevels[tank.id] || 0]}
+                          onValueChange={(value) => onUpdateWaterTankLevel(tank.id, value[0])}
+                          max={100}
+                          step={5}
+                          className="flex-grow"
+                          disabled={isFormDisabled}
+                      />
+                  </div>
+                  <p className="text-xs text-muted-foreground font-body">
+                    Position: {tank.longitudinalPosition} / {tank.lateralPosition}
+                    {tank.distanceFromAxleCenterMm !== null && typeof tank.distanceFromAxleCenterMm === 'number' && ` (${tank.distanceFromAxleCenterMm > 0 ? '+' : ''}${tank.distanceFromAxleCenterMm}mm from axle)`}
+                  </p>
+                </div>
+              ))}
+              <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-700 text-xs mt-2">
+                <Droplet className="h-4 w-4 text-blue-600" />
+                <AlertTitle className="font-headline text-blue-700">Note</AlertTitle>
+                <AlertDescription className="font-body">
+                  Water weight is calculated at 1kg per liter. Fill levels are saved per caravan.
+                  Current towball mass estimation includes water weight simply as 10% of total payload, but does not yet account for precise tank locations for towball mass.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+            <TableCaption className="font-body text-base mt-2">Total Water Weight: {totalWaterWeight.toFixed(1)} kg</TableCaption>
+          </Card>
+        )}
+
+        {capacityTrackedLocations.length > 0 && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="font-headline flex items-center">
+                <Archive className="mr-2 h-5 w-5 text-primary" />
+                Storage Location Load Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+              {capacityTrackedLocations.map(loc => {
+                const currentWeightInLoc = locationWeights.get(loc.id) || 0;
+                const maxCapacity = loc.maxWeightCapacityKg!; // We filtered for this earlier
+                const percentage = maxCapacity > 0 ? Math.min((currentWeightInLoc / maxCapacity) * 100, 100) : 0; // Cap at 100 for progress bar
+                const isOverloaded = currentWeightInLoc > maxCapacity;
+
+                return (
+                  <Card key={loc.id} className={`shadow-sm ${isOverloaded ? 'border-destructive bg-destructive/10' : ''}`}>
+                    <CardHeader className="pb-2 pt-4">
+                      <CardTitle className="text-base font-body font-semibold flex items-center">
+                        {loc.type === 'caravan' ? <HomeIcon className="w-4 h-4 mr-2 text-primary/80" /> : <Car className="w-4 h-4 mr-2 text-primary/80" />}
+                        {loc.name}
+                      </CardTitle>
+                      <CardDescription className="text-xs font-body">{loc.details}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-1 text-sm font-body pb-4">
+                      <p>
+                        Load: {currentWeightInLoc.toFixed(1)}kg / {maxCapacity.toFixed(0)}kg
+                      </p>
+                      <Progress value={percentage} className={`${isOverloaded ? '[&>div]:bg-destructive': ''} h-2`} />
+                      <p className={`text-xs ${isOverloaded ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
+                        {percentage.toFixed(0)}% full
+                        {isOverloaded && ` - OVERLOADED by ${(currentWeightInLoc - maxCapacity).toFixed(1)}kg!`}
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </CardContent>
+             {capacityTrackedLocations.length === 0 && (
+                <CardContent><p className="text-sm text-muted-foreground text-center font-body">No storage locations with defined capacities found for active caravan/vehicle.</p></CardContent>
+            )}
           </Card>
         )}
 
