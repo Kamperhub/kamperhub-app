@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe } from 'lucide-react';
+import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, Settings2 } from 'lucide-react'; // Added Settings2
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label as RechartsLabel } from 'recharts';
@@ -494,6 +494,7 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, initialCara
             <p><strong>ATM (Aggregate Trailer Mass):</strong> { (atmLimit > 0) ? `${atmLimit.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max loaded, uncoupled)</span></p>
             <p><strong>GTM (Gross Trailer Mass):</strong> { (gtmLimit > 0) ? `${gtmLimit.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max on axles, coupled)</span></p>
             <p><strong>Caravan Max Towball:</strong> { (caravanMaxTowballDownloadLimit > 0) ? `${caravanMaxTowballDownloadLimit.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max downward force on towbar by caravan)</span></p>
+            <p><strong>Number of Axles:</strong> {caravanSpecs.numberOfAxles ? caravanSpecs.numberOfAxles : 'N/A'}</p>
            </div>
            {activeTowVehicleSpecs && activeTowVehicleSpecs.make && (
             <div>

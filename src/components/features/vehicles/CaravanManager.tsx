@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { CaravanForm } from './CaravanForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, ShieldAlert } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, ShieldAlert, Settings2 } from 'lucide-react'; // Changed to Settings2 for axles
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/hooks/useSubscription'; // Import useSubscription
 import Link from 'next/link';
@@ -247,11 +247,12 @@ export function CaravanManager() {
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="font-semibold font-body text-lg">{caravan.year} {caravan.make} {caravan.model}</h3>
-                <div className="text-sm text-muted-foreground font-body grid grid-cols-2 gap-x-4">
+                <div className="text-sm text-muted-foreground font-body grid grid-cols-2 md:grid-cols-3 gap-x-4">
                   <span>Tare: {caravan.tareMass}kg</span>
                   <span>ATM: {caravan.atm}kg</span>
                   <span>GTM: {caravan.gtm}kg</span>
                   <span>Towball: {caravan.maxTowballDownload}kg</span>
+                  <span className="flex items-center"><Settings2 className="w-3 h-3 mr-1 text-primary/70"/> Axles: {caravan.numberOfAxles}</span>
                 </div>
               </div>
                <div className="flex flex-col sm:flex-row gap-2 items-end sm:items-center">

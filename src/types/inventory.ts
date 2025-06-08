@@ -11,6 +11,9 @@ export interface CaravanWeightData {
   atm: number; // kg, Aggregate Trailer Mass, from CaravanForm
   gtm: number; // kg, Gross Trailer Mass, from CaravanForm
   maxTowballDownload: number; // kg, from CaravanForm
+  numberOfAxles: number; // New field from CaravanForm
+  make?: string; // Optional: for display purposes on inventory page
+  model?: string; // Optional: for display purposes on inventory page
 }
 
 // Key for storing inventories for multiple caravans
@@ -26,4 +29,7 @@ export const mockCaravanWeightData: CaravanWeightData = {
   atm: 2500,
   gtm: 2350,
   maxTowballDownload: 250,
+  numberOfAxles: 1,
+  make: "MockMake",
+  model: "MockModel"
 };

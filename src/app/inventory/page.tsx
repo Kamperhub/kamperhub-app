@@ -20,6 +20,9 @@ const defaultCaravanSpecs: CaravanWeightData = {
   atm: 0,
   gtm: 0,
   maxTowballDownload: 0,
+  numberOfAxles: 1, // Added default for numberOfAxles
+  make: undefined, // Optional make for display
+  model: undefined, // Optional model for display
 };
 
 const defaultVehicleSpecs: StoredVehicle = {
@@ -77,6 +80,9 @@ export default function InventoryPage() {
               atm: activeCaravan.atm,
               gtm: activeCaravan.gtm,
               maxTowballDownload: activeCaravan.maxTowballDownload,
+              numberOfAxles: activeCaravan.numberOfAxles, // Load numberOfAxles
+              make: activeCaravan.make, // Store make for display
+              model: activeCaravan.model, // Store model for display
             });
             setActiveCaravanName(`${activeCaravan.year} ${activeCaravan.make} ${activeCaravan.model}`);
             

@@ -7,6 +7,7 @@ export interface CaravanFormData {
   atm: number; // Aggregate Trailer Mass
   gtm: number; // Gross Trailer Mass
   maxTowballDownload: number;
+  numberOfAxles: number; // New field
 }
 
 export interface StoredCaravan extends CaravanFormData {
