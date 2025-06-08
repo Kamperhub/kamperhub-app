@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { CaravanFormData } from '@/types/caravan'; // Assuming new fields will be added here later
+import type { CaravanFormData } from '@/types/caravan';
 import type { StoredWDH } from '@/types/wdh';
 import { WDHS_STORAGE_KEY } from '@/types/wdh';
 import { Button } from '@/components/ui/button';
@@ -14,8 +14,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, XCircle } from 'lucide-react';
 
-// Assuming CaravanFormData will be updated to include these new fields
-// If not, this schema will cause type errors with the StoredCaravan type later.
 const caravanSchema = z.object({
   make: z.string().min(1, "Make is required"),
   model: z.string().min(1, "Model is required"),
@@ -41,26 +39,17 @@ const caravanSchema = z.object({
     path: ["bodyLength"],
 });
 
-// Temporarily using a broader type for the form data until CaravanFormData is updated
-type ExtendedCaravanFormData = CaravanFormData & {
-  overallLength?: number | null;
-  bodyLength?: number | null;
-  overallHeight?: number | null;
-  hitchToAxleCenterDistance?: number | null;
-  interAxleSpacing?: number | null;
-};
-
 interface CaravanFormProps {
-  initialData?: ExtendedCaravanFormData; // Use extended type for initialData
-  onSave: (data: ExtendedCaravanFormData) => void; // Use extended type for onSave
+  initialData?: CaravanFormData;
+  onSave: (data: CaravanFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
 
 export function CaravanForm({ initialData, onSave, onCancel, isLoading }: CaravanFormProps) {
   const [availableWdhs, setAvailableWdhs] = useState<StoredWDH[]>([]);
-
-  const defaultFormValues: ExtendedCaravanFormData = {
+  
+  const defaultFormValues: CaravanFormData = {
     make: '',
     model: '',
     year: new Date().getFullYear(),
@@ -76,8 +65,8 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
     hitchToAxleCenterDistance: null,
     interAxleSpacing: null,
   };
-
-  const { control, register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<ExtendedCaravanFormData>({
+  
+  const { control, register, handleSubmit, formState: { errors }, reset, watch } = useForm<CaravanFormData>({
     resolver: zodResolver(caravanSchema),
     defaultValues: initialData ? { ...defaultFormValues, ...initialData } : defaultFormValues,
   });
@@ -94,11 +83,10 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
   }, []);
   
   useEffect(() => {
-    // Reset the form if initialData changes or to set initial default values
     reset(initialData ? { ...defaultFormValues, ...initialData, associatedWdhId: initialData.associatedWdhId || null } : defaultFormValues);
-  }, [initialData, reset]); // Removed defaultFormValues from dependency array as it's stable
+  }, [initialData, reset]);
 
-  const onSubmit: SubmitHandler<ExtendedCaravanFormData> = (data) => {
+  const onSubmit: SubmitHandler<CaravanFormData> = (data) => {
     const numericData = {
       ...data,
       overallLength: data.overallLength ? Number(data.overallLength) : null,
@@ -166,7 +154,6 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
         </div>
       </div>
       
-      {/* New dimension fields from user's snippet */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="overallLength" className="font-body">Overall Length (mm) (Optional)</Label>
@@ -201,7 +188,6 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
             {errors.interAxleSpacing && <p className="text-sm text-destructive font-body mt-1">{errors.interAxleSpacing.message}</p>}
         </div>
       )}
-      {/* End of new dimension fields */}
 
        <div>
         <Label htmlFor="associatedWdhId" className="font-body">Associated WDH (Optional)</Label>

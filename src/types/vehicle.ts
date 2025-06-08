@@ -8,9 +8,10 @@ export interface VehicleFormData {
   maxTowCapacity: number;
   maxTowballMass: number;
   fuelEfficiency: number; // L/100km
-  kerbWeight: number; // New: Weight of the vehicle with a full tank of fuel, without occupants or cargo
-  frontAxleLimit: number; // New: Max permissible load on the front axle
-  rearAxleLimit: number; // New: Max permissible load on the rear axle
+  kerbWeight?: number; // Weight of the vehicle with a full tank of fuel, without occupants or cargo
+  frontAxleLimit?: number; // Max permissible load on the front axle
+  rearAxleLimit?: number; // Max permissible load on the rear axle
+  wheelbase?: number | null; // New: Vehicle wheelbase in mm
 }
 
 export interface StoredVehicle extends VehicleFormData {

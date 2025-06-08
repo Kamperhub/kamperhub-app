@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { VehicleForm } from './VehicleForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, ShieldAlert, Weight, Axe } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, ShieldAlert, Weight, Axe, Car } from 'lucide-react'; // Added Car icon
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/hooks/useSubscription'; 
 import Link from 'next/link';
@@ -228,6 +228,7 @@ export function VehicleManager() {
                   <span className="flex items-center"><Weight className="w-3 h-3 mr-1 text-primary/70"/> Kerb: { (typeof vehicle.kerbWeight === 'number' && vehicle.kerbWeight > 0) ? `${vehicle.kerbWeight}kg` : 'N/A'}</span>
                   <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 rotate-90"/> F Axle: { (typeof vehicle.frontAxleLimit === 'number' && vehicle.frontAxleLimit > 0) ? `${vehicle.frontAxleLimit}kg` : 'N/A'}</span>
                   <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 -rotate-90"/> R Axle: { (typeof vehicle.rearAxleLimit === 'number' && vehicle.rearAxleLimit > 0) ? `${vehicle.rearAxleLimit}kg` : 'N/A'}</span>
+                  <span className="flex items-center"><Car className="w-3 h-3 mr-1 text-primary/70"/> Wheelbase: { (typeof vehicle.wheelbase === 'number' && vehicle.wheelbase > 0) ? `${vehicle.wheelbase}mm` : 'N/A'}</span>
                   <span className="flex items-center"><Fuel className="w-3 h-3 mr-1 text-primary/70"/> {vehicle.fuelEfficiency}L/100km</span>
                 </div>
               </div>
@@ -256,4 +257,3 @@ export function VehicleManager() {
     </Card>
   );
 }
-

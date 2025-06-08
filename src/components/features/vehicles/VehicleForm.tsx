@@ -20,9 +20,10 @@ const vehicleSchema = z.object({
   maxTowCapacity: z.coerce.number().positive("Max Towing Capacity must be positive"),
   maxTowballMass: z.coerce.number().positive("Max Towball Mass must be positive"),
   fuelEfficiency: z.coerce.number().min(0.1, "Fuel efficiency must be positive (L/100km)").max(100, "Fuel efficiency seems too high (max 100 L/100km)"),
-  kerbWeight: z.coerce.number().min(1, "Kerb Weight must be a positive number").optional(),
-  frontAxleLimit: z.coerce.number().min(1, "Front Axle Limit must be a positive number").optional(),
-  rearAxleLimit: z.coerce.number().min(1, "Rear Axle Limit must be a positive number").optional(),
+  kerbWeight: z.coerce.number().min(1, "Kerb Weight must be a positive number").optional().nullable(),
+  frontAxleLimit: z.coerce.number().min(1, "Front Axle Limit must be a positive number").optional().nullable(),
+  rearAxleLimit: z.coerce.number().min(1, "Rear Axle Limit must be a positive number").optional().nullable(),
+  wheelbase: z.coerce.number().min(1000, "Wheelbase seems too short (min 1000mm)").optional().nullable(),
 });
 
 interface VehicleFormProps {
@@ -33,47 +34,41 @@ interface VehicleFormProps {
 }
 
 export function VehicleForm({ initialData, onSave, onCancel, isLoading }: VehicleFormProps) {
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<VehicleFormData>({
-    resolver: zodResolver(vehicleSchema),
-    defaultValues: initialData || {
-      make: '',
-      model: '',
-      year: new Date().getFullYear(),
-      gvm: 0,
-      gcm: 0,
-      maxTowCapacity: 0,
-      maxTowballMass: 0,
-      fuelEfficiency: 10,
-      kerbWeight: 0,
-      frontAxleLimit: 0,
-      rearAxleLimit: 0,
-    },
-  });
-
-  const onSubmit: SubmitHandler<VehicleFormData> = (data) => {
-    onSave(data);
-    // reset(); // Reset is handled by dialog close or manager
+  const defaultFormValues: VehicleFormData = {
+    make: '',
+    model: '',
+    year: new Date().getFullYear(),
+    gvm: 0,
+    gcm: 0,
+    maxTowCapacity: 0,
+    maxTowballMass: 0,
+    fuelEfficiency: 10,
+    kerbWeight: 0,
+    frontAxleLimit: 0,
+    rearAxleLimit: 0,
+    wheelbase: null,
   };
 
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<VehicleFormData>({
+    resolver: zodResolver(vehicleSchema),
+    defaultValues: initialData ? { ...defaultFormValues, ...initialData } : defaultFormValues,
+  });
+
   React.useEffect(() => {
-    if (initialData) {
-      reset(initialData);
-    } else {
-      reset({
-        make: '',
-        model: '',
-        year: new Date().getFullYear(),
-        gvm: 0,
-        gcm: 0,
-        maxTowCapacity: 0,
-        maxTowballMass: 0,
-        fuelEfficiency: 10,
-        kerbWeight: 0,
-        frontAxleLimit: 0,
-        rearAxleLimit: 0,
-      });
-    }
+    reset(initialData ? { ...defaultFormValues, ...initialData } : defaultFormValues);
   }, [initialData, reset]);
+
+  const onSubmit: SubmitHandler<VehicleFormData> = (data) => {
+    const numericData = {
+        ...data,
+        kerbWeight: data.kerbWeight ? Number(data.kerbWeight) : null,
+        frontAxleLimit: data.frontAxleLimit ? Number(data.frontAxleLimit) : null,
+        rearAxleLimit: data.rearAxleLimit ? Number(data.rearAxleLimit) : null,
+        wheelbase: data.wheelbase ? Number(data.wheelbase) : null,
+    };
+    onSave(numericData as VehicleFormData); // Cast as VehicleFormData if necessary
+  };
+
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -96,7 +91,7 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
           {errors.year && <p className="text-sm text-destructive font-body mt-1">{errors.year.message}</p>}
         </div>
         <div>
-          <Label htmlFor="kerbWeight" className="font-body">Kerb Weight (kg)</Label>
+          <Label htmlFor="kerbWeight" className="font-body">Kerb Weight (kg) (Optional)</Label>
           <Input id="kerbWeight" type="number" {...register("kerbWeight")} placeholder="e.g., 2200" className="font-body" />
           <p className="text-xs text-muted-foreground font-body mt-1">Weight of empty vehicle with full fuel tank.</p>
           {errors.kerbWeight && <p className="text-sm text-destructive font-body mt-1">{errors.kerbWeight.message}</p>}
@@ -132,32 +127,40 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
       </div>
        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="frontAxleLimit" className="font-body">Front Axle Limit (kg)</Label>
+          <Label htmlFor="frontAxleLimit" className="font-body">Front Axle Limit (kg) (Optional)</Label>
           <Input id="frontAxleLimit" type="number" {...register("frontAxleLimit")} placeholder="e.g., 1500" className="font-body" />
           <p className="text-xs text-muted-foreground font-body mt-1">Max load on front axle.</p>
           {errors.frontAxleLimit && <p className="text-sm text-destructive font-body mt-1">{errors.frontAxleLimit.message}</p>}
         </div>
         <div>
-          <Label htmlFor="rearAxleLimit" className="font-body">Rear Axle Limit (kg)</Label>
+          <Label htmlFor="rearAxleLimit" className="font-body">Rear Axle Limit (kg) (Optional)</Label>
           <Input id="rearAxleLimit" type="number" {...register("rearAxleLimit")} placeholder="e.g., 1800" className="font-body" />
           <p className="text-xs text-muted-foreground font-body mt-1">Max load on rear axle.</p>
           {errors.rearAxleLimit && <p className="text-sm text-destructive font-body mt-1">{errors.rearAxleLimit.message}</p>}
         </div>
       </div>
-      <div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="wheelbase" className="font-body">Wheelbase (mm) (Optional)</Label>
+          <Input id="wheelbase" type="number" {...register("wheelbase")} placeholder="e.g., 3220" className="font-body" />
+          <p className="text-xs text-muted-foreground font-body mt-1">Distance between front and rear axles.</p>
+          {errors.wheelbase && <p className="text-sm text-destructive font-body mt-1">{errors.wheelbase.message}</p>}
+        </div>
+        <div>
           <Label htmlFor="fuelEfficiency" className="font-body">Fuel Efficiency (L/100km)</Label>
           <Input id="fuelEfficiency" type="number" step="0.1" {...register("fuelEfficiency")} placeholder="e.g., 12.5" className="font-body" />
           <p className="text-xs text-muted-foreground font-body mt-1">
             Expected efficiency (towing typically increases consumption).
           </p>
           {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
+        </div>
       </div>
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading} className="font-body">
           <XCircle className="mr-2 h-4 w-4" /> Cancel
         </Button>
         <Button type="submit" disabled={isLoading} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body">
-          <Save className="mr-2 h-4 w-4" /> Save Vehicle
+          <Save className="mr-2 h-4 w-4" /> {initialData ? 'Update Vehicle' : 'Save Vehicle'}
         </Button>
       </div>
     </form>

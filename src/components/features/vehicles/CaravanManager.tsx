@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { CaravanForm } from './CaravanForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, ShieldAlert, Settings2, Link2 as LinkIcon } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, ShieldAlert, Settings2, Link2 as LinkIcon, Ruler } from 'lucide-react'; // Added Ruler
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/hooks/useSubscription'; 
 import Link from 'next/link';
@@ -187,7 +187,6 @@ export function CaravanManager() {
       }
     } else {
       saveActiveWdhIdToStorage(null);
-      // Updated toast message for clarity when no WDH is associated
       toastMessage += ` No WDH associated with this caravan. Any previously active WDH has been cleared.`;
     }
     toast({ title: "Active Caravan Set", description: toastMessage });
@@ -218,8 +217,11 @@ export function CaravanManager() {
     if (!wdhId) return null;
     const wdh = allWdhs.find(w => w.id === wdhId);
     if (wdh) return wdh.name;
-    // Updated display for a WDH ID that doesn't match any stored WDHs
     return `WDH (ID: ${wdhId.substring(0,6)}...) not found`;
+  };
+
+  const formatDimension = (value: number | null | undefined) => {
+    return typeof value === 'number' && value > 0 ? `${value}mm` : 'N/A';
   };
 
   if (!hasMounted || isSubscriptionLoading) {
@@ -306,6 +308,13 @@ export function CaravanManager() {
                   {caravan.associatedWdhId && getWdhNameById(caravan.associatedWdhId) && (
                      <span className="flex items-center col-span-full sm:col-span-1"><LinkIcon className="w-3 h-3 mr-1 text-primary/70"/> WDH: {getWdhNameById(caravan.associatedWdhId)}</span>
                   )}
+                  <span className="flex items-center col-span-full sm:col-span-1"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Overall Len: {formatDimension(caravan.overallLength)}</span>
+                  <span className="flex items-center col-span-full sm:col-span-1"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Body Len: {formatDimension(caravan.bodyLength)}</span>
+                  <span className="flex items-center col-span-full sm:col-span-1"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Height: {formatDimension(caravan.overallHeight)}</span>
+                  <span className="flex items-center col-span-full sm:col-span-1"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Hitch-Axle: {formatDimension(caravan.hitchToAxleCenterDistance)}</span>
+                  {Number(caravan.numberOfAxles) > 1 && caravan.interAxleSpacing && (
+                    <span className="flex items-center col-span-full sm:col-span-1"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Inter-Axle: {formatDimension(caravan.interAxleSpacing)}</span>
+                  )}
                 </div>
               </div>
                <div className="flex flex-col sm:flex-row gap-2 items-end sm:items-center">
@@ -333,4 +342,3 @@ export function CaravanManager() {
     </Card>
   );
 }
-
