@@ -83,19 +83,13 @@ export default function TripLogPage() {
     const details = encodeURIComponent(`Trip from ${trip.startLocationDisplay} to ${trip.endLocationDisplay}.\nDistance: ${trip.routeDetails.distance}, Duration: ${trip.routeDetails.duration}.`);
     const location = encodeURIComponent(trip.endLocationDisplay);
 
-    // Format dates for Google Calendar URL (YYYYMMDD/YYYYMMDD)
-    // For all-day events, the end date in the URL should be the day *after* the actual end date.
     const startDateFormatted = format(parseISO(trip.plannedStartDate), "yyyyMMdd");
     let endDateFormatted: string;
 
     if (trip.plannedEndDate) {
-      // If there's an end date, the event spans from start date to end date (inclusive).
-      // Google Calendar needs the day *after* the end date for an inclusive all-day range.
       const actualEndDate = parseISO(trip.plannedEndDate);
       endDateFormatted = format(addDays(actualEndDate, 1), "yyyyMMdd");
     } else {
-      // If no end date, it's a single all-day event on the start date.
-      // Google Calendar needs the day *after* the start date for a single all-day event.
       endDateFormatted = format(addDays(parseISO(trip.plannedStartDate), 1), "yyyyMMdd");
     }
     
@@ -107,6 +101,11 @@ export default function TripLogPage() {
     toast({ title: "Opening Google Calendar", description: "Check the new tab to add the event."});
 
   }, [toast]);
+
+  const handleStartTrip = useCallback((tripId: string) => {
+    router.push(`/checklists?tripId=${tripId}`);
+    toast({ title: "Starting Trip", description: "Navigating to checklists..." });
+  }, [router, toast]);
 
 
   if (!isLocalStorageReady) {
@@ -127,7 +126,7 @@ export default function TripLogPage() {
           <History className="mr-3 h-8 w-8" /> Trip Log
         </h1>
         <p className="text-muted-foreground font-body mb-6">
-          Review your saved trips. You can recall them to the Trip Planner, add them to your calendar, or delete them.
+          Review your saved trips. You can recall them, start them (go to checklists), add to calendar, or delete.
         </p>
         <Alert variant="default" className="mb-6 bg-primary/10 border-primary/30">
           <AlertTriangle className="h-4 w-4 text-primary" />
@@ -151,6 +150,7 @@ export default function TripLogPage() {
               onDelete={handleDeleteTrip}
               onRecall={handleRecallTrip}
               onAddToCalendar={handleAddToCalendar}
+              onStartTrip={handleStartTrip} // Pass new handler
             />
           ))}
         </div>

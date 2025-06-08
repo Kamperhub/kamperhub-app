@@ -4,7 +4,7 @@
 import type { LoggedTrip } from '@/types/tripplanner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, Repeat, Route, Fuel, CalendarDays as CalendarIconLucide, CalendarPlus, StickyNote } from 'lucide-react'; // Renamed to avoid conflict
+import { Trash2, Repeat, Route, Fuel, CalendarDays as CalendarIconLucide, CalendarPlus, StickyNote, PlayCircle } from 'lucide-react'; // Added PlayCircle
 import { format, parseISO } from 'date-fns';
 
 interface TripLogItemProps {
@@ -12,9 +12,10 @@ interface TripLogItemProps {
   onDelete: (id: string) => void;
   onRecall: (trip: LoggedTrip) => void;
   onAddToCalendar: (trip: LoggedTrip) => void;
+  onStartTrip: (tripId: string) => void; // New prop
 }
 
-export function TripLogItem({ trip, onDelete, onRecall, onAddToCalendar }: TripLogItemProps) {
+export function TripLogItem({ trip, onDelete, onRecall, onAddToCalendar, onStartTrip }: TripLogItemProps) {
   const renderDateRange = () => {
     if (trip.plannedStartDate && trip.plannedEndDate) {
       const startDate = format(parseISO(trip.plannedStartDate), "PP");
@@ -72,7 +73,10 @@ export function TripLogItem({ trip, onDelete, onRecall, onAddToCalendar }: TripL
           </div>
         )}
       </CardContent>
-      <CardFooter className="flex justify-end gap-2 border-t pt-4">
+      <CardFooter className="flex flex-wrap justify-end gap-2 border-t pt-4">
+        <Button variant="default" size="sm" onClick={() => onStartTrip(trip.id)} className="font-body bg-green-600 hover:bg-green-700 text-white">
+          <PlayCircle className="mr-2 h-4 w-4" /> Start Trip
+        </Button>
         <Button variant="ghost" size="sm" onClick={() => onAddToCalendar(trip)} className="font-body text-primary" disabled={!trip.plannedStartDate}>
           <CalendarPlus className="mr-2 h-4 w-4" /> Calendar
         </Button>

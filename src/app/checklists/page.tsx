@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation'; // Import useSearchParams
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChecklistTabContent } from '@/components/features/checklists/ChecklistTabContent';
@@ -21,20 +22,18 @@ import { useToast } from '@/hooks/use-toast';
 
 type ManagementMode = 'trip' | 'caravanDefault';
 
-// Helper to create deep copies of checklist items with new unique IDs
 const createChecklistCopyWithNewIds = (items: readonly ChecklistItem[], prefix: string = 'item'): ChecklistItem[] => {
   return items.map(item => ({ ...item, id: `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}` }));
 };
 
 export default function ChecklistsPage() {
+  const searchParams = useSearchParams(); // For reading URL query parameters
   const [managementMode, setManagementMode] = useState<ManagementMode>('trip');
   
-  // Trip-specific states
   const [loggedTrips, setLoggedTrips] = useState<LoggedTrip[]>([]);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [currentTripChecklistSet, setCurrentTripChecklistSet] = useState<TripChecklistSet | null>(null);
   
-  // Caravan default-specific states
   const [storedCaravans, setStoredCaravans] = useState<StoredCaravan[]>([]);
   const [selectedCaravanIdForDefaults, setSelectedCaravanIdForDefaults] = useState<string | null>(null);
   const [currentCaravanDefaultChecklistSet, setCurrentCaravanDefaultChecklistSet] = useState<CaravanDefaultChecklistSet | null>(null);
@@ -47,25 +46,33 @@ export default function ChecklistsPage() {
     setIsLocalStorageReady(true);
   }, []);
 
-  // Load initial data (trips and caravans)
   useEffect(() => {
     if (isLocalStorageReady && typeof window !== 'undefined') {
       setIsLoading(true);
       try {
         const storedTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
-        setLoggedTrips(storedTripsJson ? JSON.parse(storedTripsJson).sort((a: LoggedTrip, b: LoggedTrip) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
+        const loadedTrips = storedTripsJson ? JSON.parse(storedTripsJson).sort((a: LoggedTrip, b: LoggedTrip) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : [];
+        setLoggedTrips(loadedTrips);
         
         const storedCaravansJson = localStorage.getItem(CARAVANS_STORAGE_KEY);
         setStoredCaravans(storedCaravansJson ? JSON.parse(storedCaravansJson) : []);
+
+        // Check for tripId from URL query parameters
+        const tripIdFromQuery = searchParams.get('tripId');
+        if (tripIdFromQuery && loadedTrips.some((trip: LoggedTrip) => trip.id === tripIdFromQuery)) {
+          setSelectedTripId(tripIdFromQuery);
+          setManagementMode('trip'); // Ensure correct tab is active
+          toast({ title: "Trip Selected", description: "Checklist loaded for the trip from your log." });
+        }
+
       } catch (e) {
         console.error("Error loading initial data for Checklists:", e);
         toast({ title: "Error loading data", variant: "destructive" });
       }
       setIsLoading(false);
     }
-  }, [isLocalStorageReady, toast]);
+  }, [isLocalStorageReady, toast, searchParams]);
 
-  // Effect for loading selected trip's checklist
   useEffect(() => {
     if (managementMode === 'trip' && selectedTripId && isLocalStorageReady) {
       try {
@@ -82,7 +89,6 @@ export default function ChecklistsPage() {
     }
   }, [managementMode, selectedTripId, isLocalStorageReady, toast]);
 
-  // Effect for loading selected caravan's default checklist
   useEffect(() => {
     if (managementMode === 'caravanDefault' && selectedCaravanIdForDefaults && isLocalStorageReady) {
       try {
@@ -177,7 +183,7 @@ export default function ChecklistsPage() {
         <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
           <ListChecks className="mr-3 h-8 w-8" /> Checklists
         </h1>
-        <Alert variant="default" className="mb-6 bg-accent border-accent/70">
+        <Alert variant="default" className="mb-6 bg-accent text-accent-foreground border-accent/70">
           <Info className="h-4 w-4 text-accent-foreground" />
           <AlertTitle className="font-headline text-accent-foreground">How Checklists Work Now</AlertTitle>
           <AlertDescription className="font-body text-accent-foreground/90 space-y-1">
