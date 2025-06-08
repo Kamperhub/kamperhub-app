@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import type { StoredCaravan, CaravanFormData, StorageLocation, WaterTank } from '@/types/caravan';
+import { CARAVANS_STORAGE_KEY, ACTIVE_CARAVAN_ID_KEY, WATER_TANK_LEVELS_STORAGE_KEY_PREFIX } from '@/types/caravan';
 import type { StoredWDH } from '@/types/wdh';
 import { WDHS_STORAGE_KEY, ACTIVE_WDH_ID_KEY } from '@/types/wdh';
 import type { CaravanInventories } from '@/types/inventory';
@@ -23,8 +24,6 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 
-const CARAVANS_STORAGE_KEY = 'kamperhub_caravans_list';
-const ACTIVE_CARAVAN_ID_KEY = 'kamperhub_active_caravan_id';
 const FREE_TIER_CARAVAN_LIMIT = 1; 
 
 export function CaravanManager() {
@@ -140,7 +139,7 @@ export function CaravanManager() {
   const handleDeleteCaravan = (id: string) => {
     if (!hasMounted || typeof window === 'undefined') return;
     const caravanToDelete = caravans.find(c => c.id === id);
-    if (window.confirm(`Are you sure you want to delete ${caravanToDelete?.make} ${caravanToDelete?.model}? This will also delete its inventory and checklists.`)) {
+    if (window.confirm(`Are you sure you want to delete ${caravanToDelete?.make} ${caravanToDelete?.model}? This will also delete its inventory, checklists, and water tank levels.`)) {
       const updatedCaravans = caravans.filter(c => c.id !== id);
       setCaravans(updatedCaravans);
       saveCaravansToStorage(updatedCaravans);
@@ -173,12 +172,19 @@ export function CaravanManager() {
         toast({ title: "Error Deleting Checklists", description: "Could not remove associated checklist data.", variant: "destructive" });
       }
 
+      try {
+        localStorage.removeItem(`${WATER_TANK_LEVELS_STORAGE_KEY_PREFIX}${id}`);
+      } catch (error) {
+        console.error("Error deleting caravan water tank levels from localStorage:", error);
+        toast({ title: "Error Deleting Water Levels", description: "Could not remove associated water tank level data.", variant: "destructive" });
+      }
+
       if (activeCaravanId === id) {
         setActiveCaravanId(null);
         saveActiveCaravanIdToStorage(null);
         saveActiveWdhIdToStorage(null); 
       }
-      toast({ title: "Caravan Deleted", description: `${caravanToDelete?.make} ${caravanToDelete?.model}, its inventory, and checklists have been removed.` });
+      toast({ title: "Caravan Deleted", description: `${caravanToDelete?.make} ${caravanToDelete?.model} and all its associated data have been removed.` });
     }
   };
 
@@ -245,7 +251,7 @@ export function CaravanManager() {
     const latText = {
       'left': 'Left',
       'center': 'Center',
-      'right': 'Right'
+      'right'
     }[item.lateralPosition] || item.lateralPosition;
     return `${longText} / ${latText}`;
   };
@@ -422,3 +428,4 @@ export function CaravanManager() {
     </Card>
   );
 }
+

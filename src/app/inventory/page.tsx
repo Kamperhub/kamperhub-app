@@ -5,8 +5,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { InventoryList } from '@/components/features/inventory/InventoryList';
 import type { StoredCaravan, StorageLocation, WaterTank } from '@/types/caravan'; 
-import { CARAVANS_STORAGE_KEY, ACTIVE_CARAVAN_ID_KEY } from '@/types/caravan';
-import type { StoredVehicle } from '@/types/vehicle';
+import { CARAVANS_STORAGE_KEY, ACTIVE_CARAVAN_ID_KEY, WATER_TANK_LEVELS_STORAGE_KEY_PREFIX } from '@/types/caravan';
+import type { StoredVehicle, VehicleStorageLocation } from '@/types/vehicle';
 import { VEHICLES_STORAGE_KEY, ACTIVE_VEHICLE_ID_KEY as ACTIVE_TOW_VEHICLE_ID_KEY } from '@/types/vehicle';
 import type { StoredWDH } from '@/types/wdh';
 import { WDHS_STORAGE_KEY, ACTIVE_WDH_ID_KEY } from '@/types/wdh';
@@ -49,8 +49,6 @@ const defaultWdhSpecs: StoredWDH = {
   maxCapacityKg: 0,
   hasIntegratedSwayControl: false,
 };
-
-const WATER_TANK_LEVELS_STORAGE_KEY_PREFIX = 'kamperhub_water_tank_levels_';
 
 export default function InventoryPage() {
   const [activeCaravanFull, setActiveCaravanFull] = useState<StoredCaravan | null>(null);

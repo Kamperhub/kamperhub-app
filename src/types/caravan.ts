@@ -12,25 +12,24 @@ export interface StorageLocation {
 
 export interface WaterTank {
   id: string;
-  name: string;
+  name: string; 
   type: 'fresh' | 'grey' | 'black';
   capacityLiters: number;
   longitudinalPosition: 'front-of-axles' | 'over-axles' | 'rear-of-axles';
   lateralPosition: 'left' | 'center' | 'right';
-  // Optional precise measurements for future advanced calculations
-  distanceFromAxleCenterMm?: number | null; 
+  distanceFromAxleCenterMm?: number | null;
 }
 
 export interface CaravanFormData {
   make: string;
   model: string;
   year: number;
-  tareMass: number; // Empty weight
-  atm: number; // Aggregate Trailer Mass
-  gtm: number; // Gross Trailer Mass
+  tareMass: number; 
+  atm: number; 
+  gtm: number; 
   maxTowballDownload: number;
   numberOfAxles: number;
-  associatedWdhId?: string | null; // ID of the associated WDH
+  associatedWdhId?: string | null; 
   overallLength?: number | null;
   bodyLength?: number | null;
   overallHeight?: number | null;
@@ -46,3 +45,5 @@ export interface StoredCaravan extends CaravanFormData {
 
 export const CARAVANS_STORAGE_KEY = 'kamperhub_caravans_list';
 export const ACTIVE_CARAVAN_ID_KEY = 'kamperhub_active_caravan_id';
+export const WATER_TANK_LEVELS_STORAGE_KEY_PREFIX = 'kamperhub_water_tank_levels_';
+
