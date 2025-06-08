@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { InventoryList } from '@/components/features/inventory/InventoryList';
-import type { StoredCaravan } from '@/types/caravan'; 
+import type { StoredCaravan, StorageLocation } from '@/types/caravan'; 
 import { CARAVANS_STORAGE_KEY, ACTIVE_CARAVAN_ID_KEY } from '@/types/caravan';
 import type { StoredVehicle } from '@/types/vehicle';
 import { VEHICLES_STORAGE_KEY, ACTIVE_VEHICLE_ID_KEY as ACTIVE_TOW_VEHICLE_ID_KEY } from '@/types/vehicle';
@@ -51,7 +51,7 @@ const defaultWdhSpecs: StoredWDH = {
 };
 
 export default function InventoryPage() {
-  const [caravanSpecs, setCaravanSpecs] = useState<CaravanWeightData | null>(null);
+  const [activeCaravanFull, setActiveCaravanFull] = useState<StoredCaravan | null>(null); // Store full caravan object
   const [activeCaravanName, setActiveCaravanName] = useState<string | null>(null);
   const [activeVehicleSpecs, setActiveVehicleSpecs] = useState<StoredVehicle | null>(null);
   const [activeWdhSpecs, setActiveWdhSpecs] = useState<StoredWDH | null>(null);
@@ -75,6 +75,7 @@ export default function InventoryPage() {
       setActiveWdhSpecs(null);
       setActiveCaravanId(null);
       setCurrentCaravanInventory([]);
+      setActiveCaravanFull(null);
 
       try {
         const currentActiveCaravanId = localStorage.getItem(ACTIVE_CARAVAN_ID_KEY);
@@ -87,15 +88,7 @@ export default function InventoryPage() {
           const activeCaravan = storedCaravans.find(c => c.id === currentActiveCaravanId);
 
           if (activeCaravan) {
-            setCaravanSpecs({
-              tareMass: activeCaravan.tareMass,
-              atm: activeCaravan.atm,
-              gtm: activeCaravan.gtm,
-              maxTowballDownload: activeCaravan.maxTowballDownload,
-              numberOfAxles: activeCaravan.numberOfAxles,
-              make: activeCaravan.make,
-              model: activeCaravan.model,
-            });
+            setActiveCaravanFull(activeCaravan); // Store the full object
             setActiveCaravanName(`${activeCaravan.year} ${activeCaravan.make} ${activeCaravan.model}`);
             
             const allInventoriesJson = localStorage.getItem(INVENTORY_STORAGE_KEY);
@@ -107,11 +100,11 @@ export default function InventoryPage() {
             }
           } else {
             setError("Active caravan data not found. Please re-select an active caravan in 'Vehicles'.");
-            setCaravanSpecs(defaultCaravanSpecs); 
+            setActiveCaravanFull(null); 
             setCurrentCaravanInventory([]);
           }
         } else {
-          setCaravanSpecs(null); 
+          setActiveCaravanFull(null); 
           setCurrentCaravanInventory([]);
         }
 
@@ -148,7 +141,7 @@ export default function InventoryPage() {
       } catch (e) {
         console.error("Error loading active data for Inventory:", e);
         setError("Could not load vehicle/caravan/WDH data or inventory. Please try again.");
-        setCaravanSpecs(defaultCaravanSpecs); 
+        setActiveCaravanFull(null); 
         setActiveVehicleSpecs(defaultVehicleSpecs);
         setActiveWdhSpecs(defaultWdhSpecs);
         setCurrentCaravanInventory([]);
@@ -174,6 +167,18 @@ export default function InventoryPage() {
     }
     return text;
   };
+
+  const caravanSpecsForList: CaravanWeightData = activeCaravanFull 
+    ? {
+        tareMass: activeCaravanFull.tareMass,
+        atm: activeCaravanFull.atm,
+        gtm: activeCaravanFull.gtm,
+        maxTowballDownload: activeCaravanFull.maxTowballDownload,
+        numberOfAxles: activeCaravanFull.numberOfAxles,
+        make: activeCaravanFull.make,
+        model: activeCaravanFull.model,
+      }
+    : defaultCaravanSpecs;
 
   if (!isLocalStorageReady || isLoading) {
     return (
@@ -208,7 +213,7 @@ export default function InventoryPage() {
         </Alert>
       )}
 
-      {!error && (!caravanSpecs || caravanSpecs.tareMass === 0 || !activeCaravanId) && (
+      {!error && (!activeCaravanFull || activeCaravanFull.tareMass === 0 || !activeCaravanId) && (
         <Alert variant="default" className="mb-6 bg-muted border-border">
           <Settings className="h-4 w-4 text-foreground" />
           <AlertTitle className="font-headline text-foreground">Active Caravan Required</AlertTitle>
@@ -254,7 +259,8 @@ export default function InventoryPage() {
       )}
       
       <InventoryList 
-        caravanSpecs={caravanSpecs || defaultCaravanSpecs}
+        caravanSpecs={caravanSpecsForList}
+        activeCaravanStorageLocations={activeCaravanFull?.storageLocations || []} // Pass storage locations
         activeTowVehicleSpecs={activeVehicleSpecs || defaultVehicleSpecs}
         activeWdhSpecs={activeWdhSpecs} 
         initialCaravanInventory={currentCaravanInventory}
@@ -263,4 +269,3 @@ export default function InventoryPage() {
     </div>
   );
 }
-

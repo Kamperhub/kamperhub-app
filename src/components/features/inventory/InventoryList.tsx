@@ -3,23 +3,26 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import type { InventoryItem, CaravanWeightData, CaravanInventories } from '@/types/inventory';
+import type { StorageLocation } from '@/types/caravan'; // Import StorageLocation
 import type { StoredVehicle } from '@/types/vehicle';
-import type { StoredWDH } from '@/types/wdh'; // Import StoredWDH
+import type { StoredWDH } from '@/types/wdh';
 import { INVENTORY_STORAGE_KEY } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, Settings2, Link2 as Link2Icon, StickyNote } from 'lucide-react'; // Added Link2Icon and StickyNote
+import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, Settings2, Link2 as Link2Icon, StickyNote, PackageSearch } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label as RechartsLabel } from 'recharts';
 
 interface InventoryListProps {
   caravanSpecs: CaravanWeightData;
+  activeCaravanStorageLocations?: StorageLocation[]; // New prop
   activeTowVehicleSpecs: StoredVehicle | null;
-  activeWdhSpecs: StoredWDH | null; // Add activeWdhSpecs prop
+  activeWdhSpecs: StoredWDH | null;
   initialCaravanInventory: InventoryItem[];
   activeCaravanId: string | null;
 }
@@ -51,11 +54,12 @@ const DonutChartCustomLabel = ({ viewBox, value, limit, unit, name }: { viewBox?
 };
 
 
-export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, activeWdhSpecs, initialCaravanInventory, activeCaravanId }: InventoryListProps) {
+export function InventoryList({ caravanSpecs, activeCaravanStorageLocations = [], activeTowVehicleSpecs, activeWdhSpecs, initialCaravanInventory, activeCaravanId }: InventoryListProps) {
   const [items, setItems] = useState<InventoryItem[]>(initialCaravanInventory || []);
   const [itemName, setItemName] = useState('');
   const [itemWeight, setItemWeight] = useState('');
   const [itemQuantity, setItemQuantity] = useState('1');
+  const [itemLocationId, setItemLocationId] = useState<string | null>(null); // For selected location
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const { toast } = useToast();
   const [isLocalStorageReady, setIsLocalStorageReady] = useState(false);
@@ -134,7 +138,6 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, activeWdhSp
   const potentialGCM = useMemo(() => currentCaravanMass + vehicleGVM, [currentCaravanMass, vehicleGVM]);
   const isPotentialGCMOverLimit = useMemo(() => vehicleGCM > 0 && vehicleGVM > 0 && potentialGCM > vehicleGCM, [potentialGCM, vehicleGCM, vehicleGVM]);
 
-  // WDH related checks
   const wdhMaxCapacity = useMemo(() => activeWdhSpecs?.maxCapacityKg ?? 0, [activeWdhSpecs]);
   const wdhMinCapacity = useMemo(() => activeWdhSpecs?.minCapacityKg ?? null, [activeWdhSpecs]);
 
@@ -168,6 +171,7 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, activeWdhSp
       name: itemName.trim(),
       weight: weight,
       quantity: quantity,
+      locationId: itemLocationId,
     };
     
     let updatedItems;
@@ -185,6 +189,7 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, activeWdhSp
     setItemName('');
     setItemWeight('');
     setItemQuantity('1');
+    setItemLocationId(null);
     setEditingItem(null);
   };
 
@@ -197,6 +202,7 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, activeWdhSp
     setItemName(itemToEdit.name);
     setItemWeight(itemToEdit.weight.toString());
     setItemQuantity(itemToEdit.quantity.toString());
+    setItemLocationId(itemToEdit.locationId || null);
   };
 
   const handleDeleteItem = (id: string) => {
@@ -212,7 +218,7 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, activeWdhSp
 
   const getAlertStylingVariant = (currentValue: number, limit: number, isWarning?: boolean) => {
     if (limit <= 0 && !isWarning) return "default"; 
-    if (currentValue > limit || isWarning) return "destructive"; // Make WDH under min a destructive alert
+    if (currentValue > limit || isWarning) return "destructive";
     if (currentValue > limit * 0.9) return "default"; 
     return "default"; 
   };
@@ -252,6 +258,12 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, activeWdhSp
     return typeof value === 'number' && !isNaN(value) ? value.toFixed(1) : '--';
   };
 
+  const getLocationNameById = (locationId: string | null | undefined): string => {
+    if (!locationId) return 'Unassigned';
+    const location = activeCaravanStorageLocations?.find(loc => loc.id === locationId);
+    return location ? location.name : 'Unknown Location';
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -267,7 +279,7 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, activeWdhSp
                 </AlertDescription>
             </Alert>
         )}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
           <div>
             <Label htmlFor="itemName" className="font-body">Item Name</Label>
             <Input id="itemName" value={itemName} onChange={(e) => setItemName(e.target.value)} placeholder="e.g., Camping Chair" className="font-body bg-white dark:bg-neutral-800" disabled={isFormDisabled}/>
@@ -280,7 +292,28 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, activeWdhSp
             <Label htmlFor="itemQuantity" className="font-body">Quantity</Label>
             <Input id="itemQuantity" type="number" min="1" value={itemQuantity} onChange={(e) => setItemQuantity(e.target.value)} placeholder="e.g., 2" className="font-body bg-white dark:bg-neutral-800" disabled={isFormDisabled}/>
           </div>
-          <Button onClick={handleAddItem} className="md:col-span-3 bg-accent hover:bg-accent/90 text-accent-foreground font-body" disabled={isFormDisabled}>
+          <div>
+            <Label htmlFor="itemLocation" className="font-body">Storage Location</Label>
+            <Select
+              value={itemLocationId || "none"}
+              onValueChange={(value) => setItemLocationId(value === "none" ? null : value)}
+              disabled={isFormDisabled || !activeCaravanStorageLocations || activeCaravanStorageLocations.length === 0}
+            >
+              <SelectTrigger className="font-body bg-white dark:bg-neutral-800">
+                <SelectValue placeholder="Select location" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Unassigned</SelectItem>
+                {activeCaravanStorageLocations?.map(loc => (
+                  <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {activeCaravanId && (!activeCaravanStorageLocations || activeCaravanStorageLocations.length === 0) && (
+                 <p className="text-xs text-muted-foreground font-body mt-1">No storage locations defined for this caravan. Add them in 'Vehicles'.</p>
+            )}
+          </div>
+          <Button onClick={handleAddItem} className="md:col-span-full lg:col-span-4 bg-accent hover:bg-accent/90 text-accent-foreground font-body" disabled={isFormDisabled}>
             <PlusCircle className="mr-2 h-4 w-4" /> {editingItem ? 'Update Item' : 'Add Item'}
           </Button>
         </div>
@@ -293,6 +326,7 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, activeWdhSp
                 <TableHead className="text-center font-body">Qty</TableHead>
                 <TableHead className="text-right font-body">Unit Wt. (kg)</TableHead>
                 <TableHead className="text-right font-body">Total Wt. (kg)</TableHead>
+                <TableHead className="font-body">Location</TableHead>
                 <TableHead className="text-right font-body">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -303,6 +337,12 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, activeWdhSp
                   <TableCell className="text-center font-body">{item.quantity}</TableCell>
                   <TableCell className="text-right font-body">{item.weight.toFixed(1)}</TableCell>
                   <TableCell className="text-right font-body font-semibold">{(item.weight * item.quantity).toFixed(1)}</TableCell>
+                  <TableCell className="font-body text-sm">
+                    <div className="flex items-center">
+                      <PackageSearch className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                      {getLocationNameById(item.locationId)}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button variant="ghost" size="icon" onClick={() => handleEditItem(item)} disabled={isFormDisabled}>
                       <Edit3 className="h-4 w-4" />
@@ -447,9 +487,7 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, activeWdhSp
                     </CardContent>
                 </Card>
             )}
-
           </div>
-
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 my-6">
             <div className="flex flex-col items-center p-3 border rounded-lg shadow-sm bg-card">
@@ -569,7 +607,11 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, activeWdhSp
                 {wdhMinCapacity !== null && wdhMinCapacity > 0 && <p><strong>Min Towball Capacity:</strong> {wdhMinCapacity}kg</p>}
                 <p><strong>Integrated Sway Control:</strong> {activeWdhSpecs.hasIntegratedSwayControl ? 'Yes' : 'No'}</p>
                 {activeWdhSpecs.swayControlType && !activeWdhSpecs.hasIntegratedSwayControl && <p><strong>Separate Sway Control:</strong> {activeWdhSpecs.swayControlType}</p>}
-                {activeWdhSpecs.notes && <p className="text-xs italic">Notes: {activeWdhSpecs.notes}</p>}
+                {activeWdhSpecs.notes && (
+                    <div className="mt-1 pt-1 border-t border-muted-foreground/20">
+                        <p className="text-xs flex items-start"><StickyNote className="w-3 h-3 mr-1.5 mt-0.5 text-muted-foreground"/><strong>Notes:</strong> <span className="italic whitespace-pre-wrap">{activeWdhSpecs.notes}</span></p>
+                    </div>
+                )}
              </div>
            )}
         </div>
@@ -577,4 +619,3 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, activeWdhSp
     </Card>
   );
 }
-

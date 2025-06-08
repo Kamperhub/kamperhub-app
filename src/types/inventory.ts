@@ -4,6 +4,7 @@ export interface InventoryItem {
   name: string;
   weight: number; // in kg, weight of a single unit
   quantity: number; // number of units
+  locationId?: string | null; // ID of the storage location from the caravan
 }
 
 export interface CaravanWeightData {
