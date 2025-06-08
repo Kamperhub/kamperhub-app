@@ -10,8 +10,12 @@ import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip } fr
 import { TRIP_LOG_STORAGE_KEY, RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import type { StoredVehicle } from '@/types/vehicle';
 import { VEHICLES_STORAGE_KEY, ACTIVE_VEHICLE_ID_KEY } from '@/types/vehicle';
-import type { AllTripChecklists, ChecklistItem, ChecklistCategory, TripChecklistSet } from '@/types/checklist'; // Import new types
-import { initialChecklists as defaultChecklistTemplate, TRIP_CHECKLISTS_STORAGE_KEY } from '@/types/checklist'; // Import new key and template
+import type { StoredCaravan } from '@/types/caravan'; // Import StoredCaravan
+import { CARAVANS_STORAGE_KEY, ACTIVE_CARAVAN_ID_KEY } from '@/types/caravan'; // Import ACTIVE_CARAVAN_ID_KEY
+
+import type { AllTripChecklists, ChecklistItem, ChecklistCategory, TripChecklistSet, AllCaravanDefaultChecklists, CaravanDefaultChecklistSet } from '@/types/checklist';
+import { initialChecklists as globalDefaultChecklistTemplate, TRIP_CHECKLISTS_STORAGE_KEY, CARAVAN_DEFAULT_CHECKLISTS_STORAGE_KEY } from '@/types/checklist';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -52,6 +56,11 @@ const tripPlannerSchema = z.object({
   message: "End date cannot be before start date.",
   path: ["dateRange"],
 });
+
+// Helper to create deep copies of checklist items with new unique IDs
+const createChecklistCopyForTrip = (items: readonly ChecklistItem[], tripId: string, categoryPrefix: string): ChecklistItem[] => {
+  return items.map(item => ({ ...item, id: `trip${tripId.substring(0,4)}_${categoryPrefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}` }));
+};
 
 
 export function TripPlannerClient() {
@@ -361,10 +370,6 @@ export function TripPlannerClient() {
     setIsSaveTripDialogOpen(true);
   }, [routeDetails, getValues, currentTripNotes, toast]);
   
-  // Function to create a deep copy of checklist items with new unique IDs
-  const createChecklistCopy = (items: readonly ChecklistItem[]): ChecklistItem[] => {
-    return items.map(item => ({ ...item, id: `${item.id.replace('_tpl', '')}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}` }));
-  };
   
   const handleConfirmSaveTrip = useCallback(() => {
     if (!pendingTripName.trim()) {
@@ -398,38 +403,42 @@ export function TripPlannerClient() {
     try {
       // Save Trip Log
       const existingTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
-      let existingTrips: LoggedTrip[] = [];
-      if (existingTripsJson && existingTripsJson.trim() !== "") {
-        try {
-          existingTrips = JSON.parse(existingTripsJson);
-        } catch (parseError: any) {
-          console.error('Error parsing existing trips from localStorage:', parseError.name, parseError.message, parseError.stack);
-        }
-      }
+      const existingTrips: LoggedTrip[] = existingTripsJson ? JSON.parse(existingTripsJson) : [];
       const updatedTripsArray = [...existingTrips, newLoggedTrip];
       localStorage.setItem(TRIP_LOG_STORAGE_KEY, JSON.stringify(updatedTripsArray));
 
-      // Create and Save Default Checklist for the new trip
+      // Determine checklist source
+      let sourceChecklistSet: CaravanDefaultChecklistSet | Readonly<Record<ChecklistCategory, readonly ChecklistItem[]>> = globalDefaultChecklistTemplate;
+      const activeCaravanId = localStorage.getItem(ACTIVE_CARAVAN_ID_KEY);
+
+      if (activeCaravanId) {
+        const allCaravanDefaultsJson = localStorage.getItem(CARAVAN_DEFAULT_CHECKLISTS_STORAGE_KEY);
+        if (allCaravanDefaultsJson) {
+          const allCaravanDefaults: AllCaravanDefaultChecklists = JSON.parse(allCaravanDefaultsJson);
+          if (allCaravanDefaults[activeCaravanId]) {
+            sourceChecklistSet = allCaravanDefaults[activeCaravanId];
+            toast({ title: "Checklist Source", description: "Used default checklist from active caravan.", duration: 2000 });
+          } else {
+             toast({ title: "Checklist Source", description: "Active caravan has no default checklist. Used global template.", duration: 2000 });
+          }
+        }
+      } else {
+        toast({ title: "Checklist Source", description: "No active caravan. Used global checklist template.", duration: 2000 });
+      }
+      
       const newTripChecklistSet: TripChecklistSet = {
         tripName: newLoggedTrip.name,
-        preDeparture: createChecklistCopy(defaultChecklistTemplate.preDeparture),
-        campsiteSetup: createChecklistCopy(defaultChecklistTemplate.campsiteSetup),
-        packDown: createChecklistCopy(defaultChecklistTemplate.packDown),
+        preDeparture: createChecklistCopyForTrip(sourceChecklistSet.preDeparture, newTripId, 'pd'),
+        campsiteSetup: createChecklistCopyForTrip(sourceChecklistSet.campsiteSetup, newTripId, 'cs'),
+        packDown: createChecklistCopyForTrip(sourceChecklistSet.packDown, newTripId, 'pk'),
       };
 
       const allTripChecklistsJson = localStorage.getItem(TRIP_CHECKLISTS_STORAGE_KEY);
-      let allTripChecklists: AllTripChecklists = {};
-      if (allTripChecklistsJson && allTripChecklistsJson.trim() !== "") {
-        try {
-            allTripChecklists = JSON.parse(allTripChecklistsJson);
-        } catch (e) {
-            console.error("Error parsing trip checklists from storage:", e);
-        }
-      }
+      const allTripChecklists: AllTripChecklists = allTripChecklistsJson ? JSON.parse(allTripChecklistsJson) : {};
       allTripChecklists[newTripId] = newTripChecklistSet;
       localStorage.setItem(TRIP_CHECKLISTS_STORAGE_KEY, JSON.stringify(allTripChecklists));
 
-      toast({ title: "Trip Saved!", description: `"${newLoggedTrip.name}" has been added to your Trip Log and a default checklist created.` });
+      toast({ title: "Trip Saved!", description: `"${newLoggedTrip.name}" has been added to your Trip Log and a checklist has been created.` });
       setIsSaveTripDialogOpen(false);
     } catch (storageError: any) {
       console.error("Critical Storage Error:", storageError.name, storageError.message, storageError.stack);
