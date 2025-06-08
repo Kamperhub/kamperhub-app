@@ -23,7 +23,10 @@ export default function TripLogPage() {
       try {
         const storedTrips = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
         if (storedTrips) {
-          setLoggedTrips(JSON.parse(storedTrips));
+          const parsedTrips: LoggedTrip[] = JSON.parse(storedTrips);
+          // Ensure isCompleted defaults to false if undefined
+          const sanitizedTrips = parsedTrips.map(trip => ({ ...trip, isCompleted: trip.isCompleted || false }));
+          setLoggedTrips(sanitizedTrips);
         }
       } catch (error) {
         console.error("Error reading trip logs from localStorage:", error);
@@ -104,8 +107,34 @@ export default function TripLogPage() {
 
   const handleStartTrip = useCallback((tripId: string) => {
     router.push(`/checklists?tripId=${tripId}`);
-    toast({ title: "Starting Trip", description: "Navigating to checklists..." });
+    toast({ title: "Opening Trip Checklists", description: "Navigating to checklists..." });
   }, [router, toast]);
+
+  const handleToggleCompleteTrip = useCallback((tripId: string) => {
+    if (!isLocalStorageReady) return;
+    try {
+      const updatedTrips = loggedTrips.map(trip => {
+        if (trip.id === tripId) {
+          return { ...trip, isCompleted: !trip.isCompleted };
+        }
+        return trip;
+      });
+      setLoggedTrips(updatedTrips);
+      localStorage.setItem(TRIP_LOG_STORAGE_KEY, JSON.stringify(updatedTrips));
+      const tripToUpdate = updatedTrips.find(t => t.id === tripId);
+      toast({ 
+        title: "Trip Status Updated", 
+        description: `"${tripToUpdate?.name}" marked as ${tripToUpdate?.isCompleted ? 'completed' : 'incomplete'}.`
+      });
+    } catch (error) {
+      console.error("Error toggling trip completion status:", error);
+      toast({
+        title: "Error Updating Trip",
+        description: "Could not update the trip's completion status. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [loggedTrips, toast, isLocalStorageReady]);
 
 
   if (!isLocalStorageReady) {
@@ -126,7 +155,7 @@ export default function TripLogPage() {
           <History className="mr-3 h-8 w-8" /> Trip Log
         </h1>
         <p className="text-muted-foreground font-body mb-6">
-          Review your saved trips. You can recall them, start them (go to checklists), add to calendar, or delete.
+          Review your saved trips. You can recall them, start them (go to checklists), add to calendar, mark as completed, or delete.
         </p>
         <Alert variant="default" className="mb-6 bg-primary/10 border-primary/30">
           <AlertTriangle className="h-4 w-4 text-primary" />
@@ -150,7 +179,8 @@ export default function TripLogPage() {
               onDelete={handleDeleteTrip}
               onRecall={handleRecallTrip}
               onAddToCalendar={handleAddToCalendar}
-              onStartTrip={handleStartTrip} // Pass new handler
+              onStartTrip={handleStartTrip}
+              onToggleComplete={handleToggleCompleteTrip} // Pass new handler
             />
           ))}
         </div>

@@ -37,6 +37,7 @@ export interface LoggedTrip {
   plannedStartDate?: string | null; // Stored as ISO string
   plannedEndDate?: string | null; // Stored as ISO string
   notes?: string; // Optional notes field
+  isCompleted?: boolean; // New field for completion status
 }
 
 // Key for localStorage
