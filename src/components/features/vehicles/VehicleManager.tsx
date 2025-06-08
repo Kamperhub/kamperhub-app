@@ -225,9 +225,9 @@ export function VehicleManager() {
                   <span>GCM: {vehicle.gcm}kg</span>
                   <span>Tow: {vehicle.maxTowCapacity}kg</span>
                   <span>Towball: {vehicle.maxTowballMass}kg</span>
-                  {vehicle.kerbWeight > 0 && <span className="flex items-center"><Weight className="w-3 h-3 mr-1 text-primary/70"/> Kerb: {vehicle.kerbWeight}kg</span>}
-                  {vehicle.frontAxleLimit > 0 && <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 rotate-90"/> F Axle: {vehicle.frontAxleLimit}kg</span>}
-                  {vehicle.rearAxleLimit > 0 && <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 -rotate-90"/> R Axle: {vehicle.rearAxleLimit}kg</span>}
+                  <span className="flex items-center"><Weight className="w-3 h-3 mr-1 text-primary/70"/> Kerb: {typeof vehicle.kerbWeight === 'number' && vehicle.kerbWeight > 0 ? `${vehicle.kerbWeight}kg` : 'N/A'}</span>
+                  <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 rotate-90"/> F Axle: {typeof vehicle.frontAxleLimit === 'number' && vehicle.frontAxleLimit > 0 ? `${vehicle.frontAxleLimit}kg` : 'N/A'}</span>
+                  <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 -rotate-90"/> R Axle: {typeof vehicle.rearAxleLimit === 'number' && vehicle.rearAxleLimit > 0 ? `${vehicle.rearAxleLimit}kg` : 'N/A'}</span>
                   <span className="flex items-center"><Fuel className="w-3 h-3 mr-1 text-primary/70"/> {vehicle.fuelEfficiency}L/100km</span>
                 </div>
               </div>
@@ -256,3 +256,4 @@ export function VehicleManager() {
     </Card>
   );
 }
+
