@@ -22,10 +22,22 @@ const defaultCaravanSpecs: CaravanWeightData = {
   maxTowballDownload: 0,
 };
 
+const defaultVehicleSpecs: StoredVehicle = {
+  id: '',
+  make: '',
+  model: '',
+  year: 0,
+  gvm: 0,
+  gcm: 0,
+  maxTowCapacity: 0,
+  maxTowballMass: 0,
+  fuelEfficiency: 0,
+};
+
 export default function InventoryPage() {
   const [caravanSpecs, setCaravanSpecs] = useState<CaravanWeightData | null>(null);
   const [activeCaravanName, setActiveCaravanName] = useState<string | null>(null);
-  const [activeVehicleName, setActiveVehicleName] = useState<string | null>(null);
+  const [activeVehicleSpecs, setActiveVehicleSpecs] = useState<StoredVehicle | null>(null);
   const [activeCaravanId, setActiveCaravanId] = useState<string | null>(null);
   const [currentCaravanInventory, setCurrentCaravanInventory] = useState<InventoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,7 +54,7 @@ export default function InventoryPage() {
       setIsLoading(true);
       setError(null);
       setActiveCaravanName(null);
-      setActiveVehicleName(null);
+      setActiveVehicleSpecs(null);
       setActiveCaravanId(null);
       setCurrentCaravanInventory([]);
 
@@ -65,7 +77,6 @@ export default function InventoryPage() {
             });
             setActiveCaravanName(`${activeCaravan.year} ${activeCaravan.make} ${activeCaravan.model}`);
             
-            // Load inventory for this active caravan
             const allInventoriesJson = localStorage.getItem(INVENTORY_STORAGE_KEY);
             if (allInventoriesJson) {
               const allInventories: CaravanInventories = JSON.parse(allInventoriesJson);
@@ -83,21 +94,26 @@ export default function InventoryPage() {
           setCurrentCaravanInventory([]);
         }
 
-        // Load Active Tow Vehicle Name
+        // Load Active Tow Vehicle Specs
         const activeVehicleId = localStorage.getItem(ACTIVE_TOW_VEHICLE_ID_KEY);
         const storedVehiclesJson = localStorage.getItem(VEHICLES_STORAGE_KEY);
         if (activeVehicleId && storedVehiclesJson) {
           const storedVehicles: StoredVehicle[] = JSON.parse(storedVehiclesJson);
           const activeVehicle = storedVehicles.find(v => v.id === activeVehicleId);
           if (activeVehicle) {
-            setActiveVehicleName(`${activeVehicle.year} ${activeVehicle.make} ${activeVehicle.model}`);
+            setActiveVehicleSpecs(activeVehicle);
+          } else {
+            setActiveVehicleSpecs(defaultVehicleSpecs); // Or null if preferred for no active vehicle
           }
+        } else {
+          setActiveVehicleSpecs(null);
         }
 
       } catch (e) {
         console.error("Error loading active data for Inventory:", e);
         setError("Could not load vehicle/caravan data or inventory. Please try again.");
         setCaravanSpecs(defaultCaravanSpecs); 
+        setActiveVehicleSpecs(defaultVehicleSpecs);
         setCurrentCaravanInventory([]);
       } finally {
         setIsLoading(false);
@@ -106,18 +122,15 @@ export default function InventoryPage() {
   }, [isLocalStorageReady, pathname]);
 
   const getDescriptiveText = () => {
-    let text = "Track your caravan's load, manage items, and stay compliant with weight limits.";
-    if (activeCaravanName && activeVehicleName) {
-      text += ` Using specifications from your active ${activeCaravanName}, towed by your ${activeVehicleName}.`;
+    let text = "Track your caravan's load, manage items, and stay compliant with weight limits. Calculations consider both active caravan and tow vehicle specifications if selected.";
+    if (activeCaravanName && activeVehicleSpecs && activeVehicleSpecs.make) {
+      text += ` Using specs for your ${activeCaravanName} towed by ${activeVehicleSpecs.year} ${activeVehicleSpecs.make} ${activeVehicleSpecs.model}.`;
     } else if (activeCaravanName) {
-      text += ` Using specifications from your active ${activeCaravanName}. Consider selecting an active tow vehicle in 'Vehicles'.`;
-    } else if (activeVehicleName) {
-      text += ` Current tow vehicle: ${activeVehicleName}. Please set an active caravan in 'Vehicles' for accurate calculations. Current calculations use default zero values.`;
-    }
-    else if (!activeCaravanName && caravanSpecs === null) {
-       text += " Please set an active caravan in the 'Vehicles' section for accurate calculations and inventory management. Current calculations use default zero values.";
-    } else if (caravanSpecs && caravanSpecs.tareMass === 0 && !activeCaravanName) {
-       text += " Please set an active caravan in the 'Vehicles' section for accurate calculations and inventory management. Current calculations use default zero values.";
+      text += ` Using specs for your ${activeCaravanName}. Select an active tow vehicle in 'Vehicles' for full compliance checks.`;
+    } else if (activeVehicleSpecs && activeVehicleSpecs.make) {
+      text += ` Current tow vehicle: ${activeVehicleSpecs.year} ${activeVehicleSpecs.make} ${activeVehicleSpecs.model}. Set an active caravan for accurate calculations.`;
+    } else {
+       text += " Please set an active caravan and tow vehicle in 'Vehicles' for accurate weight management. Current calculations use default zero values.";
     }
     return text;
   };
@@ -159,13 +172,25 @@ export default function InventoryPage() {
       {!error && (!caravanSpecs || caravanSpecs.tareMass === 0 || !activeCaravanId) && (
         <Alert variant="default" className="mb-6 bg-muted border-border">
           <Settings className="h-4 w-4 text-foreground" />
-          <AlertTitle className="font-headline text-foreground">Active Caravan Required for Inventory</AlertTitle>
+          <AlertTitle className="font-headline text-foreground">Active Caravan Required</AlertTitle>
           <AlertDescription className="font-body text-muted-foreground">
-            To manage inventory items and get accurate weight calculations, please add a caravan and set it as active in the 'Vehicles' section.
+            Please add a caravan and set it as active in the 'Vehicles' section to manage its inventory and see accurate weight calculations.
             <Link href="/vehicles" passHref>
               <Button variant="link" className="p-0 h-auto ml-1 text-foreground hover:underline font-body">Go to Vehicles</Button>
             </Link>
-             Currently, weight calculations are based on default zero values and inventory management is disabled.
+             Currently, weight calculations use default zero values.
+          </AlertDescription>
+        </Alert>
+      )}
+       {!error && (!activeVehicleSpecs || !activeVehicleSpecs.make) && (
+        <Alert variant="default" className="mb-6 bg-muted border-border">
+          <Settings className="h-4 w-4 text-foreground" />
+          <AlertTitle className="font-headline text-foreground">Active Tow Vehicle Recommended</AlertTitle>
+          <AlertDescription className="font-body text-muted-foreground">
+            For full towing compliance checks (like Max Towing Capacity and GCM advisory), please add a tow vehicle and set it as active in 'Vehicles'.
+            <Link href="/vehicles" passHref>
+              <Button variant="link" className="p-0 h-auto ml-1 text-foreground hover:underline font-body">Go to Vehicles</Button>
+            </Link>
           </AlertDescription>
         </Alert>
       )}
@@ -176,15 +201,16 @@ export default function InventoryPage() {
             <AlertTitle className="font-headline font-bold text-foreground">Active Caravan: {activeCaravanName}</AlertTitle>
          </Alert>
       )}
-      {activeVehicleName && (
+      {activeVehicleSpecs && activeVehicleSpecs.make && (
          <Alert variant="default" className="mb-6 bg-secondary/30 border-secondary/50">
             <Car className="h-4 w-4 text-foreground" />
-            <AlertTitle className="font-headline font-bold text-foreground">Active Tow Vehicle: {activeVehicleName}</AlertTitle>
+            <AlertTitle className="font-headline font-bold text-foreground">Active Tow Vehicle: {activeVehicleSpecs.year} {activeVehicleSpecs.make} {activeVehicleSpecs.model}</AlertTitle>
          </Alert>
       )}
       
       <InventoryList 
-        caravanSpecs={caravanSpecs || defaultCaravanSpecs} 
+        caravanSpecs={caravanSpecs || defaultCaravanSpecs}
+        activeTowVehicleSpecs={activeVehicleSpecs || defaultVehicleSpecs}
         initialCaravanInventory={currentCaravanInventory}
         activeCaravanId={activeCaravanId}
       />

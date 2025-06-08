@@ -3,19 +3,21 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import type { InventoryItem, CaravanWeightData, CaravanInventories } from '@/types/inventory';
+import type { StoredVehicle } from '@/types/vehicle';
 import { INVENTORY_STORAGE_KEY } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Trash2, PlusCircle, Edit3, AlertTriangle } from 'lucide-react';
+import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label as RechartsLabel } from 'recharts';
 
 interface InventoryListProps {
   caravanSpecs: CaravanWeightData;
+  activeTowVehicleSpecs: StoredVehicle | null;
   initialCaravanInventory: InventoryItem[];
   activeCaravanId: string | null;
 }
@@ -47,7 +49,7 @@ const DonutChartCustomLabel = ({ viewBox, value, limit, unit, name }: { viewBox?
 };
 
 
-export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCaravanId }: InventoryListProps) {
+export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, initialCaravanInventory, activeCaravanId }: InventoryListProps) {
   const [items, setItems] = useState<InventoryItem[]>(initialCaravanInventory || []);
   const [itemName, setItemName] = useState('');
   const [itemWeight, setItemWeight] = useState('');
@@ -93,10 +95,10 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
   
   const atmLimit = useMemo(() => (typeof caravanSpecs.atm === 'number' && !isNaN(caravanSpecs.atm) ? caravanSpecs.atm : 0), [caravanSpecs.atm]);
   const gtmLimit = useMemo(() => (typeof caravanSpecs.gtm === 'number' && !isNaN(caravanSpecs.gtm) ? caravanSpecs.gtm : 0), [caravanSpecs.gtm]);
-  const maxTowballDownloadLimit = useMemo(() => (typeof caravanSpecs.maxTowballDownload === 'number' && !isNaN(caravanSpecs.maxTowballDownload) ? caravanSpecs.maxTowballDownload : 0), [caravanSpecs.maxTowballDownload]);
+  const caravanMaxTowballDownloadLimit = useMemo(() => (typeof caravanSpecs.maxTowballDownload === 'number' && !isNaN(caravanSpecs.maxTowballDownload) ? caravanSpecs.maxTowballDownload : 0), [caravanSpecs.maxTowballDownload]);
   const tareMass = useMemo(() => (typeof caravanSpecs.tareMass === 'number' && !isNaN(caravanSpecs.tareMass) ? caravanSpecs.tareMass : 0), [caravanSpecs.tareMass]);
 
-  const currentCaravanMass = useMemo(() => {
+  const currentCaravanMass = useMemo(() => { // This is the caravan's current loaded weight (actual ATM)
     const calculatedMass = tareMass + totalWeight;
     return typeof calculatedMass === 'number' && !isNaN(calculatedMass) ? calculatedMass : 0;
   }, [tareMass, totalWeight]);
@@ -106,18 +108,35 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
   }, [atmLimit, currentCaravanMass]);
   
   const estimatedTowballDownload = useMemo(() => {
-    const calculated = totalWeight * 0.1; // 10% of payload
-    return typeof calculated === 'number' && !isNaN(calculated) ? calculated : 0;
+    // A common estimate is 10% of the caravan's *loaded* mass (currentCaravanMass)
+    // Or, if an item representing towball weight is added, that should be primary. For now, 10% of payload.
+    const calculated = totalWeight * 0.1; 
+    return typeof calculated === 'number' && !isNaN(calculated) ? Math.max(0, calculated) : 0;
   }, [totalWeight]);
 
-  const currentLoadOnAxles = useMemo(() => {
+  const currentLoadOnAxles = useMemo(() => { // This is the caravan's current GTM
     const calculatedLoad = currentCaravanMass - estimatedTowballDownload;
-    return typeof calculatedLoad === 'number' && !isNaN(calculatedLoad) ? calculatedLoad : 0;
+    return typeof calculatedLoad === 'number' && !isNaN(calculatedLoad) ? Math.max(0, calculatedLoad) : 0;
   }, [currentCaravanMass, estimatedTowballDownload]);
 
   const remainingPayloadGTM = useMemo(() => {
     return gtmLimit > 0 ? gtmLimit - currentLoadOnAxles : 0;
   }, [gtmLimit, currentLoadOnAxles]);
+
+  // Tow Vehicle Compliance Checks
+  const vehicleMaxTowCapacity = useMemo(() => activeTowVehicleSpecs?.maxTowCapacity ?? 0, [activeTowVehicleSpecs]);
+  const vehicleMaxTowballMass = useMemo(() => activeTowVehicleSpecs?.maxTowballMass ?? 0, [activeTowVehicleSpecs]);
+  const vehicleGVM = useMemo(() => activeTowVehicleSpecs?.gvm ?? 0, [activeTowVehicleSpecs]); // Vehicle GVM Limit
+  const vehicleGCM = useMemo(() => activeTowVehicleSpecs?.gcm ?? 0, [activeTowVehicleSpecs]); // Vehicle GCM Limit
+
+  const isOverMaxTowCapacity = useMemo(() => vehicleMaxTowCapacity > 0 && currentCaravanMass > vehicleMaxTowCapacity, [currentCaravanMass, vehicleMaxTowCapacity]);
+  const isOverVehicleMaxTowball = useMemo(() => vehicleMaxTowballMass > 0 && estimatedTowballDownload > vehicleMaxTowballMass, [estimatedTowballDownload, vehicleMaxTowballMass]);
+  
+  // Simplified GCM Advisory: Current Caravan Mass + Vehicle GVM Limit vs Vehicle GCM Limit
+  // This is an advisory as we don't know the vehicle's current actual loaded mass.
+  // We use the vehicle's GVM limit as a proxy for a fully loaded vehicle.
+  const potentialGCM = useMemo(() => currentCaravanMass + vehicleGVM, [currentCaravanMass, vehicleGVM]);
+  const isPotentialGCMOverLimit = useMemo(() => vehicleGCM > 0 && vehicleGVM > 0 && potentialGCM > vehicleGCM, [potentialGCM, vehicleGCM, vehicleGVM]);
 
 
   const handleAddItem = () => {
@@ -191,7 +210,8 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
   const getAlertStylingVariant = (currentValue: number, limit: number) => {
     if (limit <= 0) return "default"; 
     if (currentValue > limit) return "destructive";
-    return "default";
+    if (currentValue > limit * 0.9) return "default"; // Use default for "nearing limit"
+    return "default"; // Consider a "success" variant if needed
   };
   
   const isFormDisabled = !activeCaravanId;
@@ -223,7 +243,7 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
   
   const atmChart = prepareChartData(currentCaravanMass, atmLimit);
   const gtmChart = prepareChartData(currentLoadOnAxles, gtmLimit);
-  const towballChart = prepareChartData(estimatedTowballDownload, maxTowballDownloadLimit);
+  const towballChart = prepareChartData(estimatedTowballDownload, caravanMaxTowballDownloadLimit);
 
   const formatTooltipValue = (value: number) => {
     return typeof value === 'number' && !isNaN(value) ? value.toFixed(1) : '--';
@@ -298,7 +318,6 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
              <p className="text-muted-foreground text-center font-body">No inventory items added for the active caravan yet.</p>
         )}
 
-
         <div className="space-y-4 pt-4">
           <h3 className="text-xl font-headline text-foreground">Weight Summary &amp; Compliance</h3>
           
@@ -306,73 +325,84 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
             <AlertTriangle className="h-4 w-4 text-yellow-600" />
             <AlertTitle className="font-headline text-yellow-700">Important Weighbridge Notice</AlertTitle>
             <AlertDescription className="font-body">
-              Always verify weights at a certified weighbridge. This application provides estimates only and should not be relied upon for legal compliance or absolute safety.
+              Always verify weights at a certified weighbridge. This application provides estimates only and should not be relied upon for legal compliance or absolute safety. Towball mass is estimated at 10% of payload.
             </AlertDescription>
           </Alert>
 
-          <Alert variant={getAlertStylingVariant(currentCaravanMass, atmLimit)}>
-            <AlertTitle className="font-headline">ATM Status: {currentCaravanMass.toFixed(1)}kg / {atmLimit > 0 ? atmLimit.toFixed(0) : 'N/A'}kg</AlertTitle>
-            <AlertDescription className="font-body">
-              {atmLimit > 0 ? (
-                <>
-                  Remaining Payload (ATM): {remainingPayloadATM.toFixed(1)} kg.
-                  {currentCaravanMass > atmLimit ? (
-                    <>
-                      <br />
-                      <span className="font-semibold">You are OVER the ATM limit!</span>
-                      {" Suggestions: Remove heavy items, choose lighter alternatives, or reduce quantities."}
-                    </>
-                  ) : currentCaravanMass > atmLimit * 0.9 ? (
-                    " You are nearing the ATM limit."
-                  ) : (
-                    "" 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="font-headline text-lg flex items-center"><HomeIcon className="mr-2 h-5 w-5 text-primary"/>Caravan Compliance</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Alert variant={getAlertStylingVariant(currentCaravanMass, atmLimit)} className={currentCaravanMass > atmLimit ? '' : 'bg-background'}>
+                  <AlertTitle className="font-headline">ATM Status: {currentCaravanMass.toFixed(1)}kg / {atmLimit > 0 ? atmLimit.toFixed(0) : 'N/A'}kg</AlertTitle>
+                  <AlertDescription className="font-body">
+                    {atmLimit > 0 ? ( <> Remaining Payload (ATM): {remainingPayloadATM.toFixed(1)} kg.
+                      {currentCaravanMass > atmLimit ? <span className="font-semibold text-destructive"> OVER LIMIT!</span> : currentCaravanMass > atmLimit * 0.9 ? " Nearing limit." : ""} </>
+                    ) : "ATM not specified."}
+                  </AlertDescription>
+                </Alert>
+
+                {gtmLimit > 0 && (
+                  <Alert variant={getAlertStylingVariant(currentLoadOnAxles, gtmLimit)} className={currentLoadOnAxles > gtmLimit ? '' : 'bg-background'}>
+                      <AlertTitle className="font-headline">GTM Status: {currentLoadOnAxles.toFixed(1)}kg / {gtmLimit.toFixed(0)}kg</AlertTitle>
+                      <AlertDescription className="font-body">
+                      Remaining Payload (GTM): {remainingPayloadGTM.toFixed(1)} kg.
+                      {currentLoadOnAxles > gtmLimit ? <span className="font-semibold text-destructive"> OVER LIMIT!</span> : currentLoadOnAxles > gtmLimit * 0.9 ? " Nearing limit." : ""}
+                      </AlertDescription>
+                  </Alert>
+                )}
+                
+                {caravanMaxTowballDownloadLimit > 0 && (
+                  <Alert variant={getAlertStylingVariant(estimatedTowballDownload, caravanMaxTowballDownloadLimit)} className={estimatedTowballDownload > caravanMaxTowballDownloadLimit ? '' : 'bg-background'}>
+                      <AlertTitle className="font-headline">Est. Towball (Caravan Limit): {estimatedTowballDownload.toFixed(1)}kg / {caravanMaxTowballDownloadLimit.toFixed(0)}kg</AlertTitle>
+                      <AlertDescription className="font-body">
+                        Remaining Capacity: {(caravanMaxTowballDownloadLimit - estimatedTowballDownload).toFixed(1)} kg.
+                        {estimatedTowballDownload > caravanMaxTowballDownloadLimit ? <span className="font-semibold text-destructive"> OVER CARAVAN LIMIT!</span> : ""}
+                      </AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+
+            {activeTowVehicleSpecs && activeTowVehicleSpecs.make && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="font-headline text-lg flex items-center"><Car className="mr-2 h-5 w-5 text-primary"/>Tow Vehicle Compliance</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {vehicleMaxTowCapacity > 0 && (
+                    <Alert variant={isOverMaxTowCapacity ? "destructive" : "default"}  className={isOverMaxTowCapacity ? '' : 'bg-background'}>
+                      <AlertTitle className="font-headline">Max Tow Capacity: {currentCaravanMass.toFixed(1)}kg / {vehicleMaxTowCapacity.toFixed(0)}kg</AlertTitle>
+                      <AlertDescription className="font-body">
+                        {isOverMaxTowCapacity ? <span className="font-semibold text-destructive">Caravan OVER vehicle's tow capacity! DANGEROUS!</span> : `Caravan weight is within vehicle's tow capacity.`}
+                      </AlertDescription>
+                    </Alert>
                   )}
-                </>
-              ) : (
-                "ATM not specified for active caravan. Cannot calculate usage."
-              )}
-            </AlertDescription>
-          </Alert>
+                  {vehicleMaxTowballMass > 0 && (
+                    <Alert variant={isOverVehicleMaxTowball ? "destructive" : "default"} className={isOverVehicleMaxTowball ? '' : 'bg-background'}>
+                      <AlertTitle className="font-headline">Est. Towball (Vehicle Limit): {estimatedTowballDownload.toFixed(1)}kg / {vehicleMaxTowballMass.toFixed(0)}kg</AlertTitle>
+                      <AlertDescription className="font-body">
+                        {isOverVehicleMaxTowball ? <span className="font-semibold text-destructive">Towball OVER vehicle's limit!</span> : `Towball weight within vehicle's limit.`}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {vehicleGCM > 0 && vehicleGVM > 0 && (
+                     <Alert variant={isPotentialGCMOverLimit ? "destructive" : "default"} className={isPotentialGCMOverLimit ? '' : 'bg-background'}>
+                        <AlertTitle className="font-headline">GCM Advisory</AlertTitle>
+                        <AlertDescription className="font-body">
+                            Potential GCM: {potentialGCM.toFixed(1)}kg (Caravan Mass + Vehicle GVM Limit) vs GCM Limit: {vehicleGCM.toFixed(0)}kg.
+                            {isPotentialGCMOverLimit ? <span className="font-semibold text-destructive"> POTENTIAL GCM OVERLOAD! Verify actual vehicle weight.</span> : " GCM likely okay if vehicle not overloaded."}
+                            <br/><small className="italic">Note: This GCM check is an advisory. It assumes your tow vehicle is loaded to its GVM limit. Always confirm total combined mass at a weighbridge.</small>
+                        </AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
-          {gtmLimit > 0 && (
-            <Alert variant={getAlertStylingVariant(currentLoadOnAxles, gtmLimit)}>
-                <AlertTitle className="font-headline">GTM Status: {currentLoadOnAxles.toFixed(1)}kg / {gtmLimit.toFixed(0)}kg</AlertTitle>
-                <AlertDescription className="font-body">
-                Remaining Payload (GTM): {remainingPayloadGTM.toFixed(1)} kg. 
-                Ensure proper weight distribution as towball download significantly impacts GTM.
-                {currentLoadOnAxles > gtmLimit ? (
-                    <>
-                        <br />
-                        <span className="font-semibold">You may be OVER the GTM limit!</span>
-                        {" Suggestions: Reduce overall load or try moving heavier items closer to the caravan's axles."}
-                    </>
-                ) : currentLoadOnAxles > gtmLimit * 0.9 ? (
-                    " You are nearing the GTM limit."
-                ) : (
-                    ""
-                )}
-                </AlertDescription>
-            </Alert>
-          )}
-           
-          {maxTowballDownloadLimit > 0 && (
-            <Alert variant={getAlertStylingVariant(estimatedTowballDownload, maxTowballDownloadLimit)}>
-                <AlertTitle className="font-headline">Est. Towball Download: {estimatedTowballDownload.toFixed(1)}kg / {maxTowballDownloadLimit.toFixed(0)}kg</AlertTitle>
-                <AlertDescription className="font-body">
-                Remaining Capacity (Towball): {(maxTowballDownloadLimit - estimatedTowballDownload).toFixed(1)} kg. 
-                Adjust load distribution for optimal towball mass (typically 7-15% of ATM).
-                {estimatedTowballDownload > maxTowballDownloadLimit ? (
-                    <>
-                        <br />
-                        <span className="font-semibold">Your estimated towball download might EXCEED the limit!</span>
-                        {" Suggestions: Try moving heavier items further back from the drawbar (towards or just behind the axles)."}
-                    </>
-                ) : (
-                    ""
-                )}
-                </AlertDescription>
-            </Alert>
-          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 my-6">
             <div className="flex flex-col items-center p-3 border rounded-lg shadow-sm bg-card">
@@ -394,24 +424,13 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
                       <Cell key={`cell-atm-${index}`} fill={atmChart.colors[index % atmChart.colors.length]} />
                     ))}
                      <RechartsLabel 
-                        content={<DonutChartCustomLabel name="ATM" value={currentCaravanMass} limit={atmLimit} unit="kg" />} 
+                        content={<DonutChartCustomLabel name="Caravan ATM" value={currentCaravanMass} limit={atmLimit} unit="kg" />} 
                         position="center" 
                     />
                   </Pie>
                   <Tooltip formatter={(value: number, name: string) => [`${formatTooltipValue(value)} kg`, name.startsWith("N/A") ? "Limit N/A" : name]} />
                 </PieChart>
               </ResponsiveContainer>
-              {atmLimit > 0 ? (
-                <p className={`text-xs mt-2 text-center font-body ${currentCaravanMass > atmLimit ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
-                  {currentCaravanMass > atmLimit 
-                    ? "Over ATM! Try removing heavy items or choosing lighter alternatives." 
-                    : "ATM looks good! Well managed."}
-                </p>
-              ) : (
-                <p className="text-xs mt-2 text-center font-body text-muted-foreground">
-                  Set ATM limit in caravan specs for tips.
-                </p>
-              )}
             </div>
 
             <div className="flex flex-col items-center p-3 border rounded-lg shadow-sm bg-card">
@@ -433,24 +452,13 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
                       <Cell key={`cell-gtm-${index}`} fill={gtmChart.colors[index % gtmChart.colors.length]} />
                     ))}
                     <RechartsLabel 
-                        content={<DonutChartCustomLabel name="GTM" value={currentLoadOnAxles} limit={gtmLimit} unit="kg" />} 
+                        content={<DonutChartCustomLabel name="Caravan GTM" value={currentLoadOnAxles} limit={gtmLimit} unit="kg" />} 
                         position="center" 
                     />
                   </Pie>
                   <Tooltip formatter={(value: number, name: string) => [`${formatTooltipValue(value)} kg`, name.startsWith("N/A") ? "Limit N/A" : name]} />
                 </PieChart>
               </ResponsiveContainer>
-              {gtmLimit > 0 ? (
-                <p className={`text-xs mt-2 text-center font-body ${currentLoadOnAxles > gtmLimit ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
-                  {currentLoadOnAxles > gtmLimit
-                    ? "Over GTM! Reduce overall load or move heavier items closer to axles."
-                    : "GTM is well balanced. Keep it up!"}
-                </p>
-              ) : (
-                <p className="text-xs mt-2 text-center font-body text-muted-foreground">
-                  Set GTM limit in caravan specs for tips.
-                </p>
-              )}
             </div>
 
             <div className="flex flex-col items-center p-3 border rounded-lg shadow-sm bg-card">
@@ -472,38 +480,36 @@ export function InventoryList({ caravanSpecs, initialCaravanInventory, activeCar
                       <Cell key={`cell-towball-${index}`} fill={towballChart.colors[index % towballChart.colors.length]} />
                     ))}
                      <RechartsLabel 
-                        content={<DonutChartCustomLabel name="Towball" value={estimatedTowballDownload} limit={maxTowballDownloadLimit} unit="kg" />} 
+                        content={<DonutChartCustomLabel name="Est. Towball" value={estimatedTowballDownload} limit={caravanMaxTowballDownloadLimit} unit="kg" />} 
                         position="center" 
                     />
                   </Pie>
                   <Tooltip formatter={(value: number, name: string) => [`${formatTooltipValue(value)} kg`, name.startsWith("N/A") ? "Limit N/A" : name]} />
                 </PieChart>
               </ResponsiveContainer>
-              {maxTowballDownloadLimit > 0 ? (
-                <p className={`text-xs mt-2 text-center font-body ${estimatedTowballDownload > maxTowballDownloadLimit ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
-                  {estimatedTowballDownload > maxTowballDownloadLimit
-                    ? "Towball heavy! Move weight further back (behind axles if possible)."
-                    : "Towball load is optimal. Great job!"}
-                </p>
-              ) : (
-                 <p className="text-xs mt-2 text-center font-body text-muted-foreground">
-                  Set max towball limit in caravan specs for tips.
-                </p>
-              )}
             </div>
           </div>
         </div>
 
       </CardContent>
       <CardFooter className="flex flex-col items-start text-sm pt-4">
-        <div className="text-muted-foreground font-body space-y-1">
-          <p>
-            <strong>Your Active Caravan's Specifications:</strong><br />
-            <strong>Tare Mass:</strong> { (tareMass > 0) ? `${tareMass.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Base weight of the empty caravan)</span><br />
-            <strong>ATM (Aggregate Trailer Mass):</strong> { (atmLimit > 0) ? `${atmLimit.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max loaded weight, uncoupled)</span><br />
-            <strong>GTM (Gross Trailer Mass):</strong> { (gtmLimit > 0) ? `${gtmLimit.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max weight on axles, coupled)</span><br />
-            <strong>Max Towball Download:</strong> { (maxTowballDownloadLimit > 0) ? `${maxTowballDownloadLimit.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max downward force on towbar)</span>
-          </p>
+        <div className="text-muted-foreground font-body space-y-2 w-full">
+           <div className="pb-2 mb-2 border-b">
+            <h4 className="font-semibold text-foreground">Active Caravan ({caravanSpecs.make || 'N/A'} {caravanSpecs.model || ''}):</h4>
+            <p><strong>Tare Mass:</strong> { (tareMass > 0) ? `${tareMass.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Base empty weight)</span></p>
+            <p><strong>ATM (Aggregate Trailer Mass):</strong> { (atmLimit > 0) ? `${atmLimit.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max loaded, uncoupled)</span></p>
+            <p><strong>GTM (Gross Trailer Mass):</strong> { (gtmLimit > 0) ? `${gtmLimit.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max on axles, coupled)</span></p>
+            <p><strong>Caravan Max Towball:</strong> { (caravanMaxTowballDownloadLimit > 0) ? `${caravanMaxTowballDownloadLimit.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max downward force on towbar by caravan)</span></p>
+           </div>
+           {activeTowVehicleSpecs && activeTowVehicleSpecs.make && (
+            <div>
+                <h4 className="font-semibold text-foreground">Active Tow Vehicle ({activeTowVehicleSpecs.make} {activeTowVehicleSpecs.model}):</h4>
+                <p><strong>Max Towing Capacity:</strong> {vehicleMaxTowCapacity > 0 ? `${vehicleMaxTowCapacity.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max caravan ATM vehicle can tow)</span></p>
+                <p><strong>Max Towball Mass (Vehicle):</strong> {vehicleMaxTowballMass > 0 ? `${vehicleMaxTowballMass.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max towball weight vehicle can handle)</span></p>
+                <p><strong>GVM (Gross Vehicle Mass Limit):</strong> {vehicleGVM > 0 ? `${vehicleGVM.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max loaded weight of vehicle itself)</span></p>
+                <p><strong>GCM (Gross Combined Mass Limit):</strong> {vehicleGCM > 0 ? `${vehicleGCM.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max combined weight of loaded vehicle and loaded caravan)</span></p>
+            </div>
+           )}
         </div>
       </CardFooter>
     </Card>
