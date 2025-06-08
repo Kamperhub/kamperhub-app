@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
-import { InventoryList } from '@/components/features/inventory/InventoryList';
 import type { StoredCaravan, StorageLocation, WaterTank } from '@/types/caravan'; 
 import { CARAVANS_STORAGE_KEY, ACTIVE_CARAVAN_ID_KEY, WATER_TANK_LEVELS_STORAGE_KEY_PREFIX } from '@/types/caravan';
 import type { StoredVehicle, VehicleStorageLocation } from '@/types/vehicle';
@@ -16,6 +15,28 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import { AlertTriangle, Settings, Loader2, Car, Home, Backpack, Link2 as Link2Icon } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const InventoryListClient = dynamic(
+  () => import('@/components/features/inventory/InventoryList').then(mod => mod.InventoryList),
+  {
+    ssr: false,
+    loading: () => (
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-8 w-1/2" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-40 w-full" />
+        </CardContent>
+      </Card>
+    ),
+  }
+);
+
 
 const defaultCaravanSpecs: CaravanWeightData = {
   tareMass: 0,
@@ -288,7 +309,7 @@ export default function InventoryPage() {
          </Alert>
       )}
       
-      <InventoryList 
+      <InventoryListClient 
         caravanSpecs={caravanSpecsForList}
         activeCaravanStorageLocations={activeCaravanFull?.storageLocations || []}
         activeVehicleStorageLocations={activeVehicleSpecs?.storageLocations || []}
