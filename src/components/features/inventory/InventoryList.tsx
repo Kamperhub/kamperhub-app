@@ -139,6 +139,9 @@ export function InventoryList({
   }, [atmLimit, currentCaravanMass]);
   
   const estimatedTowballDownload = useMemo(() => {
+    // This is a simplistic estimation. True TBM depends on item placement relative to axles.
+    // For now, we use a common rule of thumb (e.g., 10% of payload).
+    // Future enhancement: Use detailed storage location distances for a more accurate TBM.
     const totalPayloadWeight = totalInventoryWeight + totalWaterWeight;
     const calculated = totalPayloadWeight * 0.1; 
     return typeof calculated === 'number' && !isNaN(calculated) ? Math.max(0, calculated) : 0;
@@ -285,17 +288,26 @@ export function InventoryList({
   };
 
   const enrichedCombinedStorageLocations = useMemo(() => {
+    const formatPosition = (pos: { longitudinalPosition: string; lateralPosition: string; }) => {
+      const longText = {
+        'front-of-axles': 'Front', 'over-axles': 'Over Axles', 'rear-of-axles': 'Rear',
+        'front-of-front-axle': 'Front of F.Axle', 'between-axles': 'Between Axles', 'rear-of-rear-axle': 'Rear of R.Axle', 'roof-center': 'Roof Center'
+      }[pos.longitudinalPosition] || pos.longitudinalPosition;
+      const latText = { 'left': 'Left', 'center': 'Center', 'right': 'Right' }[pos.lateralPosition] || pos.lateralPosition;
+      return `(${longText} / ${latText})`;
+    };
+
     const caravanLocs = (activeCaravanStorageLocations || []).map(loc => ({
       id: `cv-${loc.id}`,
       name: `CV: ${loc.name}`,
-      details: `(${loc.longitudinalPosition} / ${loc.lateralPosition})`,
+      details: formatPosition(loc),
       maxWeightCapacityKg: loc.maxWeightCapacityKg,
       type: 'caravan' as 'caravan' | 'vehicle',
     }));
     const vehicleLocs = (activeVehicleStorageLocations || []).map(loc => ({
       id: `veh-${loc.id}`,
       name: `VEH: ${loc.name}`,
-      details: `(${loc.longitudinalPosition} / ${loc.lateralPosition})`,
+      details: formatPosition(loc),
       maxWeightCapacityKg: loc.maxWeightCapacityKg,
       type: 'vehicle' as 'caravan' | 'vehicle',
     }));
@@ -494,7 +506,7 @@ export function InventoryList({
               {capacityTrackedLocations.map(loc => {
                 const currentWeightInLoc = locationWeights.get(loc.id) || 0;
                 const maxCapacity = loc.maxWeightCapacityKg!; // We filtered for this earlier
-                const percentage = maxCapacity > 0 ? Math.min((currentWeightInLoc / maxCapacity) * 100, 100) : 0; // Cap at 100 for progress bar
+                const percentage = maxCapacity > 0 ? Math.min((currentWeightInLoc / maxCapacity) * 100, 100) : 0; 
                 const isOverloaded = currentWeightInLoc > maxCapacity;
 
                 return (
@@ -520,7 +532,7 @@ export function InventoryList({
                 );
               })}
             </CardContent>
-             {capacityTrackedLocations.length === 0 && (
+             {capacityTrackedLocations.length === 0 && activeCaravanId && (
                 <CardContent><p className="text-sm text-muted-foreground text-center font-body">No storage locations with defined capacities found for active caravan/vehicle.</p></CardContent>
             )}
           </Card>
@@ -789,3 +801,4 @@ export function InventoryList({
   );
 }
 
+    
