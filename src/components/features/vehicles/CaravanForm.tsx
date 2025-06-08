@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useForm, type SubmitHandler, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,8 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, XCircle, PlusCircle, Trash2, Droplet } from 'lucide-react';
+import { Save, XCircle, PlusCircle, Trash2, Droplet, Info } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const storageLocationSchema = z.object({
   id: z.string(),
@@ -61,6 +62,9 @@ const caravanSchema = z.object({
 }, {
     message: "Body length cannot be greater than overall length.",
     path: ["bodyLength"],
+}).refine(data => data.atm >= data.tareMass, {
+  message: "ATM must be greater than or equal to Tare Mass.",
+  path: ["atm"],
 });
 
 interface CaravanFormProps {
@@ -110,6 +114,18 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
   });
 
   const numberOfAxles = watch("numberOfAxles");
+  const watchedAtm = watch("atm");
+  const watchedTareMass = watch("tareMass");
+
+  const potentialGrossPayload = useMemo(() => {
+    const atm = Number(watchedAtm);
+    const tare = Number(watchedTareMass);
+    if (!isNaN(atm) && !isNaN(tare) && atm > 0 && tare > 0 && atm >= tare) {
+      return atm - tare;
+    }
+    return null;
+  }, [watchedAtm, watchedTareMass]);
+
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -204,7 +220,17 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
           {errors.maxTowballDownload && <p className="text-sm text-destructive font-body mt-1">{errors.maxTowballDownload.message}</p>}
         </div>
       </div>
-      
+       {potentialGrossPayload !== null && (
+        <Alert variant="default" className="mt-2 bg-primary/10 border-primary/30">
+          <Info className="h-4 w-4 text-primary" />
+          <AlertTitle className="font-body text-primary">Calculated Gross Payload</AlertTitle>
+          <AlertDescription className="font-body text-primary/80">
+            Based on ATM and Tare entered: <strong>{potentialGrossPayload.toFixed(0)} kg</strong> available for water, gas, items, etc.
+          </AlertDescription>
+        </Alert>
+      )}
+
+
       {/* Dimensions (Optional) */}
       <h3 className="text-lg font-medium font-headline text-primary pt-2">Dimensions (Optional)</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -508,3 +534,4 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
     </form>
   );
 }
+

@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useForm, type SubmitHandler, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,8 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, XCircle, PlusCircle, Trash2 } from 'lucide-react';
+import { Save, XCircle, PlusCircle, Trash2, Info } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const vehicleStorageLocationSchema = z.object({
   id: z.string(),
@@ -38,7 +39,16 @@ const vehicleSchema = z.object({
   rearAxleLimit: z.coerce.number().min(1, "Rear Axle Limit must be a positive number").optional().nullable(),
   wheelbase: z.coerce.number().min(1000, "Wheelbase seems too short (min 1000mm)").optional().nullable(),
   storageLocations: z.array(vehicleStorageLocationSchema).optional(),
+}).refine(data => {
+  if (data.kerbWeight && data.gvm && data.kerbWeight > data.gvm) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Kerb Weight cannot be greater than GVM.",
+  path: ["kerbWeight"],
 });
+
 
 interface VehicleFormProps {
   initialData?: VehicleFormData;
@@ -64,7 +74,7 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
     storageLocations: [],
   };
 
-  const { control, register, handleSubmit, formState: { errors }, reset } = useForm<VehicleFormData>({
+  const { control, register, handleSubmit, formState: { errors }, reset, watch } = useForm<VehicleFormData>({
     resolver: zodResolver(vehicleSchema),
     defaultValues: initialData ? { ...defaultFormValues, ...initialData, storageLocations: initialData.storageLocations || [] } : defaultFormValues,
   });
@@ -73,6 +83,18 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
     control,
     name: "storageLocations",
   });
+
+  const watchedGvm = watch("gvm");
+  const watchedKerbWeight = watch("kerbWeight");
+
+  const potentialVehiclePayload = useMemo(() => {
+    const gvm = Number(watchedGvm);
+    const kerb = Number(watchedKerbWeight);
+    if (!isNaN(gvm) && !isNaN(kerb) && gvm > 0 && kerb > 0 && gvm >= kerb) {
+      return gvm - kerb;
+    }
+    return null;
+  }, [watchedGvm, watchedKerbWeight]);
 
   React.useEffect(() => {
     const currentDefaultValues = initialData 
@@ -145,7 +167,26 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
           {errors.gcm && <p className="text-sm text-destructive font-body mt-1">{errors.gcm.message}</p>}
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {potentialVehiclePayload !== null && (
+        <Alert variant="default" className="mt-2 bg-primary/10 border-primary/30">
+          <Info className="h-4 w-4 text-primary" />
+          <AlertTitle className="font-body text-primary">Calculated Vehicle Payload Capacity</AlertTitle>
+          <AlertDescription className="font-body text-primary/80">
+            Based on GVM and Kerb Weight: <strong>{potentialVehiclePayload.toFixed(0)} kg</strong> available for occupants, cargo, accessories, and towball mass.
+          </AlertDescription>
+        </Alert>
+      )}
+      {watchedGvm > 0 && !watchedKerbWeight && (
+         <Alert variant="default" className="mt-2 bg-muted/50 border-muted/80">
+            <Info className="h-4 w-4 text-muted-foreground" />
+            <AlertTitle className="font-body text-muted-foreground">Payload Calculation</AlertTitle>
+            <AlertDescription className="font-body text-muted-foreground/80">
+              Enter Kerb Weight to see calculated vehicle payload capacity.
+            </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <div>
           <Label htmlFor="maxTowCapacity" className="font-body">Max Towing Capacity (kg)</Label>
           <Input id="maxTowCapacity" type="number" {...register("maxTowCapacity")} placeholder="e.g., 3500" className="font-body" />
@@ -335,3 +376,4 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
     </form>
   );
 }
+
