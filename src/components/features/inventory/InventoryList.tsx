@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, Settings2, Link2 as Link2Icon } from 'lucide-react'; // Added Link2Icon
+import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, Settings2, Link2 as Link2Icon, StickyNote } from 'lucide-react'; // Added Link2Icon and StickyNote
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label as RechartsLabel } from 'recharts';
@@ -419,6 +419,11 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, activeWdhSp
                                 {wdhMinCapacity !== null && wdhMinCapacity > 0 && `Min Towball Capacity: ${wdhMinCapacity}kg`} <br />
                                 Integrated Sway Control: {activeWdhSpecs.hasIntegratedSwayControl ? 'Yes' : 'No'}
                                 {activeWdhSpecs.swayControlType && !activeWdhSpecs.hasIntegratedSwayControl && <><br/>Separate Sway Control: {activeWdhSpecs.swayControlType}</>}
+                                {activeWdhSpecs.notes && (
+                                  <div className="mt-1 pt-1 border-t border-muted-foreground/20">
+                                    <p className="text-xs flex items-start"><StickyNote className="w-3 h-3 mr-1.5 mt-0.5 text-muted-foreground"/><strong>Notes:</strong> <span className="italic whitespace-pre-wrap">{activeWdhSpecs.notes}</span></p>
+                                  </div>
+                                )}
                             </AlertDescription>
                         </Alert>
                         {wdhMaxCapacity > 0 && (
