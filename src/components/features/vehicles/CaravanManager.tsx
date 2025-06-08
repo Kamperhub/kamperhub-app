@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import type { StoredCaravan, CaravanFormData, StorageLocation } from '@/types/caravan';
+import type { StoredCaravan, CaravanFormData, StorageLocation, WaterTank } from '@/types/caravan';
 import type { StoredWDH } from '@/types/wdh';
 import { WDHS_STORAGE_KEY, ACTIVE_WDH_ID_KEY } from '@/types/wdh';
 import type { CaravanInventories } from '@/types/inventory';
@@ -14,12 +14,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { CaravanForm } from './CaravanForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, ShieldAlert, Settings2, Link2 as LinkIcon, Ruler, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, ShieldAlert, Settings2, Link2 as LinkIcon, Ruler, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Droplet, Weight, Axe } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/hooks/useSubscription'; 
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 const CARAVANS_STORAGE_KEY = 'kamperhub_caravans_list';
@@ -107,12 +108,18 @@ export function CaravanManager() {
     }
 
     let updatedCaravans;
+    const caravanDataToSave: StoredCaravan = {
+      ...data,
+      id: editingCaravan ? editingCaravan.id : Date.now().toString(),
+      storageLocations: data.storageLocations || [],
+      waterTanks: data.waterTanks || [],
+    };
+
     if (editingCaravan) {
-      updatedCaravans = caravans.map(c => c.id === editingCaravan.id ? { ...editingCaravan, ...data, storageLocations: data.storageLocations || [] } : c);
+      updatedCaravans = caravans.map(c => c.id === editingCaravan.id ? caravanDataToSave : c);
       toast({ title: "Caravan Updated", description: `${data.make} ${data.model} updated.` });
     } else {
-      const newCaravan: StoredCaravan = { ...data, id: Date.now().toString(), storageLocations: data.storageLocations || [] };
-      updatedCaravans = [...caravans, newCaravan];
+      updatedCaravans = [...caravans, caravanDataToSave];
       toast({ title: "Caravan Added", description: `${data.make} ${data.model} added.` });
     }
     setCaravans(updatedCaravans);
@@ -122,7 +129,11 @@ export function CaravanManager() {
   };
 
   const handleEditCaravan = (caravan: StoredCaravan) => {
-    setEditingCaravan({...caravan, storageLocations: caravan.storageLocations || []});
+    setEditingCaravan({
+        ...caravan, 
+        storageLocations: caravan.storageLocations || [],
+        waterTanks: caravan.waterTanks || [],
+    });
     setIsFormOpen(true);
   };
 
@@ -221,21 +232,21 @@ export function CaravanManager() {
     return `WDH (ID: ${wdhId.substring(0,6)}...) not found`;
   };
 
-  const formatDimension = (value: number | null | undefined) => {
-    return typeof value === 'number' && value > 0 ? `${value}mm` : 'N/A';
+  const formatDimension = (value: number | null | undefined, unit: string = 'mm') => {
+    return typeof value === 'number' ? `${value}${unit}` : 'N/A';
   };
 
-  const formatPositionText = (loc: StorageLocation) => {
+  const formatPositionText = (item: { longitudinalPosition: string; lateralPosition: string; }) => {
     const longText = {
       'front-of-axles': 'Front',
       'over-axles': 'Over Axles',
       'rear-of-axles': 'Rear'
-    }[loc.longitudinalPosition];
+    }[item.longitudinalPosition] || item.longitudinalPosition;
     const latText = {
       'left': 'Left',
       'center': 'Center',
       'right': 'Right'
-    }[loc.lateralPosition];
+    }[item.lateralPosition] || item.lateralPosition;
     return `${longText} / ${latText}`;
   };
 
@@ -318,11 +329,11 @@ export function CaravanManager() {
               <div className="flex-grow">
                 <h3 className="font-semibold font-headline text-xl text-primary">{caravan.year} {caravan.make} {caravan.model}</h3>
                 <div className="text-sm text-muted-foreground font-body grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 mt-1">
-                  <span>Tare: {caravan.tareMass}kg</span>
-                  <span>ATM: {caravan.atm}kg</span>
-                  <span>GTM: {caravan.gtm}kg</span>
-                  <span>Towball: {caravan.maxTowballDownload}kg</span>
-                  <span className="flex items-center"><Settings2 className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Axles: {typeof caravan.numberOfAxles === 'number' ? caravan.numberOfAxles : 'N/A'}</span>
+                  <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Tare: {caravan.tareMass}kg</span>
+                  <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> ATM: {caravan.atm}kg</span>
+                  <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> GTM: {caravan.gtm}kg</span>
+                  <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Towball: {caravan.maxTowballDownload}kg</span>
+                  <span className="flex items-center"><Axe className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Axles: {typeof caravan.numberOfAxles === 'number' ? caravan.numberOfAxles : 'N/A'}</span>
                   {caravan.associatedWdhId && getWdhNameById(caravan.associatedWdhId) && (
                      <span className="flex items-center col-span-full sm:col-span-1 md:col-span-1"><LinkIcon className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> WDH: {getWdhNameById(caravan.associatedWdhId)}</span>
                   )}
@@ -356,25 +367,55 @@ export function CaravanManager() {
                 </div>
               </div>
             </div>
-            {caravan.storageLocations && caravan.storageLocations.length > 0 && (
-              <CardFooter className="p-0 pt-3 mt-3 border-t">
-                <div>
-                  <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center">
-                    <PackagePlus className="w-4 h-4 mr-2 text-primary"/>Storage Locations:
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {caravan.storageLocations.map(loc => (
-                      <Badge key={loc.id} variant="secondary" className="font-normal font-body text-xs py-1 px-2">
-                        <MapPin className="w-3 h-3 mr-1"/> {loc.name} 
-                        <span className="text-muted-foreground/80 ml-1.5 flex items-center">
-                           (<ArrowUpDown className="w-2.5 h-2.5 mr-0.5"/>{formatPositionText(loc).split(' / ')[0]}, <ArrowLeftRight className="w-2.5 h-2.5 mr-0.5"/>{formatPositionText(loc).split(' / ')[1]})
-                        </span>
-                      </Badge>
-                    ))}
+            
+            {(caravan.storageLocations && caravan.storageLocations.length > 0) || (caravan.waterTanks && caravan.waterTanks.length > 0) ? (
+              <CardFooter className="p-0 pt-3 mt-3 border-t flex flex-col items-start space-y-3">
+                {caravan.storageLocations && caravan.storageLocations.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center">
+                      <PackagePlus className="w-4 h-4 mr-2 text-primary"/>Storage Locations:
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {caravan.storageLocations.map(loc => (
+                        <Badge key={loc.id} variant="secondary" className="font-normal font-body text-xs py-1 px-2 h-auto text-left whitespace-normal">
+                          <div className="flex flex-col">
+                            <div className="flex items-center font-medium"><MapPin className="w-3 h-3 mr-1.5"/> {loc.name}</div>
+                            <div className="pl-[1.125rem] text-muted-foreground/90">
+                              Pos: {formatPositionText(loc)}<br/>
+                              Capacity: {formatDimension(loc.maxWeightCapacityKg, 'kg')}<br/>
+                              <span className="flex items-center"><ArrowLeftRight className="w-2.5 h-2.5 mr-1"/>Axle: {formatDimension(loc.distanceFromAxleCenterMm)}</span>
+                              <span className="flex items-center"><ArrowUpDown className="w-2.5 h-2.5 mr-1"/>Center: {formatDimension(loc.distanceFromCenterlineMm)}</span>
+                              <span className="flex items-center"><Ruler className="w-2.5 h-2.5 mr-1"/>Height: {formatDimension(loc.heightFromGroundMm)}</span>
+                            </div>
+                          </div>
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
+                {caravan.waterTanks && caravan.waterTanks.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center">
+                      <Droplet className="w-4 h-4 mr-2 text-primary"/>Water Tanks:
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {caravan.waterTanks.map(tank => (
+                        <Badge key={tank.id} variant="outline" className="font-normal font-body text-xs py-1 px-2 h-auto text-left whitespace-normal border-primary/50">
+                           <div className="flex flex-col">
+                            <div className="flex items-center font-medium"><Droplet className="w-3 h-3 mr-1.5 text-blue-500"/> {tank.name} ({tank.type})</div>
+                            <div className="pl-[1.125rem] text-muted-foreground/90">
+                              Capacity: {tank.capacityLiters}L<br/>
+                              Pos: {formatPositionText(tank)}<br/>
+                               {typeof tank.distanceFromAxleCenterMm === 'number' && <span className="flex items-center"><ArrowLeftRight className="w-2.5 h-2.5 mr-1"/>Axle: {formatDimension(tank.distanceFromAxleCenterMm)}</span>}
+                            </div>
+                          </div>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardFooter>
-            )}
+            ) : null}
           </Card>
         ))}
       </CardContent>

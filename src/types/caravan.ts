@@ -4,6 +4,21 @@ export interface StorageLocation {
   name: string;
   longitudinalPosition: 'front-of-axles' | 'over-axles' | 'rear-of-axles';
   lateralPosition: 'left' | 'center' | 'right';
+  distanceFromAxleCenterMm?: number | null; 
+  distanceFromCenterlineMm?: number | null;
+  heightFromGroundMm?: number | null;
+  maxWeightCapacityKg?: number | null;
+}
+
+export interface WaterTank {
+  id: string;
+  name: string;
+  type: 'fresh' | 'grey' | 'black';
+  capacityLiters: number;
+  longitudinalPosition: 'front-of-axles' | 'over-axles' | 'rear-of-axles';
+  lateralPosition: 'left' | 'center' | 'right';
+  // Optional precise measurements for future advanced calculations
+  distanceFromAxleCenterMm?: number | null; 
 }
 
 export interface CaravanFormData {
@@ -22,6 +37,7 @@ export interface CaravanFormData {
   hitchToAxleCenterDistance?: number | null;
   interAxleSpacing?: number | null;
   storageLocations?: StorageLocation[];
+  waterTanks?: WaterTank[];
 }
 
 export interface StoredCaravan extends CaravanFormData {
