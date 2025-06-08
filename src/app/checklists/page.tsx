@@ -14,7 +14,7 @@ import { CARAVANS_STORAGE_KEY } from '@/types/caravan';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Info, ListChecks, Home, Route } from 'lucide-react';
+import { Loader2, Info, ListChecks, Home, Route, PlusCircle } from 'lucide-react'; // Added PlusCircle
 import { Label } from '@/components/ui/label';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
