@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react'; // Added useCallback
 import type { InventoryItem, CaravanWeightData, CaravanInventories } from '@/types/inventory';
 import type { StorageLocation as CaravanStorageLocation, WaterTank } from '@/types/caravan';
 import type { StoredVehicle, VehicleStorageLocation } from '@/types/vehicle';
@@ -90,9 +90,9 @@ export function InventoryList({
   }, [initialCaravanInventory, activeCaravanId]);
 
 
-  const saveInventoryToStorage = (updatedItemsForCurrentCaravan: InventoryItem[]) => {
+  const saveInventoryToStorage = useCallback((updatedItemsForCurrentCaravan: InventoryItem[]) => {
     if (!activeCaravanId || !isLocalStorageReady || typeof window === 'undefined') {
-      if(!activeCaravanId) {
+      if(!activeCaravanId && isLocalStorageReady) { // Only toast if local storage is ready
         toast({ title: "Cannot Save Inventory", description: "No active caravan selected.", variant: "destructive" });
       }
       return;
@@ -106,7 +106,7 @@ export function InventoryList({
       console.error("Error saving inventory to localStorage:", error);
       toast({ title: "Error Saving Inventory", description: "Could not save inventory changes.", variant: "destructive" });
     }
-  };
+  }, [activeCaravanId, isLocalStorageReady, toast]); // Added toast to dependencies
 
   const totalInventoryWeight = useMemo(() => {
     return items.reduce((sum, item) => {
@@ -380,7 +380,7 @@ export function InventoryList({
               <SelectTrigger className="font-body bg-white dark:bg-neutral-800">
                 <SelectValue placeholder="Select location" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent style={{ pointerEvents: 'auto' }}> {/* Ensure items are clickable */}
                 <SelectItem value="none">Unassigned</SelectItem>
                 {enrichedCombinedStorageLocations.map(loc => (
                   <SelectItem key={loc.id} value={loc.id}>{loc.name} {loc.details}</SelectItem>
@@ -800,5 +800,7 @@ export function InventoryList({
     </Card>
   );
 }
+
+    
 
     
