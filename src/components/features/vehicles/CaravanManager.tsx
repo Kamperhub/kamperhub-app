@@ -187,6 +187,7 @@ export function CaravanManager() {
       }
     } else {
       saveActiveWdhIdToStorage(null);
+      // Updated toast message for clarity when no WDH is associated
       toastMessage += ` No WDH associated with this caravan. Any previously active WDH has been cleared.`;
     }
     toast({ title: "Active Caravan Set", description: toastMessage });
@@ -217,6 +218,7 @@ export function CaravanManager() {
     if (!wdhId) return null;
     const wdh = allWdhs.find(w => w.id === wdhId);
     if (wdh) return wdh.name;
+    // Updated display for a WDH ID that doesn't match any stored WDHs
     return `WDH (ID: ${wdhId.substring(0,6)}...) not found`;
   };
 
@@ -295,7 +297,7 @@ export function CaravanManager() {
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="font-semibold font-body text-lg">{caravan.year} {caravan.make} {caravan.model}</h3>
-                <div className="text-sm text-muted-foreground font-body grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1">
+                <div className="text-sm text-muted-foreground font-body grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1">
                   <span>Tare: {caravan.tareMass}kg</span>
                   <span>ATM: {caravan.atm}kg</span>
                   <span>GTM: {caravan.gtm}kg</span>

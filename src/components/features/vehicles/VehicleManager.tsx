@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { VehicleForm } from './VehicleForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, ShieldAlert, Weight, Axe } from 'lucide-react'; // Added Weight and Axe icons
+import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, ShieldAlert, Weight, Axe } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/hooks/useSubscription'; 
 import Link from 'next/link';
@@ -220,14 +220,14 @@ export function VehicleManager() {
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="font-semibold font-body text-lg">{vehicle.year} {vehicle.make} {vehicle.model}</h3>
-                <div className="text-sm text-muted-foreground font-body grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1">
+                <div className="text-sm text-muted-foreground font-body grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1">
                   <span>GVM: {vehicle.gvm}kg</span>
                   <span>GCM: {vehicle.gcm}kg</span>
                   <span>Tow: {vehicle.maxTowCapacity}kg</span>
                   <span>Towball: {vehicle.maxTowballMass}kg</span>
-                  <span className="flex items-center"><Weight className="w-3 h-3 mr-1 text-primary/70"/> Kerb: {typeof vehicle.kerbWeight === 'number' && vehicle.kerbWeight > 0 ? `${vehicle.kerbWeight}kg` : 'N/A'}</span>
-                  <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 rotate-90"/> F Axle: {typeof vehicle.frontAxleLimit === 'number' && vehicle.frontAxleLimit > 0 ? `${vehicle.frontAxleLimit}kg` : 'N/A'}</span>
-                  <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 -rotate-90"/> R Axle: {typeof vehicle.rearAxleLimit === 'number' && vehicle.rearAxleLimit > 0 ? `${vehicle.rearAxleLimit}kg` : 'N/A'}</span>
+                  <span className="flex items-center"><Weight className="w-3 h-3 mr-1 text-primary/70"/> Kerb: { (typeof vehicle.kerbWeight === 'number' && vehicle.kerbWeight > 0) ? `${vehicle.kerbWeight}kg` : 'N/A'}</span>
+                  <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 rotate-90"/> F Axle: { (typeof vehicle.frontAxleLimit === 'number' && vehicle.frontAxleLimit > 0) ? `${vehicle.frontAxleLimit}kg` : 'N/A'}</span>
+                  <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 -rotate-90"/> R Axle: { (typeof vehicle.rearAxleLimit === 'number' && vehicle.rearAxleLimit > 0) ? `${vehicle.rearAxleLimit}kg` : 'N/A'}</span>
                   <span className="flex items-center"><Fuel className="w-3 h-3 mr-1 text-primary/70"/> {vehicle.fuelEfficiency}L/100km</span>
                 </div>
               </div>
