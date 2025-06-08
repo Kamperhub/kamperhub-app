@@ -299,25 +299,25 @@ export function VehicleManager() {
                   </div>
                 </div>
                 {vehicle.storageLocations && vehicle.storageLocations.length > 0 && (
-                  <CardFooter className="p-0 pt-3 mt-3 border-t">
-                    <div>
+                  <CardFooter className="p-0 pt-3 mt-3 border-t w-full">
+                    <div className="w-full">
                       <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center">
                         <PackagePlus className="w-4 h-4 mr-2 text-primary"/>Storage Locations:
                       </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1.5 text-xs">
+                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
                         {vehicle.storageLocations.map(loc => (
-                          <Badge key={loc.id} variant="secondary" className="font-normal font-body py-1 px-2 h-auto text-left whitespace-normal">
-                            <div className="flex flex-col">
-                              <div className="flex items-center font-medium"><MapPin className="w-3 h-3 mr-1.5"/> {loc.name}</div>
-                              <div className="pl-[1.125rem] text-muted-foreground/90">
-                                Pos: {formatPositionText(loc)}<br/>
-                                Capacity: {formatDimension(loc.maxWeightCapacityKg, 'kg')}<br/>
-                                <span className="flex items-center"><ArrowLeftRight className="w-2.5 h-2.5 mr-1"/>R.Axle: {formatDimension(loc.distanceFromRearAxleMm)}</span>
-                                <span className="flex items-center"><ArrowUpDown className="w-2.5 h-2.5 mr-1"/>Center: {formatDimension(loc.distanceFromCenterlineMm)}</span>
-                                <span className="flex items-center"><Ruler className="w-2.5 h-2.5 mr-1"/>Height: {formatDimension(loc.heightFromGroundMm)}</span>
-                              </div>
+                          <div key={loc.id} className="p-3 border rounded-lg bg-card shadow-sm">
+                            <h5 className="font-semibold font-body text-base flex items-center mb-1 text-primary">
+                              <MapPin className="w-4 h-4 mr-2 text-accent" /> {loc.name}
+                            </h5>
+                            <div className="space-y-0.5 text-xs font-body text-muted-foreground">
+                              <p><strong className="text-foreground/80">Position:</strong> {formatPositionText(loc)}</p>
+                              <p><strong className="text-foreground/80">Max Capacity:</strong> {formatDimension(loc.maxWeightCapacityKg, 'kg')}</p>
+                              <p className="flex items-center"><ArrowLeftRight className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Dist. from Rear Axle:</strong>&nbsp;{formatDimension(loc.distanceFromRearAxleMm)}</p>
+                              <p className="flex items-center"><ArrowUpDown className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Dist. from Centerline:</strong>&nbsp;{formatDimension(loc.distanceFromCenterlineMm)}</p>
+                              <p className="flex items-center"><Ruler className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Height from Ground:</strong>&nbsp;{formatDimension(loc.heightFromGroundMm)}</p>
                             </div>
-                          </Badge>
+                          </div>
                         ))}
                       </div>
                     </div>

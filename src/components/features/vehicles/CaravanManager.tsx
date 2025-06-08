@@ -410,30 +410,30 @@ export function CaravanManager() {
                 {(caravan.storageLocations && caravan.storageLocations.length > 0) || (caravan.waterTanks && caravan.waterTanks.length > 0) ? (
                   <CardFooter className="p-0 pt-3 mt-3 border-t flex flex-col items-start space-y-3">
                     {caravan.storageLocations && caravan.storageLocations.length > 0 && (
-                      <div>
+                      <div className="w-full">
                         <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center">
                           <PackagePlus className="w-4 h-4 mr-2 text-primary"/>Storage Locations:
                         </h4>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
                           {caravan.storageLocations.map(loc => (
-                            <Badge key={loc.id} variant="secondary" className="font-normal font-body text-xs py-1 px-2 h-auto text-left whitespace-normal">
-                              <div className="flex flex-col">
-                                <div className="flex items-center font-medium"><MapPin className="w-3 h-3 mr-1.5"/> {loc.name}</div>
-                                <div className="pl-[1.125rem] text-muted-foreground/90">
-                                  Pos: {formatPositionText(loc)}<br/>
-                                  Capacity: {formatDimension(loc.maxWeightCapacityKg, 'kg')}<br/>
-                                  <span className="flex items-center"><ArrowLeftRight className="w-2.5 h-2.5 mr-1"/>Axle: {formatDimension(loc.distanceFromAxleCenterMm)}</span>
-                                  <span className="flex items-center"><ArrowUpDown className="w-2.5 h-2.5 mr-1"/>Center: {formatDimension(loc.distanceFromCenterlineMm)}</span>
-                                  <span className="flex items-center"><Ruler className="w-2.5 h-2.5 mr-1"/>Height: {formatDimension(loc.heightFromGroundMm)}</span>
-                                </div>
+                            <div key={loc.id} className="p-3 border rounded-lg bg-card shadow-sm">
+                              <h5 className="font-semibold font-body text-base flex items-center mb-1 text-primary">
+                                <MapPin className="w-4 h-4 mr-2 text-accent" /> {loc.name}
+                              </h5>
+                              <div className="space-y-0.5 text-xs font-body text-muted-foreground">
+                                <p><strong className="text-foreground/80">Position:</strong> {formatPositionText(loc)}</p>
+                                <p><strong className="text-foreground/80">Max Capacity:</strong> {formatDimension(loc.maxWeightCapacityKg, 'kg')}</p>
+                                <p className="flex items-center"><ArrowLeftRight className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Dist. from Axle:</strong>&nbsp;{formatDimension(loc.distanceFromAxleCenterMm)}</p>
+                                <p className="flex items-center"><ArrowUpDown className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Dist. from Centerline:</strong>&nbsp;{formatDimension(loc.distanceFromCenterlineMm)}</p>
+                                <p className="flex items-center"><Ruler className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Height from Ground:</strong>&nbsp;{formatDimension(loc.heightFromGroundMm)}</p>
                               </div>
-                            </Badge>
+                            </div>
                           ))}
                         </div>
                       </div>
                     )}
                     {caravan.waterTanks && caravan.waterTanks.length > 0 && (
-                      <div>
+                      <div className="w-full">
                         <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center">
                           <Droplet className="w-4 h-4 mr-2 text-primary"/>Water Tanks:
                         </h4>
@@ -500,3 +500,4 @@ export function CaravanManager() {
     </>
   );
 }
+
