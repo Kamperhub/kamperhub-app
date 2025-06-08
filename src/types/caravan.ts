@@ -8,6 +8,7 @@ export interface CaravanFormData {
   gtm: number; // Gross Trailer Mass
   maxTowballDownload: number;
   numberOfAxles: number; // New field
+  associatedWdhId?: string | null; // ID of the associated WDH
 }
 
 export interface StoredCaravan extends CaravanFormData {

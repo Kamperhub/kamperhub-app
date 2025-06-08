@@ -1,8 +1,10 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { StoredCaravan, CaravanFormData } from '@/types/caravan';
+import type { StoredWDH } from '@/types/wdh';
+import { WDHS_STORAGE_KEY, ACTIVE_WDH_ID_KEY } from '@/types/wdh';
 import type { CaravanInventories } from '@/types/inventory';
 import { INVENTORY_STORAGE_KEY } from '@/types/inventory';
 import type { CaravanChecklists } from '@/types/checklist';
@@ -12,16 +14,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { CaravanForm } from './CaravanForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, ShieldAlert, Settings2 } from 'lucide-react'; // Changed to Settings2 for axles
+import { PlusCircle, Edit3, Trash2, CheckCircle, ShieldAlert, Settings2, Link2 as LinkIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useSubscription } from '@/hooks/useSubscription'; // Import useSubscription
+import { useSubscription } from '@/hooks/useSubscription'; 
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
 const CARAVANS_STORAGE_KEY = 'kamperhub_caravans_list';
 const ACTIVE_CARAVAN_ID_KEY = 'kamperhub_active_caravan_id';
-const FREE_TIER_CARAVAN_LIMIT = 1; // Define free tier limit
+const FREE_TIER_CARAVAN_LIMIT = 1; 
 
 export function CaravanManager() {
   const { toast } = useToast();
@@ -30,10 +32,17 @@ export function CaravanManager() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCaravan, setEditingCaravan] = useState<StoredCaravan | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
-  const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription(); // Get subscription status
+  const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription(); 
+  const [allWdhs, setAllWdhs] = useState<StoredWDH[]>([]);
 
   useEffect(() => {
     setHasMounted(true);
+    if (typeof window !== 'undefined') {
+      const storedWdhs = localStorage.getItem(WDHS_STORAGE_KEY);
+      if (storedWdhs) {
+        setAllWdhs(JSON.parse(storedWdhs));
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -68,7 +77,20 @@ export function CaravanManager() {
         localStorage.removeItem(ACTIVE_CARAVAN_ID_KEY);
       }
     } catch (error) {
-      toast({ title: "Error Saving Active Caravan", variant: "destructive" });
+      toast({ title: "Error Saving Active Caravan Selection", variant: "destructive" });
+    }
+  }, [toast, hasMounted]);
+  
+  const saveActiveWdhIdToStorage = useCallback((id: string | null) => {
+    if (!hasMounted || typeof window === 'undefined') return;
+    try {
+      if (id) {
+        localStorage.setItem(ACTIVE_WDH_ID_KEY, id);
+      } else {
+        localStorage.removeItem(ACTIVE_WDH_ID_KEY);
+      }
+    } catch (error) {
+      toast({ title: "Error Saving Active WDH Selection", variant: "destructive" });
     }
   }, [toast, hasMounted]);
 
@@ -151,7 +173,22 @@ export function CaravanManager() {
     setActiveCaravanId(id);
     saveActiveCaravanIdToStorage(id);
     const caravan = caravans.find(c => c.id === id);
-    toast({ title: "Active Caravan Set", description: `${caravan?.make} ${caravan?.model} is now active.` });
+    let toastMessage = `${caravan?.make} ${caravan?.model} is now active.`;
+
+    if (caravan?.associatedWdhId) {
+      const associatedWdh = allWdhs.find(w => w.id === caravan.associatedWdhId);
+      if (associatedWdh) {
+        saveActiveWdhIdToStorage(associatedWdh.id);
+        toastMessage += ` Associated WDH '${associatedWdh.name}' also activated.`;
+      } else {
+        saveActiveWdhIdToStorage(null); // Associated WDH not found, clear active WDH
+      }
+    } else {
+      // If the caravan has no associated WDH, we might want to clear the active WDH or leave it.
+      // For now, let's explicitly clear it if no association, to avoid confusion.
+      saveActiveWdhIdToStorage(null);
+    }
+    toast({ title: "Active Caravan Set", description: toastMessage });
   };
 
   const handleOpenFormForNew = () => {
@@ -173,6 +210,12 @@ export function CaravanManager() {
     }
     setEditingCaravan(null);
     setIsFormOpen(true);
+  };
+
+  const getWdhNameById = (wdhId: string | null | undefined) => {
+    if (!wdhId) return null;
+    const wdh = allWdhs.find(w => w.id === wdhId);
+    return wdh ? wdh.name : "Unknown WDH";
   };
 
   if (!hasMounted || isSubscriptionLoading) {
@@ -202,7 +245,10 @@ export function CaravanManager() {
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle className="font-headline">Caravans</CardTitle>
-          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+          <Dialog open={isFormOpen} onOpenChange={(isOpen) => {
+            setIsFormOpen(isOpen);
+            if (!isOpen) setEditingCaravan(null); 
+          }}>
             <DialogTrigger asChild>
               <Button onClick={handleOpenFormForNew} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body" disabled={!canAddMoreCaravans && !editingCaravan}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Add New Caravan
@@ -226,7 +272,7 @@ export function CaravanManager() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!isSubscribed && caravans.length >= FREE_TIER_CARAVAN_LIMIT && (
+        {!isSubscribed && caravans.length >= FREE_TIER_CARAVAN_LIMIT && !editingCaravan && (
           <Alert variant="default" className="bg-primary/10 border-primary/30">
             <ShieldAlert className="h-4 w-4 text-primary" />
             <AlertTitle className="font-headline text-primary">Free Tier Limit Reached</AlertTitle>
@@ -253,6 +299,9 @@ export function CaravanManager() {
                   <span>GTM: {caravan.gtm}kg</span>
                   <span>Towball: {caravan.maxTowballDownload}kg</span>
                   <span className="flex items-center"><Settings2 className="w-3 h-3 mr-1 text-primary/70"/> Axles: {caravan.numberOfAxles}</span>
+                  {caravan.associatedWdhId && getWdhNameById(caravan.associatedWdhId) && (
+                     <span className="flex items-center col-span-full sm:col-span-1"><LinkIcon className="w-3 h-3 mr-1 text-primary/70"/> WDH: {getWdhNameById(caravan.associatedWdhId)}</span>
+                  )}
                 </div>
               </div>
                <div className="flex flex-col sm:flex-row gap-2 items-end sm:items-center">

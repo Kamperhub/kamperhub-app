@@ -1,13 +1,17 @@
 
 "use client";
 
-import { useForm, type SubmitHandler } from 'react-hook-form';
+import React, { useState, useEffect } from 'react';
+import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { CaravanFormData } from '@/types/caravan';
+import type { StoredWDH } from '@/types/wdh';
+import { WDHS_STORAGE_KEY } from '@/types/wdh';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, XCircle } from 'lucide-react';
 
 const caravanSchema = z.object({
@@ -19,6 +23,7 @@ const caravanSchema = z.object({
   gtm: z.coerce.number().positive("GTM must be positive"),
   maxTowballDownload: z.coerce.number().positive("Max Towball Download must be positive"),
   numberOfAxles: z.coerce.number().int().min(1, "Must have at least 1 axle").max(4, "Number of axles seems high (max 4)"),
+  associatedWdhId: z.string().nullable().optional(),
 });
 
 interface CaravanFormProps {
@@ -29,7 +34,8 @@ interface CaravanFormProps {
 }
 
 export function CaravanForm({ initialData, onSave, onCancel, isLoading }: CaravanFormProps) {
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<CaravanFormData>({
+  const [availableWdhs, setAvailableWdhs] = useState<StoredWDH[]>([]);
+  const { control, register, handleSubmit, formState: { errors }, reset, setValue } = useForm<CaravanFormData>({
     resolver: zodResolver(caravanSchema),
     defaultValues: initialData || {
       make: '',
@@ -39,13 +45,45 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
       atm: 0,
       gtm: 0,
       maxTowballDownload: 0,
-      numberOfAxles: 1, // Default to single axle
+      numberOfAxles: 1,
+      associatedWdhId: null,
     },
   });
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedWdhs = localStorage.getItem(WDHS_STORAGE_KEY);
+      if (storedWdhs) {
+        setAvailableWdhs(JSON.parse(storedWdhs));
+      }
+    }
+  }, []);
+  
+  useEffect(() => {
+    if (initialData) {
+      reset({
+        ...initialData,
+        associatedWdhId: initialData.associatedWdhId || null,
+      });
+    } else {
+       reset({
+        make: '',
+        model: '',
+        year: new Date().getFullYear(),
+        tareMass: 0,
+        atm: 0,
+        gtm: 0,
+        maxTowballDownload: 0,
+        numberOfAxles: 1,
+        associatedWdhId: null,
+      });
+    }
+  }, [initialData, reset]);
+
+
   const onSubmit: SubmitHandler<CaravanFormData> = (data) => {
     onSave(data);
-    reset();
+    // Reset is handled by dialog close or manager
   };
 
   return (
@@ -103,12 +141,41 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
           {errors.maxTowballDownload && <p className="text-sm text-destructive font-body mt-1">{errors.maxTowballDownload.message}</p>}
         </div>
       </div>
+       <div>
+        <Label htmlFor="associatedWdhId" className="font-body">Associated WDH (Optional)</Label>
+        <Controller
+            name="associatedWdhId"
+            control={control}
+            render={({ field }) => (
+              <Select
+                onValueChange={(value) => field.onChange(value === "none" ? null : value)}
+                value={field.value || "none"}
+                disabled={availableWdhs.length === 0}
+              >
+                <SelectTrigger className="font-body">
+                  <SelectValue placeholder="Select an associated WDH" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {availableWdhs.map(wdh => (
+                    <SelectItem key={wdh.id} value={wdh.id}>
+                      {wdh.name} ({wdh.type})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+        {availableWdhs.length === 0 && <p className="text-xs text-muted-foreground font-body mt-1">No WDHs added yet. Add a WDH first to associate it.</p>}
+        {errors.associatedWdhId && <p className="text-sm text-destructive font-body mt-1">{errors.associatedWdhId.message}</p>}
+      </div>
+
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading} className="font-body">
           <XCircle className="mr-2 h-4 w-4" /> Cancel
         </Button>
         <Button type="submit" disabled={isLoading} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body">
-          <Save className="mr-2 h-4 w-4" /> Save Caravan
+          <Save className="mr-2 h-4 w-4" /> {initialData ? 'Update Caravan' : 'Save Caravan'}
         </Button>
       </div>
     </form>
