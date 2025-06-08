@@ -1,10 +1,10 @@
 
 "use client"; 
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { InventoryList } from '@/components/features/inventory/InventoryList';
-import type { StoredCaravan, StorageLocation } from '@/types/caravan'; 
+import type { StoredCaravan, StorageLocation, WaterTank } from '@/types/caravan'; 
 import { CARAVANS_STORAGE_KEY, ACTIVE_CARAVAN_ID_KEY } from '@/types/caravan';
 import type { StoredVehicle } from '@/types/vehicle';
 import { VEHICLES_STORAGE_KEY, ACTIVE_VEHICLE_ID_KEY as ACTIVE_TOW_VEHICLE_ID_KEY } from '@/types/vehicle';
@@ -50,13 +50,16 @@ const defaultWdhSpecs: StoredWDH = {
   hasIntegratedSwayControl: false,
 };
 
+const WATER_TANK_LEVELS_STORAGE_KEY_PREFIX = 'kamperhub_water_tank_levels_';
+
 export default function InventoryPage() {
-  const [activeCaravanFull, setActiveCaravanFull] = useState<StoredCaravan | null>(null); // Store full caravan object
+  const [activeCaravanFull, setActiveCaravanFull] = useState<StoredCaravan | null>(null);
   const [activeCaravanName, setActiveCaravanName] = useState<string | null>(null);
   const [activeVehicleSpecs, setActiveVehicleSpecs] = useState<StoredVehicle | null>(null);
   const [activeWdhSpecs, setActiveWdhSpecs] = useState<StoredWDH | null>(null);
   const [activeCaravanId, setActiveCaravanId] = useState<string | null>(null);
   const [currentCaravanInventory, setCurrentCaravanInventory] = useState<InventoryItem[]>([]);
+  const [waterTankLevels, setWaterTankLevels] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLocalStorageReady, setIsLocalStorageReady] = useState(false);
@@ -76,19 +79,20 @@ export default function InventoryPage() {
       setActiveCaravanId(null);
       setCurrentCaravanInventory([]);
       setActiveCaravanFull(null);
+      setWaterTankLevels({});
 
       try {
         const currentActiveCaravanId = localStorage.getItem(ACTIVE_CARAVAN_ID_KEY);
         setActiveCaravanId(currentActiveCaravanId);
 
-        // Load Active Caravan Specs
+        // Load Active Caravan Specs & Inventory
         const storedCaravansJson = localStorage.getItem(CARAVANS_STORAGE_KEY);
         if (currentActiveCaravanId && storedCaravansJson) {
           const storedCaravans: StoredCaravan[] = JSON.parse(storedCaravansJson);
           const activeCaravan = storedCaravans.find(c => c.id === currentActiveCaravanId);
 
           if (activeCaravan) {
-            setActiveCaravanFull(activeCaravan); // Store the full object
+            setActiveCaravanFull(activeCaravan);
             setActiveCaravanName(`${activeCaravan.year} ${activeCaravan.make} ${activeCaravan.model}`);
             
             const allInventoriesJson = localStorage.getItem(INVENTORY_STORAGE_KEY);
@@ -98,14 +102,30 @@ export default function InventoryPage() {
             } else {
               setCurrentCaravanInventory([]);
             }
+
+            // Load water tank levels for this caravan
+            const storedWaterLevelsJson = localStorage.getItem(`${WATER_TANK_LEVELS_STORAGE_KEY_PREFIX}${currentActiveCaravanId}`);
+            if (storedWaterLevelsJson) {
+              setWaterTankLevels(JSON.parse(storedWaterLevelsJson));
+            } else {
+              // Initialize levels to 0% if not found
+              const initialLevels: Record<string, number> = {};
+              (activeCaravan.waterTanks || []).forEach(tank => {
+                initialLevels[tank.id] = 0;
+              });
+              setWaterTankLevels(initialLevels);
+            }
+
           } else {
             setError("Active caravan data not found. Please re-select an active caravan in 'Vehicles'.");
             setActiveCaravanFull(null); 
             setCurrentCaravanInventory([]);
+            setWaterTankLevels({});
           }
         } else {
           setActiveCaravanFull(null); 
           setCurrentCaravanInventory([]);
+          setWaterTankLevels({});
         }
 
         // Load Active Tow Vehicle Specs
@@ -145,14 +165,26 @@ export default function InventoryPage() {
         setActiveVehicleSpecs(defaultVehicleSpecs);
         setActiveWdhSpecs(defaultWdhSpecs);
         setCurrentCaravanInventory([]);
+        setWaterTankLevels({});
       } finally {
         setIsLoading(false);
       }
     }
   }, [isLocalStorageReady, pathname]);
 
+  const handleUpdateWaterTankLevel = useCallback((tankId: string, level: number) => {
+    setWaterTankLevels(prevLevels => {
+      const newLevels = { ...prevLevels, [tankId]: Math.max(0, Math.min(100, level)) };
+      if (activeCaravanId && isLocalStorageReady && typeof window !== 'undefined') {
+        localStorage.setItem(`${WATER_TANK_LEVELS_STORAGE_KEY_PREFIX}${activeCaravanId}`, JSON.stringify(newLevels));
+      }
+      return newLevels;
+    });
+  }, [activeCaravanId, isLocalStorageReady]);
+
+
   const getDescriptiveText = () => {
-    let text = "Track your caravan's load, manage items, and stay compliant with weight limits. Calculations consider active caravan, tow vehicle, and WDH specifications if selected.";
+    let text = "Track your caravan's load, manage items, and stay compliant with weight limits. Calculations consider active caravan, tow vehicle, and WDH specifications if selected. Water tank levels also contribute to the total weight.";
     if (activeCaravanName && activeVehicleSpecs && activeVehicleSpecs.make) {
       text += ` Using specs for your ${activeCaravanName} towed by ${activeVehicleSpecs.year} ${activeVehicleSpecs.make} ${activeVehicleSpecs.model}.`;
     } else if (activeCaravanName) {
@@ -260,7 +292,11 @@ export default function InventoryPage() {
       
       <InventoryList 
         caravanSpecs={caravanSpecsForList}
-        activeCaravanStorageLocations={activeCaravanFull?.storageLocations || []} // Pass storage locations
+        activeCaravanStorageLocations={activeCaravanFull?.storageLocations || []}
+        activeVehicleStorageLocations={activeVehicleSpecs?.storageLocations || []}
+        activeCaravanWaterTanks={activeCaravanFull?.waterTanks || []}
+        waterTankLevels={waterTankLevels}
+        onUpdateWaterTankLevel={handleUpdateWaterTankLevel}
         activeTowVehicleSpecs={activeVehicleSpecs || defaultVehicleSpecs}
         activeWdhSpecs={activeWdhSpecs} 
         initialCaravanInventory={currentCaravanInventory}
@@ -269,3 +305,4 @@ export default function InventoryPage() {
     </div>
   );
 }
+
