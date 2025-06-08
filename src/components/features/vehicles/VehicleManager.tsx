@@ -2,17 +2,19 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import type { StoredVehicle, VehicleFormData } from '@/types/vehicle';
+import type { StoredVehicle, VehicleFormData, VehicleStorageLocation } from '@/types/vehicle';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { VehicleForm } from './VehicleForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, ShieldAlert, Weight, Axe, Car } from 'lucide-react'; // Added Car icon
+import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, ShieldAlert, Weight, Axe, Car, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/hooks/useSubscription'; 
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 const VEHICLES_STORAGE_KEY = 'kamperhub_vehicles_list';
@@ -85,10 +87,10 @@ export function VehicleManager() {
 
     let updatedVehicles;
     if (editingVehicle) {
-      updatedVehicles = vehicles.map(v => v.id === editingVehicle.id ? { ...editingVehicle, ...data } : v);
+      updatedVehicles = vehicles.map(v => v.id === editingVehicle.id ? { ...editingVehicle, ...data, storageLocations: data.storageLocations || [] } : v);
       toast({ title: "Vehicle Updated", description: `${data.make} ${data.model} updated.` });
     } else {
-      const newVehicle: StoredVehicle = { ...data, id: Date.now().toString() };
+      const newVehicle: StoredVehicle = { ...data, id: Date.now().toString(), storageLocations: data.storageLocations || [] };
       updatedVehicles = [...vehicles, newVehicle];
       toast({ title: "Vehicle Added", description: `${data.make} ${data.model} added.` });
     }
@@ -99,7 +101,7 @@ export function VehicleManager() {
   };
 
   const handleEditVehicle = (vehicle: StoredVehicle) => {
-    setEditingVehicle(vehicle);
+    setEditingVehicle({...vehicle, storageLocations: vehicle.storageLocations || []});
     setIsFormOpen(true);
   };
 
@@ -144,6 +146,21 @@ export function VehicleManager() {
     setEditingVehicle(null);
     setIsFormOpen(true);
   };
+  
+  const formatPositionText = (loc: VehicleStorageLocation) => {
+    const longText = {
+      'front-of-front-axle': 'Front of F.Axle',
+      'between-axles': 'Between Axles',
+      'rear-of-rear-axle': 'Rear of R.Axle',
+      'roof-center': 'Roof Center'
+    }[loc.longitudinalPosition];
+    const latText = {
+      'left': 'Left',
+      'center': 'Center',
+      'right': 'Right'
+    }[loc.lateralPosition];
+    return `${longText} / ${latText}`;
+  };
 
   if (!hasMounted || isSubscriptionLoading) {
     return (
@@ -181,15 +198,17 @@ export function VehicleManager() {
                 <PlusCircle className="mr-2 h-4 w-4" /> Add New Vehicle
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[625px]">
+            <DialogContent className="sm:max-w-[625px]"> {/* Increased width for more fields */}
               <DialogHeader>
                 <DialogTitle className="font-headline">{editingVehicle ? 'Edit Vehicle' : 'Add New Vehicle'}</DialogTitle>
               </DialogHeader>
-              <VehicleForm
-                initialData={editingVehicle || undefined}
-                onSave={handleSaveVehicle}
-                onCancel={() => { setIsFormOpen(false); setEditingVehicle(null); }}
-              />
+              <ScrollArea className="max-h-[70vh] pr-6">
+                <VehicleForm
+                  initialData={editingVehicle || undefined}
+                  onSave={handleSaveVehicle}
+                  onCancel={() => { setIsFormOpen(false); setEditingVehicle(null); }}
+                />
+              </ScrollArea>
             </DialogContent>
           </Dialog>
         </div>
@@ -217,8 +236,8 @@ export function VehicleManager() {
         )}
         {vehicles.map(vehicle => (
           <Card key={vehicle.id} className={`p-4 ${activeVehicleId === vehicle.id ? 'border-primary shadow-md' : ''}`}>
-            <div className="flex justify-between items-start">
-              <div>
+            <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
+              <div className="flex-grow">
                 <h3 className="font-semibold font-body text-lg">{vehicle.year} {vehicle.make} {vehicle.model}</h3>
                 <div className="text-sm text-muted-foreground font-body grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1">
                   <span>GVM: {vehicle.gvm}kg</span>
@@ -232,25 +251,46 @@ export function VehicleManager() {
                   <span className="flex items-center"><Fuel className="w-3 h-3 mr-1 text-primary/70"/> {vehicle.fuelEfficiency}L/100km</span>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2 items-end sm:items-center flex-shrink-0">
+              <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center self-start sm:self-auto flex-shrink-0 mt-2 sm:mt-0">
                 {activeVehicleId !== vehicle.id && (
                   <Button variant="outline" size="sm" onClick={() => handleSetActiveVehicle(vehicle.id)} className="font-body whitespace-nowrap">
                     <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Set Active
                   </Button>
                 )}
                  {activeVehicleId === vehicle.id && (
-                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 border border-green-300 flex items-center font-body whitespace-nowrap">
+                  <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white text-xs h-8 w-full sm:w-auto flex items-center justify-center">
                     <CheckCircle className="mr-1 h-4 w-4" /> Active
-                  </span>
+                  </Badge>
                 )}
-                <Button variant="ghost" size="icon" onClick={() => handleEditVehicle(vehicle)}>
-                  <Edit3 className="h-5 w-5 text-blue-600" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => handleDeleteVehicle(vehicle.id)}>
-                  <Trash2 className="h-5 w-5 text-destructive" />
-                </Button>
+                <div className="flex gap-1 w-full sm:w-auto">
+                  <Button variant="ghost" size="sm" onClick={() => handleEditVehicle(vehicle)} className="font-body flex-grow sm:flex-grow-0">
+                    <Edit3 className="h-4 w-4 sm:mr-1" /><span className="sm:hidden ml-1">Edit</span>
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleDeleteVehicle(vehicle.id)} className="font-body text-destructive hover:text-destructive hover:bg-destructive/10 flex-grow sm:flex-grow-0">
+                    <Trash2 className="h-4 w-4 sm:mr-1" /><span className="sm:hidden ml-1">Delete</span>
+                  </Button>
+                </div>
               </div>
             </div>
+            {vehicle.storageLocations && vehicle.storageLocations.length > 0 && (
+              <CardFooter className="p-0 pt-3 mt-3 border-t">
+                <div>
+                  <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center">
+                    <PackagePlus className="w-4 h-4 mr-2 text-primary"/>Storage Locations:
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {vehicle.storageLocations.map(loc => (
+                      <Badge key={loc.id} variant="secondary" className="font-normal font-body text-xs py-1 px-2">
+                        <MapPin className="w-3 h-3 mr-1"/> {loc.name} 
+                        <span className="text-muted-foreground/80 ml-1.5 flex items-center">
+                           (<ArrowUpDown className="w-2.5 h-2.5 mr-0.5"/>{formatPositionText(loc).split(' / ')[0]}, <ArrowLeftRight className="w-2.5 h-2.5 mr-0.5"/>{formatPositionText(loc).split(' / ')[1]})
+                        </span>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </CardFooter>
+            )}
           </Card>
         ))}
       </CardContent>

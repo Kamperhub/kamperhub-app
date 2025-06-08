@@ -1,4 +1,11 @@
 
+export interface VehicleStorageLocation {
+  id: string;
+  name: string;
+  longitudinalPosition: 'front-of-front-axle' | 'between-axles' | 'rear-of-rear-axle' | 'roof-center';
+  lateralPosition: 'left' | 'center' | 'right';
+}
+
 export interface VehicleFormData {
   make: string;
   model: string;
@@ -8,10 +15,11 @@ export interface VehicleFormData {
   maxTowCapacity: number;
   maxTowballMass: number;
   fuelEfficiency: number; // L/100km
-  kerbWeight?: number; // Weight of the vehicle with a full tank of fuel, without occupants or cargo
-  frontAxleLimit?: number; // Max permissible load on the front axle
-  rearAxleLimit?: number; // Max permissible load on the rear axle
+  kerbWeight?: number | null; // Weight of the vehicle with a full tank of fuel, without occupants or cargo
+  frontAxleLimit?: number | null; // Max permissible load on the front axle
+  rearAxleLimit?: number | null; // Max permissible load on the rear axle
   wheelbase?: number | null; // New: Vehicle wheelbase in mm
+  storageLocations?: VehicleStorageLocation[];
 }
 
 export interface StoredVehicle extends VehicleFormData {
