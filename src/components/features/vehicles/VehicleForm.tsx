@@ -20,6 +20,9 @@ const vehicleSchema = z.object({
   maxTowCapacity: z.coerce.number().positive("Max Towing Capacity must be positive"),
   maxTowballMass: z.coerce.number().positive("Max Towball Mass must be positive"),
   fuelEfficiency: z.coerce.number().min(0.1, "Fuel efficiency must be positive (L/100km)").max(100, "Fuel efficiency seems too high (max 100 L/100km)"),
+  kerbWeight: z.coerce.number().min(1, "Kerb Weight must be a positive number").optional(),
+  frontAxleLimit: z.coerce.number().min(1, "Front Axle Limit must be a positive number").optional(),
+  rearAxleLimit: z.coerce.number().min(1, "Rear Axle Limit must be a positive number").optional(),
 });
 
 interface VehicleFormProps {
@@ -40,7 +43,10 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
       gcm: 0,
       maxTowCapacity: 0,
       maxTowballMass: 0,
-      fuelEfficiency: 10, // Default fuel efficiency
+      fuelEfficiency: 10,
+      kerbWeight: 0,
+      frontAxleLimit: 0,
+      rearAxleLimit: 0,
     },
   });
 
@@ -49,7 +55,6 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
     // reset(); // Reset is handled by dialog close or manager
   };
 
-  // Effect to reset form if initialData changes (e.g. when editing a new item after another)
   React.useEffect(() => {
     if (initialData) {
       reset(initialData);
@@ -63,6 +68,9 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
         maxTowCapacity: 0,
         maxTowballMass: 0,
         fuelEfficiency: 10,
+        kerbWeight: 0,
+        frontAxleLimit: 0,
+        rearAxleLimit: 0,
       });
     }
   }, [initialData, reset]);
@@ -88,41 +96,61 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
           {errors.year && <p className="text-sm text-destructive font-body mt-1">{errors.year.message}</p>}
         </div>
         <div>
-          <Label htmlFor="gvm" className="font-body">Gross Vehicle Mass (GVM) (kg)</Label>
-          <Input id="gvm" type="number" {...register("gvm")} placeholder="e.g., 3200" className="font-body" />
-          <p className="text-xs text-muted-foreground font-body mt-1">Max operating weight of the vehicle (incl. payload, towball mass).</p>
-          {errors.gvm && <p className="text-sm text-destructive font-body mt-1">{errors.gvm.message}</p>}
+          <Label htmlFor="kerbWeight" className="font-body">Kerb Weight (kg)</Label>
+          <Input id="kerbWeight" type="number" {...register("kerbWeight")} placeholder="e.g., 2200" className="font-body" />
+          <p className="text-xs text-muted-foreground font-body mt-1">Weight of empty vehicle with full fuel tank.</p>
+          {errors.kerbWeight && <p className="text-sm text-destructive font-body mt-1">{errors.kerbWeight.message}</p>}
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="gvm" className="font-body">Gross Vehicle Mass (GVM) (kg)</Label>
+          <Input id="gvm" type="number" {...register("gvm")} placeholder="e.g., 3200" className="font-body" />
+          <p className="text-xs text-muted-foreground font-body mt-1">Max operating weight of the vehicle.</p>
+          {errors.gvm && <p className="text-sm text-destructive font-body mt-1">{errors.gvm.message}</p>}
+        </div>
         <div>
           <Label htmlFor="gcm" className="font-body">Gross Combined Mass (GCM) (kg)</Label>
           <Input id="gcm" type="number" {...register("gcm")} placeholder="e.g., 6000" className="font-body" />
           <p className="text-xs text-muted-foreground font-body mt-1">Max combined weight of vehicle and trailer.</p>
           {errors.gcm && <p className="text-sm text-destructive font-body mt-1">{errors.gcm.message}</p>}
         </div>
-        <div>
-          <Label htmlFor="maxTowCapacity" className="font-body">Max Towing Capacity (kg)</Label>
-          <Input id="maxTowCapacity" type="number" {...register("maxTowCapacity")} placeholder="e.g., 3500" className="font-body" />
-          <p className="text-xs text-muted-foreground font-body mt-1">Max weight the vehicle is rated to tow (trailer's ATM).</p>
-          {errors.maxTowCapacity && <p className="text-sm text-destructive font-body mt-1">{errors.maxTowCapacity.message}</p>}
-        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="maxTowballMass" className="font-body">Max Towball Mass (kg)</Label>
-          <Input id="maxTowballMass" type="number" {...register("maxTowballMass")} placeholder="e.g., 350" className="font-body" />
-          <p className="text-xs text-muted-foreground font-body mt-1">Max weight the vehicle's towbar can support.</p>
-          {errors.maxTowballMass && <p className="text-sm text-destructive font-body mt-1">{errors.maxTowballMass.message}</p>}
+          <Label htmlFor="maxTowCapacity" className="font-body">Max Towing Capacity (kg)</Label>
+          <Input id="maxTowCapacity" type="number" {...register("maxTowCapacity")} placeholder="e.g., 3500" className="font-body" />
+          <p className="text-xs text-muted-foreground font-body mt-1">Max trailer ATM vehicle can tow.</p>
+          {errors.maxTowCapacity && <p className="text-sm text-destructive font-body mt-1">{errors.maxTowCapacity.message}</p>}
         </div>
         <div>
+          <Label htmlFor="maxTowballMass" className="font-body">Max Towball Mass (kg)</Label>
+          <Input id="maxTowballMass" type="number" {...register("maxTowballMass")} placeholder="e.g., 350" className="font-body" />
+          <p className="text-xs text-muted-foreground font-body mt-1">Max weight vehicle's towbar can support.</p>
+          {errors.maxTowballMass && <p className="text-sm text-destructive font-body mt-1">{errors.maxTowballMass.message}</p>}
+        </div>
+      </div>
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="frontAxleLimit" className="font-body">Front Axle Limit (kg)</Label>
+          <Input id="frontAxleLimit" type="number" {...register("frontAxleLimit")} placeholder="e.g., 1500" className="font-body" />
+          <p className="text-xs text-muted-foreground font-body mt-1">Max load on front axle.</p>
+          {errors.frontAxleLimit && <p className="text-sm text-destructive font-body mt-1">{errors.frontAxleLimit.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="rearAxleLimit" className="font-body">Rear Axle Limit (kg)</Label>
+          <Input id="rearAxleLimit" type="number" {...register("rearAxleLimit")} placeholder="e.g., 1800" className="font-body" />
+          <p className="text-xs text-muted-foreground font-body mt-1">Max load on rear axle.</p>
+          {errors.rearAxleLimit && <p className="text-sm text-destructive font-body mt-1">{errors.rearAxleLimit.message}</p>}
+        </div>
+      </div>
+      <div>
           <Label htmlFor="fuelEfficiency" className="font-body">Fuel Efficiency (L/100km)</Label>
           <Input id="fuelEfficiency" type="number" step="0.1" {...register("fuelEfficiency")} placeholder="e.g., 12.5" className="font-body" />
           <p className="text-xs text-muted-foreground font-body mt-1">
-            Enter vehicle's EXPECTED efficiency. Towing typically increases consumption by 30-40%.
+            Expected efficiency (towing typically increases consumption).
           </p>
           {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
-        </div>
       </div>
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading} className="font-body">

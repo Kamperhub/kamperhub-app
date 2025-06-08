@@ -8,16 +8,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { VehicleForm } from './VehicleForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, ShieldAlert } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, ShieldAlert, Weight, Axe } from 'lucide-react'; // Added Weight and Axe icons
 import { Skeleton } from '@/components/ui/skeleton';
-import { useSubscription } from '@/hooks/useSubscription'; // Import useSubscription
+import { useSubscription } from '@/hooks/useSubscription'; 
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
 const VEHICLES_STORAGE_KEY = 'kamperhub_vehicles_list';
 const ACTIVE_VEHICLE_ID_KEY = 'kamperhub_active_vehicle_id';
-const FREE_TIER_VEHICLE_LIMIT = 1; // Define free tier limit
+const FREE_TIER_VEHICLE_LIMIT = 1; 
 
 export function VehicleManager() {
   const { toast } = useToast();
@@ -26,7 +26,7 @@ export function VehicleManager() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<StoredVehicle | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
-  const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription(); // Get subscription status
+  const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription(); 
 
   useEffect(() => {
     setHasMounted(true);
@@ -158,8 +158,8 @@ export function VehicleManager() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-20 w-full mt-4" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full mt-4" />
         </CardContent>
       </Card>
     );
@@ -220,11 +220,14 @@ export function VehicleManager() {
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="font-semibold font-body text-lg">{vehicle.year} {vehicle.make} {vehicle.model}</h3>
-                <div className="text-sm text-muted-foreground font-body grid grid-cols-2 md:grid-cols-3 gap-x-4">
+                <div className="text-sm text-muted-foreground font-body grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1">
                   <span>GVM: {vehicle.gvm}kg</span>
                   <span>GCM: {vehicle.gcm}kg</span>
                   <span>Tow: {vehicle.maxTowCapacity}kg</span>
                   <span>Towball: {vehicle.maxTowballMass}kg</span>
+                  {vehicle.kerbWeight > 0 && <span className="flex items-center"><Weight className="w-3 h-3 mr-1 text-primary/70"/> Kerb: {vehicle.kerbWeight}kg</span>}
+                  {vehicle.frontAxleLimit > 0 && <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 rotate-90"/> F Axle: {vehicle.frontAxleLimit}kg</span>}
+                  {vehicle.rearAxleLimit > 0 && <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 -rotate-90"/> R Axle: {vehicle.rearAxleLimit}kg</span>}
                   <span className="flex items-center"><Fuel className="w-3 h-3 mr-1 text-primary/70"/> {vehicle.fuelEfficiency}L/100km</span>
                 </div>
               </div>

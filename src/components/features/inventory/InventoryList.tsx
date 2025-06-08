@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon } from 'lucide-react';
+import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label as RechartsLabel } from 'recharts';
@@ -98,7 +98,7 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, initialCara
   const caravanMaxTowballDownloadLimit = useMemo(() => (typeof caravanSpecs.maxTowballDownload === 'number' && !isNaN(caravanSpecs.maxTowballDownload) ? caravanSpecs.maxTowballDownload : 0), [caravanSpecs.maxTowballDownload]);
   const tareMass = useMemo(() => (typeof caravanSpecs.tareMass === 'number' && !isNaN(caravanSpecs.tareMass) ? caravanSpecs.tareMass : 0), [caravanSpecs.tareMass]);
 
-  const currentCaravanMass = useMemo(() => { // This is the caravan's current loaded weight (actual ATM)
+  const currentCaravanMass = useMemo(() => { 
     const calculatedMass = tareMass + totalWeight;
     return typeof calculatedMass === 'number' && !isNaN(calculatedMass) ? calculatedMass : 0;
   }, [tareMass, totalWeight]);
@@ -108,13 +108,11 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, initialCara
   }, [atmLimit, currentCaravanMass]);
   
   const estimatedTowballDownload = useMemo(() => {
-    // A common estimate is 10% of the caravan's *loaded* mass (currentCaravanMass)
-    // Or, if an item representing towball weight is added, that should be primary. For now, 10% of payload.
     const calculated = totalWeight * 0.1; 
     return typeof calculated === 'number' && !isNaN(calculated) ? Math.max(0, calculated) : 0;
   }, [totalWeight]);
 
-  const currentLoadOnAxles = useMemo(() => { // This is the caravan's current GTM
+  const currentLoadOnAxles = useMemo(() => { 
     const calculatedLoad = currentCaravanMass - estimatedTowballDownload;
     return typeof calculatedLoad === 'number' && !isNaN(calculatedLoad) ? Math.max(0, calculatedLoad) : 0;
   }, [currentCaravanMass, estimatedTowballDownload]);
@@ -123,18 +121,14 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, initialCara
     return gtmLimit > 0 ? gtmLimit - currentLoadOnAxles : 0;
   }, [gtmLimit, currentLoadOnAxles]);
 
-  // Tow Vehicle Compliance Checks
   const vehicleMaxTowCapacity = useMemo(() => activeTowVehicleSpecs?.maxTowCapacity ?? 0, [activeTowVehicleSpecs]);
   const vehicleMaxTowballMass = useMemo(() => activeTowVehicleSpecs?.maxTowballMass ?? 0, [activeTowVehicleSpecs]);
-  const vehicleGVM = useMemo(() => activeTowVehicleSpecs?.gvm ?? 0, [activeTowVehicleSpecs]); // Vehicle GVM Limit
-  const vehicleGCM = useMemo(() => activeTowVehicleSpecs?.gcm ?? 0, [activeTowVehicleSpecs]); // Vehicle GCM Limit
+  const vehicleGVM = useMemo(() => activeTowVehicleSpecs?.gvm ?? 0, [activeTowVehicleSpecs]); 
+  const vehicleGCM = useMemo(() => activeTowVehicleSpecs?.gcm ?? 0, [activeTowVehicleSpecs]); 
 
   const isOverMaxTowCapacity = useMemo(() => vehicleMaxTowCapacity > 0 && currentCaravanMass > vehicleMaxTowCapacity, [currentCaravanMass, vehicleMaxTowCapacity]);
   const isOverVehicleMaxTowball = useMemo(() => vehicleMaxTowballMass > 0 && estimatedTowballDownload > vehicleMaxTowballMass, [estimatedTowballDownload, vehicleMaxTowballMass]);
   
-  // Simplified GCM Advisory: Current Caravan Mass + Vehicle GVM Limit vs Vehicle GCM Limit
-  // This is an advisory as we don't know the vehicle's current actual loaded mass.
-  // We use the vehicle's GVM limit as a proxy for a fully loaded vehicle.
   const potentialGCM = useMemo(() => currentCaravanMass + vehicleGVM, [currentCaravanMass, vehicleGVM]);
   const isPotentialGCMOverLimit = useMemo(() => vehicleGCM > 0 && vehicleGVM > 0 && potentialGCM > vehicleGCM, [potentialGCM, vehicleGCM, vehicleGVM]);
 
@@ -210,8 +204,8 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, initialCara
   const getAlertStylingVariant = (currentValue: number, limit: number) => {
     if (limit <= 0) return "default"; 
     if (currentValue > limit) return "destructive";
-    if (currentValue > limit * 0.9) return "default"; // Use default for "nearing limit"
-    return "default"; // Consider a "success" variant if needed
+    if (currentValue > limit * 0.9) return "default"; 
+    return "default"; 
   };
   
   const isFormDisabled = !activeCaravanId;
@@ -504,9 +498,12 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, initialCara
            {activeTowVehicleSpecs && activeTowVehicleSpecs.make && (
             <div>
                 <h4 className="font-semibold text-foreground">Active Tow Vehicle ({activeTowVehicleSpecs.make} {activeTowVehicleSpecs.model}):</h4>
+                {activeTowVehicleSpecs.kerbWeight > 0 && <p><strong>Kerb Weight:</strong> {activeTowVehicleSpecs.kerbWeight.toFixed(0)}kg <span className="text-xs italic">(Empty vehicle weight)</span></p>}
+                <p><strong>GVM (Gross Vehicle Mass Limit):</strong> {vehicleGVM > 0 ? `${vehicleGVM.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max loaded weight of vehicle itself)</span></p>
+                {activeTowVehicleSpecs.frontAxleLimit > 0 && <p><strong>Front Axle Limit:</strong> {activeTowVehicleSpecs.frontAxleLimit.toFixed(0)}kg</p>}
+                {activeTowVehicleSpecs.rearAxleLimit > 0 && <p><strong>Rear Axle Limit:</strong> {activeTowVehicleSpecs.rearAxleLimit.toFixed(0)}kg</p>}
                 <p><strong>Max Towing Capacity:</strong> {vehicleMaxTowCapacity > 0 ? `${vehicleMaxTowCapacity.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max caravan ATM vehicle can tow)</span></p>
                 <p><strong>Max Towball Mass (Vehicle):</strong> {vehicleMaxTowballMass > 0 ? `${vehicleMaxTowballMass.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max towball weight vehicle can handle)</span></p>
-                <p><strong>GVM (Gross Vehicle Mass Limit):</strong> {vehicleGVM > 0 ? `${vehicleGVM.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max loaded weight of vehicle itself)</span></p>
                 <p><strong>GCM (Gross Combined Mass Limit):</strong> {vehicleGCM > 0 ? `${vehicleGCM.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max combined weight of loaded vehicle and loaded caravan)</span></p>
             </div>
            )}
@@ -515,4 +512,3 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, initialCara
     </Card>
   );
 }
-

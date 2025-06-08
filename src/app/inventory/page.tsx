@@ -32,6 +32,9 @@ const defaultVehicleSpecs: StoredVehicle = {
   maxTowCapacity: 0,
   maxTowballMass: 0,
   fuelEfficiency: 0,
+  kerbWeight: 0,
+  frontAxleLimit: 0,
+  rearAxleLimit: 0,
 };
 
 export default function InventoryPage() {
@@ -103,7 +106,7 @@ export default function InventoryPage() {
           if (activeVehicle) {
             setActiveVehicleSpecs(activeVehicle);
           } else {
-            setActiveVehicleSpecs(defaultVehicleSpecs); // Or null if preferred for no active vehicle
+            setActiveVehicleSpecs(defaultVehicleSpecs); 
           }
         } else {
           setActiveVehicleSpecs(null);
