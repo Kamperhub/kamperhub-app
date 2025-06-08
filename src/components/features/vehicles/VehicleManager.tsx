@@ -8,14 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { VehicleForm } from './VehicleForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, ShieldAlert, Weight, Axe, Car, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, ShieldAlert, Weight, Axe, Car, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Ruler } from 'lucide-react'; // Added Ruler
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/hooks/useSubscription'; 
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
 
 const VEHICLES_STORAGE_KEY = 'kamperhub_vehicles_list';
 const ACTIVE_VEHICLE_ID_KEY = 'kamperhub_active_vehicle_id';
@@ -162,6 +161,10 @@ export function VehicleManager() {
     return `${longText} / ${latText}`;
   };
 
+  const formatDimension = (value: number | null | undefined, unit: string = 'mm') => {
+    return typeof value === 'number' ? `${value}${unit}` : 'N/A';
+  };
+
   if (!hasMounted || isSubscriptionLoading) {
     return (
       <Card>
@@ -198,7 +201,7 @@ export function VehicleManager() {
                 <PlusCircle className="mr-2 h-4 w-4" /> Add New Vehicle
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[625px]"> {/* Increased width for more fields */}
+            <DialogContent className="sm:max-w-[725px]">
               <DialogHeader>
                 <DialogTitle className="font-headline">{editingVehicle ? 'Edit Vehicle' : 'Add New Vehicle'}</DialogTitle>
               </DialogHeader>
@@ -244,10 +247,10 @@ export function VehicleManager() {
                   <span>GCM: {vehicle.gcm}kg</span>
                   <span>Tow: {vehicle.maxTowCapacity}kg</span>
                   <span>Towball: {vehicle.maxTowballMass}kg</span>
-                  <span className="flex items-center"><Weight className="w-3 h-3 mr-1 text-primary/70"/> Kerb: { (typeof vehicle.kerbWeight === 'number' && vehicle.kerbWeight > 0) ? `${vehicle.kerbWeight}kg` : 'N/A'}</span>
-                  <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 rotate-90"/> F Axle: { (typeof vehicle.frontAxleLimit === 'number' && vehicle.frontAxleLimit > 0) ? `${vehicle.frontAxleLimit}kg` : 'N/A'}</span>
-                  <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 -rotate-90"/> R Axle: { (typeof vehicle.rearAxleLimit === 'number' && vehicle.rearAxleLimit > 0) ? `${vehicle.rearAxleLimit}kg` : 'N/A'}</span>
-                  <span className="flex items-center"><Car className="w-3 h-3 mr-1 text-primary/70"/> Wheelbase: { (typeof vehicle.wheelbase === 'number' && vehicle.wheelbase > 0) ? `${vehicle.wheelbase}mm` : 'N/A'}</span>
+                  <span className="flex items-center"><Weight className="w-3 h-3 mr-1 text-primary/70"/> Kerb: {formatDimension(vehicle.kerbWeight, 'kg')}</span>
+                  <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 rotate-90"/> F Axle: {formatDimension(vehicle.frontAxleLimit, 'kg')}</span>
+                  <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 -rotate-90"/> R Axle: {formatDimension(vehicle.rearAxleLimit, 'kg')}</span>
+                  <span className="flex items-center"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Wheelbase: {formatDimension(vehicle.wheelbase, 'mm')}</span>
                   <span className="flex items-center"><Fuel className="w-3 h-3 mr-1 text-primary/70"/> {vehicle.fuelEfficiency}L/100km</span>
                 </div>
               </div>
@@ -278,13 +281,19 @@ export function VehicleManager() {
                   <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center">
                     <PackagePlus className="w-4 h-4 mr-2 text-primary"/>Storage Locations:
                   </h4>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1.5 text-xs">
                     {vehicle.storageLocations.map(loc => (
-                      <Badge key={loc.id} variant="secondary" className="font-normal font-body text-xs py-1 px-2">
-                        <MapPin className="w-3 h-3 mr-1"/> {loc.name} 
-                        <span className="text-muted-foreground/80 ml-1.5 flex items-center">
-                           (<ArrowUpDown className="w-2.5 h-2.5 mr-0.5"/>{formatPositionText(loc).split(' / ')[0]}, <ArrowLeftRight className="w-2.5 h-2.5 mr-0.5"/>{formatPositionText(loc).split(' / ')[1]})
-                        </span>
+                      <Badge key={loc.id} variant="secondary" className="font-normal font-body py-1 px-2 h-auto text-left whitespace-normal">
+                        <div className="flex flex-col">
+                          <div className="flex items-center font-medium"><MapPin className="w-3 h-3 mr-1.5"/> {loc.name}</div>
+                          <div className="pl-[1.125rem] text-muted-foreground/90">
+                            Pos: {formatPositionText(loc)}<br/>
+                            Capacity: {formatDimension(loc.maxWeightCapacityKg, 'kg')}<br/>
+                            <span className="flex items-center"><ArrowLeftRight className="w-2.5 h-2.5 mr-1"/>R.Axle: {formatDimension(loc.distanceFromRearAxleMm)}</span>
+                            <span className="flex items-center"><ArrowUpDown className="w-2.5 h-2.5 mr-1"/>Center: {formatDimension(loc.distanceFromCenterlineMm)}</span>
+                            <span className="flex items-center"><Ruler className="w-2.5 h-2.5 mr-1"/>Height: {formatDimension(loc.heightFromGroundMm)}</span>
+                          </div>
+                        </div>
                       </Badge>
                     ))}
                   </div>

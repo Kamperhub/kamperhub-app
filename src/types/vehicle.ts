@@ -4,6 +4,10 @@ export interface VehicleStorageLocation {
   name: string;
   longitudinalPosition: 'front-of-front-axle' | 'between-axles' | 'rear-of-rear-axle' | 'roof-center';
   lateralPosition: 'left' | 'center' | 'right';
+  distanceFromRearAxleMm?: number | null; // Distance from rear axle: +ve towards front, -ve towards rear
+  distanceFromCenterlineMm?: number | null; // Distance from centerline: +ve right, -ve left
+  heightFromGroundMm?: number | null; // Height of CoG from ground
+  maxWeightCapacityKg?: number | null; // Max weight this location can hold
 }
 
 export interface VehicleFormData {

@@ -1,7 +1,7 @@
 
 "use client";
 
-import * as React from "react";
+import React from 'react';
 import { useForm, type SubmitHandler, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -18,6 +18,10 @@ const vehicleStorageLocationSchema = z.object({
   name: z.string().min(1, "Location name is required"),
   longitudinalPosition: z.enum(['front-of-front-axle', 'between-axles', 'rear-of-rear-axle', 'roof-center'], { required_error: "Longitudinal position is required" }),
   lateralPosition: z.enum(['left', 'center', 'right'], { required_error: "Lateral position is required" }),
+  distanceFromRearAxleMm: z.coerce.number().optional().nullable(),
+  distanceFromCenterlineMm: z.coerce.number().optional().nullable(),
+  heightFromGroundMm: z.coerce.number().min(0, "Height must be positive").optional().nullable(),
+  maxWeightCapacityKg: z.coerce.number().min(0, "Capacity must be positive").optional().nullable(),
 });
 
 const vehicleSchema = z.object({
@@ -71,7 +75,10 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
   });
 
   React.useEffect(() => {
-    reset(initialData ? { ...defaultFormValues, ...initialData, storageLocations: initialData.storageLocations || [] } : defaultFormValues);
+    const currentDefaultValues = initialData 
+      ? { ...defaultFormValues, ...initialData, storageLocations: initialData.storageLocations || [] } 
+      : defaultFormValues;
+    reset(currentDefaultValues);
   }, [initialData, reset]);
 
   const onSubmit: SubmitHandler<VehicleFormData> = (data) => {
@@ -81,11 +88,16 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
         frontAxleLimit: data.frontAxleLimit ? Number(data.frontAxleLimit) : null,
         rearAxleLimit: data.rearAxleLimit ? Number(data.rearAxleLimit) : null,
         wheelbase: data.wheelbase ? Number(data.wheelbase) : null,
-        storageLocations: data.storageLocations || [],
+        storageLocations: data.storageLocations?.map(loc => ({
+          ...loc,
+          distanceFromRearAxleMm: loc.distanceFromRearAxleMm ? Number(loc.distanceFromRearAxleMm) : null,
+          distanceFromCenterlineMm: loc.distanceFromCenterlineMm ? Number(loc.distanceFromCenterlineMm) : null,
+          heightFromGroundMm: loc.heightFromGroundMm ? Number(loc.heightFromGroundMm) : null,
+          maxWeightCapacityKg: loc.maxWeightCapacityKg ? Number(loc.maxWeightCapacityKg) : null,
+        })) || [],
     };
     onSave(processedData as VehicleFormData);
   };
-
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -198,7 +210,7 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
                     <Label htmlFor={`storageLocations.${index}.name`} className="text-xs font-body">Name</Label>
                     <Input 
                         {...register(`storageLocations.${index}.name`)} 
-                        placeholder="e.g., Boot, Roof Box, Rear Seat Floor"
+                        placeholder="e.g., Boot, Roof Box"
                         className="font-body bg-background text-sm h-9"
                     />
                     {errors.storageLocations?.[index]?.name && <p className="text-xs text-destructive font-body mt-1">{errors.storageLocations[index]?.name?.message}</p>}
@@ -209,7 +221,7 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
                       name={`storageLocations.${index}.longitudinalPosition`}
                       control={control}
                       render={({ field: controllerField }) => (
-                        <Select onValueChange={controllerField.onChange} defaultValue={controllerField.value}>
+                        <Select onValueChange={controllerField.onChange} value={controllerField.value} >
                           <SelectTrigger className="font-body bg-background text-sm h-9"><SelectValue placeholder="Select position" /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="front-of-front-axle">Front of Front Axle</SelectItem>
@@ -228,7 +240,7 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
                       name={`storageLocations.${index}.lateralPosition`}
                       control={control}
                       render={({ field: controllerField }) => (
-                        <Select onValueChange={controllerField.onChange} defaultValue={controllerField.value}>
+                        <Select onValueChange={controllerField.onChange} value={controllerField.value}>
                           <SelectTrigger className="font-body bg-background text-sm h-9"><SelectValue placeholder="Select position" /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="left">Left</SelectItem>
@@ -240,6 +252,51 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
                     />
                     {errors.storageLocations?.[index]?.lateralPosition && <p className="text-xs text-destructive font-body mt-1">{errors.storageLocations[index]?.lateralPosition?.message}</p>}
                 </div>
+                 <div>
+                    <Label htmlFor={`storageLocations.${index}.maxWeightCapacityKg`} className="text-xs font-body">Max Capacity (kg)</Label>
+                    <Input 
+                        {...register(`storageLocations.${index}.maxWeightCapacityKg`)} 
+                        type="number" 
+                        placeholder="e.g., 50"
+                        className="font-body bg-background text-sm h-9"
+                    />
+                    {errors.storageLocations?.[index]?.maxWeightCapacityKg && <p className="text-xs text-destructive font-body mt-1">{errors.storageLocations[index]?.maxWeightCapacityKg?.message}</p>}
+                </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div>
+                    <Label htmlFor={`storageLocations.${index}.distanceFromRearAxleMm`} className="text-xs font-body">Dist. from Rear Axle (mm)</Label>
+                    <Input 
+                        {...register(`storageLocations.${index}.distanceFromRearAxleMm`)} 
+                        type="number" 
+                        placeholder="e.g., 500 (front), -300 (rear)"
+                        className="font-body bg-background text-sm h-9"
+                    />
+                     <p className="text-xs text-muted-foreground font-body mt-0.5">Relative to rear axle. +ve towards front.</p>
+                    {errors.storageLocations?.[index]?.distanceFromRearAxleMm && <p className="text-xs text-destructive font-body mt-1">{errors.storageLocations[index]?.distanceFromRearAxleMm?.message}</p>}
+                </div>
+                <div>
+                    <Label htmlFor={`storageLocations.${index}.distanceFromCenterlineMm`} className="text-xs font-body">Dist. from Centerline (mm)</Label>
+                    <Input 
+                        {...register(`storageLocations.${index}.distanceFromCenterlineMm`)} 
+                        type="number" 
+                        placeholder="e.g., -200 (left), 200 (right)"
+                        className="font-body bg-background text-sm h-9"
+                    />
+                    <p className="text-xs text-muted-foreground font-body mt-0.5">Relative to vehicle centerline. +ve right.</p>
+                    {errors.storageLocations?.[index]?.distanceFromCenterlineMm && <p className="text-xs text-destructive font-body mt-1">{errors.storageLocations[index]?.distanceFromCenterlineMm?.message}</p>}
+                </div>
+                <div>
+                    <Label htmlFor={`storageLocations.${index}.heightFromGroundMm`} className="text-xs font-body">Height from Ground (mm)</Label>
+                    <Input 
+                        {...register(`storageLocations.${index}.heightFromGroundMm`)} 
+                        type="number" 
+                        placeholder="e.g., 400"
+                        className="font-body bg-background text-sm h-9"
+                    />
+                    <p className="text-xs text-muted-foreground font-body mt-0.5">Est. center of mass height.</p>
+                    {errors.storageLocations?.[index]?.heightFromGroundMm && <p className="text-xs text-destructive font-body mt-1">{errors.storageLocations[index]?.heightFromGroundMm?.message}</p>}
+                </div>
             </div>
           </div>
         ))}
@@ -247,7 +304,16 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
             type="button" 
             variant="outline" 
             size="sm"
-            onClick={() => append({ id: Date.now().toString(), name: '', longitudinalPosition: 'between-axles', lateralPosition: 'center' } as VehicleStorageLocation)}
+            onClick={() => append({ 
+                id: Date.now().toString(), 
+                name: '', 
+                longitudinalPosition: 'between-axles', 
+                lateralPosition: 'center',
+                distanceFromRearAxleMm: null,
+                distanceFromCenterlineMm: null,
+                heightFromGroundMm: null,
+                maxWeightCapacityKg: null,
+            } as VehicleStorageLocation)}
             className="font-body text-xs"
         >
           <PlusCircle className="mr-2 h-4 w-4" /> Add Vehicle Storage Location
@@ -257,7 +323,6 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
          )}
       </div>
       <Separator className="my-4"/>
-
 
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading} className="font-body">
