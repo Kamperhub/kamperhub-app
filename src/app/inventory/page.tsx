@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { AlertTriangle, Settings, Loader2, Car, Home, Backpack, Link2 as Link2Icon } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardHeader, CardContent } from '@/components/ui/card'; // Added Card, CardHeader, CardContent imports
 
 const InventoryListClient = dynamic(
   () => import('@/components/features/inventory/InventoryList').then(mod => mod.InventoryList),
