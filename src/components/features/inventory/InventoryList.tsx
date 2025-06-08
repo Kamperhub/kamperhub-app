@@ -4,13 +4,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { InventoryItem, CaravanWeightData, CaravanInventories } from '@/types/inventory';
 import type { StoredVehicle } from '@/types/vehicle';
+import type { StoredWDH } from '@/types/wdh'; // Import StoredWDH
 import { INVENTORY_STORAGE_KEY } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, Settings2 } from 'lucide-react'; // Added Settings2
+import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, Settings2, Link2 as Link2Icon } from 'lucide-react'; // Added Link2Icon
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label as RechartsLabel } from 'recharts';
@@ -18,6 +19,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label as RechartsLab
 interface InventoryListProps {
   caravanSpecs: CaravanWeightData;
   activeTowVehicleSpecs: StoredVehicle | null;
+  activeWdhSpecs: StoredWDH | null; // Add activeWdhSpecs prop
   initialCaravanInventory: InventoryItem[];
   activeCaravanId: string | null;
 }
@@ -49,7 +51,7 @@ const DonutChartCustomLabel = ({ viewBox, value, limit, unit, name }: { viewBox?
 };
 
 
-export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, initialCaravanInventory, activeCaravanId }: InventoryListProps) {
+export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, activeWdhSpecs, initialCaravanInventory, activeCaravanId }: InventoryListProps) {
   const [items, setItems] = useState<InventoryItem[]>(initialCaravanInventory || []);
   const [itemName, setItemName] = useState('');
   const [itemWeight, setItemWeight] = useState('');
@@ -132,6 +134,13 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, initialCara
   const potentialGCM = useMemo(() => currentCaravanMass + vehicleGVM, [currentCaravanMass, vehicleGVM]);
   const isPotentialGCMOverLimit = useMemo(() => vehicleGCM > 0 && vehicleGVM > 0 && potentialGCM > vehicleGCM, [potentialGCM, vehicleGCM, vehicleGVM]);
 
+  // WDH related checks
+  const wdhMaxCapacity = useMemo(() => activeWdhSpecs?.maxCapacityKg ?? 0, [activeWdhSpecs]);
+  const wdhMinCapacity = useMemo(() => activeWdhSpecs?.minCapacityKg ?? null, [activeWdhSpecs]);
+
+  const isTowballOverWdhMax = useMemo(() => wdhMaxCapacity > 0 && estimatedTowballDownload > wdhMaxCapacity, [estimatedTowballDownload, wdhMaxCapacity]);
+  const isTowballUnderWdhMin = useMemo(() => wdhMinCapacity !== null && wdhMinCapacity > 0 && estimatedTowballDownload < wdhMinCapacity, [estimatedTowballDownload, wdhMinCapacity]);
+
 
   const handleAddItem = () => {
     if (!activeCaravanId) {
@@ -201,9 +210,9 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, initialCara
     toast({ title: "Item Removed", description: "Item has been removed from inventory." });
   };
 
-  const getAlertStylingVariant = (currentValue: number, limit: number) => {
-    if (limit <= 0) return "default"; 
-    if (currentValue > limit) return "destructive";
+  const getAlertStylingVariant = (currentValue: number, limit: number, isWarning?: boolean) => {
+    if (limit <= 0 && !isWarning) return "default"; 
+    if (currentValue > limit || isWarning) return "destructive"; // Make WDH under min a destructive alert
     if (currentValue > limit * 0.9) return "default"; 
     return "default"; 
   };
@@ -323,7 +332,7 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, initialCara
             </AlertDescription>
           </Alert>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="font-headline text-lg flex items-center"><HomeIcon className="mr-2 h-5 w-5 text-primary"/>Caravan Compliance</CardTitle>
@@ -395,6 +404,45 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, initialCara
                 </CardContent>
               </Card>
             )}
+
+            {activeWdhSpecs && activeWdhSpecs.name && (
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="font-headline text-lg flex items-center"><Link2Icon className="mr-2 h-5 w-5 text-primary"/>WDH Compatibility</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        <Alert variant="default" className="bg-background">
+                            <AlertTitle className="font-headline">Active WDH: {activeWdhSpecs.name}</AlertTitle>
+                            <AlertDescription className="font-body">
+                                Type: {activeWdhSpecs.type} <br />
+                                Max Towball Capacity: {wdhMaxCapacity > 0 ? `${wdhMaxCapacity}kg` : 'N/A'} <br />
+                                {wdhMinCapacity !== null && wdhMinCapacity > 0 && `Min Towball Capacity: ${wdhMinCapacity}kg`} <br />
+                                Integrated Sway Control: {activeWdhSpecs.hasIntegratedSwayControl ? 'Yes' : 'No'}
+                                {activeWdhSpecs.swayControlType && !activeWdhSpecs.hasIntegratedSwayControl && <><br/>Separate Sway Control: {activeWdhSpecs.swayControlType}</>}
+                            </AlertDescription>
+                        </Alert>
+                        {wdhMaxCapacity > 0 && (
+                            <Alert variant={getAlertStylingVariant(estimatedTowballDownload, wdhMaxCapacity)} className={isTowballOverWdhMax ? '' : 'bg-background'}>
+                                <AlertTitle className="font-headline">WDH Max Capacity Check</AlertTitle>
+                                <AlertDescription className="font-body">
+                                    Est. Towball Download ({estimatedTowballDownload.toFixed(1)}kg) vs WDH Max Capacity ({wdhMaxCapacity}kg).
+                                    {isTowballOverWdhMax ? <span className="font-semibold text-destructive"> Estimated towball OVER WDH max capacity!</span> : " WDH capacity is sufficient."}
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                        {wdhMinCapacity !== null && wdhMinCapacity > 0 && (
+                             <Alert variant={getAlertStylingVariant(estimatedTowballDownload, wdhMinCapacity, isTowballUnderWdhMin)} className={isTowballUnderWdhMin ? '' : 'bg-background'}>
+                                <AlertTitle className="font-headline">WDH Min Capacity Check</AlertTitle>
+                                <AlertDescription className="font-body">
+                                    Est. Towball Download ({estimatedTowballDownload.toFixed(1)}kg) vs WDH Min Capacity ({wdhMinCapacity}kg).
+                                    {isTowballUnderWdhMin ? <span className="font-semibold text-destructive"> Estimated towball BELOW WDH min capacity! May not perform optimally.</span> : " WDH operating range okay."}
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
           </div>
 
 
@@ -497,7 +545,7 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, initialCara
             <p><strong>Number of Axles:</strong> {caravanSpecs.numberOfAxles ? caravanSpecs.numberOfAxles : 'N/A'}</p>
            </div>
            {activeTowVehicleSpecs && activeTowVehicleSpecs.make && (
-            <div>
+            <div className="pb-2 mb-2 border-b">
                 <h4 className="font-semibold text-foreground">Active Tow Vehicle ({activeTowVehicleSpecs.make} {activeTowVehicleSpecs.model}):</h4>
                 {activeTowVehicleSpecs.kerbWeight > 0 && <p><strong>Kerb Weight:</strong> {activeTowVehicleSpecs.kerbWeight.toFixed(0)}kg <span className="text-xs italic">(Empty vehicle weight)</span></p>}
                 <p><strong>GVM (Gross Vehicle Mass Limit):</strong> {vehicleGVM > 0 ? `${vehicleGVM.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max loaded weight of vehicle itself)</span></p>
@@ -508,8 +556,20 @@ export function InventoryList({ caravanSpecs, activeTowVehicleSpecs, initialCara
                 <p><strong>GCM (Gross Combined Mass Limit):</strong> {vehicleGCM > 0 ? `${vehicleGCM.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max combined weight of loaded vehicle and loaded caravan)</span></p>
             </div>
            )}
+           {activeWdhSpecs && activeWdhSpecs.name && (
+             <div>
+                <h4 className="font-semibold text-foreground">Active WDH ({activeWdhSpecs.name}):</h4>
+                <p><strong>Type:</strong> {activeWdhSpecs.type}</p>
+                <p><strong>Max Towball Capacity:</strong> {wdhMaxCapacity > 0 ? `${wdhMaxCapacity}kg` : 'N/A'}</p>
+                {wdhMinCapacity !== null && wdhMinCapacity > 0 && <p><strong>Min Towball Capacity:</strong> {wdhMinCapacity}kg</p>}
+                <p><strong>Integrated Sway Control:</strong> {activeWdhSpecs.hasIntegratedSwayControl ? 'Yes' : 'No'}</p>
+                {activeWdhSpecs.swayControlType && !activeWdhSpecs.hasIntegratedSwayControl && <p><strong>Separate Sway Control:</strong> {activeWdhSpecs.swayControlType}</p>}
+                {activeWdhSpecs.notes && <p className="text-xs italic">Notes: {activeWdhSpecs.notes}</p>}
+             </div>
+           )}
         </div>
       </CardFooter>
     </Card>
   );
 }
+
