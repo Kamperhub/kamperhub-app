@@ -177,10 +177,10 @@ export default function ChecklistsPage() {
         <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
           <ListChecks className="mr-3 h-8 w-8" /> Checklists
         </h1>
-        <Alert variant="default" className="mb-6 bg-muted/50 border-border">
-          <Info className="h-4 w-4 text-muted-foreground" />
-          <AlertTitle className="font-headline text-foreground">How Checklists Work Now</AlertTitle>
-          <AlertDescription className="font-body text-muted-foreground/80 space-y-1">
+        <Alert variant="default" className="mb-6 bg-accent border-accent/70">
+          <Info className="h-4 w-4 text-accent-foreground" />
+          <AlertTitle className="font-headline text-accent-foreground">How Checklists Work Now</AlertTitle>
+          <AlertDescription className="font-body text-accent-foreground/90 space-y-1">
             <p>You can manage two types of checklists:</p>
             <ul className="list-disc pl-5">
               <li><strong>Trip-Specific Checklists:</strong> When you save a trip from the Trip Planner, a checklist is created for it. This checklist is copied from the active caravan's default (if set) or a global template. Modifications here only affect this specific trip.</li>
