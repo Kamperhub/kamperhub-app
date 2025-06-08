@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, Settings2, Link2 as Link2Icon, StickyNote, PackageSearch, Droplet, Archive } from 'lucide-react';
+import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, Settings2, Link2 as Link2Icon, StickyNote, PackageSearch, Droplet, Archive, Info, PackagePlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label as RechartsLabel } from 'recharts';
@@ -341,6 +341,19 @@ export function InventoryList({
     return weightsMap;
   }, [items, capacityTrackedLocations]);
 
+  const totalAvailablePayloadForInventory = useMemo(() => {
+    if (atmLimit > 0 && tareMass > 0 && atmLimit >= tareMass) {
+      return atmLimit - tareMass - totalWaterWeight;
+    }
+    return 0;
+  }, [atmLimit, tareMass, totalWaterWeight]);
+
+  const totalCaravanStorageCapacity = useMemo(() => {
+    return (activeCaravanStorageLocations || [])
+      .filter(loc => loc.type === 'caravan' && typeof loc.maxWeightCapacityKg === 'number' && loc.maxWeightCapacityKg > 0)
+      .reduce((sum, loc) => sum + (loc.maxWeightCapacityKg || 0), 0);
+  }, [activeCaravanStorageLocations]);
+
 
   return (
     <Card>
@@ -490,7 +503,9 @@ export function InventoryList({
                 </AlertDescription>
               </Alert>
             </CardContent>
-            <TableCaption className="font-body text-base mt-2">Total Water Weight: {totalWaterWeight.toFixed(1)} kg</TableCaption>
+            <CardFooter className="pt-2 pb-4 justify-center">
+              <p className="font-body text-base text-muted-foreground">Total Water Weight: {totalWaterWeight.toFixed(1)} kg</p>
+            </CardFooter>
           </Card>
         )}
 
@@ -536,6 +551,24 @@ export function InventoryList({
                 <CardContent><p className="text-sm text-muted-foreground text-center font-body">No storage locations with defined capacities found for active caravan/vehicle.</p></CardContent>
             )}
           </Card>
+        )}
+         {activeCaravanId && activeCaravanStorageLocations && activeCaravanStorageLocations.length > 0 && totalCaravanStorageCapacity > 0 && (
+          <Alert variant="default" className="mt-6 bg-secondary/20 border-secondary/40">
+            <PackagePlus className="h-4 w-4 text-foreground" />
+            <AlertTitle className="font-headline text-foreground">Caravan Payload & Storage Advisory</AlertTitle>
+            <AlertDescription className="font-body text-muted-foreground space-y-1">
+              <p>Total Available Payload for Caravan Inventory (ATM - Tare - Water): <strong>{totalAvailablePayloadForInventory.toFixed(1)} kg</strong>.</p>
+              <p>Combined Max Capacity of Your Caravan's Defined Storage Locations: <strong>{totalCaravanStorageCapacity.toFixed(1)} kg</strong>.</p>
+              {totalCaravanStorageCapacity > totalAvailablePayloadForInventory && (
+                <p className="text-destructive font-semibold">
+                  Warning: Your defined storage location capacities exceed your caravan's actual available payload for items. You cannot fill all locations to their maximum.
+                </p>
+              )}
+              {totalCaravanStorageCapacity <= 0 && activeCaravanStorageLocations.length > 0 && (
+                 <p>Define max weight capacities for your caravan's storage locations in the 'Vehicles' section to see combined capacity here.</p>
+              )}
+            </AlertDescription>
+          </Alert>
         )}
 
 
