@@ -7,6 +7,8 @@ import { WDHS_STORAGE_KEY, ACTIVE_WDH_ID_KEY } from '@/types/wdh';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input'; // Added Input import
+import { Label } from '@/components/ui/label'; // Added Label import
 import { useToast } from '@/hooks/use-toast';
 import { WDHForm } from './WDHForm';
 import { PlusCircle, Edit3, Trash2, CheckCircle, Link2, ShieldAlert, Settings2 } from 'lucide-react';
@@ -25,6 +27,12 @@ export function WDHManager() {
   const [editingWdh, setEditingWdh] = useState<StoredWDH | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
   const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
+  const [deleteDialogState, setDeleteDialogState] = useState<{ isOpen: boolean; wdhId: string | null; wdhName: string | null; confirmationText: string }>({
+    isOpen: false,
+    wdhId: null,
+    wdhName: null,
+    confirmationText: '',
+  });
 
   useEffect(() => {
     setHasMounted(true);
@@ -33,13 +41,23 @@ export function WDHManager() {
   useEffect(() => {
     if (hasMounted) {
       try {
-        const storedWdhs = localStorage.getItem(WDHS_STORAGE_KEY);
-        if (storedWdhs) setWdhs(JSON.parse(storedWdhs));
+        const storedWdhsJson = localStorage.getItem(WDHS_STORAGE_KEY);
+        if (storedWdhsJson) {
+          const parsedWdhs = JSON.parse(storedWdhsJson);
+          if (Array.isArray(parsedWdhs)) {
+            setWdhs(parsedWdhs);
+          } else {
+            console.warn("WDH data in localStorage was not an array. Resetting to empty.");
+            setWdhs([]);
+            localStorage.setItem(WDHS_STORAGE_KEY, JSON.stringify([])); // Optionally clear/reset malformed data
+          }
+        }
         const storedActiveId = localStorage.getItem(ACTIVE_WDH_ID_KEY);
         if (storedActiveId) setActiveWdhId(storedActiveId);
       } catch (error) {
         console.error("Error loading WDH data from localStorage:", error);
         toast({ title: "Error Loading WDHs", variant: "destructive" });
+        setWdhs([]); // Ensure wdhs is an array in case of error
       }
     }
   }, [hasMounted, toast]);
@@ -97,18 +115,22 @@ export function WDHManager() {
     setIsFormOpen(true);
   };
 
-  const handleDeleteWdh = (id: string) => {
-    const wdhToDelete = wdhs.find(w => w.id === id);
-    if (window.confirm(`Are you sure you want to delete ${wdhToDelete?.name}?`)) {
-      const updatedWdhs = wdhs.filter(w => w.id !== id);
-      setWdhs(updatedWdhs);
-      saveWdhsToStorage(updatedWdhs);
-      if (activeWdhId === id) {
-        setActiveWdhId(null);
-        saveActiveWdhIdToStorage(null);
-      }
-      toast({ title: "WDH Deleted", description: `${wdhToDelete?.name} has been removed.` });
+  const handleDeleteWdh = (id: string, name: string) => {
+     setDeleteDialogState({ isOpen: true, wdhId: id, wdhName: name, confirmationText: '' });
+  };
+
+  const confirmDeleteWdh = () => {
+    if (deleteDialogState.wdhId && deleteDialogState.confirmationText === "DELETE") {
+        const updatedWdhs = wdhs.filter(w => w.id !== deleteDialogState.wdhId);
+        setWdhs(updatedWdhs);
+        saveWdhsToStorage(updatedWdhs);
+        if (activeWdhId === deleteDialogState.wdhId) {
+            setActiveWdhId(null);
+            saveActiveWdhIdToStorage(null);
+        }
+        toast({ title: "WDH Deleted", description: `${deleteDialogState.wdhName} has been removed.` });
     }
+    setDeleteDialogState({ isOpen: false, wdhId: null, wdhName: null, confirmationText: '' });
   };
 
   const handleSetActiveWdh = (id: string) => {
@@ -161,13 +183,14 @@ export function WDHManager() {
   const canAddMoreWdhs = isSubscribed || wdhs.length < FREE_TIER_WDH_LIMIT;
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle className="font-headline flex items-center"><Link2 className="mr-2 h-5 w-5 text-primary" /> Weight Distribution Hitches</CardTitle>
           <Dialog open={isFormOpen} onOpenChange={(isOpen) => {
             setIsFormOpen(isOpen);
-            if (!isOpen) setEditingWdh(null); // Reset editing state when dialog closes
+            if (!isOpen) setEditingWdh(null);
           }}>
             <DialogTrigger asChild>
               <Button onClick={handleOpenFormForNew} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body" disabled={!canAddMoreWdhs && !editingWdh}>
@@ -216,7 +239,7 @@ export function WDHManager() {
                 <div className="text-sm text-muted-foreground font-body grid grid-cols-1 sm:grid-cols-2 gap-x-4">
                   <span>Type: {wdh.type}</span>
                   <span>Max Capacity: {wdh.maxCapacityKg}kg</span>
-                  {wdh.minCapacityKg && <span>Min Capacity: {wdh.minCapacityKg}kg</span>}
+                  {wdh.minCapacityKg != null && <span>Min Capacity: {wdh.minCapacityKg}kg</span>}
                   <span>Integrated Sway: {wdh.hasIntegratedSwayControl ? 'Yes' : 'No'}</span>
                   {wdh.swayControlType && !wdh.hasIntegratedSwayControl && <span>Sway Control: {wdh.swayControlType}</span>}
                 </div>
@@ -229,14 +252,14 @@ export function WDHManager() {
                   </Button>
                 )}
                 {activeWdhId === wdh.id && (
-                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 border border-green-300 flex items-center font-body">
+                  <span className="text-xs px-2 py-1 h-9 flex items-center rounded-md bg-green-100 text-green-700 border border-green-300 font-body">
                     <CheckCircle className="mr-1 h-4 w-4" /> Active
                   </span>
                 )}
                 <Button variant="ghost" size="icon" onClick={() => handleEditWdh(wdh)}>
                   <Edit3 className="h-5 w-5 text-blue-600" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => handleDeleteWdh(wdh.id)}>
+                <Button variant="ghost" size="icon" onClick={() => handleDeleteWdh(wdh.id, wdh.name)}>
                   <Trash2 className="h-5 w-5 text-destructive" />
                 </Button>
               </div>
@@ -245,5 +268,45 @@ export function WDHManager() {
         ))}
       </CardContent>
     </Card>
+
+    <Dialog open={deleteDialogState.isOpen} onOpenChange={(isOpen) => setDeleteDialogState(prev => ({ ...prev, isOpen }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-headline text-destructive">Confirm Deletion</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="font-body">
+              Are you sure you want to delete the WDH: <strong>{deleteDialogState.wdhName}</strong>?
+              This action cannot be undone.
+            </p>
+            <p className="font-body mt-2">
+              To confirm, please type "<strong>DELETE</strong>" in the box below.
+            </p>
+            <Input
+              type="text"
+              value={deleteDialogState.confirmationText}
+              onChange={(e) => setDeleteDialogState(prev => ({ ...prev, confirmationText: e.target.value }))}
+              placeholder='Type DELETE to confirm'
+              className="mt-2 font-body"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDeleteDialogState({ isOpen: false, wdhId: null, wdhName: null, confirmationText: '' })} className="font-body">
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteWdh}
+              disabled={deleteDialogState.confirmationText !== "DELETE"}
+              className="font-body"
+            >
+              Confirm Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
+
+    
