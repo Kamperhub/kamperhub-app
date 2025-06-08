@@ -14,7 +14,7 @@ import { CARAVANS_STORAGE_KEY } from '@/types/caravan';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Info, ListChecks, Home, Route, PlusCircle } from 'lucide-react'; // Added PlusCircle
+import { Loader2, Info, ListChecks, Home, Route, PlusCircle } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -177,10 +177,10 @@ export default function ChecklistsPage() {
         <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
           <ListChecks className="mr-3 h-8 w-8" /> Checklists
         </h1>
-        <Alert variant="default" className="mb-6 bg-primary/10 border-primary/30">
-          <Info className="h-4 w-4 text-primary" />
-          <AlertTitle className="font-headline text-primary">How Checklists Work Now</AlertTitle>
-          <AlertDescription className="font-body text-primary/80 space-y-1">
+        <Alert variant="default" className="mb-6 bg-muted/50 border-border">
+          <Info className="h-4 w-4 text-muted-foreground" />
+          <AlertTitle className="font-headline text-foreground">How Checklists Work Now</AlertTitle>
+          <AlertDescription className="font-body text-muted-foreground/80 space-y-1">
             <p>You can manage two types of checklists:</p>
             <ul className="list-disc pl-5">
               <li><strong>Trip-Specific Checklists:</strong> When you save a trip from the Trip Planner, a checklist is created for it. This checklist is copied from the active caravan's default (if set) or a global template. Modifications here only affect this specific trip.</li>
