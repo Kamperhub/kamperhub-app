@@ -164,6 +164,7 @@ export function CaravanManager() {
       if (activeCaravanId === id) {
         setActiveCaravanId(null);
         saveActiveCaravanIdToStorage(null);
+        saveActiveWdhIdToStorage(null); // Also clear active WDH if the active caravan is deleted
       }
       toast({ title: "Caravan Deleted", description: `${caravanToDelete?.make} ${caravanToDelete?.model}, its inventory, and checklists have been removed.` });
     }
@@ -181,12 +182,12 @@ export function CaravanManager() {
         saveActiveWdhIdToStorage(associatedWdh.id);
         toastMessage += ` Associated WDH '${associatedWdh.name}' also activated.`;
       } else {
-        saveActiveWdhIdToStorage(null); // Associated WDH not found, clear active WDH
+        saveActiveWdhIdToStorage(null); 
+        toastMessage += ` Associated WDH (ID: ${caravan.associatedWdhId.substring(0,6)}...) not found; no WDH activated.`;
       }
     } else {
-      // If the caravan has no associated WDH, we might want to clear the active WDH or leave it.
-      // For now, let's explicitly clear it if no association, to avoid confusion.
       saveActiveWdhIdToStorage(null);
+      toastMessage += ` No WDH associated with this caravan. Any previously active WDH has been cleared.`;
     }
     toast({ title: "Active Caravan Set", description: toastMessage });
   };
@@ -215,7 +216,8 @@ export function CaravanManager() {
   const getWdhNameById = (wdhId: string | null | undefined) => {
     if (!wdhId) return null;
     const wdh = allWdhs.find(w => w.id === wdhId);
-    return wdh ? wdh.name : "Unknown WDH";
+    if (wdh) return wdh.name;
+    return `WDH (ID: ${wdhId.substring(0,6)}...) not found`;
   };
 
   if (!hasMounted || isSubscriptionLoading) {
