@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { VehicleForm } from './VehicleForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, ShieldAlert, Weight, Axe, Car, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Ruler } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, ShieldAlert, Weight, Axe, Car, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Ruler, Backpack } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/hooks/useSubscription';
 import Link from 'next/link';
@@ -257,71 +257,75 @@ export function VehicleManager() {
           {vehicles.length === 0 && hasMounted && (
             <p className="text-muted-foreground text-center font-body py-4">No vehicles added yet. Click "Add New Vehicle" to start.</p>
           )}
-          {vehicles.map(vehicle => (
-            <Card key={vehicle.id} className={`p-4 ${activeVehicleId === vehicle.id ? 'border-primary shadow-md' : ''}`}>
-              <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
-                <div className="flex-grow">
-                  <h3 className="font-semibold font-body text-lg">{vehicle.year} {vehicle.make} {vehicle.model}</h3>
-                  <div className="text-sm text-muted-foreground font-body grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1">
-                    <span>GVM: {vehicle.gvm}kg</span>
-                    <span>GCM: {vehicle.gcm}kg</span>
-                    <span>Tow: {vehicle.maxTowCapacity}kg</span>
-                    <span>Towball: {vehicle.maxTowballMass}kg</span>
-                    <span className="flex items-center"><Weight className="w-3 h-3 mr-1 text-primary/70"/> Kerb: {formatDimension(vehicle.kerbWeight, 'kg')}</span>
-                    <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 rotate-90"/> F Axle: {formatDimension(vehicle.frontAxleLimit, 'kg')}</span>
-                    <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 -rotate-90"/> R Axle: {formatDimension(vehicle.rearAxleLimit, 'kg')}</span>
-                    <span className="flex items-center"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Wheelbase: {formatDimension(vehicle.wheelbase, 'mm')}</span>
-                    <span className="flex items-center"><Fuel className="w-3 h-3 mr-1 text-primary/70"/> {vehicle.fuelEfficiency}L/100km</span>
-                  </div>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center self-start sm:self-auto flex-shrink-0 mt-2 sm:mt-0">
-                  {activeVehicleId !== vehicle.id && (
-                    <Button variant="outline" size="sm" onClick={() => handleSetActiveVehicle(vehicle.id)} className="font-body whitespace-nowrap">
-                      <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Set Active
-                    </Button>
-                  )}
-                   {activeVehicleId === vehicle.id && (
-                    <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white text-xs h-8 w-full sm:w-auto flex items-center justify-center">
-                      <CheckCircle className="mr-1 h-4 w-4" /> Active
-                    </Badge>
-                  )}
-                  <div className="flex gap-1 w-full sm:w-auto">
-                    <Button variant="ghost" size="sm" onClick={() => handleEditVehicle(vehicle)} className="font-body flex-grow sm:flex-grow-0">
-                      <Edit3 className="h-4 w-4 sm:mr-1" /><span className="sm:hidden ml-1">Edit</span>
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDeleteVehicle(vehicle.id, `${vehicle.year} ${vehicle.make} ${vehicle.model}`)} className="font-body text-destructive hover:text-destructive hover:bg-destructive/10 flex-grow sm:flex-grow-0">
-                      <Trash2 className="h-4 w-4 sm:mr-1" /><span className="sm:hidden ml-1">Delete</span>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              {vehicle.storageLocations && vehicle.storageLocations.length > 0 && (
-                <CardFooter className="p-0 pt-3 mt-3 border-t">
-                  <div>
-                    <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center">
-                      <PackagePlus className="w-4 h-4 mr-2 text-primary"/>Storage Locations:
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1.5 text-xs">
-                      {vehicle.storageLocations.map(loc => (
-                        <Badge key={loc.id} variant="secondary" className="font-normal font-body py-1 px-2 h-auto text-left whitespace-normal">
-                          <div className="flex flex-col">
-                            <div className="flex items-center font-medium"><MapPin className="w-3 h-3 mr-1.5"/> {loc.name}</div>
-                            <div className="pl-[1.125rem] text-muted-foreground/90">
-                              Pos: {formatPositionText(loc)}<br/>
-                              Capacity: {formatDimension(loc.maxWeightCapacityKg, 'kg')}<br/>
-                              <span className="flex items-center"><ArrowLeftRight className="w-2.5 h-2.5 mr-1"/>R.Axle: {formatDimension(loc.distanceFromRearAxleMm)}</span>
-                              <span className="flex items-center"><ArrowUpDown className="w-2.5 h-2.5 mr-1"/>Center: {formatDimension(loc.distanceFromCenterlineMm)}</span>
-                              <span className="flex items-center"><Ruler className="w-2.5 h-2.5 mr-1"/>Height: {formatDimension(loc.heightFromGroundMm)}</span>
-                            </div>
-                          </div>
-                        </Badge>
-                      ))}
+          {vehicles.map(vehicle => {
+            const vehiclePayload = (typeof vehicle.gvm === 'number' && typeof vehicle.kerbWeight === 'number' && vehicle.gvm > 0 && vehicle.kerbWeight > 0 && vehicle.gvm >= vehicle.kerbWeight) ? vehicle.gvm - vehicle.kerbWeight : null;
+            return (
+              <Card key={vehicle.id} className={`p-4 ${activeVehicleId === vehicle.id ? 'border-primary shadow-md' : ''}`}>
+                <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
+                  <div className="flex-grow">
+                    <h3 className="font-semibold font-body text-lg">{vehicle.year} {vehicle.make} {vehicle.model}</h3>
+                    <div className="text-sm text-muted-foreground font-body grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1">
+                      <span>GVM: {vehicle.gvm}kg</span>
+                      <span>GCM: {vehicle.gcm}kg</span>
+                      <span>Tow: {vehicle.maxTowCapacity}kg</span>
+                      <span>Towball: {vehicle.maxTowballMass}kg</span>
+                      <span className="flex items-center"><Weight className="w-3 h-3 mr-1 text-primary/70"/> Kerb: {formatDimension(vehicle.kerbWeight, 'kg')}</span>
+                      {vehiclePayload !== null && <span className="flex items-center"><Backpack className="w-3 h-3 mr-1 text-primary/70"/> Payload: {vehiclePayload.toFixed(0)}kg</span>}
+                      <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 rotate-90"/> F Axle: {formatDimension(vehicle.frontAxleLimit, 'kg')}</span>
+                      <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 -rotate-90"/> R Axle: {formatDimension(vehicle.rearAxleLimit, 'kg')}</span>
+                      <span className="flex items-center"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Wheelbase: {formatDimension(vehicle.wheelbase, 'mm')}</span>
+                      <span className="flex items-center"><Fuel className="w-3 h-3 mr-1 text-primary/70"/> {vehicle.fuelEfficiency}L/100km</span>
                     </div>
                   </div>
-                </CardFooter>
-              )}
-            </Card>
-          ))}
+                  <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center self-start sm:self-auto flex-shrink-0 mt-2 sm:mt-0">
+                    {activeVehicleId !== vehicle.id && (
+                      <Button variant="outline" size="sm" onClick={() => handleSetActiveVehicle(vehicle.id)} className="font-body whitespace-nowrap">
+                        <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Set Active
+                      </Button>
+                    )}
+                     {activeVehicleId === vehicle.id && (
+                      <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white text-xs h-8 w-full sm:w-auto flex items-center justify-center">
+                        <CheckCircle className="mr-1 h-4 w-4" /> Active
+                      </Badge>
+                    )}
+                    <div className="flex gap-1 w-full sm:w-auto">
+                      <Button variant="ghost" size="sm" onClick={() => handleEditVehicle(vehicle)} className="font-body flex-grow sm:flex-grow-0">
+                        <Edit3 className="h-4 w-4 sm:mr-1" /><span className="sm:hidden ml-1">Edit</span>
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDeleteVehicle(vehicle.id, `${vehicle.year} ${vehicle.make} ${vehicle.model}`)} className="font-body text-destructive hover:text-destructive hover:bg-destructive/10 flex-grow sm:flex-grow-0">
+                        <Trash2 className="h-4 w-4 sm:mr-1" /><span className="sm:hidden ml-1">Delete</span>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                {vehicle.storageLocations && vehicle.storageLocations.length > 0 && (
+                  <CardFooter className="p-0 pt-3 mt-3 border-t">
+                    <div>
+                      <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center">
+                        <PackagePlus className="w-4 h-4 mr-2 text-primary"/>Storage Locations:
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1.5 text-xs">
+                        {vehicle.storageLocations.map(loc => (
+                          <Badge key={loc.id} variant="secondary" className="font-normal font-body py-1 px-2 h-auto text-left whitespace-normal">
+                            <div className="flex flex-col">
+                              <div className="flex items-center font-medium"><MapPin className="w-3 h-3 mr-1.5"/> {loc.name}</div>
+                              <div className="pl-[1.125rem] text-muted-foreground/90">
+                                Pos: {formatPositionText(loc)}<br/>
+                                Capacity: {formatDimension(loc.maxWeightCapacityKg, 'kg')}<br/>
+                                <span className="flex items-center"><ArrowLeftRight className="w-2.5 h-2.5 mr-1"/>R.Axle: {formatDimension(loc.distanceFromRearAxleMm)}</span>
+                                <span className="flex items-center"><ArrowUpDown className="w-2.5 h-2.5 mr-1"/>Center: {formatDimension(loc.distanceFromCenterlineMm)}</span>
+                                <span className="flex items-center"><Ruler className="w-2.5 h-2.5 mr-1"/>Height: {formatDimension(loc.heightFromGroundMm)}</span>
+                              </div>
+                            </div>
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </CardFooter>
+                )}
+              </Card>
+            )
+          })}
         </CardContent>
       </Card>
 
@@ -364,3 +368,4 @@ export function VehicleManager() {
     </>
   );
 }
+
