@@ -11,15 +11,18 @@ import type { StoredCaravan } from '@/types/caravan';
 import { CARAVANS_STORAGE_KEY, ACTIVE_CARAVAN_ID_KEY } from '@/types/caravan';
 import type { StoredVehicle } from '@/types/vehicle';
 import { VEHICLES_STORAGE_KEY, ACTIVE_VEHICLE_ID_KEY as ACTIVE_TOW_VEHICLE_ID_KEY } from '@/types/vehicle';
+import type { StoredWDH } from '@/types/wdh'; // Import WDH types
+import { WDHS_STORAGE_KEY, ACTIVE_WDH_ID_KEY } from '@/types/wdh'; // Import WDH keys
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { Settings, Loader2, Car, Home } from 'lucide-react'; // AlertTriangle was unused
+import { Settings, Loader2, Car, Home, Link2 as Link2Icon } from 'lucide-react';
 
 export default function ChecklistsPage() {
   const [activeCaravanId, setActiveCaravanId] = useState<string | null>(null);
   const [activeCaravanName, setActiveCaravanName] = useState<string | null>(null);
   const [activeVehicleName, setActiveVehicleName] = useState<string | null>(null);
+  const [activeWdhName, setActiveWdhName] = useState<string | null>(null); // State for active WDH name
   const [currentCaravanChecklists, setCurrentCaravanChecklists] = useState<Partial<Record<ChecklistCategory, ChecklistItem[]>>>(defaultInitialChecklists);
   const [isLoading, setIsLoading] = useState(true);
   const [isLocalStorageReady, setIsLocalStorageReady] = useState(false);
@@ -34,12 +37,12 @@ export default function ChecklistsPage() {
       setIsLoading(true);
       setActiveCaravanName(null);
       setActiveVehicleName(null);
+      setActiveWdhName(null); // Reset active WDH name
 
       try {
         const currentActiveCaravanId = localStorage.getItem(ACTIVE_CARAVAN_ID_KEY);
         setActiveCaravanId(currentActiveCaravanId);
 
-        // Load caravan name
         if (currentActiveCaravanId) {
           const storedCaravansJson = localStorage.getItem(CARAVANS_STORAGE_KEY);
           if (storedCaravansJson) {
@@ -51,7 +54,6 @@ export default function ChecklistsPage() {
           }
         }
         
-        // Load vehicle name
         const activeVehicleId = localStorage.getItem(ACTIVE_TOW_VEHICLE_ID_KEY);
         const storedVehiclesJson = localStorage.getItem(VEHICLES_STORAGE_KEY);
         if (activeVehicleId && storedVehiclesJson) {
@@ -62,7 +64,17 @@ export default function ChecklistsPage() {
           }
         }
 
-        // Load checklists
+        // Load Active WDH Name
+        const activeWdhId = localStorage.getItem(ACTIVE_WDH_ID_KEY);
+        const storedWdhsJson = localStorage.getItem(WDHS_STORAGE_KEY);
+        if (activeWdhId && storedWdhsJson) {
+          const storedWdhs: StoredWDH[] = JSON.parse(storedWdhsJson);
+          const activeWdh = storedWdhs.find(w => w.id === activeWdhId);
+          if (activeWdh) {
+            setActiveWdhName(activeWdh.name);
+          }
+        }
+
         let parsedAllStoredChecklists: CaravanChecklists = {};
         const allStoredChecklistsJson = localStorage.getItem(CHECKLISTS_STORAGE_KEY);
         if (allStoredChecklistsJson) {
@@ -71,13 +83,11 @@ export default function ChecklistsPage() {
                 if (typeof parsed === 'object' && parsed !== null) {
                     parsedAllStoredChecklists = parsed;
                 } else {
-                    // Data is malformed (not an object), reset it
                     console.warn("Checklist data in localStorage was malformed. Resetting.");
                     localStorage.setItem(CHECKLISTS_STORAGE_KEY, JSON.stringify({}));
                 }
             } catch (parseError) {
                 console.error("Error parsing checklists from localStorage. Resetting.", parseError);
-                // Attempt to clear corrupted data by saving an empty object
                 localStorage.setItem(CHECKLISTS_STORAGE_KEY, JSON.stringify({}));
             }
         }
@@ -95,7 +105,7 @@ export default function ChecklistsPage() {
 
       } catch (e) {
         console.error("Error loading data for Checklists:", e);
-        setCurrentCaravanChecklists(defaultInitialChecklists); // Fallback on any other error
+        setCurrentCaravanChecklists(defaultInitialChecklists);
       } finally {
         setIsLoading(false);
       }
@@ -112,6 +122,9 @@ export default function ChecklistsPage() {
       text += ` Current tow vehicle: ${activeVehicleName}. Please set an active caravan in 'Vehicles' to manage its specific checklists.`;
     } else if (!activeCaravanId) {
       text += " Please set an active caravan in the 'Vehicles' section to manage its specific checklists.";
+    }
+    if (activeWdhName) {
+      text += ` Active WDH: ${activeWdhName}.`;
     }
     return text;
   };
@@ -160,6 +173,12 @@ export default function ChecklistsPage() {
          <Alert variant="default" className="mb-6 bg-secondary/30 border-secondary/50">
             <Car className="h-4 w-4 text-foreground" />
             <AlertTitle className="font-headline font-bold text-foreground">Active Tow Vehicle: {activeVehicleName}</AlertTitle>
+         </Alert>
+      )}
+      {activeWdhName && (
+         <Alert variant="default" className="mb-6 bg-secondary/30 border-secondary/50">
+            <Link2Icon className="h-4 w-4 text-foreground" />
+            <AlertTitle className="font-headline font-bold text-foreground">Active WDH: {activeWdhName}</AlertTitle>
          </Alert>
       )}
 

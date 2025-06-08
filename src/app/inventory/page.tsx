@@ -8,21 +8,23 @@ import type { StoredCaravan } from '@/types/caravan';
 import { CARAVANS_STORAGE_KEY, ACTIVE_CARAVAN_ID_KEY } from '@/types/caravan';
 import type { StoredVehicle } from '@/types/vehicle';
 import { VEHICLES_STORAGE_KEY, ACTIVE_VEHICLE_ID_KEY as ACTIVE_TOW_VEHICLE_ID_KEY } from '@/types/vehicle';
+import type { StoredWDH } from '@/types/wdh'; // Import WDH types
+import { WDHS_STORAGE_KEY, ACTIVE_WDH_ID_KEY } from '@/types/wdh'; // Import WDH keys
 import type { CaravanWeightData, InventoryItem, CaravanInventories } from '@/types/inventory';
 import { INVENTORY_STORAGE_KEY } from '@/types/inventory';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { AlertTriangle, Settings, Loader2, Car, Home, Backpack } from 'lucide-react'; 
+import { AlertTriangle, Settings, Loader2, Car, Home, Backpack, Link2 as Link2Icon } from 'lucide-react'; // Added Link2Icon for WDH
 
 const defaultCaravanSpecs: CaravanWeightData = {
   tareMass: 0,
   atm: 0,
   gtm: 0,
   maxTowballDownload: 0,
-  numberOfAxles: 1, // Added default for numberOfAxles
-  make: undefined, // Optional make for display
-  model: undefined, // Optional model for display
+  numberOfAxles: 1,
+  make: undefined,
+  model: undefined,
 };
 
 const defaultVehicleSpecs: StoredVehicle = {
@@ -40,10 +42,19 @@ const defaultVehicleSpecs: StoredVehicle = {
   rearAxleLimit: 0,
 };
 
+const defaultWdhSpecs: StoredWDH = {
+  id: '',
+  name: '',
+  type: '',
+  maxCapacityKg: 0,
+  hasIntegratedSwayControl: false,
+};
+
 export default function InventoryPage() {
   const [caravanSpecs, setCaravanSpecs] = useState<CaravanWeightData | null>(null);
   const [activeCaravanName, setActiveCaravanName] = useState<string | null>(null);
   const [activeVehicleSpecs, setActiveVehicleSpecs] = useState<StoredVehicle | null>(null);
+  const [activeWdhSpecs, setActiveWdhSpecs] = useState<StoredWDH | null>(null); // State for active WDH
   const [activeCaravanId, setActiveCaravanId] = useState<string | null>(null);
   const [currentCaravanInventory, setCurrentCaravanInventory] = useState<InventoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,6 +72,7 @@ export default function InventoryPage() {
       setError(null);
       setActiveCaravanName(null);
       setActiveVehicleSpecs(null);
+      setActiveWdhSpecs(null); // Reset active WDH
       setActiveCaravanId(null);
       setCurrentCaravanInventory([]);
 
@@ -80,9 +92,9 @@ export default function InventoryPage() {
               atm: activeCaravan.atm,
               gtm: activeCaravan.gtm,
               maxTowballDownload: activeCaravan.maxTowballDownload,
-              numberOfAxles: activeCaravan.numberOfAxles, // Load numberOfAxles
-              make: activeCaravan.make, // Store make for display
-              model: activeCaravan.model, // Store model for display
+              numberOfAxles: activeCaravan.numberOfAxles,
+              make: activeCaravan.make,
+              model: activeCaravan.model,
             });
             setActiveCaravanName(`${activeCaravan.year} ${activeCaravan.make} ${activeCaravan.model}`);
             
@@ -118,11 +130,27 @@ export default function InventoryPage() {
           setActiveVehicleSpecs(null);
         }
 
+        // Load Active WDH Specs
+        const activeWdhId = localStorage.getItem(ACTIVE_WDH_ID_KEY);
+        const storedWdhsJson = localStorage.getItem(WDHS_STORAGE_KEY);
+        if (activeWdhId && storedWdhsJson) {
+          const storedWdhs: StoredWDH[] = JSON.parse(storedWdhsJson);
+          const activeWdh = storedWdhs.find(w => w.id === activeWdhId);
+          if (activeWdh) {
+            setActiveWdhSpecs(activeWdh);
+          } else {
+            setActiveWdhSpecs(defaultWdhSpecs);
+          }
+        } else {
+          setActiveWdhSpecs(null);
+        }
+
       } catch (e) {
         console.error("Error loading active data for Inventory:", e);
-        setError("Could not load vehicle/caravan data or inventory. Please try again.");
+        setError("Could not load vehicle/caravan/WDH data or inventory. Please try again.");
         setCaravanSpecs(defaultCaravanSpecs); 
         setActiveVehicleSpecs(defaultVehicleSpecs);
+        setActiveWdhSpecs(defaultWdhSpecs);
         setCurrentCaravanInventory([]);
       } finally {
         setIsLoading(false);
@@ -131,7 +159,7 @@ export default function InventoryPage() {
   }, [isLocalStorageReady, pathname]);
 
   const getDescriptiveText = () => {
-    let text = "Track your caravan's load, manage items, and stay compliant with weight limits. Calculations consider both active caravan and tow vehicle specifications if selected.";
+    let text = "Track your caravan's load, manage items, and stay compliant with weight limits. Calculations consider active caravan, tow vehicle, and WDH specifications if selected.";
     if (activeCaravanName && activeVehicleSpecs && activeVehicleSpecs.make) {
       text += ` Using specs for your ${activeCaravanName} towed by ${activeVehicleSpecs.year} ${activeVehicleSpecs.make} ${activeVehicleSpecs.model}.`;
     } else if (activeCaravanName) {
@@ -141,9 +169,11 @@ export default function InventoryPage() {
     } else {
        text += " Please set an active caravan and tow vehicle in 'Vehicles' for accurate weight management. Current calculations use default zero values.";
     }
+    if (activeWdhSpecs && activeWdhSpecs.name) {
+      text += ` Active WDH: ${activeWdhSpecs.name}.`;
+    }
     return text;
   };
-
 
   if (!isLocalStorageReady || isLoading) {
     return (
@@ -153,7 +183,7 @@ export default function InventoryPage() {
         </h1>
         <div className="flex items-center justify-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-foreground mr-3" />
-          <p className="font-body text-lg">Loading caravan specifications &amp; inventory...</p>
+          <p className="font-body text-lg">Loading specifications &amp; inventory...</p>
         </div>
       </div>
     );
@@ -216,12 +246,19 @@ export default function InventoryPage() {
             <AlertTitle className="font-headline font-bold text-foreground">Active Tow Vehicle: {activeVehicleSpecs.year} {activeVehicleSpecs.make} {activeVehicleSpecs.model}</AlertTitle>
          </Alert>
       )}
+      {activeWdhSpecs && activeWdhSpecs.name && (
+         <Alert variant="default" className="mb-6 bg-secondary/30 border-secondary/50">
+            <Link2Icon className="h-4 w-4 text-foreground" />
+            <AlertTitle className="font-headline font-bold text-foreground">Active WDH: {activeWdhSpecs.name} ({activeWdhSpecs.type}, Max: {activeWdhSpecs.maxCapacityKg}kg)</AlertTitle>
+         </Alert>
+      )}
       
       <InventoryList 
         caravanSpecs={caravanSpecs || defaultCaravanSpecs}
         activeTowVehicleSpecs={activeVehicleSpecs || defaultVehicleSpecs}
         initialCaravanInventory={currentCaravanInventory}
         activeCaravanId={activeCaravanId}
+        // Active WDH specs could be passed here in the future if needed for calculations
       />
     </div>
   );
