@@ -10,6 +10,8 @@ import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip } fr
 import { TRIP_LOG_STORAGE_KEY, RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import type { StoredVehicle } from '@/types/vehicle';
 import { VEHICLES_STORAGE_KEY, ACTIVE_VEHICLE_ID_KEY } from '@/types/vehicle';
+import type { AllTripChecklists, ChecklistItem, ChecklistCategory, TripChecklistSet } from '@/types/checklist'; // Import new types
+import { initialChecklists as defaultChecklistTemplate, TRIP_CHECKLISTS_STORAGE_KEY } from '@/types/checklist'; // Import new key and template
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -67,7 +69,7 @@ export function TripPlannerClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [fuelEstimate, setFuelEstimate] = useState<FuelEstimate | null>(null);
-  const [currentTripNotes, setCurrentTripNotes] = useState<string | undefined>(undefined); // For internal state of notes input *before* saving
+  const [currentTripNotes, setCurrentTripNotes] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
   const { toast } = useToast();
@@ -112,7 +114,7 @@ export function TripPlannerClient() {
           });
           setRouteDetails(recalledTrip.routeDetails);
           setFuelEstimate(recalledTrip.fuelEstimate);
-          setCurrentTripNotes(recalledTrip.notes || ''); // Ensure currentTripNotes is a string for Textarea
+          setCurrentTripNotes(recalledTrip.notes || '');
           localStorage.removeItem(RECALLED_TRIP_DATA_KEY);
           toast({ title: "Trip Recalled", description: `"${recalledTrip.name}" loaded into planner.` });
           recalledTripLoaded = true;
@@ -359,19 +361,25 @@ export function TripPlannerClient() {
     setIsSaveTripDialogOpen(true);
   }, [routeDetails, getValues, currentTripNotes, toast]);
   
+  // Function to create a deep copy of checklist items with new unique IDs
+  const createChecklistCopy = (items: readonly ChecklistItem[]): ChecklistItem[] => {
+    return items.map(item => ({ ...item, id: `${item.id.replace('_tpl', '')}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}` }));
+  };
+  
   const handleConfirmSaveTrip = useCallback(() => {
     if (!pendingTripName.trim()) {
       toast({ title: "Invalid Name", description: "Trip name cannot be empty.", variant: "destructive" });
       return;
     }
-    if (!routeDetails) { // Should not happen if dialog is opened correctly
+    if (!routeDetails) {
         toast({ title: "Error", description: "Route details are missing.", variant: "destructive" });
         return;
     }
 
     const currentFormData = getValues();
+    const newTripId = Date.now().toString();
     const newLoggedTrip: LoggedTrip = {
-      id: Date.now().toString(),
+      id: newTripId,
       name: pendingTripName.trim(),
       timestamp: new Date().toISOString(),
       startLocationDisplay: currentFormData.startLocation,
@@ -385,9 +393,10 @@ export function TripPlannerClient() {
       notes: pendingTripNotes.trim() || undefined, 
     };
     
-    setCurrentTripNotes(pendingTripNotes.trim() || undefined); // Update main page notes immediately
+    setCurrentTripNotes(pendingTripNotes.trim() || undefined);
 
     try {
+      // Save Trip Log
       const existingTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
       let existingTrips: LoggedTrip[] = [];
       if (existingTripsJson && existingTripsJson.trim() !== "") {
@@ -395,24 +404,38 @@ export function TripPlannerClient() {
           existingTrips = JSON.parse(existingTripsJson);
         } catch (parseError: any) {
           console.error('Error parsing existing trips from localStorage:', parseError.name, parseError.message, parseError.stack);
-          toast({
-            title: "Data Corruption Warning",
-            description: "Could not read previously saved trips. Old data might be affected.",
-            variant: "destructive",
-            duration: 7000,
-          });
         }
       }
-      
       const updatedTripsArray = [...existingTrips, newLoggedTrip];
       localStorage.setItem(TRIP_LOG_STORAGE_KEY, JSON.stringify(updatedTripsArray));
-      toast({ title: "Trip Saved!", description: `"${newLoggedTrip.name}" has been added to your Trip Log.` });
+
+      // Create and Save Default Checklist for the new trip
+      const newTripChecklistSet: TripChecklistSet = {
+        tripName: newLoggedTrip.name,
+        preDeparture: createChecklistCopy(defaultChecklistTemplate.preDeparture),
+        campsiteSetup: createChecklistCopy(defaultChecklistTemplate.campsiteSetup),
+        packDown: createChecklistCopy(defaultChecklistTemplate.packDown),
+      };
+
+      const allTripChecklistsJson = localStorage.getItem(TRIP_CHECKLISTS_STORAGE_KEY);
+      let allTripChecklists: AllTripChecklists = {};
+      if (allTripChecklistsJson && allTripChecklistsJson.trim() !== "") {
+        try {
+            allTripChecklists = JSON.parse(allTripChecklistsJson);
+        } catch (e) {
+            console.error("Error parsing trip checklists from storage:", e);
+        }
+      }
+      allTripChecklists[newTripId] = newTripChecklistSet;
+      localStorage.setItem(TRIP_CHECKLISTS_STORAGE_KEY, JSON.stringify(allTripChecklists));
+
+      toast({ title: "Trip Saved!", description: `"${newLoggedTrip.name}" has been added to your Trip Log and a default checklist created.` });
       setIsSaveTripDialogOpen(false);
     } catch (storageError: any) {
       console.error("Critical Storage Error:", storageError.name, storageError.message, storageError.stack);
       toast({ 
         title: "Critical Storage Error", 
-        description: `Could not save trip: ${storageError.message || 'Unknown storage error'}. LocalStorage might be full or disabled.`, 
+        description: `Could not save trip or checklist: ${storageError.message || 'Unknown storage error'}. LocalStorage might be full or disabled.`, 
         variant: "destructive",
         duration: 9000
       });
@@ -738,4 +761,3 @@ export function TripPlannerClient() {
     </>
   );
 }
-

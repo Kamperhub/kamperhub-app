@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import type { ChecklistItem, ChecklistCategory, CaravanChecklists } from '@/types/checklist';
-import { CHECKLISTS_STORAGE_KEY } from '@/types/checklist';
+import type { ChecklistItem, ChecklistCategory, AllTripChecklists, TripChecklistSet } from '@/types/checklist';
+import { TRIP_CHECKLISTS_STORAGE_KEY } from '@/types/checklist';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -15,12 +15,12 @@ import { cn } from '@/lib/utils';
 
 interface ChecklistTabContentProps {
   category: ChecklistCategory;
-  initialItems: ChecklistItem[];
-  activeCaravanId: string | null;
+  itemsForCategory: ChecklistItem[]; // Passed directly for the selected trip
+  selectedTripId: string | null; // Now refers to the ID of the selected trip
 }
 
-export function ChecklistTabContent({ category, initialItems, activeCaravanId }: ChecklistTabContentProps) {
-  const [items, setItems] = useState<ChecklistItem[]>(initialItems);
+export function ChecklistTabContent({ category, itemsForCategory, selectedTripId }: ChecklistTabContentProps) {
+  const [items, setItems] = useState<ChecklistItem[]>(itemsForCategory || []);
   const [newItemText, setNewItemText] = useState('');
   const { toast } = useToast();
   const [isLocalStorageReady, setIsLocalStorageReady] = useState(false);
@@ -30,52 +30,63 @@ export function ChecklistTabContent({ category, initialItems, activeCaravanId }:
   }, []);
 
   useEffect(() => {
-    setItems(initialItems);
-  }, [initialItems, activeCaravanId]);
+    // Update items when the passed prop changes (e.g., different trip selected)
+    setItems(itemsForCategory || []);
+  }, [itemsForCategory, selectedTripId]);
 
   const saveChecklistToStorage = (updatedItemsForCategory: ChecklistItem[]) => {
     if (!isLocalStorageReady || typeof window === 'undefined') return;
 
-    if (!activeCaravanId) {
+    if (!selectedTripId) {
       if (isLocalStorageReady) { 
-        toast({ title: "Cannot Save Checklist", description: "No active caravan selected. Changes will not be saved.", variant: "destructive" });
+        toast({ title: "Cannot Save Checklist", description: "No trip selected. Changes will not be saved.", variant: "destructive" });
       }
       return;
     }
 
     try {
-      const allCaravanChecklistsJson = localStorage.getItem(CHECKLISTS_STORAGE_KEY);
-      let allCaravanChecklists: CaravanChecklists = {};
+      const allTripChecklistsJson = localStorage.getItem(TRIP_CHECKLISTS_STORAGE_KEY);
+      let allTripChecklists: AllTripChecklists = {};
 
-      if (allCaravanChecklistsJson) {
+      if (allTripChecklistsJson) {
         try {
-          const parsed = JSON.parse(allCaravanChecklistsJson);
+          const parsed = JSON.parse(allTripChecklistsJson);
           if (typeof parsed === 'object' && parsed !== null) {
-            allCaravanChecklists = parsed;
+            allTripChecklists = parsed;
           } else {
-            console.warn("Checklist data in localStorage was malformed. Initializing as empty object.");
+            console.warn("Trip checklist data in localStorage was malformed. Initializing as empty object.");
           }
         } catch (e) {
-          console.error("Error parsing checklist data from localStorage. Initializing as empty object.", e);
+          console.error("Error parsing trip checklist data from localStorage. Initializing as empty object.", e);
         }
       }
       
-      if (typeof allCaravanChecklists[activeCaravanId] !== 'object' || allCaravanChecklists[activeCaravanId] === null) {
-        allCaravanChecklists[activeCaravanId] = {};
+      // Ensure the entry for the current trip exists
+      if (typeof allTripChecklists[selectedTripId] !== 'object' || allTripChecklists[selectedTripId] === null) {
+        // This ideally shouldn't happen if checklists are created on trip save.
+        // For robustness, create a basic structure if missing.
+        console.warn(`Checklist set for trip ${selectedTripId} was missing. Initializing.`);
+        allTripChecklists[selectedTripId] = { 
+            tripName: "Unknown Trip (Recovered)", // Attempt to get trip name if possible, or default
+            preDeparture: category === 'preDeparture' ? updatedItemsForCategory : [],
+            campsiteSetup: category === 'campsiteSetup' ? updatedItemsForCategory : [],
+            packDown: category === 'packDown' ? updatedItemsForCategory : [],
+         };
+      } else {
+         // Update the specific category for the selected trip
+         allTripChecklists[selectedTripId][category] = updatedItemsForCategory;
       }
       
-      allCaravanChecklists[activeCaravanId]![category] = updatedItemsForCategory;
-      
-      localStorage.setItem(CHECKLISTS_STORAGE_KEY, JSON.stringify(allCaravanChecklists));
+      localStorage.setItem(TRIP_CHECKLISTS_STORAGE_KEY, JSON.stringify(allTripChecklists));
     } catch (error) {
-      console.error("Error saving checklist to localStorage:", error);
-      toast({ title: "Error Saving Checklist", description: "Could not save checklist changes.", variant: "destructive" });
+      console.error("Error saving trip checklist to localStorage:", error);
+      toast({ title: "Error Saving Checklist", description: "Could not save checklist changes for this trip.", variant: "destructive" });
     }
   };
 
   const handleAddItem = () => {
-    if (!activeCaravanId) {
-      toast({ title: "Action Disabled", description: "Select an active caravan to modify checklists.", variant: "destructive" });
+    if (!selectedTripId) {
+      toast({ title: "Action Disabled", description: "Select a trip to modify its checklists.", variant: "destructive" });
       return;
     }
     if (!newItemText.trim()) {
@@ -83,7 +94,7 @@ export function ChecklistTabContent({ category, initialItems, activeCaravanId }:
       return;
     }
     const newItem: ChecklistItem = {
-      id: Date.now().toString(),
+      id: `${category}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, // Ensure unique ID for the item
       text: newItemText.trim(),
       completed: false,
     };
@@ -91,12 +102,12 @@ export function ChecklistTabContent({ category, initialItems, activeCaravanId }:
     setItems(updatedItems);
     saveChecklistToStorage(updatedItems);
     setNewItemText('');
-    toast({ title: "Item Added", description: `"${newItem.text}" added to ${category} checklist.` });
+    toast({ title: "Item Added", description: `"${newItem.text}" added to ${category} checklist for the current trip.` });
   };
 
   const handleToggleItem = (id: string) => {
-    if (!activeCaravanId) {
-       toast({ title: "Action Disabled", description: "Select an active caravan to modify checklists.", variant: "destructive" });
+    if (!selectedTripId) {
+       toast({ title: "Action Disabled", description: "Select a trip to modify its checklists.", variant: "destructive" });
       return;
     }
     const updatedItems = items.map(item => item.id === id ? { ...item, completed: !item.completed } : item);
@@ -105,19 +116,19 @@ export function ChecklistTabContent({ category, initialItems, activeCaravanId }:
   };
 
   const handleDeleteItem = (id: string) => {
-    if (!activeCaravanId) {
-       toast({ title: "Action Disabled", description: "Select an active caravan to modify checklists.", variant: "destructive" });
+    if (!selectedTripId) {
+       toast({ title: "Action Disabled", description: "Select a trip to modify its checklists.", variant: "destructive" });
       return;
     }
     const updatedItems = items.filter(item => item.id !== id);
     setItems(updatedItems);
     saveChecklistToStorage(updatedItems);
-    toast({ title: "Item Removed", description: "Item removed from checklist." });
+    toast({ title: "Item Removed", description: "Item removed from this trip's checklist." });
   };
 
   const handleMoveItem = (id: string, direction: 'up' | 'down') => {
-    if (!activeCaravanId) {
-      toast({ title: "Action Disabled", description: "Select an active caravan to modify checklists.", variant: "destructive" });
+    if (!selectedTripId) {
+      toast({ title: "Action Disabled", description: "Select a trip to modify its checklists.", variant: "destructive" });
       return;
     }
     const itemIndex = items.findIndex(item => item.id === id);
@@ -129,15 +140,14 @@ export function ChecklistTabContent({ category, initialItems, activeCaravanId }:
     } else if (direction === 'down' && itemIndex < items.length - 1) {
       [newItems[itemIndex + 1], newItems[itemIndex]] = [newItems[itemIndex], newItems[itemIndex + 1]];
     } else {
-      return; // Cannot move further
+      return; 
     }
 
     setItems(newItems);
     saveChecklistToStorage(newItems);
-    // Removed toast({ title: "Item Moved", description: "Checklist order updated." });
   };
 
-  const isModificationDisabled = !activeCaravanId;
+  const isModificationDisabled = !selectedTripId;
 
   return (
     <Card>
@@ -147,7 +157,7 @@ export function ChecklistTabContent({ category, initialItems, activeCaravanId }:
             type="text"
             value={newItemText}
             onChange={(e) => setNewItemText(e.target.value)}
-            placeholder="Add new checklist item"
+            placeholder="Add new checklist item for this trip"
             className="font-body"
             onKeyPress={(e) => e.key === 'Enter' && !isModificationDisabled && handleAddItem()}
             disabled={isModificationDisabled}
@@ -156,8 +166,8 @@ export function ChecklistTabContent({ category, initialItems, activeCaravanId }:
             <PlusCircle className="mr-2 h-4 w-4" /> Add
           </Button>
         </div>
-        {items.length === 0 && activeCaravanId && <p className="text-muted-foreground text-center font-body">No items in this checklist for the active caravan.</p>}
-        {items.length === 0 && !activeCaravanId && <p className="text-muted-foreground text-center font-body">This default checklist is empty. Select an active caravan to add items.</p>}
+        {items.length === 0 && selectedTripId && <p className="text-muted-foreground text-center font-body">No items in this checklist for the selected trip.</p>}
+        {items.length === 0 && !selectedTripId && <p className="text-muted-foreground text-center font-body">Select a trip to manage its checklists.</p>}
         
         <ul className="space-y-3">
           {items.map((item, index) => (
