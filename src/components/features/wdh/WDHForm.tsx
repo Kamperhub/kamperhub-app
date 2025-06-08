@@ -39,7 +39,7 @@ interface WDHFormProps {
 }
 
 export function WDHForm({ initialData, onSave, onCancel, isLoading }: WDHFormProps) {
-  const { register, handleSubmit, formState: { errors }, reset, control, watch } = useForm<WDHFormData>({
+  const { register, handleSubmit, formState: { errors }, reset, control, watch, setValue } = useForm<WDHFormData>({
     resolver: zodResolver(wdhSchema),
     defaultValues: initialData || {
       name: '',
@@ -106,9 +106,8 @@ export function WDHForm({ initialData, onSave, onCancel, isLoading }: WDHFormPro
         <div className="flex items-center space-x-2">
           <Checkbox
             id="hasIntegratedSwayControl"
-            {...control.register("hasIntegratedSwayControl")}
             checked={hasIntegratedSway}
-            onCheckedChange={(checked) => control.setValue("hasIntegratedSwayControl", !!checked)}
+            onCheckedChange={(checkedState) => setValue("hasIntegratedSwayControl", checkedState === true)}
           />
           <Label htmlFor="hasIntegratedSwayControl" className="font-body">Has Integrated Sway Control?</Label>
         </div>
