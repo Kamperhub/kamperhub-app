@@ -437,18 +437,19 @@ export function CaravanManager() {
                         <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center">
                           <Droplet className="w-4 h-4 mr-2 text-primary"/>Water Tanks:
                         </h4>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
                           {caravan.waterTanks.map(tank => (
-                            <Badge key={tank.id} variant="outline" className="font-normal font-body text-xs py-1 px-2 h-auto text-left whitespace-normal border-primary/50">
-                               <div className="flex flex-col">
-                                <div className="flex items-center font-medium"><Droplet className="w-3 h-3 mr-1.5 text-blue-500"/> {tank.name} ({tank.type})</div>
-                                <div className="pl-[1.125rem] text-muted-foreground/90">
-                                  Capacity: {tank.capacityLiters}L<br/>
-                                  Pos: {formatPositionText(tank)}<br/>
-                                   {typeof tank.distanceFromAxleCenterMm === 'number' && <span className="flex items-center"><ArrowLeftRight className="w-2.5 h-2.5 mr-1"/>Axle: {formatDimension(tank.distanceFromAxleCenterMm)}</span>}
+                            <div key={tank.id} className="p-3 border rounded-lg bg-card shadow-sm">
+                                <h5 className="font-semibold font-body text-base flex items-center mb-1 text-primary">
+                                    <Droplet className="w-4 h-4 mr-2 text-accent" /> {tank.name}
+                                </h5>
+                                <div className="space-y-0.5 text-xs font-body text-muted-foreground">
+                                    <p><strong className="text-foreground/80">Type:</strong> {tank.type.charAt(0).toUpperCase() + tank.type.slice(1)}</p>
+                                    <p><strong className="text-foreground/80">Capacity:</strong> {tank.capacityLiters}L</p>
+                                    <p><strong className="text-foreground/80">Position:</strong> {formatPositionText(tank)}</p>
+                                    <p className="flex items-center"><ArrowLeftRight className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Dist. from Axle:</strong>&nbsp;{formatDimension(tank.distanceFromAxleCenterMm)}</p>
                                 </div>
-                              </div>
-                            </Badge>
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -500,4 +501,3 @@ export function CaravanManager() {
     </>
   );
 }
-
