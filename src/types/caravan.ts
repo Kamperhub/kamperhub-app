@@ -1,4 +1,11 @@
 
+export interface StorageLocation {
+  id: string;
+  name: string;
+  longitudinalPosition: 'front-of-axles' | 'over-axles' | 'rear-of-axles';
+  lateralPosition: 'left' | 'center' | 'right';
+}
+
 export interface CaravanFormData {
   make: string;
   model: string;
@@ -9,11 +16,12 @@ export interface CaravanFormData {
   maxTowballDownload: number;
   numberOfAxles: number;
   associatedWdhId?: string | null; // ID of the associated WDH
-  overallLength?: number | null; // New: Overall length in mm (incl. drawbar)
-  bodyLength?: number | null; // New: Caravan body length in mm
-  overallHeight?: number | null; // New: Overall height from ground in mm
-  hitchToAxleCenterDistance?: number | null; // New: Distance from coupling to center of axle group in mm
-  interAxleSpacing?: number | null; // New: Distance between consecutive axles if multi-axle (mm)
+  overallLength?: number | null;
+  bodyLength?: number | null;
+  overallHeight?: number | null;
+  hitchToAxleCenterDistance?: number | null;
+  interAxleSpacing?: number | null;
+  storageLocations?: StorageLocation[];
 }
 
 export interface StoredCaravan extends CaravanFormData {

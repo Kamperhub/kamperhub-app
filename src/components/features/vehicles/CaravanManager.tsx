@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import type { StoredCaravan, CaravanFormData } from '@/types/caravan';
+import type { StoredCaravan, CaravanFormData, StorageLocation } from '@/types/caravan';
 import type { StoredWDH } from '@/types/wdh';
 import { WDHS_STORAGE_KEY, ACTIVE_WDH_ID_KEY } from '@/types/wdh';
 import type { CaravanInventories } from '@/types/inventory';
@@ -10,15 +10,16 @@ import { INVENTORY_STORAGE_KEY } from '@/types/inventory';
 import type { CaravanChecklists } from '@/types/checklist';
 import { CHECKLISTS_STORAGE_KEY } from '@/types/checklist';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { CaravanForm } from './CaravanForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, ShieldAlert, Settings2, Link2 as LinkIcon, Ruler } from 'lucide-react'; // Added Ruler
+import { PlusCircle, Edit3, Trash2, CheckCircle, ShieldAlert, Settings2, Link2 as LinkIcon, Ruler, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/hooks/useSubscription'; 
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from '@/components/ui/badge';
 
 
 const CARAVANS_STORAGE_KEY = 'kamperhub_caravans_list';
@@ -107,10 +108,10 @@ export function CaravanManager() {
 
     let updatedCaravans;
     if (editingCaravan) {
-      updatedCaravans = caravans.map(c => c.id === editingCaravan.id ? { ...c, ...data } : c);
+      updatedCaravans = caravans.map(c => c.id === editingCaravan.id ? { ...editingCaravan, ...data, storageLocations: data.storageLocations || [] } : c);
       toast({ title: "Caravan Updated", description: `${data.make} ${data.model} updated.` });
     } else {
-      const newCaravan: StoredCaravan = { ...data, id: Date.now().toString() };
+      const newCaravan: StoredCaravan = { ...data, id: Date.now().toString(), storageLocations: data.storageLocations || [] };
       updatedCaravans = [...caravans, newCaravan];
       toast({ title: "Caravan Added", description: `${data.make} ${data.model} added.` });
     }
@@ -121,7 +122,7 @@ export function CaravanManager() {
   };
 
   const handleEditCaravan = (caravan: StoredCaravan) => {
-    setEditingCaravan(caravan);
+    setEditingCaravan({...caravan, storageLocations: caravan.storageLocations || []});
     setIsFormOpen(true);
   };
 
@@ -224,6 +225,21 @@ export function CaravanManager() {
     return typeof value === 'number' && value > 0 ? `${value}mm` : 'N/A';
   };
 
+  const formatPositionText = (loc: StorageLocation) => {
+    const longText = {
+      'front-of-axles': 'Front',
+      'over-axles': 'Over Axles',
+      'rear-of-axles': 'Rear'
+    }[loc.longitudinalPosition];
+    const latText = {
+      'left': 'Left',
+      'center': 'Center',
+      'right': 'Right'
+    }[loc.lateralPosition];
+    return `${longText} / ${latText}`;
+  };
+
+
   if (!hasMounted || isSubscriptionLoading) {
     return (
       <Card>
@@ -260,15 +276,17 @@ export function CaravanManager() {
                 <PlusCircle className="mr-2 h-4 w-4" /> Add New Caravan
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[625px]">
+            <DialogContent className="sm:max-w-[725px]">
               <DialogHeader>
                 <DialogTitle className="font-headline">{editingCaravan ? 'Edit Caravan' : 'Add New Caravan'}</DialogTitle>
               </DialogHeader>
-              <CaravanForm
-                initialData={editingCaravan || undefined}
-                onSave={handleSaveCaravan}
-                onCancel={() => { setIsFormOpen(false); setEditingCaravan(null); }}
-              />
+              <ScrollArea className="max-h-[70vh] pr-6"> {/* Added ScrollArea */}
+                <CaravanForm
+                  initialData={editingCaravan || undefined}
+                  onSave={handleSaveCaravan}
+                  onCancel={() => { setIsFormOpen(false); setEditingCaravan(null); }}
+                />
+              </ScrollArea>
             </DialogContent>
           </Dialog>
         </div>
@@ -295,47 +313,68 @@ export function CaravanManager() {
           <p className="text-muted-foreground text-center font-body py-4">No caravans added yet. Click "Add New Caravan" to start.</p>
         )}
         {caravans.map(caravan => (
-          <Card key={caravan.id} className={`p-4 ${activeCaravanId === caravan.id ? 'border-primary shadow-md' : ''}`}>
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-semibold font-body text-lg">{caravan.year} {caravan.make} {caravan.model}</h3>
-                <div className="text-sm text-muted-foreground font-body grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1">
+          <Card key={caravan.id} className={`p-4 ${activeCaravanId === caravan.id ? 'border-primary shadow-lg' : 'shadow-sm'}`}>
+            <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
+              <div className="flex-grow">
+                <h3 className="font-semibold font-headline text-xl text-primary">{caravan.year} {caravan.make} {caravan.model}</h3>
+                <div className="text-sm text-muted-foreground font-body grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 mt-1">
                   <span>Tare: {caravan.tareMass}kg</span>
                   <span>ATM: {caravan.atm}kg</span>
                   <span>GTM: {caravan.gtm}kg</span>
                   <span>Towball: {caravan.maxTowballDownload}kg</span>
-                  <span className="flex items-center"><Settings2 className="w-3 h-3 mr-1 text-primary/70"/> Axles: {typeof caravan.numberOfAxles === 'number' ? caravan.numberOfAxles : 'N/A'}</span>
+                  <span className="flex items-center"><Settings2 className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Axles: {typeof caravan.numberOfAxles === 'number' ? caravan.numberOfAxles : 'N/A'}</span>
                   {caravan.associatedWdhId && getWdhNameById(caravan.associatedWdhId) && (
-                     <span className="flex items-center col-span-full sm:col-span-1"><LinkIcon className="w-3 h-3 mr-1 text-primary/70"/> WDH: {getWdhNameById(caravan.associatedWdhId)}</span>
+                     <span className="flex items-center col-span-full sm:col-span-1 md:col-span-1"><LinkIcon className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> WDH: {getWdhNameById(caravan.associatedWdhId)}</span>
                   )}
-                  <span className="flex items-center col-span-full sm:col-span-1"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Overall Len: {formatDimension(caravan.overallLength)}</span>
-                  <span className="flex items-center col-span-full sm:col-span-1"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Body Len: {formatDimension(caravan.bodyLength)}</span>
-                  <span className="flex items-center col-span-full sm:col-span-1"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Height: {formatDimension(caravan.overallHeight)}</span>
-                  <span className="flex items-center col-span-full sm:col-span-1"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Hitch-Axle: {formatDimension(caravan.hitchToAxleCenterDistance)}</span>
+                  <span className="flex items-center col-span-full sm:col-span-1 md:col-span-1"><Ruler className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Overall Len: {formatDimension(caravan.overallLength)}</span>
+                  <span className="flex items-center col-span-full sm:col-span-1 md:col-span-1"><Ruler className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Body Len: {formatDimension(caravan.bodyLength)}</span>
+                  <span className="flex items-center col-span-full sm:col-span-1 md:col-span-1"><Ruler className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Height: {formatDimension(caravan.overallHeight)}</span>
+                  <span className="flex items-center col-span-full sm:col-span-1 md:col-span-1"><Ruler className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Hitch-Axle: {formatDimension(caravan.hitchToAxleCenterDistance)}</span>
                   {Number(caravan.numberOfAxles) > 1 && caravan.interAxleSpacing && (
-                    <span className="flex items-center col-span-full sm:col-span-1"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Inter-Axle: {formatDimension(caravan.interAxleSpacing)}</span>
+                    <span className="flex items-center col-span-full sm:col-span-1 md:col-span-1"><Ruler className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Inter-Axle: {formatDimension(caravan.interAxleSpacing)}</span>
                   )}
                 </div>
               </div>
-               <div className="flex flex-col sm:flex-row gap-2 items-end sm:items-center">
+               <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center self-start sm:self-auto flex-shrink-0 mt-2 sm:mt-0">
                 {activeCaravanId !== caravan.id && (
-                  <Button variant="outline" size="sm" onClick={() => handleSetActiveCaravan(caravan.id)} className="font-body">
+                  <Button variant="outline" size="sm" onClick={() => handleSetActiveCaravan(caravan.id)} className="font-body w-full sm:w-auto">
                     <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Set Active
                   </Button>
                 )}
                 {activeCaravanId === caravan.id && (
-                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 border border-green-300 flex items-center font-body">
+                  <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white text-xs h-8 w-full sm:w-auto flex items-center justify-center">
                     <CheckCircle className="mr-1 h-4 w-4" /> Active
-                  </span>
+                  </Badge>
                 )}
-                <Button variant="ghost" size="icon" onClick={() => handleEditCaravan(caravan)}>
-                  <Edit3 className="h-5 w-5 text-blue-600" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => handleDeleteCaravan(caravan.id)}>
-                  <Trash2 className="h-5 w-5 text-destructive" />
-                </Button>
+                <div className="flex gap-1 w-full sm:w-auto">
+                  <Button variant="ghost" size="sm" onClick={() => handleEditCaravan(caravan)} className="font-body flex-grow sm:flex-grow-0">
+                    <Edit3 className="h-4 w-4 sm:mr-1" /><span className="sm:hidden ml-1">Edit</span>
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleDeleteCaravan(caravan.id)} className="font-body text-destructive hover:text-destructive hover:bg-destructive/10 flex-grow sm:flex-grow-0">
+                    <Trash2 className="h-4 w-4 sm:mr-1" /><span className="sm:hidden ml-1">Delete</span>
+                  </Button>
+                </div>
               </div>
             </div>
+            {caravan.storageLocations && caravan.storageLocations.length > 0 && (
+              <CardFooter className="p-0 pt-3 mt-3 border-t">
+                <div>
+                  <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center">
+                    <PackagePlus className="w-4 h-4 mr-2 text-primary"/>Storage Locations:
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {caravan.storageLocations.map(loc => (
+                      <Badge key={loc.id} variant="secondary" className="font-normal font-body text-xs py-1 px-2">
+                        <MapPin className="w-3 h-3 mr-1"/> {loc.name} 
+                        <span className="text-muted-foreground/80 ml-1.5 flex items-center">
+                           (<ArrowUpDown className="w-2.5 h-2.5 mr-0.5"/>{formatPositionText(loc).split(' / ')[0]}, <ArrowLeftRight className="w-2.5 h-2.5 mr-0.5"/>{formatPositionText(loc).split(' / ')[1]})
+                        </span>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </CardFooter>
+            )}
           </Card>
         ))}
       </CardContent>

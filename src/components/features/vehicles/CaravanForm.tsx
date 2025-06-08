@@ -2,17 +2,25 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
+import { useForm, type SubmitHandler, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { CaravanFormData } from '@/types/caravan';
+import type { CaravanFormData, StorageLocation } from '@/types/caravan';
 import type { StoredWDH } from '@/types/wdh';
 import { WDHS_STORAGE_KEY } from '@/types/wdh';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, XCircle } from 'lucide-react';
+import { Save, XCircle, PlusCircle, Trash2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+
+const storageLocationSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, "Location name is required"),
+  longitudinalPosition: z.enum(['front-of-axles', 'over-axles', 'rear-of-axles'], { required_error: "Longitudinal position is required" }),
+  lateralPosition: z.enum(['left', 'center', 'right'], { required_error: "Lateral position is required" }),
+});
 
 const caravanSchema = z.object({
   make: z.string().min(1, "Make is required"),
@@ -24,11 +32,12 @@ const caravanSchema = z.object({
   maxTowballDownload: z.coerce.number().positive("Max Towball Download must be positive"),
   numberOfAxles: z.coerce.number().int().min(1, "Must have at least 1 axle").max(4, "Number of axles seems high (max 4)"),
   associatedWdhId: z.string().nullable().optional(),
-  overallLength: z.coerce.number().min(1000, "Overall length seems too short (min 1000mm)").optional().nullable(),
-  bodyLength: z.coerce.number().min(1000, "Body length seems too short (min 1000mm)").optional().nullable(),
-  overallHeight: z.coerce.number().min(1000, "Overall height seems too short (min 1000mm)").optional().nullable(),
-  hitchToAxleCenterDistance: z.coerce.number().min(100, "Hitch to axle distance seems too short (min 100mm)").optional().nullable(),
-  interAxleSpacing: z.coerce.number().min(100, "Inter-axle spacing seems too short (min 100mm)").optional().nullable(),
+  overallLength: z.coerce.number().min(1, "Overall length must be positive (mm)").optional().nullable(),
+  bodyLength: z.coerce.number().min(1, "Body length must be positive (mm)").optional().nullable(),
+  overallHeight: z.coerce.number().min(1, "Overall height must be positive (mm)").optional().nullable(),
+  hitchToAxleCenterDistance: z.coerce.number().min(1, "Distance must be positive (mm)").optional().nullable(),
+  interAxleSpacing: z.coerce.number().min(1, "Spacing must be positive (mm)").optional().nullable(),
+  storageLocations: z.array(storageLocationSchema).optional(),
 }).refine(data => {
     if (data.bodyLength && data.overallLength && data.bodyLength > data.overallLength) {
         return false;
@@ -64,11 +73,17 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
     overallHeight: null,
     hitchToAxleCenterDistance: null,
     interAxleSpacing: null,
+    storageLocations: [],
   };
   
   const { control, register, handleSubmit, formState: { errors }, reset, watch } = useForm<CaravanFormData>({
     resolver: zodResolver(caravanSchema),
-    defaultValues: initialData ? { ...defaultFormValues, ...initialData } : defaultFormValues,
+    defaultValues: initialData ? { ...defaultFormValues, ...initialData, storageLocations: initialData.storageLocations || [] } : defaultFormValues,
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "storageLocations",
   });
 
   const numberOfAxles = watch("numberOfAxles");
@@ -83,23 +98,26 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
   }, []);
   
   useEffect(() => {
-    reset(initialData ? { ...defaultFormValues, ...initialData, associatedWdhId: initialData.associatedWdhId || null } : defaultFormValues);
+    reset(initialData ? { ...defaultFormValues, ...initialData, storageLocations: initialData.storageLocations || [], associatedWdhId: initialData.associatedWdhId || null } : defaultFormValues);
   }, [initialData, reset]);
 
   const onSubmit: SubmitHandler<CaravanFormData> = (data) => {
-    const numericData = {
+    const processedData = {
       ...data,
       overallLength: data.overallLength ? Number(data.overallLength) : null,
       bodyLength: data.bodyLength ? Number(data.bodyLength) : null,
       overallHeight: data.overallHeight ? Number(data.overallHeight) : null,
       hitchToAxleCenterDistance: data.hitchToAxleCenterDistance ? Number(data.hitchToAxleCenterDistance) : null,
       interAxleSpacing: data.interAxleSpacing ? Number(data.interAxleSpacing) : null,
+      storageLocations: data.storageLocations || [],
     };
-    onSave(numericData);
+    onSave(processedData);
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* Basic Info */}
+      <h3 className="text-lg font-medium font-headline text-primary">Basic Information</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="caravanMake" className="font-body">Make</Label>
@@ -121,76 +139,70 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
         <div>
           <Label htmlFor="numberOfAxles" className="font-body">Number of Axles</Label>
           <Input id="numberOfAxles" type="number" {...register("numberOfAxles")} placeholder="e.g., 1 or 2" className="font-body" />
-          <p className="text-xs text-muted-foreground font-body mt-1">Usually 1 for single axle, 2 for tandem.</p>
           {errors.numberOfAxles && <p className="text-sm text-destructive font-body mt-1">{errors.numberOfAxles.message}</p>}
         </div>
       </div>
+
+      {/* Weight Specifications */}
+      <h3 className="text-lg font-medium font-headline text-primary pt-2">Weight Specifications</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="tareMass" className="font-body">Tare Mass (kg)</Label>
           <Input id="tareMass" type="number" {...register("tareMass")} placeholder="e.g., 1800" className="font-body" />
-          <p className="text-xs text-muted-foreground font-body mt-1">Weight of the empty caravan.</p>
           {errors.tareMass && <p className="text-sm text-destructive font-body mt-1">{errors.tareMass.message}</p>}
         </div>
         <div>
-          <Label htmlFor="atm" className="font-body">Aggregate Trailer Mass (ATM) (kg)</Label>
+          <Label htmlFor="atm" className="font-body">ATM (kg)</Label>
           <Input id="atm" type="number" {...register("atm")} placeholder="e.g., 2500" className="font-body" />
-          <p className="text-xs text-muted-foreground font-body mt-1">Max total weight of loaded caravan (uncoupled).</p>
           {errors.atm && <p className="text-sm text-destructive font-body mt-1">{errors.atm.message}</p>}
         </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="gtm" className="font-body">Gross Trailer Mass (GTM) (kg)</Label>
+          <Label htmlFor="gtm" className="font-body">GTM (kg)</Label>
           <Input id="gtm" type="number" {...register("gtm")} placeholder="e.g., 2350" className="font-body" />
-          <p className="text-xs text-muted-foreground font-body mt-1">Max weight on caravan axles (when coupled).</p>
           {errors.gtm && <p className="text-sm text-destructive font-body mt-1">{errors.gtm.message}</p>}
         </div>
         <div>
           <Label htmlFor="maxTowballDownload" className="font-body">Max Towball Download (kg)</Label>
           <Input id="maxTowballDownload" type="number" {...register("maxTowballDownload")} placeholder="e.g., 250" className="font-body" />
-          <p className="text-xs text-muted-foreground font-body mt-1">Max weight caravan can put on towball.</p>
           {errors.maxTowballDownload && <p className="text-sm text-destructive font-body mt-1">{errors.maxTowballDownload.message}</p>}
         </div>
       </div>
       
+      {/* Dimensions (Optional) */}
+      <h3 className="text-lg font-medium font-headline text-primary pt-2">Dimensions (Optional)</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="overallLength" className="font-body">Overall Length (mm) (Optional)</Label>
-          <Input id="overallLength" type="number" {...register("overallLength")} placeholder="e.g., 7500 (incl. drawbar)" className="font-body" />
+          <Label htmlFor="overallLength" className="font-body">Overall Length (mm)</Label>
+          <Input id="overallLength" type="number" {...register("overallLength")} placeholder="Incl. drawbar" className="font-body" />
           {errors.overallLength && <p className="text-sm text-destructive font-body mt-1">{errors.overallLength.message}</p>}
         </div>
         <div>
-          <Label htmlFor="bodyLength" className="font-body">Body Length (mm) (Optional)</Label>
-          <Input id="bodyLength" type="number" {...register("bodyLength")} placeholder="e.g., 6000 (caravan body)" className="font-body" />
+          <Label htmlFor="bodyLength" className="font-body">Body Length (mm)</Label>
+          <Input id="bodyLength" type="number" {...register("bodyLength")} placeholder="Caravan body only" className="font-body" />
           {errors.bodyLength && <p className="text-sm text-destructive font-body mt-1">{errors.bodyLength.message}</p>}
         </div>
-      </div>
-       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="overallHeight" className="font-body">Overall Height (mm) (Optional)</Label>
-          <Input id="overallHeight" type="number" {...register("overallHeight")} placeholder="e.g., 2900 (ground to top)" className="font-body" />
+          <Label htmlFor="overallHeight" className="font-body">Overall Height (mm)</Label>
+          <Input id="overallHeight" type="number" {...register("overallHeight")} placeholder="Ground to highest point" className="font-body" />
           {errors.overallHeight && <p className="text-sm text-destructive font-body mt-1">{errors.overallHeight.message}</p>}
         </div>
          <div>
-          <Label htmlFor="hitchToAxleCenterDistance" className="font-body">Hitch to Axle Center (mm) (Optional)</Label>
-          <Input id="hitchToAxleCenterDistance" type="number" {...register("hitchToAxleCenterDistance")} placeholder="e.g., 4000" className="font-body" />
-          <p className="text-xs text-muted-foreground font-body mt-1">Coupling to center of axle(s).</p>
+          <Label htmlFor="hitchToAxleCenterDistance" className="font-body">Hitch to Axle Center (mm)</Label>
+          <Input id="hitchToAxleCenterDistance" type="number" {...register("hitchToAxleCenterDistance")} placeholder="Coupling to axle(s) center" className="font-body" />
           {errors.hitchToAxleCenterDistance && <p className="text-sm text-destructive font-body mt-1">{errors.hitchToAxleCenterDistance.message}</p>}
         </div>
       </div>
-      
       {Number(numberOfAxles) > 1 && (
         <div>
-            <Label htmlFor="interAxleSpacing" className="font-body">Inter-Axle Spacing (mm) (Optional)</Label>
-            <Input id="interAxleSpacing" type="number" {...register("interAxleSpacing")} placeholder="e.g., 1000 (for tandem)" className="font-body" />
-            <p className="text-xs text-muted-foreground font-body mt-1">Distance between consecutive axles.</p>
+            <Label htmlFor="interAxleSpacing" className="font-body">Inter-Axle Spacing (mm)</Label>
+            <Input id="interAxleSpacing" type="number" {...register("interAxleSpacing")} placeholder="Distance between axles" className="font-body" />
             {errors.interAxleSpacing && <p className="text-sm text-destructive font-body mt-1">{errors.interAxleSpacing.message}</p>}
         </div>
       )}
 
+      {/* WDH Association */}
+      <h3 className="text-lg font-medium font-headline text-primary pt-2">WDH Association (Optional)</h3>
        <div>
-        <Label htmlFor="associatedWdhId" className="font-body">Associated WDH (Optional)</Label>
         <Controller
             name="associatedWdhId"
             control={control}
@@ -214,9 +226,84 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
               </Select>
             )}
           />
-        {availableWdhs.length === 0 && <p className="text-xs text-muted-foreground font-body mt-1">No WDHs added yet. Add a WDH first to associate it.</p>}
+        {availableWdhs.length === 0 && <p className="text-xs text-muted-foreground font-body mt-1">No WDHs added yet. Add one in the WDH section first.</p>}
         {errors.associatedWdhId && <p className="text-sm text-destructive font-body mt-1">{errors.associatedWdhId.message}</p>}
       </div>
+
+      {/* Storage Locations */}
+      <Separator className="my-6" />
+      <h3 className="text-lg font-medium font-headline text-primary">Storage Locations</h3>
+      <div className="space-y-4">
+        {fields.map((field, index) => (
+          <div key={field.id} className="p-4 border rounded-md space-y-3 bg-muted/30">
+            <Label className="font-body font-medium">Location {index + 1}</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <Label htmlFor={`storageLocations.${index}.name`} className="text-xs font-body">Name</Label>
+                    <Input 
+                        {...register(`storageLocations.${index}.name`)} 
+                        placeholder="e.g., Front Boot"
+                        className="font-body bg-background"
+                    />
+                    {errors.storageLocations?.[index]?.name && <p className="text-sm text-destructive font-body mt-1">{errors.storageLocations[index]?.name?.message}</p>}
+                </div>
+                <Button type="button" variant="ghost" onClick={() => remove(index)} className="text-destructive hover:bg-destructive/10 self-end sm:col-start-2 sm:justify-self-end p-2">
+                    <Trash2 className="h-4 w-4 mr-1" /> Remove
+                </Button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor={`storageLocations.${index}.longitudinalPosition`} className="text-xs font-body">Longitudinal Position</Label>
+                <Controller
+                  name={`storageLocations.${index}.longitudinalPosition`}
+                  control={control}
+                  render={({ field: controllerField }) => (
+                    <Select onValueChange={controllerField.onChange} defaultValue={controllerField.value}>
+                      <SelectTrigger className="font-body bg-background"><SelectValue placeholder="Select longitudinal position" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="front-of-axles">Front of Axle(s)</SelectItem>
+                        <SelectItem value="over-axles">Over Axle(s)</SelectItem>
+                        <SelectItem value="rear-of-axles">Rear of Axle(s)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.storageLocations?.[index]?.longitudinalPosition && <p className="text-sm text-destructive font-body mt-1">{errors.storageLocations[index]?.longitudinalPosition?.message}</p>}
+              </div>
+              <div>
+                <Label htmlFor={`storageLocations.${index}.lateralPosition`} className="text-xs font-body">Lateral Position</Label>
+                 <Controller
+                  name={`storageLocations.${index}.lateralPosition`}
+                  control={control}
+                  render={({ field: controllerField }) => (
+                    <Select onValueChange={controllerField.onChange} defaultValue={controllerField.value}>
+                      <SelectTrigger className="font-body bg-background"><SelectValue placeholder="Select lateral position" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="left">Left</SelectItem>
+                        <SelectItem value="center">Center</SelectItem>
+                        <SelectItem value="right">Right</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.storageLocations?.[index]?.lateralPosition && <p className="text-sm text-destructive font-body mt-1">{errors.storageLocations[index]?.lateralPosition?.message}</p>}
+              </div>
+            </div>
+          </div>
+        ))}
+        <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => append({ id: Date.now().toString(), name: '', longitudinalPosition: 'over-axles', lateralPosition: 'center' })}
+            className="font-body"
+        >
+          <PlusCircle className="mr-2 h-4 w-4" /> Add Storage Location
+        </Button>
+         {errors.storageLocations && typeof errors.storageLocations === 'object' && !Array.isArray(errors.storageLocations) && (errors.storageLocations as any).message && (
+            <p className="text-sm text-destructive font-body mt-1">{(errors.storageLocations as any).message}</p>
+         )}
+      </div>
+      <Separator className="my-6"/>
 
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading} className="font-body">
