@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -8,11 +9,14 @@ import { cn } from '@/lib/utils';
 export function BottomNavigation() {
   const pathname = usePathname();
 
+  // Filter out the "Travel Stats" item for the bottom navigation
+  const bottomNavItems = navItems.filter(item => item.href !== '/stats');
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-top md:hidden z-50">
       <div className="container mx-auto px-2 sm:px-4">
         <ul className="flex justify-around items-center h-16">
-          {navItems.map((item) => {
+          {bottomNavItems.map((item) => {
             const isActive = pathname === item.href;
             return (
               <li key={item.label} className="flex-1 text-center">
