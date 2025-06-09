@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { MOCK_AUTH_USERNAME_KEY, MOCK_AUTH_LOGGED_IN_KEY, type MockAuthSession } from '@/types/auth';
 import { UserCircle, LogOut, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Added this import
 
 export default function MyAccountPage() {
   const [session, setSession] = useState<MockAuthSession | null>(null);
@@ -112,3 +113,4 @@ export default function MyAccountPage() {
     </div>
   );
 }
+
