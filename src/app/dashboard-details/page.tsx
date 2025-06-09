@@ -38,8 +38,8 @@ export default function DashboardDetailsPage() {
               >
                 <item.icon className="w-16 h-16 text-primary opacity-20" />
               </div>
-              <Link href={item.href} className="mt-auto">
-                <Button variant="outline" className="w-full font-body text-primary hover:bg-primary/5">
+              <Link href={item.href} asChild>
+                <Button variant="outline" className="w-full font-body text-primary hover:bg-primary/5 mt-auto">
                   Go to {item.label} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
