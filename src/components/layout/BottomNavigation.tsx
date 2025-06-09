@@ -9,15 +9,20 @@ import { cn } from '@/lib/utils';
 export function BottomNavigation() {
   const pathname = usePathname();
 
-  // Filter out "/stats" as it's now accessed via the Dashboard card
-  const bottomNavItems = navItems.filter(item => item.href !== '/stats');
+  // No longer need to filter out /stats specifically, as it's not in navItems
+  // The dashboard link in navItems now points to /dashboard-details
+  const bottomNavItems = navItems;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-top md:hidden z-50">
       <div className="container mx-auto px-2 sm:px-4">
         <ul className="flex justify-around items-center h-16">
           {bottomNavItems.map((item) => {
-            const isActive = pathname === item.href;
+            // For the "Dashboard" icon, we want it to be active for both / and /dashboard-details
+            const isActive = item.href === '/dashboard-details' 
+              ? (pathname === '/' || pathname === '/dashboard-details') 
+              : pathname === item.href;
+              
             return (
               <li key={item.label} className="flex-1 text-center">
                 <Link
