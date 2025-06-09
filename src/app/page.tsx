@@ -6,7 +6,7 @@ import type { LoggedTrip } from '@/types/tripplanner';
 import { TRIP_LOG_STORAGE_KEY } from '@/types/tripplanner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { BarChart3, Route as RouteIcon, CalendarDays, CheckCircle, Award, Trophy, TrendingUp, AlertCircle, AlertTriangle, Home } from 'lucide-react';
+import { Home, Route as RouteIcon, CalendarDays, CheckCircle, Award, Trophy, TrendingUp, AlertCircle, AlertTriangle } from 'lucide-react';
 import { parseISO, differenceInCalendarDays, isValid } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
@@ -36,6 +36,8 @@ export default function DashboardPage() {
   useEffect(() => {
     if (hasMounted && typeof window !== 'undefined') {
       setIsLoading(true);
+      setError(null); // Reset error on new load attempt
+      setStats(null); // Reset stats on new load attempt
       try {
         const storedTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
         if (storedTripsJson) {
@@ -47,7 +49,7 @@ export default function DashboardPage() {
               averageDistancePerTrip: 0, averageDurationPerTrip: 0,
               longestTripByDistance: null, longestTripByDuration: null,
             });
-            setIsLoading(false);
+            // setIsLoading(false); // This will be handled in finally
             return;
           }
 
@@ -74,7 +76,7 @@ export default function DashboardPage() {
                 totalDaysOnRoad += durationDays;
               }
             } else if (trip.plannedStartDate) { 
-                durationDays = 1;
+                durationDays = 1; // Count at least one day if start date exists
                 totalDaysOnRoad += durationDays;
             }
 
@@ -101,15 +103,16 @@ export default function DashboardPage() {
           });
 
         } else {
+          // No stored trips, initialize stats to zero/null
           setStats({ 
             totalTrips: 0, totalKilometers: 0, totalDaysOnRoad: 0, completedTrips: 0,
             averageDistancePerTrip: 0, averageDurationPerTrip: 0,
             longestTripByDistance: null, longestTripByDuration: null,
           });
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error("Error processing trip data for stats:", e);
-        setError("Could not load or process trip statistics.");
+        setError(`Could not load or process trip statistics. ${e.message || ''}`);
       } finally {
         setIsLoading(false);
       }
@@ -152,13 +155,29 @@ export default function DashboardPage() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error Loading Stats</AlertTitle>
-          <AlertDescription>{error} Please try again later.</AlertDescription>
+          <AlertDescription>{error} Please try refreshing the page. If the problem persists, your saved trip data might be corrupted.</AlertDescription>
         </Alert>
       </div>
     );
   }
 
-  if (!stats || stats.totalTrips === 0) {
+  // Crucial check: if stats is still null after loading and no error, means initialization failed unexpectedly.
+  if (!stats) {
+    return (
+      <div className="space-y-8">
+        <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
+          <Home className="mr-3 h-8 w-8" /> Dashboard & Travel Stats
+        </h1>
+        <Alert variant="default">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Loading Statistics</AlertTitle>
+          <AlertDescription>Statistics are currently being calculated. Please wait a moment...</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+  
+  if (stats.totalTrips === 0) {
     return (
       <div className="space-y-8 text-center">
         <h1 className="text-3xl font-headline mb-6 text-primary flex items-center justify-center">
