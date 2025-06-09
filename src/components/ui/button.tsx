@@ -41,20 +41,24 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...otherPropsFromParent }, ref) => {
+  ({ className, variant, size, asChild = false /* This is Button's own asChild prop */, ...restPropsFromParent }, ref) => {
     const Comp = asChild ? Slot : "button";
 
-    // Explicitly destructure and remove any 'asChild' prop that might have been
-    // passed down from a parent component (like Link asChild)
-    // before spreading the rest of the props.
-    // The Button's own 'asChild' prop (destructured above) determines 'Comp'.
-    const { asChild: _forwardedAsChild, ...propsToPassOn } = otherPropsFromParent as typeof otherPropsFromParent & { asChild?: unknown };
+    // Create a mutable copy of the props received from the parent.
+    const propsToPassToComp = { ...restPropsFromParent };
+
+    // If 'asChild' exists as a key in these props (e.g., passed down from a Link component),
+    // explicitly delete it. This is crucial to prevent it from becoming a DOM attribute
+    // on the underlying element (<a>, <button>, etc.) rendered by Comp.
+    if ('asChild' in propsToPassToComp) {
+      delete (propsToPassToComp as { asChild?: unknown }).asChild;
+    }
 
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        {...propsToPassOn}
+        {...propsToPassToComp} // Spread the cleaned props
       />
     );
   }
