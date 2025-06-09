@@ -3,7 +3,6 @@
 
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-// Button and ArrowRight are no longer needed here
 import { LayoutDashboard } from 'lucide-react';
 import { dashboardDetailItems, type NavItem } from '@/lib/navigation'; // Using the specific items for this page
 
@@ -20,6 +19,7 @@ export default function DashboardDetailsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {dashboardDetailItems.map((item: NavItem) => (
           <Link key={item.href} href={item.href} className="block h-full no-underline group">
+            {/* The Card itself is now the direct child of Link, no asChild needed on Link */}
             <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardHeader className="pb-4">
                 <CardTitle className="font-headline text-xl text-primary flex items-center">
