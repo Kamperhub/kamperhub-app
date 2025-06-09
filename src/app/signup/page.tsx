@@ -8,11 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { MOCK_AUTH_USERNAME_KEY, MOCK_AUTH_LOGGED_IN_KEY } from '@/types/auth';
-import { UserPlus } from 'lucide-react';
+import { MOCK_AUTH_USERNAME_KEY, MOCK_AUTH_LOGGED_IN_KEY, MOCK_AUTH_EMAIL_KEY } from '@/types/auth';
+import { UserPlus, Mail } from 'lucide-react';
 
 export default function SignupPage() {
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState(''); // New state for email
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -27,6 +28,11 @@ export default function SignupPage() {
         }
     }
   }, [router]);
+
+  const validateEmail = (email: string) => {
+    // Basic email validation regex
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
 
   const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -54,7 +60,22 @@ export default function SignupPage() {
       });
       return;
     }
-
+    if (!email.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Email cannot be empty.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!validateEmail(email.trim())) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please enter a valid email address.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setIsLoading(true);
 
@@ -62,16 +83,16 @@ export default function SignupPage() {
     setTimeout(() => {
       if (typeof window !== 'undefined') {
         localStorage.setItem(MOCK_AUTH_USERNAME_KEY, username.trim());
+        localStorage.setItem(MOCK_AUTH_EMAIL_KEY, email.trim()); // Save email
         localStorage.setItem(MOCK_AUTH_LOGGED_IN_KEY, 'true');
       }
       toast({
         title: 'Sign Up Successful!',
-        description: `Welcome, ${username.trim()}!`,
+        description: `Welcome, ${username.trim()}! Your email ${email.trim()} has been noted.`,
       });
       setIsLoading(false);
       router.push('/my-account');
-       // Force a full page reload for header to update, or use a global state
-      window.dispatchEvent(new Event('storage')); // Trigger storage event for other components
+      window.dispatchEvent(new Event('storage')); 
       router.refresh(); 
     }, 1000);
   };
@@ -84,7 +105,6 @@ export default function SignupPage() {
     );
   }
 
-
   return (
     <div className="flex justify-center items-start pt-10 min-h-screen">
       <Card className="w-full max-w-md shadow-xl">
@@ -93,8 +113,8 @@ export default function SignupPage() {
             <UserPlus className="mr-2 h-6 w-6" /> Create Your KamperHub Account
           </CardTitle>
           <CardDescription className="font-body">
-            Choose a User Name to get started. This will be used for display purposes, like on leaderboards.
-            Please avoid using your email or other sensitive information here.
+            Enter a User Name and Email to get started. The User Name will be public (e.g., on leaderboards).
+            Your email will be kept private but may be used for communication.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -112,6 +132,24 @@ export default function SignupPage() {
               />
               <p className="text-xs text-muted-foreground mt-1 font-body">
                 Min 3 characters. Allowed: letters, numbers, underscore, hyphen, period.
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="email" className="font-body">Email Address</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="e.g., your.email@example.com"
+                  disabled={isLoading}
+                  className="font-body pl-10" 
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1 font-body">
+                We'll use this for account-related communication.
               </p>
             </div>
             <Button type="submit" className="w-full font-body bg-primary text-primary-foreground hover:bg-primary/90" disabled={isLoading}>

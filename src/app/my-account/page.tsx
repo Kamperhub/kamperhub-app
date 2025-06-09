@@ -6,10 +6,10 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { MOCK_AUTH_USERNAME_KEY, MOCK_AUTH_LOGGED_IN_KEY, type MockAuthSession } from '@/types/auth';
-import { UserCircle, LogOut, ShieldAlert } from 'lucide-react';
+import { MOCK_AUTH_USERNAME_KEY, MOCK_AUTH_LOGGED_IN_KEY, MOCK_AUTH_EMAIL_KEY, type MockAuthSession } from '@/types/auth';
+import { UserCircle, LogOut, ShieldAlert, Mail } from 'lucide-react';
 import Link from 'next/link';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Added this import
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function MyAccountPage() {
   const [session, setSession] = useState<MockAuthSession | null>(null);
@@ -20,14 +20,13 @@ export default function MyAccountPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedUsername = localStorage.getItem(MOCK_AUTH_USERNAME_KEY);
+      const storedEmail = localStorage.getItem(MOCK_AUTH_EMAIL_KEY);
       const isLoggedIn = localStorage.getItem(MOCK_AUTH_LOGGED_IN_KEY) === 'true';
 
       if (isLoggedIn && storedUsername) {
-        setSession({ isLoggedIn: true, username: storedUsername });
+        setSession({ isLoggedIn: true, username: storedUsername, email: storedEmail });
       } else {
-        setSession({ isLoggedIn: false, username: null });
-        // Optional: Redirect to signup if not logged in and trying to access /my-account directly
-        // router.push('/signup'); 
+        setSession({ isLoggedIn: false, username: null, email: null });
       }
       setIsLoading(false);
     }
@@ -36,15 +35,15 @@ export default function MyAccountPage() {
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(MOCK_AUTH_USERNAME_KEY);
+      localStorage.removeItem(MOCK_AUTH_EMAIL_KEY); // Clear email on logout
       localStorage.removeItem(MOCK_AUTH_LOGGED_IN_KEY);
     }
-    setSession({ isLoggedIn: false, username: null });
+    setSession({ isLoggedIn: false, username: null, email: null });
     toast({
       title: 'Logged Out',
       description: 'You have been successfully logged out.',
     });
-    // Force a full page reload for header to update, or use a global state
-    window.dispatchEvent(new Event('storage')); // Trigger storage event
+    window.dispatchEvent(new Event('storage'));
     router.push('/');
     router.refresh(); 
   };
@@ -95,10 +94,17 @@ export default function MyAccountPage() {
             <AlertDescription className="font-body">
               This account system is for demonstration purposes and uses browser local storage.
               It is not secure for real applications. Your "User Name" is: <strong>{session.username}</strong>.
+              {session.email && <> Your "Email" is: <strong>{session.email}</strong>.</>}
             </AlertDescription>
           </Alert>
           
-          {/* Placeholder for future account settings */}
+          {session.email && (
+            <div className="flex items-center justify-center text-sm text-muted-foreground font-body">
+                <Mail className="h-4 w-4 mr-2 text-primary" />
+                Registered Email: {session.email}
+            </div>
+          )}
+          
           <div className="text-center">
             <p className="text-muted-foreground font-body">
               More account settings and features would appear here in a full application.
@@ -113,4 +119,3 @@ export default function MyAccountPage() {
     </div>
   );
 }
-
