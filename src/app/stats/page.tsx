@@ -6,7 +6,7 @@ import type { LoggedTrip } from '@/types/tripplanner';
 import { TRIP_LOG_STORAGE_KEY } from '@/types/tripplanner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Home, Route as RouteIcon, CalendarDays, CheckCircle, Award, Trophy, TrendingUp, AlertCircle, AlertTriangle } from 'lucide-react';
+import { Home, Route as RouteIcon, CalendarDays, CheckCircle, Award, Trophy, TrendingUp, AlertCircle, AlertTriangle, BarChart3 } from 'lucide-react';
 import { parseISO, differenceInCalendarDays, isValid } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
@@ -49,6 +49,7 @@ export default function StatsPage() {
               averageDistancePerTrip: 0, averageDurationPerTrip: 0,
               longestTripByDistance: null, longestTripByDuration: null,
             });
+            setIsLoading(false); // Ensure loading is set to false here
             return;
           }
 
@@ -159,7 +160,7 @@ export default function StatsPage() {
     );
   }
 
-  if (!stats) {
+  if (!stats) { // Added this check
     return (
       <div className="space-y-8">
         <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
@@ -213,7 +214,7 @@ export default function StatsPage() {
         <StatCard title="Total Trips Logged" value={stats.totalTrips} icon={RouteIcon} />
         <StatCard title="Total Kilometers Travelled" value={stats.totalKilometers.toFixed(0)} unit="km" icon={TrendingUp} />
         <StatCard title="Total Days On Road" value={stats.totalDaysOnRoad} unit="days" icon={CalendarDays} />
-        <StatCard title="Completed Trips" value={stats.completedTrips} icon={CheckCircle} description={`${((stats.completedTrips / stats.totalTrips) * 100).toFixed(0)}% of total`} />
+        <StatCard title="Completed Trips" value={stats.completedTrips} icon={CheckCircle} description={`${stats.totalTrips > 0 ? ((stats.completedTrips / stats.totalTrips) * 100).toFixed(0) : 0}% of total`} />
       </div>
       
       <div className="grid gap-4 md:grid-cols-2">
