@@ -6,7 +6,7 @@ import type { LoggedTrip } from '@/types/tripplanner';
 import { TRIP_LOG_STORAGE_KEY } from '@/types/tripplanner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { BarChart3, Route as RouteIcon, CalendarDays, CheckCircle, Award, Trophy, TrendingUp, AlertCircle } from 'lucide-react';
+import { BarChart3, Route as RouteIcon, CalendarDays, CheckCircle, Award, Trophy, TrendingUp, AlertCircle, AlertTriangle } from 'lucide-react';
 import { parseISO, differenceInCalendarDays, isValid } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
