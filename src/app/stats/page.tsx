@@ -219,7 +219,10 @@ export default function StatsPage() {
                 <h3 className="text-md font-semibold font-body text-foreground">Longest Trip by Duration:</h3>
                 <p className="text-sm text-muted-foreground font-body">
                   "{stats.longestTripByDuration.name}" - 
-                  {differenceInCalendarDays(parseISO(stats.longestTripByDuration.plannedEndDate!), parseISO(stats.longestTripByDuration.plannedStartDate!)) + 1} days
+                  {stats.longestTripByDuration.plannedStartDate && stats.longestTripByDuration.plannedEndDate ? 
+                    `${differenceInCalendarDays(parseISO(stats.longestTripByDuration.plannedEndDate), parseISO(stats.longestTripByDuration.plannedStartDate)) + 1} days`
+                    : "Duration details incomplete"
+                  }
                 </p>
               </div>
             )}
