@@ -9,9 +9,8 @@ import { cn } from '@/lib/utils';
 export function BottomNavigation() {
   const pathname = usePathname();
 
-  // No need to filter out "/stats" anymore as it's removed from navItems.
-  // All items in navItems (except what might be filtered for other reasons in future) will be shown.
-  const bottomNavItems = navItems;
+  // Filter out "/stats" as it's now accessed via the Dashboard card
+  const bottomNavItems = navItems.filter(item => item.href !== '/stats');
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-top md:hidden z-50">

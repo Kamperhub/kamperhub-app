@@ -1,277 +1,205 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import type { LoggedTrip } from '@/types/tripplanner';
-import { TRIP_LOG_STORAGE_KEY } from '@/types/tripplanner';
+import React, { useState, useEffect, useCallback } from 'react';
+import type { NavItem } from '@/lib/navigation';
+import { navItems as defaultNavItems } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Home, Route as RouteIcon, CalendarDays, CheckCircle, Award, Trophy, TrendingUp, AlertCircle, AlertTriangle } from 'lucide-react';
-import { parseISO, differenceInCalendarDays, isValid } from 'date-fns';
-import { Skeleton } from '@/components/ui/skeleton';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical, ArrowRight, Home as HomeIcon } from 'lucide-react'; // Added HomeIcon
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import Image from 'next/image';
 
-interface TripStats {
-  totalTrips: number;
-  totalKilometers: number;
-  totalDaysOnRoad: number;
-  completedTrips: number;
-  averageDistancePerTrip: number;
-  averageDurationPerTrip: number; // in days
-  longestTripByDistance: LoggedTrip | null;
-  longestTripByDuration: LoggedTrip | null;
+const DASHBOARD_LAYOUT_STORAGE_KEY = 'kamperhub_dashboard_layout_v2';
+
+interface SortableNavItemProps {
+  id: string;
+  item: NavItem;
+  isMobile: boolean;
+}
+
+function SortableNavItem({ id, item, isMobile }: SortableNavItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+    opacity: isDragging ? 0.8 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="touch-manipulation">
+      <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
+        <CardHeader className="pb-3 flex-row items-start justify-between space-y-0">
+            <div className="space-y-1">
+                <CardTitle className="font-headline text-xl text-primary flex items-center">
+                    <item.icon className="w-6 h-6 mr-3 text-primary" />
+                    {item.label}
+                </CardTitle>
+                <CardDescription className="font-body text-sm text-muted-foreground line-clamp-2">
+                    Access tools and information for {item.label.toLowerCase()} to enhance your caravanning experience.
+                    {item.href === '/subscribe' && ' Unlock premium features and support KamperHub!'}
+                </CardDescription>
+            </div>
+            {!isMobile && (
+                <div {...attributes} {...listeners} className="cursor-grab p-2 text-muted-foreground hover:text-foreground">
+                    <GripVertical className="h-5 w-5" />
+                </div>
+            )}
+        </CardHeader>
+        <CardContent className="flex-grow flex flex-col justify-between pt-0">
+          <div 
+            className="h-32 w-full bg-muted/30 rounded-md flex items-center justify-center my-2 overflow-hidden"
+            data-ai-hint={item.keywords || item.label.toLowerCase().split(' ')[0]}
+          >
+            <item.icon className="w-16 h-16 text-primary opacity-20" />
+          </div>
+          <Link href={item.href} className="mt-auto">
+            <Button variant="outline" className="w-full font-body text-primary hover:bg-primary/5">
+              Go to {item.label} <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<TripStats | null>(null);
+  const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
 
   useEffect(() => {
     setHasMounted(true);
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 768); // md breakpoint
+    };
+    handleResize(); // Initial check
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
-    if (hasMounted && typeof window !== 'undefined') {
-      setIsLoading(true);
-      setError(null); // Reset error on new load attempt
-      setStats(null); // Reset stats on new load attempt
+    if (hasMounted) {
       try {
-        const storedTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
-        if (storedTripsJson) {
-          const loggedTrips: LoggedTrip[] = JSON.parse(storedTripsJson);
+        const storedLayout = localStorage.getItem(DASHBOARD_LAYOUT_STORAGE_KEY);
+        if (storedLayout) {
+          const storedItemOrder: string[] = JSON.parse(storedLayout);
+          const itemsFromStorage = storedItemOrder.map(href => defaultNavItems.find(item => item.href === href)).filter(Boolean) as NavItem[];
+          // Ensure all default items are present, add new ones if any
+          const currentDefaultHrefs = new Set(defaultNavItems.map(item => item.href));
+          const itemsInStorageHrefs = new Set(itemsFromStorage.map(item => item.href));
           
-          if (loggedTrips.length === 0) {
-            setStats({
-              totalTrips: 0, totalKilometers: 0, totalDaysOnRoad: 0, completedTrips: 0,
-              averageDistancePerTrip: 0, averageDurationPerTrip: 0,
-              longestTripByDistance: null, longestTripByDuration: null,
-            });
-            // setIsLoading(false); // This will be handled in finally
-            return;
-          }
-
-          let totalKilometers = 0;
-          let totalDaysOnRoad = 0;
-          let completedTrips = 0;
-          let longestDist = 0;
-          let longestTripByDist: LoggedTrip | null = null;
-          let longestDur = 0;
-          let longestTripByDur: LoggedTrip | null = null;
-
-          loggedTrips.forEach(trip => {
-            totalKilometers += trip.routeDetails?.distanceValue / 1000 || 0;
-            if (trip.isCompleted) {
-              completedTrips++;
-            }
-
-            let durationDays = 0;
-            if (trip.plannedStartDate && trip.plannedEndDate) {
-              const startDate = parseISO(trip.plannedStartDate);
-              const endDate = parseISO(trip.plannedEndDate);
-              if (isValid(startDate) && isValid(endDate) && endDate >= startDate) {
-                durationDays = differenceInCalendarDays(endDate, startDate) + 1;
-                totalDaysOnRoad += durationDays;
-              }
-            } else if (trip.plannedStartDate) { 
-                durationDays = 1; // Count at least one day if start date exists
-                totalDaysOnRoad += durationDays;
-            }
-
-            const currentDistance = trip.routeDetails?.distanceValue / 1000 || 0;
-            if (currentDistance > longestDist) {
-              longestDist = currentDistance;
-              longestTripByDist = trip;
-            }
-            if (durationDays > longestDur) {
-              longestDur = durationDays;
-              longestTripByDur = trip;
+          let finalItems = [...itemsFromStorage];
+          defaultNavItems.forEach(defaultItem => {
+            if (!itemsInStorageHrefs.has(defaultItem.href)) {
+              finalItems.push(defaultItem); // Add new items from defaultNavItems not in storage
             }
           });
+          // Filter out items that might have been removed from defaultNavItems but are still in storage
+          finalItems = finalItems.filter(item => currentDefaultHrefs.has(item.href));
 
-          setStats({
-            totalTrips: loggedTrips.length,
-            totalKilometers: totalKilometers,
-            totalDaysOnRoad: totalDaysOnRoad,
-            completedTrips: completedTrips,
-            averageDistancePerTrip: loggedTrips.length > 0 ? totalKilometers / loggedTrips.length : 0,
-            averageDurationPerTrip: loggedTrips.length > 0 ? totalDaysOnRoad / loggedTrips.length : 0,
-            longestTripByDistance: longestTripByDist,
-            longestTripByDuration: longestTripByDur,
-          });
-
+          setOrderedNavItems(finalItems);
         } else {
-          // No stored trips, initialize stats to zero/null
-          setStats({ 
-            totalTrips: 0, totalKilometers: 0, totalDaysOnRoad: 0, completedTrips: 0,
-            averageDistancePerTrip: 0, averageDurationPerTrip: 0,
-            longestTripByDistance: null, longestTripByDuration: null,
-          });
+          setOrderedNavItems(defaultNavItems);
         }
-      } catch (e: any) {
-        console.error("Error processing trip data for stats:", e);
-        setError(`Could not load or process trip statistics. ${e.message || ''}`);
-      } finally {
-        setIsLoading(false);
+      } catch (error) {
+        console.error("Error loading dashboard layout from localStorage:", error);
+        setOrderedNavItems(defaultNavItems); // Fallback to default order
       }
+      setIsLoading(false);
     }
   }, [hasMounted]);
 
-  const StatCard = ({ title, value, icon: Icon, unit = '', description }: { title: string, value: string | number, icon: React.ElementType, unit?: string, description?: string }) => (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium font-body">{title}</CardTitle>
-        <Icon className="h-5 w-5 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold font-headline text-primary">{value}{unit && <span className="text-lg"> {unit}</span>}</div>
-        {description && <p className="text-xs text-muted-foreground font-body">{description}</p>}
-      </CardContent>
-    </Card>
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require pointer to move 8px before activating drag
+      },
+    })
   );
 
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setOrderedNavItems((items) => {
+        const oldIndex = items.findIndex((item) => item.href === active.id);
+        const newIndex = items.findIndex((item) => item.href === over.id);
+        const newOrder = arrayMove(items, oldIndex, newIndex);
+        try {
+          localStorage.setItem(DASHBOARD_LAYOUT_STORAGE_KEY, JSON.stringify(newOrder.map(item => item.href)));
+        } catch (error) {
+          console.error("Error saving dashboard layout to localStorage:", error);
+        }
+        return newOrder;
+      });
+    }
+  }, []);
+  
   if (!hasMounted || isLoading) {
     return (
       <div className="space-y-8">
-        <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
-          <Home className="mr-3 h-8 w-8" /> Dashboard & Travel Stats
-        </h1>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-[120px]" />)}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <HomeIcon className="mr-3 h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-headline text-primary">Welcome to KamperHub</h1>
+          </div>
+          <Skeleton className="h-12 w-48" /> {/* Placeholder for logo */}
         </div>
-        <Skeleton className="h-[200px] mt-6" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="space-y-8">
-        <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
-           <Home className="mr-3 h-8 w-8" /> Dashboard & Travel Stats
-        </h1>
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error Loading Stats</AlertTitle>
-          <AlertDescription>{error} Please try refreshing the page. If the problem persists, your saved trip data might be corrupted.</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  // Crucial check: if stats is still null after loading and no error, means initialization failed unexpectedly.
-  if (!stats) {
-    return (
-      <div className="space-y-8">
-        <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
-          <Home className="mr-3 h-8 w-8" /> Dashboard & Travel Stats
-        </h1>
-        <Alert variant="default">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Loading Statistics</AlertTitle>
-          <AlertDescription>Statistics are currently being calculated. Please wait a moment...</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-  
-  if (stats.totalTrips === 0) {
-    return (
-      <div className="space-y-8 text-center">
-        <h1 className="text-3xl font-headline mb-6 text-primary flex items-center justify-center">
-          <Home className="mr-3 h-8 w-8" /> Dashboard & Travel Stats
-        </h1>
-        <Card className="py-10">
-            <CardContent className="flex flex-col items-center justify-center">
-                <TrendingUp className="h-16 w-16 text-muted-foreground mb-4" />
-                <p className="text-xl font-semibold font-body text-muted-foreground mb-2">No Trip Data Yet</p>
-                <p className="text-sm text-muted-foreground font-body mb-4">
-                    It looks like you haven't logged any trips. <br/>Start planning your adventures to see your stats here!
-                </p>
-                <Link href="/tripplanner" passHref>
-                    <Button className="font-body bg-accent text-accent-foreground hover:bg-accent/90">
-                        <RouteIcon className="mr-2 h-4 w-4" /> Plan Your First Trip
-                    </Button>
-                </Link>
-            </CardContent>
-        </Card>
+        <p className="font-body text-lg text-muted-foreground">
+          Your ultimate caravanning companion. Loading your personalized dashboard...
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="pb-3">
+                <Skeleton className="h-6 w-3/5" />
+                <Skeleton className="h-4 w-4/5 mt-1" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-32 w-full rounded-md mb-2" />
+                <Skeleton className="h-10 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-headline mb-2 text-primary flex items-center">
-          <Home className="mr-3 h-8 w-8" /> Dashboard & Travel Stats
-        </h1>
-        <p className="text-muted-foreground font-body">
-          A summary of your caravanning adventures logged in KamperHub.
-        </p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Trips Logged" value={stats.totalTrips} icon={RouteIcon} />
-        <StatCard title="Total Kilometers Travelled" value={stats.totalKilometers.toFixed(0)} unit="km" icon={TrendingUp} />
-        <StatCard title="Total Days On Road" value={stats.totalDaysOnRoad} unit="days" icon={CalendarDays} />
-        <StatCard title="Completed Trips" value={stats.completedTrips} icon={CheckCircle} description={`${((stats.completedTrips / stats.totalTrips) * 100).toFixed(0)}% of total`} />
+      <div className="flex flex-col sm:flex-row items-center justify-between mb-6">
+        <div className="flex items-center mb-4 sm:mb-0">
+          <Image 
+            src="/kamperhub-logo.png" 
+            alt="KamperHub Logo Icon" 
+            width={60} 
+            height={60} 
+            className="object-contain rounded-md mr-3"
+          />
+          <div>
+            <h1 className="text-3xl font-headline text-primary">Welcome to KamperHub</h1>
+            <p className="font-body text-muted-foreground">Your ultimate caravanning companion. Drag to reorder cards.</p>
+          </div>
+        </div>
       </div>
       
-      <div className="grid gap-4 md:grid-cols-2">
-        <StatCard title="Avg. Distance / Trip" value={stats.averageDistancePerTrip.toFixed(0)} unit="km" icon={RouteIcon} />
-        <StatCard title="Avg. Duration / Trip" value={stats.averageDurationPerTrip.toFixed(1)} unit="days" icon={CalendarDays} />
-      </div>
-
-      { (stats.longestTripByDistance || stats.longestTripByDuration) &&
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-headline text-xl text-primary flex items-center"><Award className="mr-2 h-6 w-6" />Trip Milestones</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {stats.longestTripByDistance && (
-              <div>
-                <h3 className="text-md font-semibold font-body text-foreground">Longest Trip by Distance:</h3>
-                <p className="text-sm text-muted-foreground font-body">
-                  "{stats.longestTripByDistance.name}" - {stats.longestTripByDistance.routeDetails.distance} ({stats.longestTripByDistance.routeDetails.duration})
-                </p>
-              </div>
-            )}
-            {stats.longestTripByDuration && (
-              <div>
-                <h3 className="text-md font-semibold font-body text-foreground">Longest Trip by Duration:</h3>
-                <p className="text-sm text-muted-foreground font-body">
-                  "{stats.longestTripByDuration.name}" - 
-                  {stats.longestTripByDuration.plannedStartDate && stats.longestTripByDuration.plannedEndDate ? 
-                    `${differenceInCalendarDays(parseISO(stats.longestTripByDuration.plannedEndDate), parseISO(stats.longestTripByDuration.plannedStartDate)) + 1} days`
-                    : "Duration details incomplete"
-                  }
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      }
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline text-xl text-primary flex items-center"><Trophy className="mr-2 h-6 w-6" />Leaderboard (Concept)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="font-body text-muted-foreground">
-            In a full application with user accounts and a backend, this section could display a leaderboard of users based on distance travelled, trips completed, or other metrics.
-            For now, keep exploring and logging your trips to build up your personal stats!
-          </p>
-          <Alert variant="default" className="mt-4 bg-accent/10 border-accent/30">
-            <AlertTriangle className="h-4 w-4 text-accent" />
-            <AlertTitle className="font-headline text-accent">Future Feature</AlertTitle>
-            <AlertDescription className="font-body text-accent/80">
-              Imagine competing with fellow KamperHub users or earning badges for your milestones!
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={isMobileView ? undefined : handleDragEnd}>
+        <SortableContext items={orderedNavItems.map(item => item.href)} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {orderedNavItems.map((item) => (
+              <SortableNavItem key={item.href} id={item.href} item={item} isMobile={isMobileView} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }
