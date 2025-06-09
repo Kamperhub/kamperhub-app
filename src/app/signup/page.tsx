@@ -8,12 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { MOCK_AUTH_USERNAME_KEY, MOCK_AUTH_LOGGED_IN_KEY, MOCK_AUTH_EMAIL_KEY } from '@/types/auth';
+import { MOCK_AUTH_USERNAME_KEY, MOCK_AUTH_LOGGED_IN_KEY, MOCK_AUTH_EMAIL_KEY, MOCK_AUTH_SUBSCRIPTION_TIER_KEY, type SubscriptionTier } from '@/types/auth';
 import { UserPlus, Mail } from 'lucide-react';
 
 export default function SignupPage() {
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState(''); // New state for email
+  const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -24,75 +24,55 @@ export default function SignupPage() {
     if (typeof window !== 'undefined') {
         const isLoggedIn = localStorage.getItem(MOCK_AUTH_LOGGED_IN_KEY) === 'true';
         if (isLoggedIn) {
-            router.push('/my-account'); // Redirect if already "logged in"
+            router.push('/my-account'); 
         }
     }
   }, [router]);
 
   const validateEmail = (email: string) => {
-    // Basic email validation regex
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
   const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!username.trim()) {
-      toast({
-        title: 'Validation Error',
-        description: 'User Name cannot be empty.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Validation Error', description: 'User Name cannot be empty.', variant: 'destructive' });
       return;
     }
     if (username.trim().length < 3) {
-      toast({
-        title: 'Validation Error',
-        description: 'User Name must be at least 3 characters long.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Validation Error', description: 'User Name must be at least 3 characters long.', variant: 'destructive' });
       return;
     }
     if (!/^[a-zA-Z0-9_.-]+$/.test(username.trim())) {
-      toast({
-        title: 'Validation Error',
-        description: 'User Name can only contain letters, numbers, underscores, hyphens, and periods.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Validation Error', description: 'User Name can only contain letters, numbers, underscores, hyphens, and periods.', variant: 'destructive' });
       return;
     }
     if (!email.trim()) {
-      toast({
-        title: 'Validation Error',
-        description: 'Email cannot be empty.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Validation Error', description: 'Email cannot be empty.', variant: 'destructive' });
       return;
     }
     if (!validateEmail(email.trim())) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please enter a valid email address.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Validation Error', description: 'Please enter a valid email address.', variant: 'destructive' });
       return;
     }
 
     setIsLoading(true);
 
-    // Simulate API call
     setTimeout(() => {
       if (typeof window !== 'undefined') {
         localStorage.setItem(MOCK_AUTH_USERNAME_KEY, username.trim());
-        localStorage.setItem(MOCK_AUTH_EMAIL_KEY, email.trim()); // Save email
+        localStorage.setItem(MOCK_AUTH_EMAIL_KEY, email.trim());
         localStorage.setItem(MOCK_AUTH_LOGGED_IN_KEY, 'true');
+        localStorage.setItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 'free' as SubscriptionTier); // Default to 'free' tier
+        // localStorage.removeItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY); // Clear any old customer ID
       }
       toast({
         title: 'Sign Up Successful!',
-        description: `Welcome, ${username.trim()}! Your email ${email.trim()} has been noted.`,
+        description: `Welcome, ${username.trim()}! Your email ${email.trim()} has been noted. Your default tier is 'free'.`,
       });
       setIsLoading(false);
+      window.dispatchEvent(new Event('storage')); // Notify header/other components
       router.push('/my-account');
-      window.dispatchEvent(new Event('storage')); 
       router.refresh(); 
     }, 1000);
   };
@@ -113,8 +93,7 @@ export default function SignupPage() {
             <UserPlus className="mr-2 h-6 w-6" /> Create Your KamperHub Account
           </CardTitle>
           <CardDescription className="font-body">
-            Enter a User Name and Email to get started. The User Name will be public (e.g., on leaderboards).
-            Your email will be kept private but may be used for communication.
+            Enter a User Name and Email to get started. You'll start on the 'Free' tier.
           </CardDescription>
         </CardHeader>
         <CardContent>
