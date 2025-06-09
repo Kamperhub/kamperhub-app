@@ -37,27 +37,23 @@ const buttonVariants = cva(
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
-  asChild?: boolean
+  asChild?: boolean // This is the Button's own prop to determine if it renders a Slot
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild: useSlot = false, ...rest }, ref) => {
-    const Comp = useSlot ? Slot : "button";
+  ({ className, variant, size, asChild: buttonOwnAsChild = false, ...otherPropsFromParent }, ref) => {
+    // buttonOwnAsChild determines if THIS Button renders a Slot.
+    const Comp = buttonOwnAsChild ? Slot : "button";
 
-    // Create a mutable copy of rest props
-    const finalProps: Record<string, any> = { ...rest };
-
-    // If 'asChild' exists in the rest props (forwarded from a parent like Link),
-    // delete it to prevent it from being spread to the DOM element or Slot.
-    if ('asChild' in finalProps) {
-      delete finalProps.asChild;
-    }
+    // otherPropsFromParent might contain an 'asChild' prop if <Link asChild> was used.
+    // We need to ensure this forwarded 'asChild' is not passed to 'Comp'.
+    const { asChild: _forwardedAsChildFromParent, ...propsToPassOn } = otherPropsFromParent;
 
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        {...finalProps}
+        {...propsToPassOn}
       />
     );
   }
