@@ -1,48 +1,39 @@
 
 "use client";
 
-import React, { useEffect, useState } from 'react'; // Added useState
+import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { loadStripe } from '@stripe/stripe-js';
+// Removed: import { loadStripe } from '@stripe/stripe-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/hooks/useSubscription';
-import { CheckCircle, Loader2, CreditCard, Star } from 'lucide-react'; // Added Star
+import { CheckCircle, Loader2, CreditCard, Star, ExternalLink } from 'lucide-react'; // Added ExternalLink
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import type { SubscriptionTier } from '@/types/auth'; // Import SubscriptionTier
+import type { SubscriptionTier } from '@/types/auth';
+import Link from 'next/link'; // Added Link
 
-const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
-  : null;
+// Removed: stripePromise
 
-// Removed TIER_PRICE_IDS as we'll rely on backend default for "pro" tier
+const STRIPE_PRO_CHECKOUT_LINK = process.env.NEXT_PUBLIC_STRIPE_PRO_TIER_CHECKOUT_LINK;
 
 export default function SubscribePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { subscriptionTier, setSubscriptionDetails, isLoading: isSubscriptionLoading, isProTier } = useSubscription();
-  const [isRedirecting, setIsRedirecting] = useState(false);
+  // Removed: const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-      toast({
-        title: "Stripe Not Configured",
-        description: "Stripe publishable key is missing. Payment functionality is disabled.",
-        variant: "destructive",
-      });
-    }
-    // Removed client-side check for STRIPE_PRICE_ID; backend will handle if default pro tier ID is missing.
+    // Removed Stripe not configured toast related to publishable key, as it's not directly used here anymore.
+    // If STRIPE_PRO_CHECKOUT_LINK is missing, it's handled by disabling the button.
 
     const success = searchParams.get('success');
     const canceled = searchParams.get('canceled');
-    const sessionId = searchParams.get('session_id');
+    const sessionId = searchParams.get('session_id'); // Stripe Checkout Links can still pass this
 
-    if (success && sessionId) {
-      // In a real app, you'd verify the session_id with your backend before confirming subscription.
-      // For this mock, we'll assume success means 'pro' tier.
-      setSubscriptionDetails('pro' as SubscriptionTier, `cus_mock_${Date.now()}`); // Mock customer ID
+    if (success) { // Simplified check, session_id might not always be present or needed for this conceptual update
+      setSubscriptionDetails('pro' as SubscriptionTier, `cus_mock_checkout_link_${Date.now()}`);
       toast({
         title: "Subscription Successful!",
         description: "Welcome to KamperHub Pro! You now have access to all premium features.",
@@ -53,7 +44,6 @@ export default function SubscribePage() {
     }
 
     if (canceled) {
-      // No change to subscription status if cancelled
       toast({
         title: "Subscription Canceled",
         description: "Your subscription process was canceled. You can try again anytime.",
@@ -63,37 +53,7 @@ export default function SubscribePage() {
     }
   }, [searchParams, toast, router, setSubscriptionDetails]);
 
-  const handleSubscribeClick = async (tier: Exclude<SubscriptionTier, 'free'>) => {
-    if (!stripePromise) {
-      toast({ title: "Stripe Error", description: "Stripe is not properly configured.", variant: "destructive" });
-      return;
-    }
-    // If supporting multiple paid tiers in the future, client would send specific priceId or tier identifier.
-    // For now, sending an empty body relies on the backend's default STRIPE_PRICE_ID for the "pro" tier.
-    const requestBody = tier === 'pro' ? {} : { tier: tier }; // Example for future: could send tier identifier
-
-    setIsRedirecting(true);
-
-    try {
-      const response = await fetch('/api/create-stripe-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
-
-      const sessionData = await response.json();
-
-      if (response.ok && sessionData.url) {
-        window.location.href = sessionData.url;
-      } else {
-        throw new Error(sessionData.error || 'Failed to create Stripe session.');
-      }
-    } catch (error: any) {
-      console.error("Subscription Error:", error);
-      toast({ title: "Subscription Failed", description: error.message || "Could not initiate subscription.", variant: "destructive" });
-      setIsRedirecting(false);
-    }
-  };
+  // Removed: handleSubscribeClick function
 
   if (isSubscriptionLoading) {
     return (
@@ -114,9 +74,10 @@ export default function SubscribePage() {
         <CreditCard className="h-4 w-4 text-yellow-600" />
         <AlertTitle className="font-headline text-yellow-700">Important Notice</AlertTitle>
         <AlertDescription className="font-body">
-          This is a conceptual paywall using Stripe. Ensure Stripe keys and Price IDs are in `.env`.
-          Subscription status is mocked via local storage and is **not secure for production.**
-          A real implementation requires Stripe webhooks to securely update subscription status in a database, linked to user authentication.
+          This is a conceptual paywall using a direct Stripe Checkout Link. 
+          Ensure <code>NEXT_PUBLIC_STRIPE_PRO_TIER_CHECKOUT_LINK</code> is set in your <code>.env</code> file (this link is generated in your Stripe Dashboard).
+          Subscription status is updated client-side based on redirect parameters and is <strong>not secure for production.</strong>
+          A real implementation requires Stripe webhooks to securely update subscription status in a database.
         </AlertDescription>
       </Alert>
 
@@ -157,26 +118,27 @@ export default function SubscribePage() {
                 <p className="font-body text-muted-foreground mb-4">
                   Unlimited vehicles, caravans, WDHs, and access to all future premium features.
                   <br />
-                  (Actual price is set in your Stripe Dashboard via STRIPE_PRICE_ID in .env)
+                  (Price is set via the Stripe Payment Link configured in your Stripe Dashboard.)
                 </p>
                 <Button 
-                  onClick={() => handleSubscribeClick('pro')} 
+                  asChild
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body text-lg py-6"
-                  disabled={!stripePromise || isRedirecting}
+                  disabled={!STRIPE_PRO_CHECKOUT_LINK}
                 >
-                  {isRedirecting ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Redirecting to Stripe...
-                    </>
-                  ) : (
-                    "Upgrade to Pro"
-                  )}
+                  <Link 
+                    href={STRIPE_PRO_CHECKOUT_LINK || '#'} 
+                    target="_blank" // Open Stripe in a new tab
+                    rel="noopener noreferrer"
+                  >
+                    Upgrade to Pro <ExternalLink className="ml-2 h-5 w-5" />
+                  </Link>
                 </Button>
+                {!STRIPE_PRO_CHECKOUT_LINK && (
+                  <p className="text-xs text-destructive font-body mt-2">
+                    Stripe Pro Tier Checkout Link is not configured. Admins: Please set <code>NEXT_PUBLIC_STRIPE_PRO_TIER_CHECKOUT_LINK</code> in your .env file.
+                  </p>
+                )}
               </div>
-               {!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && (
-                <p className="text-xs text-destructive font-body mt-2">Stripe Publishable Key is not configured. Payment disabled.</p>
-              )}
-              {/* Removed client-side check for STRIPE_PRICE_ID. Backend will handle if default pro tier ID is missing. */}
             </>
           )}
         </CardContent>
@@ -184,4 +146,3 @@ export default function SubscribePage() {
     </div>
   );
 }
-
