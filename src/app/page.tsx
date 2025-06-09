@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { NavItem } from '@/lib/navigation';
 import { navItems as defaultNavItems } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button'; // Added Button import
+import { Button } from '@/components/ui/button';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -33,7 +33,7 @@ function SortableNavItem({ id, item, isMobile }: SortableNavItemProps) {
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="touch-manipulation">
+    <div ref={setNodeRef} style={style} className="touch-manipulation h-full"> {/* Ensure SortableItem fills height */}
       <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
         <CardHeader className="pb-3 flex-row items-start justify-between space-y-0">
             <div className="space-y-1">
@@ -59,11 +59,10 @@ function SortableNavItem({ id, item, isMobile }: SortableNavItemProps) {
           >
             <item.icon className="w-16 h-16 text-primary opacity-20" />
           </div>
-          <Link href={item.href} className="mt-auto">
-            <Button variant="outline" className="w-full font-body text-primary hover:bg-primary/5">
-              Go to {item.label} <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
+          {/* Removed inner Link and Button. The parent Link now handles navigation. */}
+          <div className="mt-auto text-right text-sm font-body flex items-center justify-end text-primary group-hover:text-primary/90">
+            Explore <ArrowRight className="ml-2 h-4 w-4" />
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -93,17 +92,15 @@ export default function DashboardPage() {
         if (storedLayout) {
           const storedItemOrder: string[] = JSON.parse(storedLayout);
           const itemsFromStorage = storedItemOrder.map(href => defaultNavItems.find(item => item.href === href)).filter(Boolean) as NavItem[];
-          // Ensure all default items are present, add new ones if any
           const currentDefaultHrefs = new Set(defaultNavItems.map(item => item.href));
           const itemsInStorageHrefs = new Set(itemsFromStorage.map(item => item.href));
 
           let finalItems = [...itemsFromStorage];
           defaultNavItems.forEach(defaultItem => {
             if (!itemsInStorageHrefs.has(defaultItem.href)) {
-              finalItems.push(defaultItem); // Add new items from defaultNavItems not in storage
+              finalItems.push(defaultItem);
             }
           });
-          // Filter out items that might have been removed from defaultNavItems but are still in storage
           finalItems = finalItems.filter(item => currentDefaultHrefs.has(item.href));
 
           setOrderedNavItems(finalItems);
@@ -112,7 +109,7 @@ export default function DashboardPage() {
         }
       } catch (error) {
         console.error("Error loading dashboard layout from localStorage:", error);
-        setOrderedNavItems(defaultNavItems); // Fallback to default order
+        setOrderedNavItems(defaultNavItems);
       }
       setIsLoading(false);
     }
@@ -121,7 +118,7 @@ export default function DashboardPage() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Require pointer to move 8px before activating drag
+        distance: 8,
       },
     })
   );
@@ -151,7 +148,7 @@ export default function DashboardPage() {
             <HomeIcon className="mr-3 h-8 w-8 text-primary" />
             <h1 className="text-3xl font-headline text-primary">Welcome to KamperHub</h1>
           </div>
-          <Skeleton className="h-12 w-48" /> {/* Placeholder for logo */}
+          <Skeleton className="h-12 w-48" />
         </div>
         <p className="font-body text-lg text-muted-foreground">
           Your ultimate caravanning companion. Loading your personalized dashboard...
@@ -196,7 +193,9 @@ export default function DashboardPage() {
         <SortableContext items={orderedNavItems.map(item => item.href)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {orderedNavItems.map((item) => (
-              <SortableNavItem key={item.href} id={item.href} item={item} isMobile={isMobileView} />
+              <Link key={item.href} href={item.href} className="block h-full no-underline group"> {/* Added group class for hover state */}
+                <SortableNavItem id={item.href} item={item} isMobile={isMobileView} />
+              </Link>
             ))}
           </div>
         </SortableContext>
