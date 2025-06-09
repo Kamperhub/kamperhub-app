@@ -16,11 +16,7 @@ const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
   : null;
 
-// Define your tiers and their corresponding Price IDs
-const TIER_PRICE_IDS: Record<Exclude<SubscriptionTier, 'free'>, string | undefined> = {
-  pro: process.env.STRIPE_PRICE_ID, // Using the existing env var for 'pro' tier
-  // Add more tiers here if needed, e.g., premium: process.env.STRIPE_PREMIUM_PRICE_ID
-};
+// Removed TIER_PRICE_IDS as we'll rely on backend default for "pro" tier
 
 export default function SubscribePage() {
   const router = useRouter();
@@ -37,13 +33,7 @@ export default function SubscribePage() {
         variant: "destructive",
       });
     }
-    if (!TIER_PRICE_IDS.pro) { // Check for the specific 'pro' tier Price ID
-         toast({
-        title: "Stripe Product Not Configured",
-        description: "Stripe Price ID for the 'Pro' tier is missing. Please configure STRIPE_PRICE_ID in the .env file.",
-        variant: "destructive",
-      });
-    }
+    // Removed client-side check for STRIPE_PRICE_ID; backend will handle if default pro tier ID is missing.
 
     const success = searchParams.get('success');
     const canceled = searchParams.get('canceled');
@@ -74,16 +64,13 @@ export default function SubscribePage() {
   }, [searchParams, toast, router, setSubscriptionDetails]);
 
   const handleSubscribeClick = async (tier: Exclude<SubscriptionTier, 'free'>) => {
-    const priceId = TIER_PRICE_IDS[tier];
-
     if (!stripePromise) {
       toast({ title: "Stripe Error", description: "Stripe is not properly configured.", variant: "destructive" });
       return;
     }
-    if (!priceId) {
-      toast({ title: "Configuration Error", description: `Stripe Price ID for '${tier}' tier is not set.`, variant: "destructive" });
-      return;
-    }
+    // If supporting multiple paid tiers in the future, client would send specific priceId or tier identifier.
+    // For now, sending an empty body relies on the backend's default STRIPE_PRICE_ID for the "pro" tier.
+    const requestBody = tier === 'pro' ? {} : { tier: tier }; // Example for future: could send tier identifier
 
     setIsRedirecting(true);
 
@@ -91,7 +78,7 @@ export default function SubscribePage() {
       const response = await fetch('/api/create-stripe-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId: priceId }), // Send the priceId for the chosen tier
+        body: JSON.stringify(requestBody),
       });
 
       const sessionData = await response.json();
@@ -170,12 +157,12 @@ export default function SubscribePage() {
                 <p className="font-body text-muted-foreground mb-4">
                   Unlimited vehicles, caravans, WDHs, and access to all future premium features.
                   <br />
-                  (Actual price is set in your Stripe Dashboard via STRIPE_PRICE_ID)
+                  (Actual price is set in your Stripe Dashboard via STRIPE_PRICE_ID in .env)
                 </p>
                 <Button 
                   onClick={() => handleSubscribeClick('pro')} 
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body text-lg py-6"
-                  disabled={!stripePromise || isRedirecting || !TIER_PRICE_IDS.pro}
+                  disabled={!stripePromise || isRedirecting}
                 >
                   {isRedirecting ? (
                     <>
@@ -189,9 +176,7 @@ export default function SubscribePage() {
                {!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && (
                 <p className="text-xs text-destructive font-body mt-2">Stripe Publishable Key is not configured. Payment disabled.</p>
               )}
-               {!TIER_PRICE_IDS.pro && (
-                <p className="text-xs text-destructive font-body mt-2">Stripe Price ID for 'Pro' tier is not configured. Payment disabled.</p>
-              )}
+              {/* Removed client-side check for STRIPE_PRICE_ID. Backend will handle if default pro tier ID is missing. */}
             </>
           )}
         </CardContent>
@@ -199,3 +184,4 @@ export default function SubscribePage() {
     </div>
   );
 }
+
