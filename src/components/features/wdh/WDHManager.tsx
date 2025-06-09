@@ -7,8 +7,8 @@ import { WDHS_STORAGE_KEY, ACTIVE_WDH_ID_KEY } from '@/types/wdh';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input'; // Added Input import
-import { Label } from '@/components/ui/label'; // Added Label import
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { WDHForm } from './WDHForm';
 import { PlusCircle, Edit3, Trash2, CheckCircle, Link2, ShieldAlert, Settings2 } from 'lucide-react';
@@ -47,17 +47,20 @@ export function WDHManager() {
           if (Array.isArray(parsedWdhs)) {
             setWdhs(parsedWdhs);
           } else {
-            console.warn("WDH data in localStorage was not an array. Resetting to empty.");
+            console.warn("WDH data in localStorage was not an array. Resetting to empty and clearing malformed data.");
             setWdhs([]);
-            localStorage.setItem(WDHS_STORAGE_KEY, JSON.stringify([])); // Optionally clear/reset malformed data
+            localStorage.removeItem(WDHS_STORAGE_KEY); // Clear malformed data
           }
+        } else {
+          setWdhs([]); // Initialize if no data found
         }
         const storedActiveId = localStorage.getItem(ACTIVE_WDH_ID_KEY);
         if (storedActiveId) setActiveWdhId(storedActiveId);
       } catch (error) {
         console.error("Error loading WDH data from localStorage:", error);
-        toast({ title: "Error Loading WDHs", variant: "destructive" });
-        setWdhs([]); // Ensure wdhs is an array in case of error
+        toast({ title: "Error Loading WDHs", variant: "destructive", description: "Failed to parse WDH data. Storage might be corrupted." });
+        setWdhs([]); 
+        localStorage.removeItem(WDHS_STORAGE_KEY); // Clear potentially corrupted data
       }
     }
   }, [hasMounted, toast]);
@@ -84,7 +87,7 @@ export function WDHManager() {
     }
   }, [toast, hasMounted]);
 
-  const handleSaveWdh = (data: WDHFormData) => {
+  const handleSaveWdh = useCallback((data: WDHFormData) => {
     if (!isSubscribed && wdhs.length >= FREE_TIER_WDH_LIMIT && !editingWdh) {
       toast({
         title: "Free Limit Reached",
@@ -95,35 +98,35 @@ export function WDHManager() {
       return;
     }
 
-    let updatedWdhs;
+    let updatedWdhsArray;
     if (editingWdh) {
-      updatedWdhs = wdhs.map(w => w.id === editingWdh.id ? { ...editingWdh, ...data } : w);
+      updatedWdhsArray = wdhs.map(w => w.id === editingWdh.id ? { ...editingWdh, ...data } : w);
       toast({ title: "WDH Updated", description: `${data.name} updated.` });
     } else {
       const newWdh: StoredWDH = { ...data, id: Date.now().toString() };
-      updatedWdhs = [...wdhs, newWdh];
+      updatedWdhsArray = [...wdhs, newWdh];
       toast({ title: "WDH Added", description: `${data.name} added.` });
     }
-    setWdhs(updatedWdhs);
-    saveWdhsToStorage(updatedWdhs);
+    setWdhs(updatedWdhsArray);
+    saveWdhsToStorage(updatedWdhsArray);
     setIsFormOpen(false);
     setEditingWdh(null);
-  };
+  }, [isSubscribed, wdhs, editingWdh, toast, saveWdhsToStorage]);
 
-  const handleEditWdh = (wdh: StoredWDH) => {
+  const handleEditWdh = useCallback((wdh: StoredWDH) => {
     setEditingWdh(wdh);
     setIsFormOpen(true);
-  };
+  }, []);
 
-  const handleDeleteWdh = (id: string, name: string) => {
+  const handleDeleteWdh = useCallback((id: string, name: string) => {
      setDeleteDialogState({ isOpen: true, wdhId: id, wdhName: name, confirmationText: '' });
-  };
+  }, []);
 
-  const confirmDeleteWdh = () => {
+  const confirmDeleteWdh = useCallback(() => {
     if (deleteDialogState.wdhId && deleteDialogState.confirmationText === "DELETE") {
-        const updatedWdhs = wdhs.filter(w => w.id !== deleteDialogState.wdhId);
-        setWdhs(updatedWdhs);
-        saveWdhsToStorage(updatedWdhs);
+        const updatedWdhsArray = wdhs.filter(w => w.id !== deleteDialogState.wdhId);
+        setWdhs(updatedWdhsArray);
+        saveWdhsToStorage(updatedWdhsArray);
         if (activeWdhId === deleteDialogState.wdhId) {
             setActiveWdhId(null);
             saveActiveWdhIdToStorage(null);
@@ -131,16 +134,16 @@ export function WDHManager() {
         toast({ title: "WDH Deleted", description: `${deleteDialogState.wdhName} has been removed.` });
     }
     setDeleteDialogState({ isOpen: false, wdhId: null, wdhName: null, confirmationText: '' });
-  };
+  }, [wdhs, activeWdhId, toast, saveWdhsToStorage, saveActiveWdhIdToStorage, deleteDialogState.wdhId, deleteDialogState.wdhName, deleteDialogState.confirmationText]);
 
-  const handleSetActiveWdh = (id: string) => {
+  const handleSetActiveWdh = useCallback((id: string) => {
     setActiveWdhId(id);
     saveActiveWdhIdToStorage(id);
     const wdh = wdhs.find(w => w.id === id);
     toast({ title: "Active WDH Set", description: `${wdh?.name} is now active.` });
-  };
+  }, [wdhs, toast, saveActiveWdhIdToStorage]);
 
-  const handleOpenFormForNew = () => {
+  const handleOpenFormForNew = useCallback(() => {
     if (!isSubscribed && wdhs.length >= FREE_TIER_WDH_LIMIT) {
       toast({
         title: "Upgrade to Pro",
@@ -159,7 +162,7 @@ export function WDHManager() {
     }
     setEditingWdh(null);
     setIsFormOpen(true);
-  };
+  }, [isSubscribed, wdhs, toast]);
 
   if (!hasMounted || isSubscriptionLoading) {
     return (
@@ -308,5 +311,3 @@ export function WDHManager() {
     </>
   );
 }
-
-    
