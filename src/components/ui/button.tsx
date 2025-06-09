@@ -41,24 +41,32 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false /* This is Button's own asChild prop */, ...restPropsFromParent }, ref) => {
-    const Comp = asChild ? Slot : "button";
+  ({ className, variant, size, asChild: buttonOwnAsChild = false, ...otherProps }, ref) => {
+    // Destructure any 'asChild' prop from otherProps to prevent it from being spread if it's not meant for the final element.
+    // This is to handle cases where a parent (like Link) passes its own asChild.
+    const { asChild: forwardedAsChild, ...remainingOtherProps } = otherProps;
 
-    // Create a mutable copy of the props received from the parent.
-    const propsToPassToComp = { ...restPropsFromParent };
-
-    // If 'asChild' exists as a key in these props (e.g., passed down from a Link component),
-    // explicitly delete it. This is crucial to prevent it from becoming a DOM attribute
-    // on the underlying element (<a>, <button>, etc.) rendered by Comp.
-    if ('asChild' in propsToPassToComp) {
-      delete (propsToPassToComp as { asChild?: unknown }).asChild;
+    if (buttonOwnAsChild) {
+      // If the Button's own asChild is true, it renders a Slot.
+      // The Slot will take remainingOtherProps (which should include href, onClick from Link)
+      // and apply them to its child. The 'forwardedAsChild' is intentionally not used here
+      // as Slot handles its child composition based on the props it receives (like href).
+      return (
+        <Slot
+          className={cn(buttonVariants({ variant, size, className }))}
+          ref={ref}
+          {...remainingOtherProps} // Pass props like href, onClick to Slot's child
+        />
+      );
     }
 
+    // If Button's own asChild is false, it renders a DOM button.
+    // We ensure that 'forwardedAsChild' (if any was passed) is not spread here.
     return (
-      <Comp
+      <button
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        {...propsToPassToComp} // Spread the cleaned props
+        {...remainingOtherProps}
       />
     );
   }
