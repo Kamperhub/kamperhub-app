@@ -1,9 +1,15 @@
 "use client";
-
 import { Loader2 } from 'lucide-react';
+import { useEffect } from 'react';
 
 export default function Loading() {
-  // You can add any UI inside Loading, including a Skeleton.
+  useEffect(() => {
+    console.log('Global loading.tsx: MOUNTED');
+    return () => {
+      console.log('Global loading.tsx: UNMOUNTED');
+    };
+  }, []);
+
   return (
     <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
       <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
