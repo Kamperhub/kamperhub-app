@@ -3,17 +3,16 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+// Image import removed as it's no longer used
 import { Home, UserCircle, LogIn, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { MOCK_AUTH_USERNAME_KEY, MOCK_AUTH_LOGGED_IN_KEY, MOCK_AUTH_EMAIL_KEY } from '@/types/auth'; // Added MOCK_AUTH_EMAIL_KEY
+import { MOCK_AUTH_USERNAME_KEY, MOCK_AUTH_LOGGED_IN_KEY, MOCK_AUTH_EMAIL_KEY } from '@/types/auth'; 
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
 export function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
-  // Email state is not directly needed in header for display, but useful for logout
   const [hasMounted, setHasMounted] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -22,7 +21,6 @@ export function Header() {
     if (typeof window !== 'undefined') {
       const loggedInStatus = localStorage.getItem(MOCK_AUTH_LOGGED_IN_KEY) === 'true';
       const storedUsername = localStorage.getItem(MOCK_AUTH_USERNAME_KEY);
-      // const storedEmail = localStorage.getItem(MOCK_AUTH_EMAIL_KEY); // Email can be fetched if needed
       setIsLoggedIn(loggedInStatus);
       setUsername(loggedInStatus ? storedUsername : null);
     }
@@ -44,7 +42,7 @@ export function Header() {
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(MOCK_AUTH_USERNAME_KEY);
-      localStorage.removeItem(MOCK_AUTH_EMAIL_KEY); // Clear email on logout
+      localStorage.removeItem(MOCK_AUTH_EMAIL_KEY); 
       localStorage.removeItem(MOCK_AUTH_LOGGED_IN_KEY);
     }
     setIsLoggedIn(false);
@@ -61,15 +59,9 @@ export function Header() {
     return (
       <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-40">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <Image
-              src="/kamperhub-logo.png"
-              alt="KamperHub Logo"
-              width={180}
-              height={45}
-              priority
-              className="object-contain"
-            />
+          {/* Placeholder for logo area if needed, or can be removed if brand name is sufficient */}
+          <Link href="/" className="flex items-center gap-3 text-xl font-bold font-headline">
+             KamperHub
           </Link>
           <div className="flex items-center gap-3">
              <div className="h-7 w-7 bg-primary/50 rounded-full animate-pulse"></div>
@@ -83,15 +75,9 @@ export function Header() {
   return (
     <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-40">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3">
-          <Image
-            src="/kamperhub-logo.png"
-            alt="KamperHub Logo"
-            width={180}
-            height={45}
-            priority
-            className="object-contain"
-          />
+        {/* Logo removed, displaying text link instead */}
+        <Link href="/" className="flex items-center gap-3 text-xl font-bold font-headline">
+          KamperHub
         </Link>
 
         <div className="flex items-center gap-3">
