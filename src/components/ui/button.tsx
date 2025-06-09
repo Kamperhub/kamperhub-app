@@ -44,10 +44,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild: useSlot = false, ...rest }, ref) => {
     const Comp = useSlot ? Slot : "button";
 
-    // Explicitly remove 'asChild' from the 'rest' props if it exists.
-    // This is to prevent a forwarded 'asChild' (e.g., from next/link)
-    // from reaching the Slot component or the DOM button element directly as a prop.
+    // Create a mutable copy of rest props
     const finalProps: Record<string, any> = { ...rest };
+
+    // If 'asChild' exists in the rest props (forwarded from a parent like Link),
+    // delete it to prevent it from being spread to the DOM element or Slot.
     if ('asChild' in finalProps) {
       delete finalProps.asChild;
     }
