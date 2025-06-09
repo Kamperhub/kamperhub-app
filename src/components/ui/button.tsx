@@ -42,26 +42,24 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild: buttonOwnAsChild = false, ...otherProps }, ref) => {
-    // Destructure any 'asChild' prop from otherProps to prevent it from being spread if it's not meant for the final element.
-    // This is to handle cases where a parent (like Link) passes its own asChild.
-    const { asChild: forwardedAsChild, ...remainingOtherProps } = otherProps;
+    // Explicitly separate any 'asChild' prop that might have been forwarded from a parent (like Link)
+    // from the rest of the otherProps.
+    const { asChild: _forwardedAsChild, ...remainingOtherProps } = otherProps;
 
     if (buttonOwnAsChild) {
       // If the Button's own asChild is true, it renders a Slot.
-      // The Slot will take remainingOtherProps (which should include href, onClick from Link)
-      // and apply them to its child. The 'forwardedAsChild' is intentionally not used here
-      // as Slot handles its child composition based on the props it receives (like href).
+      // Pass the remainingOtherProps (which should include href, onClick from Link) to Slot.
       return (
         <Slot
           className={cn(buttonVariants({ variant, size, className }))}
           ref={ref}
-          {...remainingOtherProps} // Pass props like href, onClick to Slot's child
+          {...remainingOtherProps} 
         />
       );
     }
 
     // If Button's own asChild is false, it renders a DOM button.
-    // We ensure that 'forwardedAsChild' (if any was passed) is not spread here.
+    // We ensure that _forwardedAsChild (if any was passed from parent) is not spread here.
     return (
       <button
         className={cn(buttonVariants({ variant, size, className }))}
