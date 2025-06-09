@@ -41,13 +41,17 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button"
+  ({ className, variant, size, asChild = false, ...spreadProps }, ref) => {
+    const Comp = asChild ? Slot : "button";
+
+    // Create a mutable copy of the spread props.
+    // The `asChild` prop specific to ButtonProps (destructured above) determines `Comp`.
+    // Any `asChild` prop found within `spreadProps` (e.g., passed down from a parent Link)
+    // should be removed before passing to `Comp`.
+    const finalProps: Omit<ButtonProps, 'asChild'> & React.ButtonHTMLAttributes<HTMLButtonElement> = { ...spreadProps };
     
-    // Ensure 'asChild' prop is not spread to the DOM element if Comp is a string (e.g., "button")
-    const finalProps = { ...props };
-    if (typeof Comp === 'string' && 'asChild' in finalProps) {
-      delete (finalProps as any).asChild;
+    if ('asChild' in finalProps) {
+      delete (finalProps as { asChild?: boolean }).asChild;
     }
 
     return (
@@ -56,9 +60,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         {...finalProps}
       />
-    )
+    );
   }
-)
+);
 Button.displayName = "Button"
 
 export { Button, buttonVariants }
