@@ -5,10 +5,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { NavItem } from '@/lib/navigation';
 import { navItems as defaultNavItems } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button'; // Added Button import
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, ArrowRight, Home as HomeIcon } from 'lucide-react'; // Added HomeIcon
+import { GripVertical, ArrowRight, Home as HomeIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
@@ -52,7 +53,7 @@ function SortableNavItem({ id, item, isMobile }: SortableNavItemProps) {
             )}
         </CardHeader>
         <CardContent className="flex-grow flex flex-col justify-between pt-0">
-          <div 
+          <div
             className="h-32 w-full bg-muted/30 rounded-md flex items-center justify-center my-2 overflow-hidden"
             data-ai-hint={item.keywords || item.label.toLowerCase().split(' ')[0]}
           >
@@ -95,7 +96,7 @@ export default function DashboardPage() {
           // Ensure all default items are present, add new ones if any
           const currentDefaultHrefs = new Set(defaultNavItems.map(item => item.href));
           const itemsInStorageHrefs = new Set(itemsFromStorage.map(item => item.href));
-          
+
           let finalItems = [...itemsFromStorage];
           defaultNavItems.forEach(defaultItem => {
             if (!itemsInStorageHrefs.has(defaultItem.href)) {
@@ -141,7 +142,7 @@ export default function DashboardPage() {
       });
     }
   }, []);
-  
+
   if (!hasMounted || isLoading) {
     return (
       <div className="space-y-8">
@@ -177,11 +178,11 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row items-center justify-between mb-6">
         <div className="flex items-center mb-4 sm:mb-0">
-          <Image 
-            src="/kamperhub-logo.png" 
-            alt="KamperHub Logo Icon" 
-            width={60} 
-            height={60} 
+          <Image
+            src="/kamperhub-logo.png"
+            alt="KamperHub Logo Icon"
+            width={60}
+            height={60}
             className="object-contain rounded-md mr-3"
           />
           <div>
@@ -190,7 +191,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-      
+
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={isMobileView ? undefined : handleDragEnd}>
         <SortableContext items={orderedNavItems.map(item => item.href)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
