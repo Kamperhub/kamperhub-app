@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, ArrowRight, Home as HomeIcon } from 'lucide-react';
+import { GripVertical, Home as HomeIcon } from 'lucide-react'; // Removed ArrowRight
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
@@ -59,10 +59,7 @@ function SortableNavItem({ id, item, isMobile }: SortableNavItemProps) {
           >
             <item.icon className="w-16 h-16 text-primary opacity-20" />
           </div>
-          {/* Removed inner Link and Button. The parent Link now handles navigation. */}
-          <div className="mt-auto text-right text-sm font-body flex items-center justify-end text-primary group-hover:text-primary/90">
-            Explore <ArrowRight className="ml-2 h-4 w-4" />
-          </div>
+          {/* Removed the "Explore" text and ArrowRight icon div */}
         </CardContent>
       </Card>
     </div>
