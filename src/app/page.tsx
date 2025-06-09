@@ -1,91 +1,32 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
+import type { LoggedTrip } from '@/types/tripplanner';
+import { TRIP_LOG_STORAGE_KEY } from '@/types/tripplanner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import type { NavItem } from '@/lib/navigation';
-import { navItems } from '@/lib/navigation';
-import { GripVertical } from 'lucide-react';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  rectSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { BarChart3, Route as RouteIcon, CalendarDays, CheckCircle, Award, Trophy, TrendingUp, AlertCircle, AlertTriangle, Home } from 'lucide-react';
+import { parseISO, differenceInCalendarDays, isValid } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
-const DASHBOARD_CARD_ORDER_KEY = 'kamperhub_dashboard_card_order_v2';
-
-interface SortableNavItemCardProps {
-  item: NavItem;
+interface TripStats {
+  totalTrips: number;
+  totalKilometers: number;
+  totalDaysOnRoad: number;
+  completedTrips: number;
+  averageDistancePerTrip: number;
+  averageDurationPerTrip: number; // in days
+  longestTripByDistance: LoggedTrip | null;
+  longestTripByDuration: LoggedTrip | null;
 }
-
-function SortableNavItemCard({ item }: SortableNavItemCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: item.href }); // Use a unique, stable ID like href
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    zIndex: isDragging ? 10 : undefined,
-    opacity: isDragging ? 0.8 : 1,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} className="touch-none">
-      <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 relative">
-        <button
-          {...attributes}
-          {...listeners}
-          aria-label={`Drag ${item.label} card`}
-          className="absolute top-2 right-2 p-1 cursor-grab active:cursor-grabbing opacity-50 hover:opacity-100 focus:opacity-100 focus:ring-2 focus:ring-ring rounded"
-        >
-          <GripVertical className="h-5 w-5 text-muted-foreground" />
-        </button>
-        <Link href={item.href} className="flex flex-col h-full">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-3">
-              <item.icon className="w-8 h-8 text-primary" />
-              <CardTitle className="font-headline text-2xl text-primary">{item.label}</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="flex-grow flex flex-col justify-between">
-            <CardDescription className="font-body text-sm mb-4">
-              Access tools and information for {item.label.toLowerCase()} to enhance your caravanning experience.
-            </CardDescription>
-            <div className="mt-auto opacity-10 flex justify-center">
-              <item.icon className="w-24 h-24 text-primary" />
-            </div>
-          </CardContent>
-        </Link>
-      </Card>
-    </div>
-  );
-}
-
 
 export default function DashboardPage() {
-  const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>(() => {
-    // Initialize with default navItems, order will be applied in useEffect
-    return [...navItems];
-  });
+  const [stats, setStats] = useState<TripStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
@@ -93,136 +34,225 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (!hasMounted) return;
-
-    try {
-      const savedOrderJson = localStorage.getItem(DASHBOARD_CARD_ORDER_KEY);
-      if (savedOrderJson) {
-        const savedOrderHrefs: string[] = JSON.parse(savedOrderJson);
-        // Reconstruct orderedNavItems based on saved hrefs, ensuring all navItems are present
-        // and new ones are appended if not in saved order
-        const newOrderedItems: NavItem[] = [];
-        const navItemsMap = new Map(navItems.map(item => [item.href, item]));
-
-        savedOrderHrefs.forEach(href => {
-          const item = navItemsMap.get(href);
-          if (item) {
-            newOrderedItems.push(item);
-            navItemsMap.delete(href); // Remove from map to track remaining items
+    if (hasMounted && typeof window !== 'undefined') {
+      setIsLoading(true);
+      try {
+        const storedTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
+        if (storedTripsJson) {
+          const loggedTrips: LoggedTrip[] = JSON.parse(storedTripsJson);
+          
+          if (loggedTrips.length === 0) {
+            setStats({
+              totalTrips: 0, totalKilometers: 0, totalDaysOnRoad: 0, completedTrips: 0,
+              averageDistancePerTrip: 0, averageDurationPerTrip: 0,
+              longestTripByDistance: null, longestTripByDuration: null,
+            });
+            setIsLoading(false);
+            return;
           }
-        });
-        // Add any new navItems that weren't in the saved order
-        navItemsMap.forEach(item => newOrderedItems.push(item));
-        setOrderedNavItems(newOrderedItems);
-      } else {
-        // No saved order, use the default from navItems.ts
-        setOrderedNavItems([...navItems]);
+
+          let totalKilometers = 0;
+          let totalDaysOnRoad = 0;
+          let completedTrips = 0;
+          let longestDist = 0;
+          let longestTripByDist: LoggedTrip | null = null;
+          let longestDur = 0;
+          let longestTripByDur: LoggedTrip | null = null;
+
+          loggedTrips.forEach(trip => {
+            totalKilometers += trip.routeDetails?.distanceValue / 1000 || 0;
+            if (trip.isCompleted) {
+              completedTrips++;
+            }
+
+            let durationDays = 0;
+            if (trip.plannedStartDate && trip.plannedEndDate) {
+              const startDate = parseISO(trip.plannedStartDate);
+              const endDate = parseISO(trip.plannedEndDate);
+              if (isValid(startDate) && isValid(endDate) && endDate >= startDate) {
+                durationDays = differenceInCalendarDays(endDate, startDate) + 1;
+                totalDaysOnRoad += durationDays;
+              }
+            } else if (trip.plannedStartDate) { 
+                durationDays = 1;
+                totalDaysOnRoad += durationDays;
+            }
+
+            const currentDistance = trip.routeDetails?.distanceValue / 1000 || 0;
+            if (currentDistance > longestDist) {
+              longestDist = currentDistance;
+              longestTripByDist = trip;
+            }
+            if (durationDays > longestDur) {
+              longestDur = durationDays;
+              longestTripByDur = trip;
+            }
+          });
+
+          setStats({
+            totalTrips: loggedTrips.length,
+            totalKilometers: totalKilometers,
+            totalDaysOnRoad: totalDaysOnRoad,
+            completedTrips: completedTrips,
+            averageDistancePerTrip: loggedTrips.length > 0 ? totalKilometers / loggedTrips.length : 0,
+            averageDurationPerTrip: loggedTrips.length > 0 ? totalDaysOnRoad / loggedTrips.length : 0,
+            longestTripByDistance: longestTripByDist,
+            longestTripByDuration: longestTripByDur,
+          });
+
+        } else {
+          setStats({ 
+            totalTrips: 0, totalKilometers: 0, totalDaysOnRoad: 0, completedTrips: 0,
+            averageDistancePerTrip: 0, averageDurationPerTrip: 0,
+            longestTripByDistance: null, longestTripByDuration: null,
+          });
+        }
+      } catch (e) {
+        console.error("Error processing trip data for stats:", e);
+        setError("Could not load or process trip statistics.");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-        console.error("Error loading card order from localStorage:", error);
-        setOrderedNavItems([...navItems]); // Fallback to default
     }
   }, [hasMounted]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+  const StatCard = ({ title, value, icon: Icon, unit = '', description }: { title: string, value: string | number, icon: React.ElementType, unit?: string, description?: string }) => (
+    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium font-body">{title}</CardTitle>
+        <Icon className="h-5 w-5 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold font-headline text-primary">{value}{unit && <span className="text-lg"> {unit}</span>}</div>
+        {description && <p className="text-xs text-muted-foreground font-body">{description}</p>}
+      </CardContent>
+    </Card>
   );
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event;
-    if (active.id !== over?.id && over) {
-      setOrderedNavItems((items) => {
-        const oldIndex = items.findIndex((item) => item.href === active.id);
-        const newIndex = items.findIndex((item) => item.href === over.id);
-        const newOrder = arrayMove(items, oldIndex, newIndex);
-        
-        if (hasMounted) {
-            try {
-                const newOrderHrefs = newOrder.map(item => item.href);
-                localStorage.setItem(DASHBOARD_CARD_ORDER_KEY, JSON.stringify(newOrderHrefs));
-            } catch (error) {
-                console.error("Error saving card order to localStorage:", error);
-            }
-        }
-        return newOrder;
-      });
-    }
-  }, [hasMounted]);
-
-  if (!hasMounted) {
-    // Optional: Render a loading state or null
+  if (!hasMounted || isLoading) {
     return (
-         <div className="space-y-8">
-            <header className="text-center py-8">
-              <Card className="animate-pulse h-16 w-1/2 mx-auto bg-muted" />
-              <CardTitle className="text-4xl md:text-5xl font-headline text-primary mb-2 mt-4">
-                <div className="h-10 bg-muted rounded w-3/4 mx-auto"></div>
-              </CardTitle>
-              <CardDescription className="text-lg text-muted-foreground font-body max-w-xl mx-auto">
-                <div className="h-4 bg-muted rounded w-full mb-1"></div>
-                <div className="h-4 bg-muted rounded w-2/3 mx-auto"></div>
-              </CardDescription>
-            </header>
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
-                <Card key={i} className="h-64 animate-pulse">
-                    <CardHeader className="pb-3">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-muted rounded-full"></div>
-                            <div className="h-8 bg-muted rounded w-1/2"></div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="flex-grow flex flex-col justify-between">
-                        <div className="space-y-2">
-                            <div className="h-4 bg-muted rounded w-full"></div>
-                            <div className="h-4 bg-muted rounded w-5/6"></div>
-                        </div>
-                         <div className="mt-auto opacity-10 flex justify-center">
-                           <div className="w-24 h-24 bg-muted rounded-md"></div>
-                        </div>
-                    </CardContent>
-                </Card>
-                ))}
-            </div>
+      <div className="space-y-8">
+        <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
+          <Home className="mr-3 h-8 w-8" /> Dashboard & Travel Stats
+        </h1>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-[120px]" />)}
         </div>
+        <Skeleton className="h-[200px] mt-6" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
+           <Home className="mr-3 h-8 w-8" /> Dashboard & Travel Stats
+        </h1>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error Loading Stats</AlertTitle>
+          <AlertDescription>{error} Please try again later.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (!stats || stats.totalTrips === 0) {
+    return (
+      <div className="space-y-8 text-center">
+        <h1 className="text-3xl font-headline mb-6 text-primary flex items-center justify-center">
+          <Home className="mr-3 h-8 w-8" /> Dashboard & Travel Stats
+        </h1>
+        <Card className="py-10">
+            <CardContent className="flex flex-col items-center justify-center">
+                <TrendingUp className="h-16 w-16 text-muted-foreground mb-4" />
+                <p className="text-xl font-semibold font-body text-muted-foreground mb-2">No Trip Data Yet</p>
+                <p className="text-sm text-muted-foreground font-body mb-4">
+                    It looks like you haven't logged any trips. <br/>Start planning your adventures to see your stats here!
+                </p>
+                <Link href="/tripplanner" passHref>
+                    <Button className="font-body bg-accent text-accent-foreground hover:bg-accent/90">
+                        <RouteIcon className="mr-2 h-4 w-4" /> Plan Your First Trip
+                    </Button>
+                </Link>
+            </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
     <div className="space-y-8">
-      <header className="text-center py-8">
-        <Link href="/" passHref>
-          <img
-            src="/kamperhub-logo.png"
-            alt="KamperHub Logo"
-            className="h-16 w-auto mx-auto mb-4 transition-transform hover:scale-105"
-          />
-        </Link>
-        <h1 className="text-4xl md:text-5xl font-headline text-primary mb-2">Welcome to KamperHub</h1>
-        <p className="text-lg text-muted-foreground font-body max-w-xl mx-auto">
-          Your ultimate caravanning companion. Arrange your dashboard for quick access to features.
+      <div>
+        <h1 className="text-3xl font-headline mb-2 text-primary flex items-center">
+          <Home className="mr-3 h-8 w-8" /> Dashboard & Travel Stats
+        </h1>
+        <p className="text-muted-foreground font-body">
+          A summary of your caravanning adventures logged in KamperHub.
         </p>
-      </header>
+      </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext
-          items={orderedNavItems.map(item => item.href)}
-          strategy={rectSortingStrategy}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {orderedNavItems.map((item) => (
-              <SortableNavItemCard key={item.href} item={item} />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard title="Total Trips Logged" value={stats.totalTrips} icon={RouteIcon} />
+        <StatCard title="Total Kilometers Travelled" value={stats.totalKilometers.toFixed(0)} unit="km" icon={TrendingUp} />
+        <StatCard title="Total Days On Road" value={stats.totalDaysOnRoad} unit="days" icon={CalendarDays} />
+        <StatCard title="Completed Trips" value={stats.completedTrips} icon={CheckCircle} description={`${((stats.completedTrips / stats.totalTrips) * 100).toFixed(0)}% of total`} />
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-2">
+        <StatCard title="Avg. Distance / Trip" value={stats.averageDistancePerTrip.toFixed(0)} unit="km" icon={RouteIcon} />
+        <StatCard title="Avg. Duration / Trip" value={stats.averageDurationPerTrip.toFixed(1)} unit="days" icon={CalendarDays} />
+      </div>
+
+      { (stats.longestTripByDistance || stats.longestTripByDuration) &&
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-headline text-xl text-primary flex items-center"><Award className="mr-2 h-6 w-6" />Trip Milestones</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {stats.longestTripByDistance && (
+              <div>
+                <h3 className="text-md font-semibold font-body text-foreground">Longest Trip by Distance:</h3>
+                <p className="text-sm text-muted-foreground font-body">
+                  "{stats.longestTripByDistance.name}" - {stats.longestTripByDistance.routeDetails.distance} ({stats.longestTripByDistance.routeDetails.duration})
+                </p>
+              </div>
+            )}
+            {stats.longestTripByDuration && (
+              <div>
+                <h3 className="text-md font-semibold font-body text-foreground">Longest Trip by Duration:</h3>
+                <p className="text-sm text-muted-foreground font-body">
+                  "{stats.longestTripByDuration.name}" - 
+                  {stats.longestTripByDuration.plannedStartDate && stats.longestTripByDuration.plannedEndDate ? 
+                    `${differenceInCalendarDays(parseISO(stats.longestTripByDuration.plannedEndDate), parseISO(stats.longestTripByDuration.plannedStartDate)) + 1} days`
+                    : "Duration details incomplete"
+                  }
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      }
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline text-xl text-primary flex items-center"><Trophy className="mr-2 h-6 w-6" />Leaderboard (Concept)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="font-body text-muted-foreground">
+            In a full application with user accounts and a backend, this section could display a leaderboard of users based on distance travelled, trips completed, or other metrics.
+            For now, keep exploring and logging your trips to build up your personal stats!
+          </p>
+          <Alert variant="default" className="mt-4 bg-accent/10 border-accent/30">
+            <AlertTriangle className="h-4 w-4 text-accent" />
+            <AlertTitle className="font-headline text-accent">Future Feature</AlertTitle>
+            <AlertDescription className="font-body text-accent/80">
+              Imagine competing with fellow KamperHub users or earning badges for your milestones!
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
     </div>
   );
 }
