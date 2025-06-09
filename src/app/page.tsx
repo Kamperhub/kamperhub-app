@@ -12,7 +12,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Home as HomeIcon } from 'lucide-react'; 
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
-// Image import is removed as it's no longer used in this file
+import Image from 'next/image'; // Import the Image component
 
 const DASHBOARD_LAYOUT_STORAGE_KEY = 'kamperhub_dashboard_layout_v2';
 
@@ -142,7 +142,7 @@ export default function DashboardPage() {
       <div className="space-y-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
-            <HomeIcon className="mr-3 h-8 w-8 text-primary" />
+             <Skeleton className="mr-3 h-10 w-10 rounded-full" />
             <h1 className="text-3xl font-headline text-primary">Welcome to KamperHub</h1>
           </div>
           <Skeleton className="h-12 w-48" />
@@ -172,7 +172,15 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row items-center justify-between mb-6">
         <div className="flex items-center mb-4 sm:mb-0">
-          {/* The Image component that was here has been removed */}
+          <Image
+            src="/kamperhub-logo.png"
+            alt="KamperHub Logo"
+            width={60}
+            height={60}
+            className="mr-4 rounded-md"
+            priority
+            data-ai-hint="logo brand"
+          />
           <div>
             <h1 className="text-3xl font-headline text-primary">Welcome to KamperHub</h1>
             <p className="font-body text-muted-foreground">Your ultimate caravanning companion. Drag to reorder cards.</p>
