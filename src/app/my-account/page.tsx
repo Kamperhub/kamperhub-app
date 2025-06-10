@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,24 +14,30 @@ import {
   MOCK_AUTH_LAST_NAME_KEY,
   MOCK_AUTH_SUBSCRIPTION_TIER_KEY,
   MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY,
-  MOCK_AUTH_CITY_KEY, // Import new key
-  MOCK_AUTH_STATE_KEY, // Import new key
-  MOCK_AUTH_COUNTRY_KEY, // Import new key
+  MOCK_AUTH_CITY_KEY,
+  MOCK_AUTH_STATE_KEY,
+  MOCK_AUTH_COUNTRY_KEY,
+  MOCK_AUTH_USER_REGISTRY_KEY,
   type MockAuthSession,
-  type SubscriptionTier
+  type SubscriptionTier,
+  type MockUserRegistryEntry,
 } from '@/types/auth';
-import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe } from 'lucide-react';
+import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { EditProfileForm, type EditProfileFormData } from '@/components/features/account/EditProfileForm';
 
 export default function MyAccountPage() {
   const [session, setSession] = useState<MockAuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
-  useEffect(() => {
+  const loadSessionData = useCallback(() => {
     if (typeof window !== 'undefined') {
       const storedUsername = localStorage.getItem(MOCK_AUTH_USERNAME_KEY);
       const storedEmail = localStorage.getItem(MOCK_AUTH_EMAIL_KEY);
@@ -75,39 +81,109 @@ export default function MyAccountPage() {
     }
   }, []);
 
+  useEffect(() => {
+    loadSessionData();
+  }, [loadSessionData]);
+
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem(MOCK_AUTH_USERNAME_KEY);
-      localStorage.removeItem(MOCK_AUTH_EMAIL_KEY);
-      localStorage.removeItem(MOCK_AUTH_FIRST_NAME_KEY);
-      localStorage.removeItem(MOCK_AUTH_LAST_NAME_KEY);
-      localStorage.removeItem(MOCK_AUTH_LOGGED_IN_KEY);
-      localStorage.removeItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY);
-      localStorage.removeItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
-      localStorage.removeItem(MOCK_AUTH_CITY_KEY);
-      localStorage.removeItem(MOCK_AUTH_STATE_KEY);
-      localStorage.removeItem(MOCK_AUTH_COUNTRY_KEY);
+      // Clear all mock auth keys
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('kamperhub_mock_')) {
+          localStorage.removeItem(key);
+        }
+      });
     }
     setSession({ 
-        isLoggedIn: false, 
-        username: null, 
-        email: null, 
-        firstName: null, 
-        lastName: null, 
-        subscriptionTier: 'free', 
-        stripeCustomerId: null,
-        city: null,
-        state: null,
-        country: null,
+        isLoggedIn: false, username: null, email: null, firstName: null, lastName: null, 
+        subscriptionTier: 'free', stripeCustomerId: null, city: null, state: null, country: null,
     });
-    toast({
-      title: 'Logged Out',
-      description: 'You have been successfully logged out.',
-    });
+    toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
     window.dispatchEvent(new Event('storage'));
     router.push('/');
     router.refresh();
   };
+
+  const handleSaveProfile = async (data: EditProfileFormData): Promise<boolean> => {
+    if (!session || !session.username) {
+      toast({ title: "Error", description: "No active session found.", variant: "destructive" });
+      return false;
+    }
+    setIsSavingProfile(true);
+
+    let emailChanged = data.email.toLowerCase() !== (session.email?.toLowerCase() || '');
+    let newEmailIsAvailable = true;
+
+    // Update localStorage user registry
+    try {
+      const storedRegistryJson = localStorage.getItem(MOCK_AUTH_USER_REGISTRY_KEY);
+      let userRegistry: MockUserRegistryEntry[] = storedRegistryJson ? JSON.parse(storedRegistryJson) : [];
+
+      // Check email uniqueness if changed
+      if (emailChanged) {
+        const emailExists = userRegistry.some(
+          user => user.email.toLowerCase() === data.email.toLowerCase() && user.username.toLowerCase() !== session.username!.toLowerCase()
+        );
+        if (emailExists) {
+          newEmailIsAvailable = false;
+          toast({ title: 'Update Failed', description: 'This Email address is already registered by another user.', variant: 'destructive' });
+        }
+      }
+      
+      if (!newEmailIsAvailable) {
+        setIsSavingProfile(false);
+        return false;
+      }
+
+      userRegistry = userRegistry.map(user => {
+        if (user.username.toLowerCase() === session.username!.toLowerCase()) {
+          return {
+            ...user, // Keep existing fields like password
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            city: data.city,
+            state: data.state,
+            country: data.country,
+          };
+        }
+        return user;
+      });
+      localStorage.setItem(MOCK_AUTH_USER_REGISTRY_KEY, JSON.stringify(userRegistry));
+
+      // Update current session localStorage
+      localStorage.setItem(MOCK_AUTH_FIRST_NAME_KEY, data.firstName);
+      localStorage.setItem(MOCK_AUTH_LAST_NAME_KEY, data.lastName);
+      localStorage.setItem(MOCK_AUTH_EMAIL_KEY, data.email);
+      localStorage.setItem(MOCK_AUTH_CITY_KEY, data.city);
+      localStorage.setItem(MOCK_AUTH_STATE_KEY, data.state);
+      localStorage.setItem(MOCK_AUTH_COUNTRY_KEY, data.country);
+
+      // Update local session state to re-render
+      setSession(prev => prev ? ({
+        ...prev,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        city: data.city,
+        state: data.state,
+        country: data.country,
+      }) : null);
+
+      toast({ title: "Profile Updated", description: "Your account details have been saved." });
+      setIsEditProfileOpen(false); // Close dialog on successful save
+      window.dispatchEvent(new Event('storage')); // Notify header to update
+      setIsSavingProfile(false);
+      return true;
+
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      toast({ title: "Error", description: "Could not save profile changes.", variant: "destructive" });
+      setIsSavingProfile(false);
+      return false;
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -135,6 +211,15 @@ export default function MyAccountPage() {
       </div>
     );
   }
+  
+  const initialProfileDataForEdit = {
+    firstName: session.firstName || '',
+    lastName: session.lastName || '',
+    email: session.email || '',
+    city: session.city || '',
+    state: session.state || '',
+    country: session.country || '',
+  };
 
   return (
     <div className="space-y-8">
@@ -159,43 +244,61 @@ export default function MyAccountPage() {
           </Alert>
 
           <div className="p-4 border rounded-md bg-muted/30 space-y-2">
-            <h3 className="text-lg font-headline text-foreground mb-2">Account Details:</h3>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-headline text-foreground">Account Details:</h3>
+              <Dialog open={isEditProfileOpen} onOpenChange={setIsEditProfileOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="font-body">
+                    <Edit3 className="mr-2 h-4 w-4" /> Edit Profile
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[625px]">
+                  <DialogHeader>
+                    <DialogTitle className="font-headline">Edit Your Profile</DialogTitle>
+                  </DialogHeader>
+                  <EditProfileForm
+                    initialData={initialProfileDataForEdit}
+                    onSave={handleSaveProfile}
+                    onCancel={() => setIsEditProfileOpen(false)}
+                    isLoading={isSavingProfile}
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
+            
             {session.firstName && (
               <p className="font-body text-sm flex items-center">
-                  <UserCircle className="h-4 w-4 mr-2 text-primary/80" />
+                  <User className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
                   <strong>First Name:</strong>&nbsp;{session.firstName}
               </p>
             )}
             {session.lastName && (
               <p className="font-body text-sm flex items-center">
-                  <UserCircle className="h-4 w-4 mr-2 text-primary/80" />
+                  <User className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
                   <strong>Last Name:</strong>&nbsp;{session.lastName}
               </p>
             )}
             <p className="font-body text-sm flex items-center">
-                <User className="h-4 w-4 mr-2 text-primary/80" />
-                <strong>User Name:</strong>&nbsp;{session.username}
+                <UserCircle className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
+                <strong>User Name:</strong>&nbsp;{session.username} <span className="text-xs text-muted-foreground/70 ml-1">(cannot be changed)</span>
             </p>
             {session.email && (
               <p className="font-body text-sm flex items-center">
-                  <Mail className="h-4 w-4 mr-2 text-primary/80" />
+                  <Mail className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
                   <strong>Email:</strong>&nbsp;{session.email}
               </p>
             )}
             <p className="font-body text-sm flex items-center">
-                <MapPin className="h-4 w-4 mr-2 text-primary/80" />
+                <MapPin className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
                 <strong>City:</strong>&nbsp;{session.city || '[Not Provided]'}
             </p>
             <p className="font-body text-sm flex items-center">
-                <Building className="h-4 w-4 mr-2 text-primary/80" />
+                <Building className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
                 <strong>State / Region:</strong>&nbsp;{session.state || '[Not Provided]'}
             </p>
              <p className="font-body text-sm flex items-center">
-                <Globe className="h-4 w-4 mr-2 text-primary/80" />
+                <Globe className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
                 <strong>Country:</strong>&nbsp;{session.country || '[Not Provided]'}
-            </p>
-            <p className="text-xs text-muted-foreground mt-2 font-body">
-                (Location details are optional and can be entered during signup.)
             </p>
           </div>
 
