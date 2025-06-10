@@ -11,8 +11,8 @@ import {
   MOCK_AUTH_EMAIL_KEY,
   MOCK_AUTH_FIRST_NAME_KEY,
   MOCK_AUTH_LAST_NAME_KEY,
-  MOCK_AUTH_SUBSCRIPTION_TIER_KEY, // Keep for logout completeness
-  MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY // Keep for logout completeness
+  MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 
+  MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY 
 } from '@/types/auth'; 
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -113,10 +113,10 @@ export function Header() {
               </Button>
             </>
           ) : (
-            <Link href="/signup" passHref>
+            <Link href="/login" passHref> {/* Changed this link to /login */}
               <Button variant="ghost" className="p-0 sm:px-3 sm:py-2 hover:bg-primary/80 flex items-center">
                 <LogIn className="h-6 w-6 sm:mr-2" />
-                <span className="hidden sm:inline font-body text-sm">Sign Up / Log In</span>
+                <span className="hidden sm:inline font-body text-sm">Log In / Sign Up</span>
               </Button>
             </Link>
           )}

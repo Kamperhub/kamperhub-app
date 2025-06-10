@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link'; // Import Link
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,9 +16,9 @@ import {
   MOCK_AUTH_FIRST_NAME_KEY,
   MOCK_AUTH_LAST_NAME_KEY,
   MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 
-  MOCK_AUTH_USER_REGISTRY_KEY, // Import new key
+  MOCK_AUTH_USER_REGISTRY_KEY,
   type SubscriptionTier,
-  type MockUserRegistryEntry // Import new type
+  type MockUserRegistryEntry
 } from '@/types/auth';
 import { UserPlus, Mail } from 'lucide-react';
 
@@ -48,7 +49,7 @@ export default function SignupPage() {
   const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const trimmedUsername = username.trim();
-    const trimmedEmail = email.trim().toLowerCase(); // Store email in lowercase for case-insensitive check
+    const trimmedEmail = email.trim().toLowerCase(); 
     const trimmedFirstName = firstName.trim();
     const trimmedLastName = lastName.trim();
 
@@ -83,7 +84,6 @@ export default function SignupPage() {
 
     setIsLoading(true);
 
-    // Mock uniqueness check
     if (typeof window !== 'undefined') {
       const storedRegistryJson = localStorage.getItem(MOCK_AUTH_USER_REGISTRY_KEY);
       const userRegistry: MockUserRegistryEntry[] = storedRegistryJson ? JSON.parse(storedRegistryJson) : [];
@@ -102,11 +102,15 @@ export default function SignupPage() {
         return;
       }
 
-      // Add to registry
-      const updatedRegistry = [...userRegistry, { username: trimmedUsername, email: trimmedEmail }];
+      const newUserEntry: MockUserRegistryEntry = { 
+        username: trimmedUsername, 
+        email: trimmedEmail, 
+        firstName: trimmedFirstName, 
+        lastName: trimmedLastName 
+      };
+      const updatedRegistry = [...userRegistry, newUserEntry];
       localStorage.setItem(MOCK_AUTH_USER_REGISTRY_KEY, JSON.stringify(updatedRegistry));
     }
-
 
     setTimeout(() => {
       if (typeof window !== 'undefined') {
@@ -115,11 +119,11 @@ export default function SignupPage() {
         localStorage.setItem(MOCK_AUTH_FIRST_NAME_KEY, trimmedFirstName);
         localStorage.setItem(MOCK_AUTH_LAST_NAME_KEY, trimmedLastName);
         localStorage.setItem(MOCK_AUTH_LOGGED_IN_KEY, 'true');
-        localStorage.setItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 'free' as SubscriptionTier);
+        localStorage.setItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 'free' as SubscriptionTier); // Default to free on signup
       }
       toast({
         title: 'Sign Up Successful!',
-        description: `Welcome, ${trimmedFirstName} ${trimmedLastName}! Your username is ${trimmedUsername} and email ${trimmedEmail} has been noted. Your default tier is 'free'.`,
+        description: `Welcome, ${trimmedFirstName} ${trimmedLastName}! Your username is ${trimmedUsername}. You are now logged in.`,
       });
       setIsLoading(false);
       window.dispatchEvent(new Event('storage')); 
@@ -212,6 +216,12 @@ export default function SignupPage() {
               {isLoading ? 'Creating Account...' : 'Sign Up'}
             </Button>
           </form>
+          <p className="text-sm text-center text-muted-foreground mt-6 font-body">
+            Already have an account?{' '}
+            <Link href="/login" className="font-medium text-primary hover:underline">
+              Log In
+            </Link>
+          </p>
            <p className="text-xs text-center text-muted-foreground mt-4 font-body">
               This is a conceptual signup. No real accounts are created on a server. Data is stored in your browser.
             </p>
