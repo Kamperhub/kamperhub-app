@@ -9,24 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  MOCK_AUTH_USERNAME_KEY, 
-  MOCK_AUTH_LOGGED_IN_KEY, 
-  MOCK_AUTH_EMAIL_KEY, 
-  MOCK_AUTH_FIRST_NAME_KEY,
-  MOCK_AUTH_LAST_NAME_KEY,
-  MOCK_AUTH_CITY_KEY,
-  MOCK_AUTH_STATE_KEY,
-  MOCK_AUTH_COUNTRY_KEY,
-  MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 
-  MOCK_AUTH_USER_REGISTRY_KEY,
-  type SubscriptionTier,
-  type MockUserRegistryEntry
-} from '@/types/auth';
+import { auth } from '@/lib/firebase'; // Import Firebase auth
+import { createUserWithEmailAndPassword, updateProfile, type AuthError } from 'firebase/auth';
 import { UserPlus, Mail, User, KeyRound, MapPin, Building, Globe } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { MOCK_AUTH_LOGGED_IN_KEY } from '@/types/auth'; // Still used for quick redirect check
 
 const signupSchema = z.object({
   firstName: z.string().min(1, "First Name is required"),
@@ -37,12 +26,12 @@ const signupSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters long"),
   confirmPassword: z.string().min(6, "Please confirm your password"),
-  city: z.string().min(1, "City is required"),
-  state: z.string().min(1, "State / Region is required"),
-  country: z.string().min(1, "Country is required"),
+  city: z.string().min(1, "City is required*"),
+  state: z.string().min(1, "State / Region is required*"),
+  country: z.string().min(1, "Country is required*"),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match",
-  path: ["confirmPassword"], 
+  path: ["confirmPassword"],
 });
 
 type SignupFormData = z.infer<typeof signupSchema>;
@@ -70,79 +59,76 @@ export default function SignupPage() {
 
   useEffect(() => {
     setHasMounted(true);
+    // This initial redirect check can remain as it uses a simple flag
+    // Firebase's onAuthStateChanged will handle more robust session management elsewhere.
     if (typeof window !== 'undefined') {
         const isLoggedIn = localStorage.getItem(MOCK_AUTH_LOGGED_IN_KEY) === 'true';
-        if (isLoggedIn) {
-            router.push('/my-account'); 
+        if (isLoggedIn && auth.currentUser) { // Check Firebase auth state too
+            router.push('/my-account');
         }
     }
   }, [router]);
 
-  const handleSignup: SubmitHandler<SignupFormData> = (data) => {
+  const handleSignup: SubmitHandler<SignupFormData> = async (data) => {
     setIsLoading(true);
 
-    const trimmedUsername = data.username.trim();
-    const trimmedEmail = data.email.trim().toLowerCase();
-    const trimmedFirstName = data.firstName.trim();
-    const trimmedLastName = data.lastName.trim();
-    const mockPassword = data.password; 
-    const trimmedCity = data.city.trim(); // No optional chaining as it's required
-    const trimmedState = data.state.trim(); // No optional chaining
-    const trimmedCountry = data.country.trim(); // No optional chaining
+    const { email, password, username, firstName, lastName, city, state, country } = data;
 
-    if (typeof window !== 'undefined') {
-      const storedRegistryJson = localStorage.getItem(MOCK_AUTH_USER_REGISTRY_KEY);
-      const userRegistry: MockUserRegistryEntry[] = storedRegistryJson ? JSON.parse(storedRegistryJson) : [];
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
 
-      const usernameExists = userRegistry.some(user => user.username.toLowerCase() === trimmedUsername.toLowerCase());
-      if (usernameExists) {
-        toast({ title: 'Signup Failed', description: 'This User Name is already taken. Please choose another.', variant: 'destructive' });
-        setIsLoading(false);
-        return;
-      }
+      // Set the displayName (profile update)
+      // For now, let's use the username as displayName. We can refine this later.
+      // Or concatenate first and last name: `${firstName} ${lastName}`
+      await updateProfile(firebaseUser, {
+        displayName: username, // Using username from form as displayName
+      });
 
-      const emailExists = userRegistry.some(user => user.email.toLowerCase() === trimmedEmail.toLowerCase());
-      if (emailExists) {
-        toast({ title: 'Signup Failed', description: 'This Email address is already registered. Please use a different email.', variant: 'destructive' });
-        setIsLoading(false);
-        return;
-      }
+      // Note: City, State, Country are not stored in Firebase Auth user profile directly.
+      // This data will need to be saved to Firestore in a later step, associated with firebaseUser.uid.
+      // For now, this signup focuses on creating the Firebase Auth user.
 
-      const newUserEntry: MockUserRegistryEntry = { 
-        username: trimmedUsername, 
-        email: trimmedEmail, 
-        firstName: trimmedFirstName, 
-        lastName: trimmedLastName,
-        password: mockPassword,
-        city: trimmedCity, // Store directly as it's required
-        state: trimmedState, // Store directly
-        country: trimmedCountry, // Store directly
-      };
-      const updatedRegistry = [...userRegistry, newUserEntry];
-      localStorage.setItem(MOCK_AUTH_USER_REGISTRY_KEY, JSON.stringify(updatedRegistry));
-    }
-
-    setTimeout(() => {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(MOCK_AUTH_USERNAME_KEY, trimmedUsername);
-        localStorage.setItem(MOCK_AUTH_EMAIL_KEY, trimmedEmail);
-        localStorage.setItem(MOCK_AUTH_FIRST_NAME_KEY, trimmedFirstName);
-        localStorage.setItem(MOCK_AUTH_LAST_NAME_KEY, trimmedLastName);
-        localStorage.setItem(MOCK_AUTH_CITY_KEY, trimmedCity); // Always set as it's required
-        localStorage.setItem(MOCK_AUTH_STATE_KEY, trimmedState); // Always set
-        localStorage.setItem(MOCK_AUTH_COUNTRY_KEY, trimmedCountry); // Always set
-        localStorage.setItem(MOCK_AUTH_LOGGED_IN_KEY, 'true');
-        localStorage.setItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 'free' as SubscriptionTier);
-      }
       toast({
         title: 'Sign Up Successful!',
-        description: `Welcome, ${trimmedFirstName}! Your username is ${trimmedUsername}. You are now logged in.`,
+        description: `Welcome, ${firstName}! Your account for ${email} has been created. You are now logged in.`,
       });
+
+      // Firebase handles its own session, so we don't need to set MOCK_AUTH_LOGGED_IN_KEY here for Firebase.
+      // However, to prevent the immediate redirect flicker if Header/MyAccount haven't updated yet,
+      // we can set it. This will be superseded by onAuthStateChanged.
+      if (typeof window !== 'undefined') localStorage.setItem(MOCK_AUTH_LOGGED_IN_KEY, 'true');
+
+
+      router.push('/my-account'); // Redirect to account page
+      router.refresh(); // Force refresh to update header/layout based on new auth state
+
+    } catch (error: any) {
+      const authError = error as AuthError;
+      let errorMessage = 'An unexpected error occurred. Please try again.';
+      if (authError.code) {
+        switch (authError.code) {
+          case 'auth/email-already-in-use':
+            errorMessage = 'This email address is already in use by another account.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'The email address is not valid.';
+            break;
+          case 'auth/operation-not-allowed':
+            errorMessage = 'Email/password accounts are not enabled.';
+            break;
+          case 'auth/weak-password':
+            errorMessage = 'The password is too weak.';
+            break;
+          default:
+            errorMessage = authError.message;
+        }
+      }
+      toast({ title: 'Sign Up Failed', description: errorMessage, variant: 'destructive' });
+      console.error("Firebase Signup Error:", authError);
+    } finally {
       setIsLoading(false);
-      window.dispatchEvent(new Event('storage')); 
-      router.push('/my-account');
-      router.refresh(); 
-    }, 1000);
+    }
   };
 
   if (!hasMounted) {
@@ -193,7 +179,7 @@ export default function SignupPage() {
               </div>
             </div>
             <div>
-              <Label htmlFor="username" className="font-body">User Name*</Label>
+              <Label htmlFor="username" className="font-body">User Name* (for display)</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -211,7 +197,7 @@ export default function SignupPage() {
               {errors.username && <p className="text-xs text-destructive font-body mt-1">{errors.username.message}</p>}
             </div>
             <div>
-              <Label htmlFor="email" className="font-body">Email Address*</Label>
+              <Label htmlFor="email" className="font-body">Email Address* (for login)</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -220,7 +206,7 @@ export default function SignupPage() {
                   {...register("email")}
                   placeholder="e.g., your.email@example.com"
                   disabled={isLoading}
-                  className="font-body pl-10" 
+                  className="font-body pl-10"
                 />
               </div>
               {errors.email && <p className="text-xs text-destructive font-body mt-1">{errors.email.message}</p>}
@@ -285,7 +271,7 @@ export default function SignupPage() {
             </div>
 
             <Button type="submit" className="w-full font-body bg-primary text-primary-foreground hover:bg-primary/90 mt-6" disabled={isLoading}>
-              {isLoading ? 'Creating Account...' : 'Sign Up'}
+              {isLoading ? 'Creating Account...' : 'Sign Up with Firebase'}
             </Button>
           </form>
           <p className="text-sm text-center text-muted-foreground mt-4 font-body">
@@ -294,9 +280,6 @@ export default function SignupPage() {
               Log In
             </Link>
           </p>
-           <p className="text-xs text-center text-muted-foreground mt-3 font-body">
-              This is a conceptual signup. No real accounts are created on a server. Data is stored in your browser.
-            </p>
         </CardContent>
       </Card>
     </div>

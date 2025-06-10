@@ -9,21 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  MOCK_AUTH_USERNAME_KEY, 
-  MOCK_AUTH_LOGGED_IN_KEY, 
-  MOCK_AUTH_EMAIL_KEY, 
-  MOCK_AUTH_FIRST_NAME_KEY,
-  MOCK_AUTH_LAST_NAME_KEY,
-  MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 
-  MOCK_AUTH_USER_REGISTRY_KEY,
-  type SubscriptionTier,
-  type MockUserRegistryEntry
-} from '@/types/auth';
-import { LogInIcon, User, KeyRound } from 'lucide-react';
+import { auth } from '@/lib/firebase'; // Import Firebase auth
+import { signInWithEmailAndPassword, type AuthError } from 'firebase/auth';
+import { MOCK_AUTH_LOGGED_IN_KEY } from '@/types/auth'; // Still used for quick redirect check
+import { LogInIcon, Mail, KeyRound } from 'lucide-react'; // Changed User to Mail icon
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState(''); // Changed from username to email
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -32,60 +24,71 @@ export default function LoginPage() {
 
   useEffect(() => {
     setHasMounted(true);
+    // This initial redirect check can remain as it uses a simple flag
+    // Firebase's onAuthStateChanged will handle more robust session management elsewhere.
     if (typeof window !== 'undefined') {
         const isLoggedIn = localStorage.getItem(MOCK_AUTH_LOGGED_IN_KEY) === 'true';
-        if (isLoggedIn) {
-            router.push('/my-account'); 
+        if (isLoggedIn && auth.currentUser) { // Check Firebase auth state too
+            router.push('/my-account');
         }
     }
   }, [router]);
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const trimmedUsername = username.trim();
-    // Password is not trimmed to allow spaces if user intends them
+    const trimmedEmail = email.trim();
 
-    if (!trimmedUsername) {
-      toast({ title: 'Validation Error', description: 'User Name cannot be empty.', variant: 'destructive' });
+    if (!trimmedEmail) {
+      toast({ title: 'Validation Error', description: 'Email cannot be empty.', variant: 'destructive' });
       return;
     }
     if (!password) {
       toast({ title: 'Validation Error', description: 'Password cannot be empty.', variant: 'destructive' });
       return;
     }
-    
+
     setIsLoading(true);
 
-    setTimeout(() => {
-      if (typeof window !== 'undefined') {
-        const storedRegistryJson = localStorage.getItem(MOCK_AUTH_USER_REGISTRY_KEY);
-        const userRegistry: MockUserRegistryEntry[] = storedRegistryJson ? JSON.parse(storedRegistryJson) : [];
-        
-        const foundUser = userRegistry.find(user => user.username.toLowerCase() === trimmedUsername.toLowerCase());
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, password);
+      const firebaseUser = userCredential.user;
 
-        if (foundUser && foundUser.password === password) { // Check password
-          localStorage.setItem(MOCK_AUTH_USERNAME_KEY, foundUser.username);
-          localStorage.setItem(MOCK_AUTH_EMAIL_KEY, foundUser.email);
-          localStorage.setItem(MOCK_AUTH_FIRST_NAME_KEY, foundUser.firstName);
-          localStorage.setItem(MOCK_AUTH_LAST_NAME_KEY, foundUser.lastName);
-          localStorage.setItem(MOCK_AUTH_LOGGED_IN_KEY, 'true');
-          
-          const userTier = localStorage.getItem(`${MOCK_AUTH_SUBSCRIPTION_TIER_KEY}_${foundUser.username}`) as SubscriptionTier | null;
-          localStorage.setItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY, userTier || 'free' as SubscriptionTier);
+      toast({
+        title: 'Login Successful!',
+        description: `Welcome back, ${firebaseUser.displayName || firebaseUser.email}!`,
+      });
 
-          toast({
-            title: 'Login Successful!',
-            description: `Welcome back, ${foundUser.firstName}!`,
-          });
-          window.dispatchEvent(new Event('storage')); 
-          router.push('/my-account');
-          router.refresh();
-        } else {
-          toast({ title: 'Login Failed', description: 'Invalid username or password. Please check your credentials or sign up.', variant: 'destructive' });
+      // Firebase handles its own session. We might set a flag for quicker UI updates
+      // that will be confirmed by onAuthStateChanged.
+      if (typeof window !== 'undefined') localStorage.setItem(MOCK_AUTH_LOGGED_IN_KEY, 'true');
+
+      router.push('/my-account');
+      router.refresh(); // Force refresh to update header/layout
+    } catch (error: any) {
+      const authError = error as AuthError;
+      let errorMessage = 'An unexpected error occurred. Please try again.';
+      if (authError.code) {
+        switch (authError.code) {
+          case 'auth/invalid-email':
+            errorMessage = 'The email address is not valid.';
+            break;
+          case 'auth/user-disabled':
+            errorMessage = 'This user account has been disabled.';
+            break;
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+          case 'auth/invalid-credential': // New error code for invalid email/password
+            errorMessage = 'Invalid email or password. Please check your credentials.';
+            break;
+          default:
+            errorMessage = authError.message;
         }
       }
+      toast({ title: 'Login Failed', description: errorMessage, variant: 'destructive' });
+      console.error("Firebase Login Error:", authError);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   if (!hasMounted) {
@@ -104,21 +107,21 @@ export default function LoginPage() {
             <LogInIcon className="mr-2 h-6 w-6" /> Log In to KamperHub
           </CardTitle>
           <CardDescription className="font-body">
-            Enter your username and password to access your account.
+            Enter your email and password to access your account.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <Label htmlFor="username" className="font-body">User Name</Label>
+              <Label htmlFor="email" className="font-body">Email Address</Label> {/* Changed label */}
               <div className="relative">
-                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /> {/* Changed icon */}
                 <Input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Your registered username"
+                  id="email" // Changed id
+                  type="email" // Changed type
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your.email@example.com" // Changed placeholder
                   disabled={isLoading}
                   className="font-body pl-10"
                 />
@@ -149,9 +152,6 @@ export default function LoginPage() {
               Sign Up
             </Link>
           </p>
-           <p className="text-xs text-center text-muted-foreground mt-4 font-body">
-              This is a conceptual login. Passwords are mock-stored. Data is checked against your browser's storage.
-            </p>
         </CardContent>
       </Card>
     </div>
