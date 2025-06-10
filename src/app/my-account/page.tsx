@@ -42,14 +42,14 @@ export default function MyAccountPage() {
         setSession({
           isLoggedIn: true,
           username: storedUsername,
-          email: storedEmail,
-          firstName: storedFirstName,
-          lastName: storedLastName,
+          email: storedEmail || null, // Ensure email is nullable
+          firstName: storedFirstName || null, // Ensure firstName is nullable
+          lastName: storedLastName || null, // Ensure lastName is nullable
           subscriptionTier: storedTier || 'free',
-          stripeCustomerId: storedStripeCustomerId
+          stripeCustomerId: storedStripeCustomerId || null // Ensure stripeCustomerId is nullable
         });
       } else {
-        setSession({ isLoggedIn: false, username: null, email: null, firstName: null, lastName: null, subscriptionTier: 'free' });
+        setSession({ isLoggedIn: false, username: null, email: null, firstName: null, lastName: null, subscriptionTier: 'free', stripeCustomerId: null });
       }
       setIsLoading(false);
     }
@@ -65,7 +65,7 @@ export default function MyAccountPage() {
       localStorage.removeItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY);
       localStorage.removeItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
     }
-    setSession({ isLoggedIn: false, username: null, email: null, firstName: null, lastName: null, subscriptionTier: 'free' });
+    setSession({ isLoggedIn: false, username: null, email: null, firstName: null, lastName: null, subscriptionTier: 'free', stripeCustomerId: null });
     toast({
       title: 'Logged Out',
       description: 'You have been successfully logged out.',
@@ -92,7 +92,7 @@ export default function MyAccountPage() {
             <p className="text-muted-foreground font-body mb-6">
             You are not currently signed in.
             </p>
-            <Link href="/login" passHref> {/* Updated to /login */}
+            <Link href="/login" passHref>
             <Button className="w-full font-body bg-primary text-primary-foreground hover:bg-primary/90">
                 Log In / Sign Up
             </Button>
@@ -202,5 +202,3 @@ export default function MyAccountPage() {
     </div>
   );
 }
-
-    
