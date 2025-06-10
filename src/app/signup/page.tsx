@@ -15,7 +15,9 @@ import {
   MOCK_AUTH_FIRST_NAME_KEY,
   MOCK_AUTH_LAST_NAME_KEY,
   MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 
-  type SubscriptionTier 
+  MOCK_AUTH_USER_REGISTRY_KEY, // Import new key
+  type SubscriptionTier,
+  type MockUserRegistryEntry // Import new type
 } from '@/types/auth';
 import { UserPlus, Mail } from 'lucide-react';
 
@@ -45,49 +47,79 @@ export default function SignupPage() {
 
   const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!firstName.trim()) {
+    const trimmedUsername = username.trim();
+    const trimmedEmail = email.trim().toLowerCase(); // Store email in lowercase for case-insensitive check
+    const trimmedFirstName = firstName.trim();
+    const trimmedLastName = lastName.trim();
+
+    if (!trimmedFirstName) {
       toast({ title: 'Validation Error', description: 'First Name cannot be empty.', variant: 'destructive' });
       return;
     }
-    if (!lastName.trim()) {
+    if (!trimmedLastName) {
       toast({ title: 'Validation Error', description: 'Last Name cannot be empty.', variant: 'destructive' });
       return;
     }
-    if (!username.trim()) {
+    if (!trimmedUsername) {
       toast({ title: 'Validation Error', description: 'User Name cannot be empty.', variant: 'destructive' });
       return;
     }
-    if (username.trim().length < 3) {
+    if (trimmedUsername.length < 3) {
       toast({ title: 'Validation Error', description: 'User Name must be at least 3 characters long.', variant: 'destructive' });
       return;
     }
-    if (!/^[a-zA-Z0-9_.-]+$/.test(username.trim())) {
+    if (!/^[a-zA-Z0-9_.-]+$/.test(trimmedUsername)) {
       toast({ title: 'Validation Error', description: 'User Name can only contain letters, numbers, underscores, hyphens, and periods.', variant: 'destructive' });
       return;
     }
-    if (!email.trim()) {
+    if (!trimmedEmail) {
       toast({ title: 'Validation Error', description: 'Email cannot be empty.', variant: 'destructive' });
       return;
     }
-    if (!validateEmail(email.trim())) {
+    if (!validateEmail(trimmedEmail)) {
       toast({ title: 'Validation Error', description: 'Please enter a valid email address.', variant: 'destructive' });
       return;
     }
 
     setIsLoading(true);
 
+    // Mock uniqueness check
+    if (typeof window !== 'undefined') {
+      const storedRegistryJson = localStorage.getItem(MOCK_AUTH_USER_REGISTRY_KEY);
+      const userRegistry: MockUserRegistryEntry[] = storedRegistryJson ? JSON.parse(storedRegistryJson) : [];
+
+      const usernameExists = userRegistry.some(user => user.username.toLowerCase() === trimmedUsername.toLowerCase());
+      if (usernameExists) {
+        toast({ title: 'Signup Failed', description: 'This User Name is already taken. Please choose another.', variant: 'destructive' });
+        setIsLoading(false);
+        return;
+      }
+
+      const emailExists = userRegistry.some(user => user.email.toLowerCase() === trimmedEmail.toLowerCase());
+      if (emailExists) {
+        toast({ title: 'Signup Failed', description: 'This Email address is already registered. Please use a different email.', variant: 'destructive' });
+        setIsLoading(false);
+        return;
+      }
+
+      // Add to registry
+      const updatedRegistry = [...userRegistry, { username: trimmedUsername, email: trimmedEmail }];
+      localStorage.setItem(MOCK_AUTH_USER_REGISTRY_KEY, JSON.stringify(updatedRegistry));
+    }
+
+
     setTimeout(() => {
       if (typeof window !== 'undefined') {
-        localStorage.setItem(MOCK_AUTH_USERNAME_KEY, username.trim());
-        localStorage.setItem(MOCK_AUTH_EMAIL_KEY, email.trim());
-        localStorage.setItem(MOCK_AUTH_FIRST_NAME_KEY, firstName.trim());
-        localStorage.setItem(MOCK_AUTH_LAST_NAME_KEY, lastName.trim());
+        localStorage.setItem(MOCK_AUTH_USERNAME_KEY, trimmedUsername);
+        localStorage.setItem(MOCK_AUTH_EMAIL_KEY, trimmedEmail);
+        localStorage.setItem(MOCK_AUTH_FIRST_NAME_KEY, trimmedFirstName);
+        localStorage.setItem(MOCK_AUTH_LAST_NAME_KEY, trimmedLastName);
         localStorage.setItem(MOCK_AUTH_LOGGED_IN_KEY, 'true');
         localStorage.setItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 'free' as SubscriptionTier);
       }
       toast({
         title: 'Sign Up Successful!',
-        description: `Welcome, ${firstName.trim()} ${lastName.trim()}! Your username is ${username.trim()} and email ${email.trim()} has been noted. Your default tier is 'free'.`,
+        description: `Welcome, ${trimmedFirstName} ${trimmedLastName}! Your username is ${trimmedUsername} and email ${trimmedEmail} has been noted. Your default tier is 'free'.`,
       });
       setIsLoading(false);
       window.dispatchEvent(new Event('storage')); 
@@ -188,4 +220,3 @@ export default function SignupPage() {
     </div>
   );
 }
-
