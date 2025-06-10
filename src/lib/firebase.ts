@@ -2,7 +2,7 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
-import { initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from "firebase/app-check"; // Added for App Check
+import { initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from "firebase/app-check";
 
 // Your web app's Firebase configuration
 // These values should be stored in your .env.local file for security
@@ -19,7 +19,7 @@ const firebaseConfig = {
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
-let appCheck: AppCheck | undefined = undefined; // Variable for App Check instance
+let appCheck: AppCheck | undefined = undefined;
 
 // Initialize Firebase
 if (getApps().length === 0) {
@@ -27,7 +27,8 @@ if (getApps().length === 0) {
     console.warn(
       'Firebase configuration is missing or incomplete. Please ensure all NEXT_PUBLIC_FIREBASE_ environment variables are set in your .env file.'
     );
-    app = initializeApp({}); // Initialize with empty config if vars are missing
+    // Initialize with empty config if vars are missing to avoid hard crash, though Firebase services won't work.
+    app = initializeApp({});
   } else {
      app = initializeApp(firebaseConfig);
   }
@@ -38,41 +39,51 @@ if (getApps().length === 0) {
 auth = getAuth(app);
 db = getFirestore(app);
 
-// Initialize App Check
+// Initialize App Check with reCAPTCHA v3
 if (typeof window !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.projectId) {
-  // Set the debug token flag for local development
-  // IMPORTANT: THIS SHOULD ONLY BE ENABLED FOR LOCAL DEVELOPMENT AND TESTING
-  // In a production environment, you should rely on a real attestation provider like reCAPTCHA v3.
-  if (process.env.NODE_ENV === 'development') {
-    (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    console.log(
-      "Firebase App Check DEBUG MODE activated for local development. " +
-      "If you see App Check errors, look for a debug token in your browser's console logs (it might appear after an attempted Firebase call), " +
-      "then add it to Firebase Console > App Check > Your Web App > Manage debug tokens."
-    );
-  }
+  const reCAPTCHASiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY;
 
-  // Attempt to initialize App Check, even in dev with the debug token flag.
-  // For production, you'd typically use ReCaptchaV3Provider and ensure
-  // NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY is set.
-  // For now, this setup prioritizes getting local dev unblocked.
-  try {
-    appCheck = initializeAppCheck(app, {
-      // In a real production app, you would use a provider like:
-      // provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY!),
-      // For now, if the debug token is set, Firebase should use it.
-      // If you have a reCAPTCHA key, you can use it here. If not, this might still fail
-      // in production if App Check is enforced without a provider or debug token.
-      provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY || 'missing-site-key'), // Provide a placeholder if key is missing to avoid error, debug token takes precedence in dev.
-      isTokenAutoRefreshEnabled: true
-    });
-    console.log("Attempted Firebase App Check initialization.");
-  } catch (e) {
-    console.error("Error initializing Firebase App Check:", e);
-    console.warn("If App Check is enforced in your Firebase project, ensure you have a valid provider (e.g., reCAPTCHA v3) configured for production, or a debug token for local development.");
+  if (reCAPTCHASiteKey && reCAPTCHASiteKey !== 'your_recaptcha_v3_site_key_here' && reCAPTCHASiteKey.length > 10) { // Basic check for placeholder
+    try {
+      appCheck = initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(reCAPTCHASiteKey),
+        isTokenAutoRefreshEnabled: true
+      });
+      console.log("Firebase App Check initialized successfully with reCAPTCHA v3.");
+    } catch (e: any) {
+      console.error("Error initializing Firebase App Check with reCAPTCHA v3:", e.message);
+      if (e.message && e.message.includes('reCAPTCHA V3 site key is not valid')) {
+        console.warn("Ensure your NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY is correct and the domain is registered in Google Cloud Console for reCAPTCHA.");
+      }
+    }
+  } else {
+    // Fallback for local development using debug token, if reCAPTCHA key is not set or is a placeholder.
+    // This prioritizes debug token for local dev if no valid reCAPTCHA key is found.
+    if (process.env.NODE_ENV === 'development') {
+        (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+        console.log(
+        "Firebase App Check: reCAPTCHA v3 site key not configured or is a placeholder. DEBUG MODE for App Check activated. " +
+        "Look for a debug token in your browser's console logs (it might appear after an attempted Firebase call), " +
+        "then add it to Firebase Console > App Check > Your Web App > Manage debug tokens."
+        );
+        // Initialize App Check without a provider so it picks up the debug token.
+        // This might still throw an error if App Check is enforced and no token is immediately available/registered.
+        try {
+            appCheck = initializeAppCheck(app, { isTokenAutoRefreshEnabled: true });
+        } catch(e: any) {
+            console.error("Error initializing App Check in debug mode (this might be expected until a debug token is registered):", e.message);
+        }
+
+    } else {
+        console.warn(
+            "Firebase App Check: NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY is not configured or is a placeholder. " +
+            "App Check will not be initialized with reCAPTCHA for production. " +
+            "If App Check is enforced, Firebase operations might fail."
+        );
+    }
   }
 } else if (typeof window !== 'undefined') {
-  console.warn("Firebase App Check not initialized because Firebase config is incomplete.");
+  console.warn("Firebase App Check not initialized because Firebase config is incomplete or not in a browser environment.");
 }
 
 
