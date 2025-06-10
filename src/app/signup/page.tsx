@@ -37,12 +37,12 @@ const signupSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters long"),
   confirmPassword: z.string().min(6, "Please confirm your password"),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  country: z.string().optional(),
+  city: z.string().min(1, "City is required"),
+  state: z.string().min(1, "State / Region is required"),
+  country: z.string().min(1, "Country is required"),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match",
-  path: ["confirmPassword"], // Set error on confirmPassword field
+  path: ["confirmPassword"], 
 });
 
 type SignupFormData = z.infer<typeof signupSchema>;
@@ -86,9 +86,9 @@ export default function SignupPage() {
     const trimmedFirstName = data.firstName.trim();
     const trimmedLastName = data.lastName.trim();
     const mockPassword = data.password; 
-    const trimmedCity = data.city?.trim();
-    const trimmedState = data.state?.trim();
-    const trimmedCountry = data.country?.trim();
+    const trimmedCity = data.city.trim(); // No optional chaining as it's required
+    const trimmedState = data.state.trim(); // No optional chaining
+    const trimmedCountry = data.country.trim(); // No optional chaining
 
     if (typeof window !== 'undefined') {
       const storedRegistryJson = localStorage.getItem(MOCK_AUTH_USER_REGISTRY_KEY);
@@ -114,9 +114,9 @@ export default function SignupPage() {
         firstName: trimmedFirstName, 
         lastName: trimmedLastName,
         password: mockPassword,
-        city: trimmedCity || undefined,
-        state: trimmedState || undefined,
-        country: trimmedCountry || undefined,
+        city: trimmedCity, // Store directly as it's required
+        state: trimmedState, // Store directly
+        country: trimmedCountry, // Store directly
       };
       const updatedRegistry = [...userRegistry, newUserEntry];
       localStorage.setItem(MOCK_AUTH_USER_REGISTRY_KEY, JSON.stringify(updatedRegistry));
@@ -128,12 +128,9 @@ export default function SignupPage() {
         localStorage.setItem(MOCK_AUTH_EMAIL_KEY, trimmedEmail);
         localStorage.setItem(MOCK_AUTH_FIRST_NAME_KEY, trimmedFirstName);
         localStorage.setItem(MOCK_AUTH_LAST_NAME_KEY, trimmedLastName);
-        if (trimmedCity) localStorage.setItem(MOCK_AUTH_CITY_KEY, trimmedCity);
-        else localStorage.removeItem(MOCK_AUTH_CITY_KEY);
-        if (trimmedState) localStorage.setItem(MOCK_AUTH_STATE_KEY, trimmedState);
-        else localStorage.removeItem(MOCK_AUTH_STATE_KEY);
-        if (trimmedCountry) localStorage.setItem(MOCK_AUTH_COUNTRY_KEY, trimmedCountry);
-        else localStorage.removeItem(MOCK_AUTH_COUNTRY_KEY);
+        localStorage.setItem(MOCK_AUTH_CITY_KEY, trimmedCity); // Always set as it's required
+        localStorage.setItem(MOCK_AUTH_STATE_KEY, trimmedState); // Always set
+        localStorage.setItem(MOCK_AUTH_COUNTRY_KEY, trimmedCountry); // Always set
         localStorage.setItem(MOCK_AUTH_LOGGED_IN_KEY, 'true');
         localStorage.setItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 'free' as SubscriptionTier);
       }
@@ -164,7 +161,7 @@ export default function SignupPage() {
             <UserPlus className="mr-2 h-6 w-6" /> Create Your KamperHub Account
           </CardTitle>
           <CardDescription className="font-body">
-            Fields marked * are required. Location fields are optional.
+            All fields marked * are required.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -259,10 +256,10 @@ export default function SignupPage() {
               {errors.confirmPassword && <p className="text-xs text-destructive font-body mt-1">{errors.confirmPassword.message}</p>}
             </div>
 
-            <h3 className="font-headline text-lg text-primary pt-2">Optional Location Details</h3>
+            <h3 className="font-headline text-lg text-primary pt-2">Location Details*</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="city" className="font-body">City</Label>
+                <Label htmlFor="city" className="font-body">City*</Label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input id="city" {...register("city")} placeholder="e.g., Perth" disabled={isLoading} className="font-body pl-10" />
@@ -270,7 +267,7 @@ export default function SignupPage() {
                 {errors.city && <p className="text-xs text-destructive font-body mt-1">{errors.city.message}</p>}
               </div>
               <div>
-                <Label htmlFor="state" className="font-body">State / Region</Label>
+                <Label htmlFor="state" className="font-body">State / Region*</Label>
                  <div className="relative">
                   <Building className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input id="state" {...register("state")} placeholder="e.g., WA" disabled={isLoading} className="font-body pl-10" />
@@ -278,7 +275,7 @@ export default function SignupPage() {
                 {errors.state && <p className="text-xs text-destructive font-body mt-1">{errors.state.message}</p>}
               </div>
               <div>
-                <Label htmlFor="country" className="font-body">Country</Label>
+                <Label htmlFor="country" className="font-body">Country*</Label>
                  <div className="relative">
                   <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input id="country" {...register("country")} placeholder="e.g., Australia" disabled={isLoading} className="font-body pl-10" />
@@ -305,4 +302,3 @@ export default function SignupPage() {
     </div>
   );
 }
-
