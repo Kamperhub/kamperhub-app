@@ -24,7 +24,7 @@ import { LogInIcon, User, KeyRound } from 'lucide-react';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState(''); // Added password state
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -49,7 +49,7 @@ export default function LoginPage() {
       toast({ title: 'Validation Error', description: 'User Name cannot be empty.', variant: 'destructive' });
       return;
     }
-    if (!password) { // Check if password is empty
+    if (!password) {
       toast({ title: 'Validation Error', description: 'Password cannot be empty.', variant: 'destructive' });
       return;
     }

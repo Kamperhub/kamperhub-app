@@ -30,5 +30,6 @@ export interface MockUserRegistryEntry {
   email: string;
   firstName: string; 
   lastName: string;  
-  password?: string; // Added mock password field
+  password?: string; // Ensure password field is present
 }
+

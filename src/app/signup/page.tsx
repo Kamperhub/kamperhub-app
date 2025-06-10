@@ -148,7 +148,7 @@ export default function SignupPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(handleSignup)} className="space-y-4"> {/* Reduced space-y from 6 to 4 */}
+          <form onSubmit={handleSubmit(handleSignup)} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="firstName" className="font-body">First Name</Label>
