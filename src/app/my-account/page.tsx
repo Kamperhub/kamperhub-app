@@ -6,14 +6,14 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  MOCK_AUTH_USERNAME_KEY, 
-  MOCK_AUTH_LOGGED_IN_KEY, 
-  MOCK_AUTH_EMAIL_KEY, 
+import {
+  MOCK_AUTH_USERNAME_KEY,
+  MOCK_AUTH_LOGGED_IN_KEY,
+  MOCK_AUTH_EMAIL_KEY,
   MOCK_AUTH_FIRST_NAME_KEY,
   MOCK_AUTH_LAST_NAME_KEY,
-  MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 
-  MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY, 
+  MOCK_AUTH_SUBSCRIPTION_TIER_KEY,
+  MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY,
   type MockAuthSession,
   type SubscriptionTier
 } from '@/types/auth';
@@ -39,13 +39,13 @@ export default function MyAccountPage() {
       const storedStripeCustomerId = localStorage.getItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
 
       if (isLoggedIn && storedUsername) {
-        setSession({ 
-          isLoggedIn: true, 
-          username: storedUsername, 
+        setSession({
+          isLoggedIn: true,
+          username: storedUsername,
           email: storedEmail,
           firstName: storedFirstName,
           lastName: storedLastName,
-          subscriptionTier: storedTier || 'free', 
+          subscriptionTier: storedTier || 'free',
           stripeCustomerId: storedStripeCustomerId
         });
       } else {
@@ -70,11 +70,11 @@ export default function MyAccountPage() {
       title: 'Logged Out',
       description: 'You have been successfully logged out.',
     });
-    window.dispatchEvent(new Event('storage')); 
+    window.dispatchEvent(new Event('storage'));
     router.push('/');
-    router.refresh(); 
+    router.refresh();
   };
-  
+
   if (isLoading) {
     return (
         <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
@@ -92,9 +92,9 @@ export default function MyAccountPage() {
             <p className="text-muted-foreground font-body mb-6">
             You are not currently signed in.
             </p>
-            <Link href="/signup" passHref>
+            <Link href="/login" passHref> {/* Updated to /login */}
             <Button className="w-full font-body bg-primary text-primary-foreground hover:bg-primary/90">
-                Sign Up / Log In
+                Log In / Sign Up
             </Button>
             </Link>
         </Card>
@@ -119,11 +119,11 @@ export default function MyAccountPage() {
             <ShieldAlert className="h-4 w-4 text-yellow-600" />
             <AlertTitle className="font-headline text-yellow-700">Demonstration Only</AlertTitle>
             <AlertDescription className="font-body">
-              This account system uses browser local storage for demonstration. 
+              This account system uses browser local storage for demonstration.
               Subscription management and trial logic are conceptual.
             </AlertDescription>
           </Alert>
-          
+
           <div className="p-4 border rounded-md bg-muted/30 space-y-2">
             <h3 className="text-lg font-headline text-foreground mb-2">Account Details:</h3>
             {session.firstName && (
@@ -180,9 +180,9 @@ export default function MyAccountPage() {
             <p className="font-body text-sm mt-3 text-muted-foreground">
               Your subscription (including free trial cancellation or managing payment methods) is managed through Stripe.
             </p>
-            <Button 
-                variant="outline" 
-                className="mt-2 font-body w-full sm:w-auto" 
+            <Button
+                variant="outline"
+                className="mt-2 font-body w-full sm:w-auto"
                 onClick={() => {
                   toast({title: "Conceptual Action", description: "This would redirect to Stripe Customer Portal."});
                 }}
@@ -193,7 +193,7 @@ export default function MyAccountPage() {
                 Note: If you started with a free trial, it will automatically convert to a paid Pro subscription unless canceled via Stripe before the trial ends.
              </p>
           </div>
-          
+
           <Button onClick={handleLogout} variant="destructive" className="w-full font-body">
             <LogOut className="mr-2 h-4 w-4" /> Log Out
           </Button>
@@ -203,3 +203,4 @@ export default function MyAccountPage() {
   );
 }
 
+    
