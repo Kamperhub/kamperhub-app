@@ -8,12 +8,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { MOCK_AUTH_USERNAME_KEY, MOCK_AUTH_LOGGED_IN_KEY, MOCK_AUTH_EMAIL_KEY, MOCK_AUTH_SUBSCRIPTION_TIER_KEY, type SubscriptionTier } from '@/types/auth';
+import { 
+  MOCK_AUTH_USERNAME_KEY, 
+  MOCK_AUTH_LOGGED_IN_KEY, 
+  MOCK_AUTH_EMAIL_KEY, 
+  MOCK_AUTH_FIRST_NAME_KEY,
+  MOCK_AUTH_LAST_NAME_KEY,
+  MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 
+  type SubscriptionTier 
+} from '@/types/auth';
 import { UserPlus, Mail } from 'lucide-react';
 
 export default function SignupPage() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -35,6 +45,14 @@ export default function SignupPage() {
 
   const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!firstName.trim()) {
+      toast({ title: 'Validation Error', description: 'First Name cannot be empty.', variant: 'destructive' });
+      return;
+    }
+    if (!lastName.trim()) {
+      toast({ title: 'Validation Error', description: 'Last Name cannot be empty.', variant: 'destructive' });
+      return;
+    }
     if (!username.trim()) {
       toast({ title: 'Validation Error', description: 'User Name cannot be empty.', variant: 'destructive' });
       return;
@@ -62,16 +80,17 @@ export default function SignupPage() {
       if (typeof window !== 'undefined') {
         localStorage.setItem(MOCK_AUTH_USERNAME_KEY, username.trim());
         localStorage.setItem(MOCK_AUTH_EMAIL_KEY, email.trim());
+        localStorage.setItem(MOCK_AUTH_FIRST_NAME_KEY, firstName.trim());
+        localStorage.setItem(MOCK_AUTH_LAST_NAME_KEY, lastName.trim());
         localStorage.setItem(MOCK_AUTH_LOGGED_IN_KEY, 'true');
-        localStorage.setItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 'free' as SubscriptionTier); // Default to 'free' tier
-        // localStorage.removeItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY); // Clear any old customer ID
+        localStorage.setItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 'free' as SubscriptionTier);
       }
       toast({
         title: 'Sign Up Successful!',
-        description: `Welcome, ${username.trim()}! Your email ${email.trim()} has been noted. Your default tier is 'free'.`,
+        description: `Welcome, ${firstName.trim()} ${lastName.trim()}! Your username is ${username.trim()} and email ${email.trim()} has been noted. Your default tier is 'free'.`,
       });
       setIsLoading(false);
-      window.dispatchEvent(new Event('storage')); // Notify header/other components
+      window.dispatchEvent(new Event('storage')); 
       router.push('/my-account');
       router.refresh(); 
     }, 1000);
@@ -93,11 +112,37 @@ export default function SignupPage() {
             <UserPlus className="mr-2 h-6 w-6" /> Create Your KamperHub Account
           </CardTitle>
           <CardDescription className="font-body">
-            Enter a User Name and Email to get started. You'll start on the 'Free' tier.
+            Enter your details to get started. You'll start on the 'Free' tier.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignup} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="firstName" className="font-body">First Name</Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="e.g., Jane"
+                  disabled={isLoading}
+                  className="font-body"
+                />
+              </div>
+              <div>
+                <Label htmlFor="lastName" className="font-body">Last Name</Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="e.g., Doe"
+                  disabled={isLoading}
+                  className="font-body"
+                />
+              </div>
+            </div>
             <div>
               <Label htmlFor="username" className="font-body">User Name</Label>
               <Input
@@ -143,3 +188,4 @@ export default function SignupPage() {
     </div>
   );
 }
+

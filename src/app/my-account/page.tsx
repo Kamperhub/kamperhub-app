@@ -10,12 +10,14 @@ import {
   MOCK_AUTH_USERNAME_KEY, 
   MOCK_AUTH_LOGGED_IN_KEY, 
   MOCK_AUTH_EMAIL_KEY, 
+  MOCK_AUTH_FIRST_NAME_KEY,
+  MOCK_AUTH_LAST_NAME_KEY,
   MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 
   MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY, 
   type MockAuthSession,
   type SubscriptionTier
 } from '@/types/auth';
-import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe } from 'lucide-react'; // Added MapPin, Building, Globe
+import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +32,8 @@ export default function MyAccountPage() {
     if (typeof window !== 'undefined') {
       const storedUsername = localStorage.getItem(MOCK_AUTH_USERNAME_KEY);
       const storedEmail = localStorage.getItem(MOCK_AUTH_EMAIL_KEY);
+      const storedFirstName = localStorage.getItem(MOCK_AUTH_FIRST_NAME_KEY);
+      const storedLastName = localStorage.getItem(MOCK_AUTH_LAST_NAME_KEY);
       const isLoggedIn = localStorage.getItem(MOCK_AUTH_LOGGED_IN_KEY) === 'true';
       const storedTier = localStorage.getItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY) as SubscriptionTier | null;
       const storedStripeCustomerId = localStorage.getItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
@@ -39,11 +43,13 @@ export default function MyAccountPage() {
           isLoggedIn: true, 
           username: storedUsername, 
           email: storedEmail,
+          firstName: storedFirstName,
+          lastName: storedLastName,
           subscriptionTier: storedTier || 'free', 
           stripeCustomerId: storedStripeCustomerId
         });
       } else {
-        setSession({ isLoggedIn: false, username: null, email: null, subscriptionTier: 'free' });
+        setSession({ isLoggedIn: false, username: null, email: null, firstName: null, lastName: null, subscriptionTier: 'free' });
       }
       setIsLoading(false);
     }
@@ -53,11 +59,13 @@ export default function MyAccountPage() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(MOCK_AUTH_USERNAME_KEY);
       localStorage.removeItem(MOCK_AUTH_EMAIL_KEY);
+      localStorage.removeItem(MOCK_AUTH_FIRST_NAME_KEY);
+      localStorage.removeItem(MOCK_AUTH_LAST_NAME_KEY);
       localStorage.removeItem(MOCK_AUTH_LOGGED_IN_KEY);
       localStorage.removeItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY);
       localStorage.removeItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
     }
-    setSession({ isLoggedIn: false, username: null, email: null, subscriptionTier: 'free' });
+    setSession({ isLoggedIn: false, username: null, email: null, firstName: null, lastName: null, subscriptionTier: 'free' });
     toast({
       title: 'Logged Out',
       description: 'You have been successfully logged out.',
@@ -100,7 +108,7 @@ export default function MyAccountPage() {
         <CardHeader className="text-center">
           <UserCircle className="h-20 w-20 text-primary mx-auto mb-3" />
           <CardTitle className="font-headline text-3xl text-primary">
-            Welcome, {session.username}!
+            Welcome, {session.firstName || session.username}!
           </CardTitle>
           <CardDescription className="font-body text-lg">
             Manage your account details and subscription.
@@ -118,6 +126,18 @@ export default function MyAccountPage() {
           
           <div className="p-4 border rounded-md bg-muted/30 space-y-2">
             <h3 className="text-lg font-headline text-foreground mb-2">Account Details:</h3>
+            {session.firstName && (
+              <p className="font-body text-sm flex items-center">
+                  <UserCircle className="h-4 w-4 mr-2 text-primary/80" />
+                  <strong>First Name:</strong>&nbsp;{session.firstName}
+              </p>
+            )}
+            {session.lastName && (
+              <p className="font-body text-sm flex items-center">
+                  <UserCircle className="h-4 w-4 mr-2 text-primary/80" />
+                  <strong>Last Name:</strong>&nbsp;{session.lastName}
+              </p>
+            )}
             <p className="font-body text-sm flex items-center">
                 <UserCircle className="h-4 w-4 mr-2 text-primary/80" />
                 <strong>User Name:</strong>&nbsp;{session.username}
@@ -164,8 +184,6 @@ export default function MyAccountPage() {
                 variant="outline" 
                 className="mt-2 font-body w-full sm:w-auto" 
                 onClick={() => {
-                  // In a real app, this would redirect to your Stripe Customer Portal URL
-                  // For demo, it will just show a toast.
                   toast({title: "Conceptual Action", description: "This would redirect to Stripe Customer Portal."});
                 }}
             >
@@ -184,3 +202,4 @@ export default function MyAccountPage() {
     </div>
   );
 }
+

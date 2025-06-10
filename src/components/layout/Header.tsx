@@ -3,16 +3,24 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-// Image import removed as it's no longer used
 import { Home, UserCircle, LogIn, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { MOCK_AUTH_USERNAME_KEY, MOCK_AUTH_LOGGED_IN_KEY, MOCK_AUTH_EMAIL_KEY } from '@/types/auth'; 
+import { 
+  MOCK_AUTH_USERNAME_KEY, 
+  MOCK_AUTH_LOGGED_IN_KEY, 
+  MOCK_AUTH_EMAIL_KEY,
+  MOCK_AUTH_FIRST_NAME_KEY,
+  MOCK_AUTH_LAST_NAME_KEY,
+  MOCK_AUTH_SUBSCRIPTION_TIER_KEY, // Keep for logout completeness
+  MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY // Keep for logout completeness
+} from '@/types/auth'; 
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
 export function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
+  const [firstName, setFirstName] = useState<string | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -21,8 +29,10 @@ export function Header() {
     if (typeof window !== 'undefined') {
       const loggedInStatus = localStorage.getItem(MOCK_AUTH_LOGGED_IN_KEY) === 'true';
       const storedUsername = localStorage.getItem(MOCK_AUTH_USERNAME_KEY);
+      const storedFirstName = localStorage.getItem(MOCK_AUTH_FIRST_NAME_KEY);
       setIsLoggedIn(loggedInStatus);
       setUsername(loggedInStatus ? storedUsername : null);
+      setFirstName(loggedInStatus ? storedFirstName : null);
     }
   };
 
@@ -43,10 +53,15 @@ export function Header() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(MOCK_AUTH_USERNAME_KEY);
       localStorage.removeItem(MOCK_AUTH_EMAIL_KEY); 
+      localStorage.removeItem(MOCK_AUTH_FIRST_NAME_KEY);
+      localStorage.removeItem(MOCK_AUTH_LAST_NAME_KEY);
       localStorage.removeItem(MOCK_AUTH_LOGGED_IN_KEY);
+      localStorage.removeItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY);
+      localStorage.removeItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
     }
     setIsLoggedIn(false);
     setUsername(null);
+    setFirstName(null);
     toast({
       title: 'Logged Out',
       description: 'You have been successfully logged out.',
@@ -59,7 +74,6 @@ export function Header() {
     return (
       <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-40">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          {/* Placeholder for logo area if needed, or can be removed if brand name is sufficient */}
           <Link href="/" className="flex items-center gap-3 text-xl font-bold font-headline">
              KamperHub
           </Link>
@@ -75,7 +89,6 @@ export function Header() {
   return (
     <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-40">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        {/* Logo removed, displaying text link instead */}
         <Link href="/" className="flex items-center gap-3 text-xl font-bold font-headline">
           KamperHub
         </Link>
@@ -87,12 +100,12 @@ export function Header() {
             </Button>
           </Link>
 
-          {isLoggedIn && username ? (
+          {isLoggedIn ? (
             <>
               <Link href="/my-account" passHref>
                 <Button variant="ghost" className="p-0 sm:px-3 sm:py-2 hover:bg-primary/80 flex items-center">
                   <UserCircle className="h-6 w-6 sm:mr-2" />
-                  <span className="hidden sm:inline font-body text-sm">{username}</span>
+                  <span className="hidden sm:inline font-body text-sm">{firstName || username}</span>
                 </Button>
               </Link>
               <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Log Out" className="p-0 hover:bg-primary/80">
@@ -112,3 +125,4 @@ export function Header() {
     </header>
   );
 }
+
