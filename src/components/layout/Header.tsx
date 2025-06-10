@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image'; // Import Next.js Image component
 import { Home, UserCircle, LogIn, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -73,10 +74,9 @@ export function Header() {
   if (!hasMounted) {
     return (
       <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 text-xl font-bold font-headline">
-             KamperHub
-          </Link>
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between h-[68px]"> {/* Set a fixed height for loading state */}
+          {/* Placeholder for logo during loading to maintain layout consistency */}
+          <div className="h-[40px] w-[160px] bg-primary/50 rounded animate-pulse"></div>
           <div className="flex items-center gap-3">
              <div className="h-7 w-7 bg-primary/50 rounded-full animate-pulse"></div>
              <div className="h-7 w-20 bg-primary/50 rounded animate-pulse"></div>
@@ -88,9 +88,17 @@ export function Header() {
 
   return (
     <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-40">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3 text-xl font-bold font-headline">
-          KamperHub
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between h-[68px]"> {/* Consistent height */}
+        <Link href="/" className="flex items-center">
+          <Image
+            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.firebasestorage.app/o/Kamper%20Social%20Media%20Banner.jpg?alt=media&token=1050fb50-5c13-4f03-8cad-d80954cf9072"
+            alt="KamperHub Banner Logo"
+            width={160} // Adjust width as needed for your banner
+            height={40} // Adjust height as needed
+            priority // Good for LCP elements
+            className="object-contain" // Ensures the image scales nicely within the dimensions
+            data-ai-hint="logo brand banner"
+          />
         </Link>
 
         <div className="flex items-center gap-3">
@@ -113,7 +121,7 @@ export function Header() {
               </Button>
             </>
           ) : (
-            <Link href="/login" passHref> {/* Changed this link to /login */}
+            <Link href="/login" passHref>
               <Button variant="ghost" className="p-0 sm:px-3 sm:py-2 hover:bg-primary/80 flex items-center">
                 <LogIn className="h-6 w-6 sm:mr-2" />
                 <span className="hidden sm:inline font-body text-sm">Log In / Sign Up</span>
@@ -125,4 +133,3 @@ export function Header() {
     </header>
   );
 }
-
