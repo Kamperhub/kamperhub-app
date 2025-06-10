@@ -42,11 +42,11 @@ export default function MyAccountPage() {
         setSession({
           isLoggedIn: true,
           username: storedUsername,
-          email: storedEmail || null, // Ensure email is nullable
-          firstName: storedFirstName || null, // Ensure firstName is nullable
-          lastName: storedLastName || null, // Ensure lastName is nullable
+          email: storedEmail || null,
+          firstName: storedFirstName || null,
+          lastName: storedLastName || null,
           subscriptionTier: storedTier || 'free',
-          stripeCustomerId: storedStripeCustomerId || null // Ensure stripeCustomerId is nullable
+          stripeCustomerId: storedStripeCustomerId || null
         });
       } else {
         setSession({ isLoggedIn: false, username: null, email: null, firstName: null, lastName: null, subscriptionTier: 'free', stripeCustomerId: null });
@@ -148,7 +148,7 @@ export default function MyAccountPage() {
                   <strong>Email:</strong>&nbsp;{session.email}
               </p>
             )}
-             <p className="font-body text-sm flex items-center">
+            <p className="font-body text-sm flex items-center">
                 <MapPin className="h-4 w-4 mr-2 text-primary/80" />
                 <strong>City:</strong>&nbsp;[Not Provided]
             </p>
