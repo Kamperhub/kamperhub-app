@@ -109,7 +109,7 @@ export default function SignupPage() {
       }
       toast({
         title: 'Sign Up Successful!',
-        description: `Welcome, ${trimmedFirstName} ${trimmedLastName}! Your username is ${trimmedUsername}. You are now logged in.`,
+        description: `Welcome, ${trimmedFirstName}! Your username is ${trimmedUsername}. You are now logged in.`,
       });
       setIsLoading(false);
       window.dispatchEvent(new Event('storage')); 
