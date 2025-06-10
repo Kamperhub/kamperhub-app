@@ -20,10 +20,11 @@ import {
   type SubscriptionTier,
   type MockUserRegistryEntry
 } from '@/types/auth';
-import { LogInIcon, User } from 'lucide-react'; // Changed UserPlus to LogInIcon
+import { LogInIcon, User, KeyRound } from 'lucide-react';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState(''); // Added password state
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -42,9 +43,14 @@ export default function LoginPage() {
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const trimmedUsername = username.trim();
+    // Password is not trimmed to allow spaces if user intends them
 
     if (!trimmedUsername) {
       toast({ title: 'Validation Error', description: 'User Name cannot be empty.', variant: 'destructive' });
+      return;
+    }
+    if (!password) { // Check if password is empty
+      toast({ title: 'Validation Error', description: 'Password cannot be empty.', variant: 'destructive' });
       return;
     }
     
@@ -57,17 +63,15 @@ export default function LoginPage() {
         
         const foundUser = userRegistry.find(user => user.username.toLowerCase() === trimmedUsername.toLowerCase());
 
-        if (foundUser) {
+        if (foundUser && foundUser.password === password) { // Check password
           localStorage.setItem(MOCK_AUTH_USERNAME_KEY, foundUser.username);
           localStorage.setItem(MOCK_AUTH_EMAIL_KEY, foundUser.email);
           localStorage.setItem(MOCK_AUTH_FIRST_NAME_KEY, foundUser.firstName);
           localStorage.setItem(MOCK_AUTH_LAST_NAME_KEY, foundUser.lastName);
           localStorage.setItem(MOCK_AUTH_LOGGED_IN_KEY, 'true');
-          // For mock login, retrieve subscription tier or default. Let's default to 'free' for simplicity.
-          // In a real app, this would come from the user's record.
+          
           const userTier = localStorage.getItem(`${MOCK_AUTH_SUBSCRIPTION_TIER_KEY}_${foundUser.username}`) as SubscriptionTier | null;
           localStorage.setItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY, userTier || 'free' as SubscriptionTier);
-
 
           toast({
             title: 'Login Successful!',
@@ -77,7 +81,7 @@ export default function LoginPage() {
           router.push('/my-account');
           router.refresh();
         } else {
-          toast({ title: 'Login Failed', description: 'User Name not found. Please check your username or sign up.', variant: 'destructive' });
+          toast({ title: 'Login Failed', description: 'Invalid username or password. Please check your credentials or sign up.', variant: 'destructive' });
         }
       }
       setIsLoading(false);
@@ -100,7 +104,7 @@ export default function LoginPage() {
             <LogInIcon className="mr-2 h-6 w-6" /> Log In to KamperHub
           </CardTitle>
           <CardDescription className="font-body">
-            Enter your username to access your account.
+            Enter your username and password to access your account.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -120,6 +124,21 @@ export default function LoginPage() {
                 />
               </div>
             </div>
+            <div>
+              <Label htmlFor="password" className="font-body">Password</Label>
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Your password"
+                  disabled={isLoading}
+                  className="font-body pl-10"
+                />
+              </div>
+            </div>
             <Button type="submit" className="w-full font-body bg-primary text-primary-foreground hover:bg-primary/90" disabled={isLoading}>
               {isLoading ? 'Logging In...' : 'Log In'}
             </Button>
@@ -131,7 +150,7 @@ export default function LoginPage() {
             </Link>
           </p>
            <p className="text-xs text-center text-muted-foreground mt-4 font-body">
-              This is a conceptual login. No real accounts are stored on a server. Data is checked against your browser's storage.
+              This is a conceptual login. Passwords are mock-stored. Data is checked against your browser's storage.
             </p>
         </CardContent>
       </Card>

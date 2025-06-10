@@ -28,6 +28,7 @@ export interface MockAuthSession {
 export interface MockUserRegistryEntry {
   username: string;
   email: string;
-  firstName: string; // Added
-  lastName: string;  // Added
+  firstName: string; 
+  lastName: string;  
+  password?: string; // Added mock password field
 }
