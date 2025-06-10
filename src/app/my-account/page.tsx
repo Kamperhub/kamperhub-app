@@ -15,7 +15,7 @@ import {
   type MockAuthSession,
   type SubscriptionTier
 } from '@/types/auth';
-import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, User, Phone } from 'lucide-react'; // Added User, Phone
+import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe } from 'lucide-react'; // Added MapPin, Building, Globe
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -128,16 +128,20 @@ export default function MyAccountPage() {
                   <strong>Email:</strong>&nbsp;{session.email}
               </p>
             )}
-            <p className="font-body text-sm flex items-center">
-                <User className="h-4 w-4 mr-2 text-primary/80" />
-                <strong>Full Name:</strong>&nbsp;[Not Provided]
+             <p className="font-body text-sm flex items-center">
+                <MapPin className="h-4 w-4 mr-2 text-primary/80" />
+                <strong>City:</strong>&nbsp;[Not Provided]
             </p>
             <p className="font-body text-sm flex items-center">
-                <Phone className="h-4 w-4 mr-2 text-primary/80" />
-                <strong>Phone Number:</strong>&nbsp;[Not Provided]
+                <Building className="h-4 w-4 mr-2 text-primary/80" />
+                <strong>State / Region:</strong>&nbsp;[Not Provided]
+            </p>
+             <p className="font-body text-sm flex items-center">
+                <Globe className="h-4 w-4 mr-2 text-primary/80" />
+                <strong>Country:</strong>&nbsp;[Not Provided]
             </p>
             <p className="text-xs text-muted-foreground mt-2 font-body">
-                (Full Name and Phone Number are placeholders. In a full app, you could edit these details.)
+                (Location details are placeholders. In a full app, you could edit these details.)
             </p>
           </div>
 
@@ -180,4 +184,3 @@ export default function MyAccountPage() {
     </div>
   );
 }
-
