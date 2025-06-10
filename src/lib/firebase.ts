@@ -2,7 +2,7 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
-// import { getStorage, type FirebaseStorage } from 'firebase/storage'; // Uncomment if you need Firebase Storage
+import { initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from "firebase/app-check"; // Added for App Check
 
 // Your web app's Firebase configuration
 // These values should be stored in your .env.local file for security
@@ -19,7 +19,7 @@ const firebaseConfig = {
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
-// let storage: FirebaseStorage; // Uncomment if you need Firebase Storage
+let appCheck: AppCheck | undefined = undefined; // Variable for App Check instance
 
 // Initialize Firebase
 if (getApps().length === 0) {
@@ -27,10 +27,6 @@ if (getApps().length === 0) {
     console.warn(
       'Firebase configuration is missing or incomplete. Please ensure all NEXT_PUBLIC_FIREBASE_ environment variables are set in your .env file.'
     );
-    // You might want to throw an error here or handle it more gracefully
-    // For now, we'll let it proceed, but Firebase services won't work.
-    // Create a dummy app to prevent errors if config is missing,
-    // but functionality will be broken.
     app = initializeApp({}); // Initialize with empty config if vars are missing
   } else {
      app = initializeApp(firebaseConfig);
@@ -41,6 +37,43 @@ if (getApps().length === 0) {
 
 auth = getAuth(app);
 db = getFirestore(app);
-// storage = getStorage(app); // Uncomment if you need Firebase Storage
 
-export { app, auth, db /*, storage */ };
+// Initialize App Check
+if (typeof window !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.projectId) {
+  // Set the debug token flag for local development
+  // IMPORTANT: THIS SHOULD ONLY BE ENABLED FOR LOCAL DEVELOPMENT AND TESTING
+  // In a production environment, you should rely on a real attestation provider like reCAPTCHA v3.
+  if (process.env.NODE_ENV === 'development') {
+    (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    console.log(
+      "Firebase App Check DEBUG MODE activated for local development. " +
+      "If you see App Check errors, look for a debug token in your browser's console logs (it might appear after an attempted Firebase call), " +
+      "then add it to Firebase Console > App Check > Your Web App > Manage debug tokens."
+    );
+  }
+
+  // Attempt to initialize App Check, even in dev with the debug token flag.
+  // For production, you'd typically use ReCaptchaV3Provider and ensure
+  // NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY is set.
+  // For now, this setup prioritizes getting local dev unblocked.
+  try {
+    appCheck = initializeAppCheck(app, {
+      // In a real production app, you would use a provider like:
+      // provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY!),
+      // For now, if the debug token is set, Firebase should use it.
+      // If you have a reCAPTCHA key, you can use it here. If not, this might still fail
+      // in production if App Check is enforced without a provider or debug token.
+      provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY || 'missing-site-key'), // Provide a placeholder if key is missing to avoid error, debug token takes precedence in dev.
+      isTokenAutoRefreshEnabled: true
+    });
+    console.log("Attempted Firebase App Check initialization.");
+  } catch (e) {
+    console.error("Error initializing Firebase App Check:", e);
+    console.warn("If App Check is enforced in your Firebase project, ensure you have a valid provider (e.g., reCAPTCHA v3) configured for production, or a debug token for local development.");
+  }
+} else if (typeof window !== 'undefined') {
+  console.warn("Firebase App Check not initialized because Firebase config is incomplete.");
+}
+
+
+export { app, auth, db, appCheck };
