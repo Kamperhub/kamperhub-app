@@ -15,12 +15,15 @@ import {
   MOCK_AUTH_EMAIL_KEY, 
   MOCK_AUTH_FIRST_NAME_KEY,
   MOCK_AUTH_LAST_NAME_KEY,
+  MOCK_AUTH_CITY_KEY,
+  MOCK_AUTH_STATE_KEY,
+  MOCK_AUTH_COUNTRY_KEY,
   MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 
   MOCK_AUTH_USER_REGISTRY_KEY,
   type SubscriptionTier,
   type MockUserRegistryEntry
 } from '@/types/auth';
-import { UserPlus, Mail, User, KeyRound } from 'lucide-react';
+import { UserPlus, Mail, User, KeyRound, MapPin, Building, Globe } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -34,6 +37,9 @@ const signupSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters long"),
   confirmPassword: z.string().min(6, "Please confirm your password"),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  country: z.string().optional(),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"], // Set error on confirmPassword field
@@ -51,6 +57,9 @@ export default function SignupPage() {
       email: '',
       password: '',
       confirmPassword: '',
+      city: '',
+      state: '',
+      country: '',
     }
   });
 
@@ -76,8 +85,10 @@ export default function SignupPage() {
     const trimmedEmail = data.email.trim().toLowerCase();
     const trimmedFirstName = data.firstName.trim();
     const trimmedLastName = data.lastName.trim();
-    // For this mock, we'll store the password as is. In a real app, NEVER do this.
     const mockPassword = data.password; 
+    const trimmedCity = data.city?.trim();
+    const trimmedState = data.state?.trim();
+    const trimmedCountry = data.country?.trim();
 
     if (typeof window !== 'undefined') {
       const storedRegistryJson = localStorage.getItem(MOCK_AUTH_USER_REGISTRY_KEY);
@@ -102,7 +113,10 @@ export default function SignupPage() {
         email: trimmedEmail, 
         firstName: trimmedFirstName, 
         lastName: trimmedLastName,
-        password: mockPassword // Store the mock password
+        password: mockPassword,
+        city: trimmedCity || undefined,
+        state: trimmedState || undefined,
+        country: trimmedCountry || undefined,
       };
       const updatedRegistry = [...userRegistry, newUserEntry];
       localStorage.setItem(MOCK_AUTH_USER_REGISTRY_KEY, JSON.stringify(updatedRegistry));
@@ -114,6 +128,12 @@ export default function SignupPage() {
         localStorage.setItem(MOCK_AUTH_EMAIL_KEY, trimmedEmail);
         localStorage.setItem(MOCK_AUTH_FIRST_NAME_KEY, trimmedFirstName);
         localStorage.setItem(MOCK_AUTH_LAST_NAME_KEY, trimmedLastName);
+        if (trimmedCity) localStorage.setItem(MOCK_AUTH_CITY_KEY, trimmedCity);
+        else localStorage.removeItem(MOCK_AUTH_CITY_KEY);
+        if (trimmedState) localStorage.setItem(MOCK_AUTH_STATE_KEY, trimmedState);
+        else localStorage.removeItem(MOCK_AUTH_STATE_KEY);
+        if (trimmedCountry) localStorage.setItem(MOCK_AUTH_COUNTRY_KEY, trimmedCountry);
+        else localStorage.removeItem(MOCK_AUTH_COUNTRY_KEY);
         localStorage.setItem(MOCK_AUTH_LOGGED_IN_KEY, 'true');
         localStorage.setItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 'free' as SubscriptionTier);
       }
@@ -138,20 +158,20 @@ export default function SignupPage() {
 
   return (
     <div className="flex justify-center items-start pt-10 min-h-screen">
-      <Card className="w-full max-w-md shadow-xl">
+      <Card className="w-full max-w-lg shadow-xl">
         <CardHeader>
           <CardTitle className="font-headline text-2xl text-primary flex items-center">
             <UserPlus className="mr-2 h-6 w-6" /> Create Your KamperHub Account
           </CardTitle>
           <CardDescription className="font-body">
-            All fields are required. You'll start on the 'Free' tier.
+            Fields marked * are required. Location fields are optional.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(handleSignup)} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="firstName" className="font-body">First Name</Label>
+                <Label htmlFor="firstName" className="font-body">First Name*</Label>
                 <Input
                   id="firstName"
                   type="text"
@@ -163,7 +183,7 @@ export default function SignupPage() {
                 {errors.firstName && <p className="text-xs text-destructive font-body mt-1">{errors.firstName.message}</p>}
               </div>
               <div>
-                <Label htmlFor="lastName" className="font-body">Last Name</Label>
+                <Label htmlFor="lastName" className="font-body">Last Name*</Label>
                 <Input
                   id="lastName"
                   type="text"
@@ -176,7 +196,7 @@ export default function SignupPage() {
               </div>
             </div>
             <div>
-              <Label htmlFor="username" className="font-body">User Name</Label>
+              <Label htmlFor="username" className="font-body">User Name*</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -194,7 +214,7 @@ export default function SignupPage() {
               {errors.username && <p className="text-xs text-destructive font-body mt-1">{errors.username.message}</p>}
             </div>
             <div>
-              <Label htmlFor="email" className="font-body">Email Address</Label>
+              <Label htmlFor="email" className="font-body">Email Address*</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -206,13 +226,10 @@ export default function SignupPage() {
                   className="font-body pl-10" 
                 />
               </div>
-              <p className="text-xs text-muted-foreground mt-1 font-body">
-                We'll use this for account-related communication.
-              </p>
               {errors.email && <p className="text-xs text-destructive font-body mt-1">{errors.email.message}</p>}
             </div>
             <div>
-              <Label htmlFor="password" className="font-body">Password</Label>
+              <Label htmlFor="password" className="font-body">Password*</Label>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -227,7 +244,7 @@ export default function SignupPage() {
               {errors.password && <p className="text-xs text-destructive font-body mt-1">{errors.password.message}</p>}
             </div>
             <div>
-              <Label htmlFor="confirmPassword" className="font-body">Confirm Password</Label>
+              <Label htmlFor="confirmPassword" className="font-body">Confirm Password*</Label>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -241,7 +258,36 @@ export default function SignupPage() {
               </div>
               {errors.confirmPassword && <p className="text-xs text-destructive font-body mt-1">{errors.confirmPassword.message}</p>}
             </div>
-            <Button type="submit" className="w-full font-body bg-primary text-primary-foreground hover:bg-primary/90" disabled={isLoading}>
+
+            <h3 className="font-headline text-lg text-primary pt-2">Optional Location Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="city" className="font-body">City</Label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input id="city" {...register("city")} placeholder="e.g., Perth" disabled={isLoading} className="font-body pl-10" />
+                </div>
+                {errors.city && <p className="text-xs text-destructive font-body mt-1">{errors.city.message}</p>}
+              </div>
+              <div>
+                <Label htmlFor="state" className="font-body">State / Region</Label>
+                 <div className="relative">
+                  <Building className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input id="state" {...register("state")} placeholder="e.g., WA" disabled={isLoading} className="font-body pl-10" />
+                </div>
+                {errors.state && <p className="text-xs text-destructive font-body mt-1">{errors.state.message}</p>}
+              </div>
+              <div>
+                <Label htmlFor="country" className="font-body">Country</Label>
+                 <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input id="country" {...register("country")} placeholder="e.g., Australia" disabled={isLoading} className="font-body pl-10" />
+                </div>
+                {errors.country && <p className="text-xs text-destructive font-body mt-1">{errors.country.message}</p>}
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full font-body bg-primary text-primary-foreground hover:bg-primary/90 mt-6" disabled={isLoading}>
               {isLoading ? 'Creating Account...' : 'Sign Up'}
             </Button>
           </form>
@@ -259,3 +305,4 @@ export default function SignupPage() {
     </div>
   );
 }
+

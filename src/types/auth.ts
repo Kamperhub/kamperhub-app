@@ -9,6 +9,12 @@ export const MOCK_AUTH_LAST_NAME_KEY = 'kamperhub_mock_last_name';
 export const MOCK_AUTH_SUBSCRIPTION_TIER_KEY = 'kamperhub_mock_subscription_tier';
 export const MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY = 'kamperhub_mock_stripe_customer_id';
 
+// New keys for city, state, country for active session
+export const MOCK_AUTH_CITY_KEY = 'kamperhub_mock_city';
+export const MOCK_AUTH_STATE_KEY = 'kamperhub_mock_state';
+export const MOCK_AUTH_COUNTRY_KEY = 'kamperhub_mock_country';
+
+
 // New key for the user registry
 export const MOCK_AUTH_USER_REGISTRY_KEY = 'kamperhub_mock_user_registry';
 
@@ -22,6 +28,9 @@ export interface MockAuthSession {
   lastName?: string | null;
   subscriptionTier?: SubscriptionTier | null;
   stripeCustomerId?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
 }
 
 // Structure for an entry in the user registry
@@ -31,5 +40,8 @@ export interface MockUserRegistryEntry {
   firstName: string; 
   lastName: string;  
   password?: string; // Ensure password field is present
+  city?: string;
+  state?: string;
+  country?: string;
 }
 

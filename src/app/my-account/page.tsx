@@ -14,6 +14,9 @@ import {
   MOCK_AUTH_LAST_NAME_KEY,
   MOCK_AUTH_SUBSCRIPTION_TIER_KEY,
   MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY,
+  MOCK_AUTH_CITY_KEY, // Import new key
+  MOCK_AUTH_STATE_KEY, // Import new key
+  MOCK_AUTH_COUNTRY_KEY, // Import new key
   type MockAuthSession,
   type SubscriptionTier
 } from '@/types/auth';
@@ -37,6 +40,9 @@ export default function MyAccountPage() {
       const isLoggedIn = localStorage.getItem(MOCK_AUTH_LOGGED_IN_KEY) === 'true';
       const storedTier = localStorage.getItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY) as SubscriptionTier | null;
       const storedStripeCustomerId = localStorage.getItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
+      const storedCity = localStorage.getItem(MOCK_AUTH_CITY_KEY);
+      const storedState = localStorage.getItem(MOCK_AUTH_STATE_KEY);
+      const storedCountry = localStorage.getItem(MOCK_AUTH_COUNTRY_KEY);
 
       if (isLoggedIn && storedUsername) {
         setSession({
@@ -46,10 +52,24 @@ export default function MyAccountPage() {
           firstName: storedFirstName || null,
           lastName: storedLastName || null,
           subscriptionTier: storedTier || 'free',
-          stripeCustomerId: storedStripeCustomerId || null
+          stripeCustomerId: storedStripeCustomerId || null,
+          city: storedCity || null,
+          state: storedState || null,
+          country: storedCountry || null,
         });
       } else {
-        setSession({ isLoggedIn: false, username: null, email: null, firstName: null, lastName: null, subscriptionTier: 'free', stripeCustomerId: null });
+        setSession({ 
+            isLoggedIn: false, 
+            username: null, 
+            email: null, 
+            firstName: null, 
+            lastName: null, 
+            subscriptionTier: 'free', 
+            stripeCustomerId: null,
+            city: null,
+            state: null,
+            country: null,
+        });
       }
       setIsLoading(false);
     }
@@ -64,8 +84,22 @@ export default function MyAccountPage() {
       localStorage.removeItem(MOCK_AUTH_LOGGED_IN_KEY);
       localStorage.removeItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY);
       localStorage.removeItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
+      localStorage.removeItem(MOCK_AUTH_CITY_KEY);
+      localStorage.removeItem(MOCK_AUTH_STATE_KEY);
+      localStorage.removeItem(MOCK_AUTH_COUNTRY_KEY);
     }
-    setSession({ isLoggedIn: false, username: null, email: null, firstName: null, lastName: null, subscriptionTier: 'free', stripeCustomerId: null });
+    setSession({ 
+        isLoggedIn: false, 
+        username: null, 
+        email: null, 
+        firstName: null, 
+        lastName: null, 
+        subscriptionTier: 'free', 
+        stripeCustomerId: null,
+        city: null,
+        state: null,
+        country: null,
+    });
     toast({
       title: 'Logged Out',
       description: 'You have been successfully logged out.',
@@ -139,7 +173,7 @@ export default function MyAccountPage() {
               </p>
             )}
             <p className="font-body text-sm flex items-center">
-                <UserCircle className="h-4 w-4 mr-2 text-primary/80" />
+                <User className="h-4 w-4 mr-2 text-primary/80" />
                 <strong>User Name:</strong>&nbsp;{session.username}
             </p>
             {session.email && (
@@ -150,18 +184,18 @@ export default function MyAccountPage() {
             )}
             <p className="font-body text-sm flex items-center">
                 <MapPin className="h-4 w-4 mr-2 text-primary/80" />
-                <strong>City:</strong>&nbsp;[Not Provided]
+                <strong>City:</strong>&nbsp;{session.city || '[Not Provided]'}
             </p>
             <p className="font-body text-sm flex items-center">
                 <Building className="h-4 w-4 mr-2 text-primary/80" />
-                <strong>State / Region:</strong>&nbsp;[Not Provided]
+                <strong>State / Region:</strong>&nbsp;{session.state || '[Not Provided]'}
             </p>
              <p className="font-body text-sm flex items-center">
                 <Globe className="h-4 w-4 mr-2 text-primary/80" />
-                <strong>Country:</strong>&nbsp;[Not Provided]
+                <strong>Country:</strong>&nbsp;{session.country || '[Not Provided]'}
             </p>
             <p className="text-xs text-muted-foreground mt-2 font-body">
-                (Location details are placeholders. In a full app, you could edit these details.)
+                (Location details are optional and can be entered during signup.)
             </p>
           </div>
 
