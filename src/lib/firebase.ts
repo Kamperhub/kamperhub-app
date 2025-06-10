@@ -39,11 +39,15 @@ if (getApps().length === 0) {
 auth = getAuth(app);
 db = getFirestore(app);
 
-// Initialize App Check with reCAPTCHA v3
+// Initialize App Check
 if (typeof window !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.projectId) {
   const reCAPTCHASiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY;
+  console.log("[AppCheck] NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY from env:", reCAPTCHASiteKey); // Diagnostic log
 
-  if (reCAPTCHASiteKey && reCAPTCHASiteKey !== 'your_recaptcha_v3_site_key_here' && reCAPTCHASiteKey.length > 10) { // Basic check for placeholder
+  const isRecaptchaKeyValid = reCAPTCHASiteKey && reCAPTCHASiteKey !== 'your_recaptcha_v3_site_key_here' && reCAPTCHASiteKey.length > 10;
+  console.log("[AppCheck] Is reCAPTCHA key considered valid for use?", isRecaptchaKeyValid); // Diagnostic log
+
+  if (isRecaptchaKeyValid) {
     try {
       appCheck = initializeAppCheck(app, {
         provider: new ReCaptchaV3Provider(reCAPTCHASiteKey),
@@ -58,18 +62,18 @@ if (typeof window !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.pro
     }
   } else {
     // Fallback for local development using debug token, if reCAPTCHA key is not set or is a placeholder.
-    // This prioritizes debug token for local dev if no valid reCAPTCHA key is found.
     if (process.env.NODE_ENV === 'development') {
         (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
         console.log(
-        "Firebase App Check: reCAPTCHA v3 site key not configured or is a placeholder. DEBUG MODE for App Check activated. " +
+        "Firebase App Check: reCAPTCHA v3 site key not configured, is a placeholder, or too short. DEBUG MODE for App Check activated. " +
         "Look for a debug token in your browser's console logs (it might appear after an attempted Firebase call), " +
         "then add it to Firebase Console > App Check > Your Web App > Manage debug tokens."
         );
-        // Initialize App Check without a provider so it picks up the debug token.
-        // This might still throw an error if App Check is enforced and no token is immediately available/registered.
         try {
-            appCheck = initializeAppCheck(app, { isTokenAutoRefreshEnabled: true });
+            // Simpler call for debug mode, relying on the global debug flag.
+            // isTokenAutoRefreshEnabled defaults to true.
+            appCheck = initializeAppCheck(app);
+            console.log("[AppCheck] Attempted initialization in debug mode.");
         } catch(e: any) {
             console.error("Error initializing App Check in debug mode (this might be expected until a debug token is registered):", e.message);
         }
