@@ -15,10 +15,10 @@ import {
   type MockAuthSession,
   type SubscriptionTier
 } from '@/types/auth';
-import { UserCircle, LogOut, ShieldAlert, Mail, Star } from 'lucide-react'; // Added Star
+import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from '@/components/ui/badge'; // Added Badge
+import { Badge } from '@/components/ui/badge';
 
 export default function MyAccountPage() {
   const [session, setSession] = useState<MockAuthSession | null>(null);
@@ -39,7 +39,7 @@ export default function MyAccountPage() {
           isLoggedIn: true, 
           username: storedUsername, 
           email: storedEmail,
-          subscriptionTier: storedTier || 'free', // Default to 'free' if not set
+          subscriptionTier: storedTier || 'free', 
           stripeCustomerId: storedStripeCustomerId
         });
       } else {
@@ -47,7 +47,7 @@ export default function MyAccountPage() {
       }
       setIsLoading(false);
     }
-  }, []); // Removed router from dependencies as it doesn't change
+  }, []);
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
@@ -62,7 +62,7 @@ export default function MyAccountPage() {
       title: 'Logged Out',
       description: 'You have been successfully logged out.',
     });
-    window.dispatchEvent(new Event('storage')); // Notify header and other components
+    window.dispatchEvent(new Event('storage')); 
     router.push('/');
     router.refresh(); 
   };
@@ -103,7 +103,7 @@ export default function MyAccountPage() {
             Welcome, {session.username}!
           </CardTitle>
           <CardDescription className="font-body text-lg">
-            This is your conceptual account page.
+            Manage your account details and subscription.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -111,8 +111,8 @@ export default function MyAccountPage() {
             <ShieldAlert className="h-4 w-4 text-yellow-600" />
             <AlertTitle className="font-headline text-yellow-700">Demonstration Only</AlertTitle>
             <AlertDescription className="font-body">
-              This account system is for demonstration and uses browser local storage.
-              It is not secure for real applications.
+              This account system uses browser local storage for demonstration. 
+              Subscription management and trial logic are conceptual.
             </AlertDescription>
           </Alert>
           
@@ -125,9 +125,13 @@ export default function MyAccountPage() {
                   <strong>Email:</strong> {session.email}
               </p>
             )}
-            <div className="font-body text-sm flex items-center mt-2">
+          </div>
+
+          <div className="p-4 border rounded-md bg-muted/30">
+            <h3 className="text-lg font-headline text-foreground mb-2">Subscription Status:</h3>
+            <div className="font-body text-sm flex items-center">
               <Star className={`h-4 w-4 mr-2 ${session.subscriptionTier === 'pro' ? 'text-yellow-500 fill-yellow-400' : 'text-primary/80'}`} />
-              <strong>Subscription Tier:</strong>&nbsp;
+              <strong>Current Tier:</strong>&nbsp;
               <Badge variant={session.subscriptionTier === 'pro' ? 'default' : 'secondary'} className={session.subscriptionTier === 'pro' ? 'bg-yellow-500 text-white' : ''}>
                 {session.subscriptionTier?.toUpperCase() || 'N/A'}
               </Badge>
@@ -135,13 +139,23 @@ export default function MyAccountPage() {
             {session.stripeCustomerId && (
                <p className="font-body text-xs mt-1 text-muted-foreground">Stripe Customer ID: {session.stripeCustomerId}</p>
             )}
-            {session.subscriptionTier !== 'pro' && (
-                <Link href="/subscribe" passHref>
-                    <Button size="sm" className="mt-3 font-body bg-accent text-accent-foreground hover:bg-accent/90">
-                        Upgrade to Pro
-                    </Button>
-                </Link>
-            )}
+            <p className="font-body text-sm mt-3 text-muted-foreground">
+              Your subscription (including free trial cancellation or managing payment methods) is managed through Stripe.
+            </p>
+            <Button 
+                variant="outline" 
+                className="mt-2 font-body w-full sm:w-auto" 
+                onClick={() => {
+                  // In a real app, this would redirect to your Stripe Customer Portal URL
+                  // For demo, it will just show a toast.
+                  toast({title: "Conceptual Action", description: "This would redirect to Stripe Customer Portal."});
+                }}
+            >
+              Manage Subscription in Stripe <ExternalLink className="ml-2 h-4 w-4" />
+            </Button>
+             <p className="text-xs text-muted-foreground mt-2 font-body">
+                Note: If you started with a free trial, it will automatically convert to a paid Pro subscription unless canceled via Stripe before the trial ends.
+             </p>
           </div>
           
           <Button onClick={handleLogout} variant="destructive" className="w-full font-body">

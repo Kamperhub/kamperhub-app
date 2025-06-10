@@ -20,7 +20,7 @@ export const navItems: NavItem[] = [
   { href: '/triplog', label: 'Trip Log', icon: History, keywords: 'trip history saved' },
   { href: '/bookings', label: 'Bookings', icon: BedDouble, keywords: 'campsite booking accommodation' },
   { href: '/my-account', label: 'My Account', icon: UserCircle, keywords: 'profile settings user' },
-  { href: '/subscribe', label: 'Subscribe', icon: CreditCard, keywords: 'premium membership upgrade' },
+  // { href: '/subscribe', label: 'Subscribe', icon: CreditCard, keywords: 'premium membership upgrade' }, // Removed
 ];
 
 // Specific items for the /dashboard-details page
