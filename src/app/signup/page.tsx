@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // Import Link
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,13 +20,33 @@ import {
   type SubscriptionTier,
   type MockUserRegistryEntry
 } from '@/types/auth';
-import { UserPlus, Mail } from 'lucide-react';
+import { UserPlus, Mail, User } from 'lucide-react';
+import { useForm, type SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+const signupSchema = z.object({
+  firstName: z.string().min(1, "First Name is required"),
+  lastName: z.string().min(1, "Last Name is required"),
+  username: z.string()
+    .min(3, "User Name must be at least 3 characters long")
+    .regex(/^[a-zA-Z0-9_.-]+$/, "User Name can only contain letters, numbers, underscores, hyphens, and periods."),
+  email: z.string().email("Please enter a valid email address"),
+});
+
+type SignupFormData = z.infer<typeof signupSchema>;
 
 export default function SignupPage() {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const { register, handleSubmit, formState: { errors } } = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      username: '',
+      email: ''
+    }
+  });
+
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -42,47 +62,13 @@ export default function SignupPage() {
     }
   }, [router]);
 
-  const validateEmail = (email: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
-
-  const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const trimmedUsername = username.trim();
-    const trimmedEmail = email.trim().toLowerCase(); 
-    const trimmedFirstName = firstName.trim();
-    const trimmedLastName = lastName.trim();
-
-    if (!trimmedFirstName) {
-      toast({ title: 'Validation Error', description: 'First Name cannot be empty.', variant: 'destructive' });
-      return;
-    }
-    if (!trimmedLastName) {
-      toast({ title: 'Validation Error', description: 'Last Name cannot be empty.', variant: 'destructive' });
-      return;
-    }
-    if (!trimmedUsername) {
-      toast({ title: 'Validation Error', description: 'User Name cannot be empty.', variant: 'destructive' });
-      return;
-    }
-    if (trimmedUsername.length < 3) {
-      toast({ title: 'Validation Error', description: 'User Name must be at least 3 characters long.', variant: 'destructive' });
-      return;
-    }
-    if (!/^[a-zA-Z0-9_.-]+$/.test(trimmedUsername)) {
-      toast({ title: 'Validation Error', description: 'User Name can only contain letters, numbers, underscores, hyphens, and periods.', variant: 'destructive' });
-      return;
-    }
-    if (!trimmedEmail) {
-      toast({ title: 'Validation Error', description: 'Email cannot be empty.', variant: 'destructive' });
-      return;
-    }
-    if (!validateEmail(trimmedEmail)) {
-      toast({ title: 'Validation Error', description: 'Please enter a valid email address.', variant: 'destructive' });
-      return;
-    }
-
+  const handleSignup: SubmitHandler<SignupFormData> = (data) => {
     setIsLoading(true);
+
+    const trimmedUsername = data.username.trim();
+    const trimmedEmail = data.email.trim().toLowerCase();
+    const trimmedFirstName = data.firstName.trim();
+    const trimmedLastName = data.lastName.trim();
 
     if (typeof window !== 'undefined') {
       const storedRegistryJson = localStorage.getItem(MOCK_AUTH_USER_REGISTRY_KEY);
@@ -119,7 +105,7 @@ export default function SignupPage() {
         localStorage.setItem(MOCK_AUTH_FIRST_NAME_KEY, trimmedFirstName);
         localStorage.setItem(MOCK_AUTH_LAST_NAME_KEY, trimmedLastName);
         localStorage.setItem(MOCK_AUTH_LOGGED_IN_KEY, 'true');
-        localStorage.setItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 'free' as SubscriptionTier); // Default to free on signup
+        localStorage.setItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 'free' as SubscriptionTier);
       }
       toast({
         title: 'Sign Up Successful!',
@@ -148,51 +134,54 @@ export default function SignupPage() {
             <UserPlus className="mr-2 h-6 w-6" /> Create Your KamperHub Account
           </CardTitle>
           <CardDescription className="font-body">
-            Enter your details to get started. You'll start on the 'Free' tier.
+            All fields are required. You'll start on the 'Free' tier.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSignup} className="space-y-6">
+          <form onSubmit={handleSubmit(handleSignup)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="firstName" className="font-body">First Name</Label>
                 <Input
                   id="firstName"
                   type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
+                  {...register("firstName")}
                   placeholder="e.g., Jane"
                   disabled={isLoading}
                   className="font-body"
                 />
+                {errors.firstName && <p className="text-sm text-destructive font-body mt-1">{errors.firstName.message}</p>}
               </div>
               <div>
                 <Label htmlFor="lastName" className="font-body">Last Name</Label>
                 <Input
                   id="lastName"
                   type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
+                  {...register("lastName")}
                   placeholder="e.g., Doe"
                   disabled={isLoading}
                   className="font-body"
                 />
+                {errors.lastName && <p className="text-sm text-destructive font-body mt-1">{errors.lastName.message}</p>}
               </div>
             </div>
             <div>
               <Label htmlFor="username" className="font-body">User Name</Label>
-              <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g., CamperPro123"
-                disabled={isLoading}
-                className="font-body"
-              />
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                    id="username"
+                    type="text"
+                    {...register("username")}
+                    placeholder="e.g., CamperPro123"
+                    disabled={isLoading}
+                    className="font-body pl-10"
+                />
+              </div>
               <p className="text-xs text-muted-foreground mt-1 font-body">
                 Min 3 characters. Allowed: letters, numbers, underscore, hyphen, period.
               </p>
+              {errors.username && <p className="text-sm text-destructive font-body mt-1">{errors.username.message}</p>}
             </div>
             <div>
               <Label htmlFor="email" className="font-body">Email Address</Label>
@@ -201,8 +190,7 @@ export default function SignupPage() {
                 <Input
                   id="email"
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  {...register("email")}
                   placeholder="e.g., your.email@example.com"
                   disabled={isLoading}
                   className="font-body pl-10" 
@@ -211,6 +199,7 @@ export default function SignupPage() {
               <p className="text-xs text-muted-foreground mt-1 font-body">
                 We'll use this for account-related communication.
               </p>
+              {errors.email && <p className="text-sm text-destructive font-body mt-1">{errors.email.message}</p>}
             </div>
             <Button type="submit" className="w-full font-body bg-primary text-primary-foreground hover:bg-primary/90" disabled={isLoading}>
               {isLoading ? 'Creating Account...' : 'Sign Up'}
