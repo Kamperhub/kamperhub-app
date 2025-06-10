@@ -173,12 +173,12 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row items-center justify-between mb-6">
         <div className="flex items-center mb-4 sm:mb-0">
           <Image
-            src="/kamperhub-logo.png"
+            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.firebasestorage.app/o/KamperHub%20512x512.jpg?alt=media&token=00bf2acd-dbca-4cc2-984e-58461f67fdbd"
             alt="KamperHub Logo"
-            width={60}
-            height={60}
+            width={60} // Adjust width as needed
+            height={60} // Adjust height as needed
             className="mr-4 rounded-md"
-            priority
+            priority // Good for LCP elements
             data-ai-hint="logo brand"
           />
           <div>
