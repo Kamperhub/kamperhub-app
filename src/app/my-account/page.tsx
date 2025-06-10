@@ -15,7 +15,7 @@ import {
   type MockAuthSession,
   type SubscriptionTier
 } from '@/types/auth';
-import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink } from 'lucide-react';
+import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, User, Phone } from 'lucide-react'; // Added User, Phone
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -116,15 +116,29 @@ export default function MyAccountPage() {
             </AlertDescription>
           </Alert>
           
-          <div className="p-4 border rounded-md bg-muted/30">
+          <div className="p-4 border rounded-md bg-muted/30 space-y-2">
             <h3 className="text-lg font-headline text-foreground mb-2">Account Details:</h3>
-            <p className="font-body text-sm"><strong>User Name:</strong> {session.username}</p>
+            <p className="font-body text-sm flex items-center">
+                <UserCircle className="h-4 w-4 mr-2 text-primary/80" />
+                <strong>User Name:</strong>&nbsp;{session.username}
+            </p>
             {session.email && (
-              <p className="font-body text-sm flex items-center mt-1">
+              <p className="font-body text-sm flex items-center">
                   <Mail className="h-4 w-4 mr-2 text-primary/80" />
-                  <strong>Email:</strong> {session.email}
+                  <strong>Email:</strong>&nbsp;{session.email}
               </p>
             )}
+            <p className="font-body text-sm flex items-center">
+                <User className="h-4 w-4 mr-2 text-primary/80" />
+                <strong>Full Name:</strong>&nbsp;[Not Provided]
+            </p>
+            <p className="font-body text-sm flex items-center">
+                <Phone className="h-4 w-4 mr-2 text-primary/80" />
+                <strong>Phone Number:</strong>&nbsp;[Not Provided]
+            </p>
+            <p className="text-xs text-muted-foreground mt-2 font-body">
+                (Full Name and Phone Number are placeholders. In a full app, you could edit these details.)
+            </p>
           </div>
 
           <div className="p-4 border rounded-md bg-muted/30">
@@ -166,3 +180,4 @@ export default function MyAccountPage() {
     </div>
   );
 }
+
