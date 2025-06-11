@@ -12,8 +12,13 @@ export interface NavItem {
 
 // Main navigation items for the dashboard grid and potentially other global navs
 export const navItems: NavItem[] = [
-  // The self-referential "Dashboard" card (href: '/') was previously removed.
-  // Users are already on the dashboard when viewing this grid.
+  {
+    href: '/dashboard-details', // Changed from '/'
+    label: 'Dashboard Details', // Changed from 'Dashboard'
+    icon: LayoutDashboard,    // Changed from Home
+    description: "Access your travel statistics, rewards program, and other detailed dashboard views.", // Updated description
+    keywords: 'statistics rewards' // Updated keywords
+  },
   {
     href: '/vehicles',
     label: 'Vehicle & Caravan Setup',
@@ -70,25 +75,24 @@ export const navItems: NavItem[] = [
     description: "Update your profile, manage your subscription, and view your account details.",
     keywords: 'profile user'
   },
+  // The explicit "Dashboard Hub" card with href: '/dashboard-details' is removed here.
+  // Its function is now served by the updated "Dashboard Details" card above.
+];
+
+// Specific items for the /dashboard-details page (this remains the same)
+export const dashboardDetailItems: NavItem[] = [
   {
     href: '/stats',
-    label: 'Travel Stats',
+    label: 'Travel Statistics',
     icon: BarChart3,
-    description: "View your accumulated travel statistics, trip history insights, and milestones achieved on your journeys.",
+    description: 'Track your kilometers, trips completed, and other interesting travel data.',
     keywords: 'data chart'
   },
   {
     href: '/rewards',
     label: 'Rewards Program',
     icon: Award,
-    description: "Discover how you can earn rewards, badges, and benefits with KamperHub as you explore.",
+    description: 'Details about loyalty points, badges, and exclusive benefits for KamperHub users.',
     keywords: 'user achievement'
-  },
+  }
 ];
-
-// Specific items for the /dashboard-details page
-// This is now empty as its contents have been moved to the main navItems for a flatter structure.
-export const dashboardDetailItems: NavItem[] = [
-  // Items moved to navItems
-];
-
