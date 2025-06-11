@@ -59,7 +59,7 @@ function SortableNavItem({ id, item, isMobile }: SortableNavItemProps) {
             className="h-32 w-full bg-muted/30 rounded-md flex items-center justify-center my-2 overflow-hidden"
             data-ai-hint={item.keywords}
           >
-            <item.icon className="w-16 h-16 text-accent opacity-20" />
+            <item.icon className="w-16 h-16 text-accent opacity-50" />
           </div>
         </CardContent>
       </Card>
@@ -168,7 +168,7 @@ export default function DashboardPage() {
         return newOrder;
       });
     }
-  }, []); // Dependencies: setOrderedNavItems is stable, arrayMove and DASHBOARD_LAYOUT_STORAGE_KEY are imports.
+  }, []); 
 
   if (!hasMounted || isAuthLoading) {
     return (
