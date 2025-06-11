@@ -12,13 +12,8 @@ export interface NavItem {
 
 // Main navigation items for the dashboard grid and potentially other global navs
 export const navItems: NavItem[] = [
-  {
-    href: '/',
-    label: 'Dashboard',
-    icon: Home,
-    description: "Your central hub for quick stats, upcoming trips, and personalized insights. Rearrange cards to fit your needs.",
-    keywords: 'symbol'
-  },
+  // The self-referential "Dashboard" card (href: '/') was previously removed.
+  // Users are already on the dashboard when viewing this grid.
   {
     href: '/vehicles',
     label: 'Vehicle & Caravan Setup',
@@ -69,23 +64,12 @@ export const navItems: NavItem[] = [
     keywords: 'campsite booking'
   },
   {
-    href: '/dashboard-details',
-    label: 'Dashboard Hub',
-    icon: LayoutDashboard,
-    description: "Access your travel statistics and explore our upcoming rewards program.",
-    keywords: 'hub details'
-  },
-  {
     href: '/my-account',
     label: 'My Account',
     icon: UserCircle,
     description: "Update your profile, manage your subscription, and view your account details.",
     keywords: 'profile user'
   },
-];
-
-// Specific items for the /dashboard-details page
-export const dashboardDetailItems: NavItem[] = [
   {
     href: '/stats',
     label: 'Travel Stats',
@@ -101,3 +85,10 @@ export const dashboardDetailItems: NavItem[] = [
     keywords: 'user achievement'
   },
 ];
+
+// Specific items for the /dashboard-details page
+// This is now empty as its contents have been moved to the main navItems for a flatter structure.
+export const dashboardDetailItems: NavItem[] = [
+  // Items moved to navItems
+];
+
