@@ -51,7 +51,7 @@ export default function SignupPage() {
       username: '',
       email: '',
       password: '',
-      confirmPassword: '',
+      confirmPassword: '', // Explicitly set to empty
       city: '',
       state: '',
       country: '',
@@ -111,7 +111,7 @@ export default function SignupPage() {
         router.push('/'); 
         router.refresh();
       } catch (firestoreError: any) {
-        console.error("Firestore Error during signup:", firestoreError);
+        console.error("Firestore Error during signup (setDoc):", firestoreError);
         toast({
           title: 'Account Created, Profile Save Failed',
           description: `Your account was created, but we couldn't save your profile details (Name, Location) to the database. Error: ${firestoreError.message}. Please try updating them in 'My Account'.`,
@@ -185,6 +185,7 @@ export default function SignupPage() {
                   placeholder="e.g., Jane"
                   disabled={isLoading}
                   className="font-body"
+                  autoComplete="given-name"
                 />
                 {errors.firstName && <p className="text-xs text-destructive font-body mt-1">{errors.firstName.message}</p>}
               </div>
@@ -197,6 +198,7 @@ export default function SignupPage() {
                   placeholder="e.g., Doe"
                   disabled={isLoading}
                   className="font-body"
+                  autoComplete="family-name"
                 />
                 {errors.lastName && <p className="text-xs text-destructive font-body mt-1">{errors.lastName.message}</p>}
               </div>
@@ -212,6 +214,7 @@ export default function SignupPage() {
                     placeholder="e.g., CamperPro123"
                     disabled={isLoading}
                     className="font-body pl-10"
+                    autoComplete="username"
                 />
               </div>
               <p className="text-xs text-muted-foreground mt-1 font-body">
@@ -230,6 +233,7 @@ export default function SignupPage() {
                   placeholder="e.g., your.email@example.com"
                   disabled={isLoading}
                   className="font-body pl-10"
+                  autoComplete="email"
                 />
               </div>
               {errors.email && <p className="text-xs text-destructive font-body mt-1">{errors.email.message}</p>}
@@ -245,6 +249,7 @@ export default function SignupPage() {
                   placeholder="Enter your password"
                   disabled={isLoading}
                   className="font-body pl-10"
+                  autoComplete="new-password"
                 />
               </div>
               <p className="text-xs text-muted-foreground mt-1 font-body">
@@ -263,6 +268,7 @@ export default function SignupPage() {
                   placeholder="Re-enter your password"
                   disabled={isLoading}
                   className="font-body pl-10"
+                  autoComplete="new-password" 
                 />
               </div>
               {errors.confirmPassword && <p className="text-xs text-destructive font-body mt-1">{errors.confirmPassword.message}</p>}
@@ -274,7 +280,7 @@ export default function SignupPage() {
                 <Label htmlFor="city" className="font-body">City*</Label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input id="city" {...register("city")} placeholder="e.g., Perth" disabled={isLoading} className="font-body pl-10" />
+                  <Input id="city" {...register("city")} placeholder="e.g., Perth" disabled={isLoading} className="font-body pl-10" autoComplete="address-level2" />
                 </div>
                 {errors.city && <p className="text-xs text-destructive font-body mt-1">{errors.city.message}</p>}
               </div>
@@ -282,7 +288,7 @@ export default function SignupPage() {
                 <Label htmlFor="state" className="font-body">State / Region*</Label>
                  <div className="relative">
                   <Building className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input id="state" {...register("state")} placeholder="e.g., WA" disabled={isLoading} className="font-body pl-10" />
+                  <Input id="state" {...register("state")} placeholder="e.g., WA" disabled={isLoading} className="font-body pl-10" autoComplete="address-level1" />
                 </div>
                 {errors.state && <p className="text-xs text-destructive font-body mt-1">{errors.state.message}</p>}
               </div>
@@ -290,7 +296,7 @@ export default function SignupPage() {
                 <Label htmlFor="country" className="font-body">Country*</Label>
                  <div className="relative">
                   <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input id="country" {...register("country")} placeholder="e.g., Australia" disabled={isLoading} className="font-body pl-10" />
+                  <Input id="country" {...register("country")} placeholder="e.g., Australia" disabled={isLoading} className="font-body pl-10" autoComplete="country-name" />
                 </div>
                 {errors.country && <p className="text-xs text-destructive font-body mt-1">{errors.country.message}</p>}
               </div>
