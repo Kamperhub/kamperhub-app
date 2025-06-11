@@ -25,7 +25,7 @@ export default function SupportPage() {
       </div>
 
       <Tabs defaultValue="videos" className="w-full">
-        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-4 mb-6"> {/* Updated grid-cols */}
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4 mb-6"> {/* Updated grid-cols */}
           <TabsTrigger value="videos" className="font-body text-sm sm:text-base">
             <Video className="mr-2 h-5 w-5" /> Educational Videos
           </TabsTrigger>
