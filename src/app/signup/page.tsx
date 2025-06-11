@@ -105,27 +105,31 @@ export default function SignupPage() {
 
     } catch (error: any) {
       const authError = error as AuthError;
-      let errorMessage = 'An unexpected error occurred. Please try again.';
+      let toastMessage = 'An unexpected error occurred during sign up. Please try again.'; // Default
+
       if (authError.code) {
         switch (authError.code) {
           case 'auth/email-already-in-use':
-            errorMessage = 'This email address is already in use by another account.';
+            toastMessage = 'This email address is already in use by another account.';
             break;
           case 'auth/invalid-email':
-            errorMessage = 'The email address is not valid.';
+            toastMessage = 'The email address is not valid.';
             break;
           case 'auth/operation-not-allowed':
-            errorMessage = 'Email/password accounts are not enabled.';
+            toastMessage = 'Email/password accounts are not enabled.';
             break;
           case 'auth/weak-password':
-            errorMessage = 'The password is too weak.';
+            toastMessage = 'The password is too weak.';
             break;
           default:
-            errorMessage = authError.message;
+            toastMessage = authError.message || 'An unknown sign-up error occurred.';
+            break;
         }
+      } else if (authError.message) {
+        toastMessage = authError.message;
       }
-      toast({ title: 'Sign Up Failed', description: errorMessage, variant: 'destructive' });
-      console.error("Firebase Signup Error:", authError);
+      toast({ title: 'Sign Up Failed', description: toastMessage, variant: 'destructive' });
+      console.error("Firebase Signup Error:", error); // Log the original error object
     } finally {
       setIsLoading(false);
     }

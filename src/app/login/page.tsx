@@ -66,26 +66,33 @@ export default function LoginPage() {
       router.refresh(); // Force refresh to update header/layout
     } catch (error: any) {
       const authError = error as AuthError;
-      let errorMessage = 'An unexpected error occurred. Please try again.';
+      let toastMessage = 'An unexpected error occurred during login. Please try again.'; // Default
+
       if (authError.code) {
         switch (authError.code) {
           case 'auth/invalid-email':
-            errorMessage = 'The email address is not valid.';
+            toastMessage = 'The email address is not valid.';
             break;
           case 'auth/user-disabled':
-            errorMessage = 'This user account has been disabled.';
+            toastMessage = 'This user account has been disabled.';
             break;
           case 'auth/user-not-found':
           case 'auth/wrong-password':
-          case 'auth/invalid-credential': // New error code for invalid email/password
-            errorMessage = 'Invalid email or password. Please check your credentials.';
+          case 'auth/invalid-credential':
+            toastMessage = 'Invalid email or password. Please check your credentials.';
             break;
           default:
-            errorMessage = authError.message;
+            // For unhandled Firebase error codes, or if error is not a Firebase AuthError but has a message
+            toastMessage = authError.message || 'An unknown login error occurred.';
+            break;
         }
+      } else if (authError.message) {
+        // For errors that might not have a Firebase 'code' but do have a message
+        toastMessage = authError.message;
       }
-      toast({ title: 'Login Failed', description: errorMessage, variant: 'destructive' });
-      console.error("Firebase Login Error:", authError);
+      
+      toast({ title: 'Login Failed', description: toastMessage, variant: 'destructive' });
+      console.error("Firebase Login Error:", error); // Log the original error object
     } finally {
       setIsLoading(false);
     }
