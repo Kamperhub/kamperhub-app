@@ -7,7 +7,7 @@ import { getAnalytics, type Analytics } from 'firebase/analytics'; // Import get
 // Your web app's Firebase configuration (as provided by user)
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyDislaqwT2blN_zaj6rF4qJj8rs6eGiCJE",
+  apiKey: "AIzaSyB-7todRM_IzeDlV959vKNVPPF0KZeOUmQ", // Updated API Key
   authDomain: "kamperhub-s4hc2.firebaseapp.com",
   projectId: "kamperhub-s4hc2",
   storageBucket: "kamperhub-s4hc2.firebasestorage.app", // Using user provided value
@@ -48,3 +48,4 @@ if (typeof window !== 'undefined') {
 }
 
 export { app, auth, db, analytics };
+
