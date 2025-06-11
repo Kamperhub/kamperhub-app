@@ -74,10 +74,11 @@ export function Header() {
           <Image
             src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.firebasestorage.app/o/Kamper%20Social%20Media%20Banner.jpg?alt=media&token=1050fb50-5c13-4f03-8cad-d80954cf9072"
             alt="KamperHub Banner Logo"
-            width={160}
-            height={40}
+            width={160} // Provided width
+            height={40} // Provided height
             priority
-            className="object-contain"
+            className="object-contain" // Ensures aspect ratio is maintained within bounds
+            style={{ width: 'auto', height: '40px' }} // Or style={{ width: '160px', height: 'auto' }}
             data-ai-hint="logo brand banner"
           />
         </Link>
