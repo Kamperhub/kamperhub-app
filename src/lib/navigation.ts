@@ -17,7 +17,7 @@ export const navItems: NavItem[] = [
     label: 'Dashboard',
     icon: Home,
     description: "Your central hub for quick stats, upcoming trips, and personalized insights. Rearrange cards to fit your needs.",
-    keywords: 'symbol' // Changed from 'app overview'
+    keywords: 'symbol'
   },
   {
     href: '/vehicles',
@@ -84,13 +84,14 @@ export const dashboardDetailItems: NavItem[] = [
     label: 'Travel Stats',
     icon: BarChart3,
     description: "View your accumulated travel statistics, trip history insights, and milestones achieved on your journeys.",
-    keywords: 'trips summary'
+    keywords: 'data chart'
   },
   {
     href: '/rewards',
     label: 'Rewards Program',
     icon: Award,
     description: "Discover how you can earn rewards, badges, and benefits with KamperHub as you explore.",
-    keywords: 'loyalty points'
+    keywords: 'user achievement'
   },
 ];
+
