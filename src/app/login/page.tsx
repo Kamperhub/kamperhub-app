@@ -11,11 +11,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase'; // Import Firebase auth
 import { signInWithEmailAndPassword, type AuthError } from 'firebase/auth';
-import { MOCK_AUTH_LOGGED_IN_KEY } from '@/types/auth'; // Still used for quick redirect check
-import { LogInIcon, Mail, KeyRound } from 'lucide-react'; // Changed User to Mail icon
+import { MOCK_AUTH_LOGGED_IN_KEY } from '@/types/auth'; 
+import { LogInIcon, Mail, KeyRound } from 'lucide-react'; 
 
 export default function LoginPage() {
-  const [email, setEmail] = useState(''); // Changed from username to email
+  const [email, setEmail] = useState(''); 
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -24,12 +24,11 @@ export default function LoginPage() {
 
   useEffect(() => {
     setHasMounted(true);
-    // This initial redirect check can remain as it uses a simple flag
-    // Firebase's onAuthStateChanged will handle more robust session management elsewhere.
     if (typeof window !== 'undefined') {
-        const isLoggedIn = localStorage.getItem(MOCK_AUTH_LOGGED_IN_KEY) === 'true';
-        if (isLoggedIn && auth.currentUser) { // Check Firebase auth state too
-            router.push('/'); // Changed from /my-account to /
+        // This check helps redirect users away from login if they are already authenticated.
+        const isLoggedInViaMock = localStorage.getItem(MOCK_AUTH_LOGGED_IN_KEY) === 'true';
+        if ((isLoggedInViaMock || auth.currentUser) && auth.currentUser) { 
+            router.push('/'); 
         }
     }
   }, [router]);
@@ -58,15 +57,13 @@ export default function LoginPage() {
         description: `Welcome back, ${firebaseUser.displayName || firebaseUser.email}!`,
       });
 
-      // Firebase handles its own session. We might set a flag for quicker UI updates
-      // that will be confirmed by onAuthStateChanged.
-      if (typeof window !== 'undefined') localStorage.setItem(MOCK_AUTH_LOGGED_IN_KEY, 'true');
+      // No longer setting MOCK_AUTH_LOGGED_IN_KEY here. Firebase Auth is the source of truth.
 
-      router.push('/'); // Changed from /my-account to /
-      router.refresh(); // Force refresh to update header/layout
+      router.push('/'); 
+      router.refresh(); 
     } catch (error: any) {
       const authError = error as AuthError;
-      let toastMessage = 'An unexpected error occurred during login. Please try again.'; // Default
+      let toastMessage = 'An unexpected error occurred during login. Please try again.'; 
 
       if (authError.code) {
         switch (authError.code) {
@@ -82,17 +79,15 @@ export default function LoginPage() {
             toastMessage = 'Invalid email or password. Please check your credentials.';
             break;
           default:
-            // For unhandled Firebase error codes, or if error is not a Firebase AuthError but has a message
             toastMessage = authError.message || 'An unknown login error occurred.';
             break;
         }
       } else if (authError.message) {
-        // For errors that might not have a Firebase 'code' but do have a message
         toastMessage = authError.message;
       }
       
       toast({ title: 'Login Failed', description: toastMessage, variant: 'destructive' });
-      console.error("Firebase Login Error:", error); // Log the original error object
+      console.error("Firebase Login Error:", error); 
     } finally {
       setIsLoading(false);
     }
@@ -120,15 +115,15 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <Label htmlFor="email" className="font-body">Email Address</Label> {/* Changed label */}
+              <Label htmlFor="email" className="font-body">Email Address</Label> 
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /> {/* Changed icon */}
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /> 
                 <Input
-                  id="email" // Changed id
-                  type="email" // Changed type
+                  id="email" 
+                  type="email" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your.email@example.com" // Changed placeholder
+                  placeholder="your.email@example.com" 
                   disabled={isLoading}
                   className="font-body pl-10"
                 />

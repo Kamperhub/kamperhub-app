@@ -9,13 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { auth } from '@/lib/firebase'; // Import Firebase auth
+import { auth } from '@/lib/firebase'; 
 import { createUserWithEmailAndPassword, updateProfile, type AuthError } from 'firebase/auth';
 import { UserPlus, Mail, User, KeyRound, MapPin, Building, Globe } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MOCK_AUTH_LOGGED_IN_KEY } from '@/types/auth'; // Still used for quick redirect check
+import { MOCK_AUTH_LOGGED_IN_KEY } from '@/types/auth'; 
 
 const signupSchema = z.object({
   firstName: z.string().min(1, "First Name is required"),
@@ -59,12 +59,10 @@ export default function SignupPage() {
 
   useEffect(() => {
     setHasMounted(true);
-    // This initial redirect check can remain as it uses a simple flag
-    // Firebase's onAuthStateChanged will handle more robust session management elsewhere.
     if (typeof window !== 'undefined') {
-        const isLoggedIn = localStorage.getItem(MOCK_AUTH_LOGGED_IN_KEY) === 'true';
-        if (isLoggedIn && auth.currentUser) { // Check Firebase auth state too
-            router.push('/'); // Changed from /my-account to /
+        const isLoggedInViaMock = localStorage.getItem(MOCK_AUTH_LOGGED_IN_KEY) === 'true';
+        if ((isLoggedInViaMock || auth.currentUser) && auth.currentUser) {
+            router.push('/'); 
         }
     }
   }, [router]);
@@ -78,34 +76,26 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
 
-      // Set the displayName (profile update)
-      // For now, let's use the username as displayName. We can refine this later.
-      // Or concatenate first and last name: `${firstName} ${lastName}`
       await updateProfile(firebaseUser, {
-        displayName: username, // Using username from form as displayName
+        displayName: username, 
       });
 
       // Note: City, State, Country are not stored in Firebase Auth user profile directly.
       // This data will need to be saved to Firestore in a later step, associated with firebaseUser.uid.
-      // For now, this signup focuses on creating the Firebase Auth user.
 
       toast({
         title: 'Sign Up Successful!',
         description: `Welcome, ${firstName}! Your account for ${email} has been created. You are now logged in.`,
       });
 
-      // Firebase handles its own session, so we don't need to set MOCK_AUTH_LOGGED_IN_KEY here for Firebase.
-      // However, to prevent the immediate redirect flicker if Header/MyAccount haven't updated yet,
-      // we can set it. This will be superseded by onAuthStateChanged.
-      if (typeof window !== 'undefined') localStorage.setItem(MOCK_AUTH_LOGGED_IN_KEY, 'true');
+      // No longer setting MOCK_AUTH_LOGGED_IN_KEY here. Firebase Auth is the source of truth.
 
-
-      router.push('/'); // Changed from /my-account to /
-      router.refresh(); // Force refresh to update header/layout based on new auth state
+      router.push('/'); 
+      router.refresh(); 
 
     } catch (error: any) {
       const authError = error as AuthError;
-      let toastMessage = 'An unexpected error occurred during sign up. Please try again.'; // Default
+      let toastMessage = 'An unexpected error occurred during sign up. Please try again.'; 
 
       if (authError.code) {
         switch (authError.code) {
@@ -129,7 +119,7 @@ export default function SignupPage() {
         toastMessage = authError.message;
       }
       toast({ title: 'Sign Up Failed', description: toastMessage, variant: 'destructive' });
-      console.error("Firebase Signup Error:", error); // Log the original error object
+      console.error("Firebase Signup Error:", error); 
     } finally {
       setIsLoading(false);
     }
