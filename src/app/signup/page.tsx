@@ -11,12 +11,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase'; 
 import { createUserWithEmailAndPassword, updateProfile, type AuthError } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore'; // Removed serverTimestamp as not used in current logic
+import { doc, setDoc } from 'firebase/firestore';
 import { UserPlus, Mail, User, KeyRound, MapPin, Building, Globe } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MOCK_AUTH_LOGGED_IN_KEY } from '@/types/auth'; 
 import type { UserProfile } from '@/types/auth';
 
 const signupSchema = z.object({
@@ -31,7 +30,7 @@ const signupSchema = z.object({
     .regex(/[a-z]/, "Must include at least one lowercase letter.")
     .regex(/[A-Z]/, "Must include at least one uppercase letter.")
     .regex(/[0-9]/, "Must include at least one number.")
-    .regex(/[\W_]/, "Must include at least one special character (e.g., !@#$%^&*)."), // \W is non-alphanumeric including underscore
+    .regex(/[\W_]/, "Must include at least one special character (e.g., !@#$%^&*)."),
   confirmPassword: z.string().min(1, "Please confirm your password."),
   city: z.string().min(1, "City is required*"),
   state: z.string().min(1, "State / Region is required*"),
@@ -67,56 +66,68 @@ export default function SignupPage() {
   useEffect(() => {
     setHasMounted(true);
     if (typeof window !== 'undefined') {
-        const isLoggedInViaMock = localStorage.getItem(MOCK_AUTH_LOGGED_IN_KEY) === 'true';
-        if (auth.currentUser || isLoggedInViaMock) { 
-            if (auth.currentUser) router.push('/'); 
+        if (auth.currentUser) { 
+            router.push('/'); 
         }
     }
   }, [router]);
 
   const handleSignup: SubmitHandler<SignupFormData> = async (data) => {
     setIsLoading(true);
-
     const { email, password, username, firstName, lastName, city, state, country } = data;
 
     try {
+      // 1. Create user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
 
+      // 2. Update Firebase Auth display name (this uses 'username' from form)
       await updateProfile(firebaseUser, {
         displayName: username, 
       });
 
+      // 3. Prepare data for Firestore
       const userProfileData: UserProfile = {
         uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        displayName: username,
+        email: firebaseUser.email, 
+        displayName: username, 
         firstName: firstName,
         lastName: lastName,
         city: city,
         state: state,
         country: country,
-        subscriptionTier: 'free',
-        stripeCustomerId: null,
+        subscriptionTier: 'free', 
+        stripeCustomerId: null,  
         createdAt: new Date().toISOString(),
       };
 
-      await setDoc(doc(db, "users", firebaseUser.uid), userProfileData);
+      // 4. Save additional profile data to Firestore
+      try {
+        await setDoc(doc(db, "users", firebaseUser.uid), userProfileData);
+        toast({
+          title: 'Sign Up Successful!',
+          description: `Welcome, ${firstName}! Your account for ${email} has been created. You are now logged in. Profile data saved.`,
+        });
+        router.push('/'); 
+        router.refresh();
+      } catch (firestoreError: any) {
+        console.error("Firestore Error during signup:", firestoreError);
+        toast({
+          title: 'Account Created, Profile Save Failed',
+          description: `Your account was created, but we couldn't save your profile details (Name, Location) to the database. Error: ${firestoreError.message}. Please try updating them in 'My Account'.`,
+          variant: 'destructive',
+          duration: 9000, 
+        });
+        // User is created in Auth, so still redirect them, but with a warning about profile data.
+        router.push('/'); 
+        router.refresh();
+      }
 
-      toast({
-        title: 'Sign Up Successful!',
-        description: `Welcome, ${firstName}! Your account for ${email} has been created. You are now logged in.`,
-      });
-      
-      router.push('/'); 
-      router.refresh(); 
-
-    } catch (error: any) {
-      const authError = error as AuthError;
+    } catch (authError: any) {
+      const error = authError as AuthError;
       let toastMessage = 'An unexpected error occurred during sign up. Please try again.'; 
-
-      if (authError.code) {
-        switch (authError.code) {
+      if (error.code) {
+        switch (error.code) {
           case 'auth/email-already-in-use':
             toastMessage = 'This email address is already in use by another account.';
             break;
@@ -130,14 +141,14 @@ export default function SignupPage() {
             toastMessage = 'The password is too weak. Please ensure it meets the complexity requirements.';
             break;
           default:
-            toastMessage = authError.message || 'An unknown sign-up error occurred.';
+            toastMessage = error.message || 'An unknown sign-up error occurred.';
             break;
         }
-      } else if (authError.message) {
-        toastMessage = authError.message;
+      } else if (error.message) {
+        toastMessage = error.message;
       }
       toast({ title: 'Sign Up Failed', description: toastMessage, variant: 'destructive' });
-      console.error("Firebase Signup Error:", error); 
+      console.error("Firebase Auth Signup Error:", error); 
     } finally {
       setIsLoading(false);
     }
@@ -300,5 +311,3 @@ export default function SignupPage() {
     </div>
   );
 }
-
-    
