@@ -26,12 +26,12 @@ export function BottomNavigation() {
                   href={item.href}
                   className={cn(
                     "flex flex-col items-center justify-center p-2 rounded-md transition-colors h-full", // Added h-full for better vertical alignment
-                    isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                    isActive ? "text-accent" : "text-accent/50 hover:text-accent", // Changed: active is accent, inactive is accent/50
                   )}
                   aria-current={isActive ? "page" : undefined}
                   title={item.label} // Add title attribute for accessibility
                 >
-                  <item.icon className={cn("w-7 h-7", isActive ? "text-primary" : "text-muted-foreground")} />
+                  <item.icon className={cn("w-7 h-7", isActive ? "text-accent" : "text-accent opacity-50")} /> {/* Changed: applied accent and opacity */}
                   {/* The span with item.label has been removed */}
                   <span className="sr-only">{item.label}</span> {/* Keep label for screen readers */}
                 </Link>
