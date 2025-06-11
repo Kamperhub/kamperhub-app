@@ -69,12 +69,12 @@ function SortableNavItem({ id, item, isMobile }: SortableNavItemProps) {
 
 export default function DashboardPage() {
   const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>([]);
-  const [isLoadingLayout, setIsLoadingLayout] = useState(true); 
+  const [isLoadingLayout, setIsLoadingLayout] = useState(true);
   const [hasMounted, setHasMounted] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
 
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true); 
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -99,15 +99,14 @@ export default function DashboardPage() {
   useEffect(() => {
     if (hasMounted && !isAuthLoading && !firebaseUser) {
       router.push('/login');
-      router.refresh();
+      // router.refresh(); // Removed refresh from here to prevent potential loop
     }
   }, [hasMounted, isAuthLoading, firebaseUser, router]);
 
   useEffect(() => {
-    if (hasMounted && firebaseUser) { 
+    if (hasMounted && firebaseUser) {
       try {
         const storedLayout = localStorage.getItem(DASHBOARD_LAYOUT_STORAGE_KEY);
-        // Filter defaultNavItems to exclude the one with href '/dashboard-details' for the main page
         const mainPageNavItems = defaultNavItems.filter(item => item.href !== '/dashboard-details');
 
         if (storedLayout) {
