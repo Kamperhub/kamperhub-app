@@ -9,8 +9,6 @@ import { cn } from '@/lib/utils';
 export function BottomNavigation() {
   const pathname = usePathname();
 
-  // No longer need to filter out /stats specifically, as it's not in navItems
-  // The dashboard link in navItems now points to /dashboard-details
   const bottomNavItems = navItems;
 
   return (
@@ -18,7 +16,6 @@ export function BottomNavigation() {
       <div className="container mx-auto px-2 sm:px-4">
         <ul className="flex justify-around items-center h-16">
           {bottomNavItems.map((item) => {
-            // For the "Dashboard" icon, we want it to be active for both / and /dashboard-details
             const isActive = item.href === '/dashboard-details' 
               ? (pathname === '/' || pathname === '/dashboard-details') 
               : pathname === item.href;
@@ -28,13 +25,15 @@ export function BottomNavigation() {
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex flex-col items-center justify-center p-2 rounded-md transition-colors",
-                    isActive ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
+                    "flex flex-col items-center justify-center p-2 rounded-md transition-colors h-full", // Added h-full for better vertical alignment
+                    isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
                   )}
                   aria-current={isActive ? "page" : undefined}
+                  title={item.label} // Add title attribute for accessibility
                 >
-                  <item.icon className={cn("w-6 h-6 mb-1", isActive ? "text-primary" : "text-muted-foreground")} />
-                  <span className="text-xs">{item.label}</span>
+                  <item.icon className={cn("w-7 h-7", isActive ? "text-primary" : "text-muted-foreground")} />
+                  {/* The span with item.label has been removed */}
+                  <span className="sr-only">{item.label}</span> {/* Keep label for screen readers */}
                 </Link>
               </li>
             );
