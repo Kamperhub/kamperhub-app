@@ -64,7 +64,7 @@ export default function SignupPage() {
     if (typeof window !== 'undefined') {
         const isLoggedIn = localStorage.getItem(MOCK_AUTH_LOGGED_IN_KEY) === 'true';
         if (isLoggedIn && auth.currentUser) { // Check Firebase auth state too
-            router.push('/my-account');
+            router.push('/'); // Changed from /my-account to /
         }
     }
   }, [router]);
@@ -100,7 +100,7 @@ export default function SignupPage() {
       if (typeof window !== 'undefined') localStorage.setItem(MOCK_AUTH_LOGGED_IN_KEY, 'true');
 
 
-      router.push('/my-account'); // Redirect to account page
+      router.push('/'); // Changed from /my-account to /
       router.refresh(); // Force refresh to update header/layout based on new auth state
 
     } catch (error: any) {

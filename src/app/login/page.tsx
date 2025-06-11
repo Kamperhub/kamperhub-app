@@ -29,7 +29,7 @@ export default function LoginPage() {
     if (typeof window !== 'undefined') {
         const isLoggedIn = localStorage.getItem(MOCK_AUTH_LOGGED_IN_KEY) === 'true';
         if (isLoggedIn && auth.currentUser) { // Check Firebase auth state too
-            router.push('/my-account');
+            router.push('/'); // Changed from /my-account to /
         }
     }
   }, [router]);
@@ -62,7 +62,7 @@ export default function LoginPage() {
       // that will be confirmed by onAuthStateChanged.
       if (typeof window !== 'undefined') localStorage.setItem(MOCK_AUTH_LOGGED_IN_KEY, 'true');
 
-      router.push('/my-account');
+      router.push('/'); // Changed from /my-account to /
       router.refresh(); // Force refresh to update header/layout
     } catch (error: any) {
       const authError = error as AuthError;
