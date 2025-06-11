@@ -6,18 +6,20 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, type User as FirebaseUser, updateProfile, updateEmail, type AuthError } from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+
 import {
   MOCK_AUTH_SUBSCRIPTION_TIER_KEY,
   MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY,
   MOCK_AUTH_CITY_KEY,
   MOCK_AUTH_STATE_KEY,
   MOCK_AUTH_COUNTRY_KEY,
-  // MOCK_AUTH_USER_REGISTRY_KEY, // No longer needed for profile updates here
 } from '@/types/auth';
-import type { SubscriptionTier } from '@/types/auth'; // Removed MockUserRegistryEntry
-import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User } from 'lucide-react';
+import type { SubscriptionTier, UserProfile } from '@/types/auth';
+import { useSubscription } from '@/hooks/useSubscription'; // Import useSubscription
+import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -26,12 +28,14 @@ import { EditProfileForm, type EditProfileFormData } from '@/components/features
 
 export default function MyAccountPage() {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<Partial<UserProfile>>({}); // Store Firestore profile data
+  const [isAuthLoading, setIsAuthLoading] = useState(true); // For initial auth check
+  const [isProfileLoading, setIsProfileLoading] = useState(false); // For Firestore profile fetch
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   
-  const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>('free');
-  const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null);
+  // Local state for display, synced from userProfile (Firestore) or localStorage as fallback
+  const { subscriptionTier, stripeCustomerId, setSubscriptionDetails } = useSubscription();
   const [profileCity, setProfileCity] = useState<string | null>(null);
   const [profileState, setProfileState] = useState<string | null>(null);
   const [profileCountry, setProfileCountry] = useState<string | null>(null);
@@ -39,45 +43,83 @@ export default function MyAccountPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  const fetchUserProfile = useCallback(async (user: FirebaseUser) => {
+    setIsProfileLoading(true);
+    try {
+      const userDocRef = doc(db, "users", user.uid);
+      const docSnap = await getDoc(userDocRef);
+
+      if (docSnap.exists()) {
+        const profileData = docSnap.data() as UserProfile;
+        setUserProfile(profileData);
+        // Sync Firestore data to local display state and localStorage/context for wider app consistency
+        setProfileCity(profileData.city || null);
+        setProfileState(profileData.state || null);
+        setProfileCountry(profileData.country || null);
+        setSubscriptionDetails(profileData.subscriptionTier || 'free', profileData.stripeCustomerId || null);
+
+        // Update localStorage for these specific items if still needed by other components
+        if (profileData.city) localStorage.setItem(MOCK_AUTH_CITY_KEY, profileData.city); else localStorage.removeItem(MOCK_AUTH_CITY_KEY);
+        if (profileData.state) localStorage.setItem(MOCK_AUTH_STATE_KEY, profileData.state); else localStorage.removeItem(MOCK_AUTH_STATE_KEY);
+        if (profileData.country) localStorage.setItem(MOCK_AUTH_COUNTRY_KEY, profileData.country); else localStorage.removeItem(MOCK_AUTH_COUNTRY_KEY);
+      } else {
+        console.log("No Firestore profile document found for user:", user.uid, ". It will be created on first save.");
+        // Fallback to localStorage for subscription if no Firestore doc (for older users)
+        const storedTier = localStorage.getItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY) as SubscriptionTier | null;
+        const storedStripeId = localStorage.getItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
+        setSubscriptionDetails(storedTier || 'free', storedStripeId);
+        
+        setProfileCity(localStorage.getItem(MOCK_AUTH_CITY_KEY));
+        setProfileState(localStorage.getItem(MOCK_AUTH_STATE_KEY));
+        setProfileCountry(localStorage.getItem(MOCK_AUTH_COUNTRY_KEY));
+        setUserProfile({ email: user.email, displayName: user.displayName }); // Basic info from auth
+      }
+    } catch (error) {
+      console.error("Error fetching user profile from Firestore:", error);
+      toast({ title: "Error", description: "Could not load your profile details from the server.", variant: "destructive" });
+      // Fallback to localStorage if Firestore fails
+      const storedTier = localStorage.getItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY) as SubscriptionTier | null;
+      const storedStripeId = localStorage.getItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
+      setSubscriptionDetails(storedTier || 'free', storedStripeId);
+      setProfileCity(localStorage.getItem(MOCK_AUTH_CITY_KEY));
+      setProfileState(localStorage.getItem(MOCK_AUTH_STATE_KEY));
+      setProfileCountry(localStorage.getItem(MOCK_AUTH_COUNTRY_KEY));
+    } finally {
+      setIsProfileLoading(false);
+    }
+  }, [toast, setSubscriptionDetails]);
+
   useEffect(() => {
+    setIsAuthLoading(true);
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setFirebaseUser(user);
-        try {
-            const storedTier = localStorage.getItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY) as SubscriptionTier | null;
-            const storedStripeId = localStorage.getItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
-            setSubscriptionTier(storedTier || 'free');
-            setStripeCustomerId(storedStripeId);
-
-            setProfileCity(localStorage.getItem(MOCK_AUTH_CITY_KEY));
-            setProfileState(localStorage.getItem(MOCK_AUTH_STATE_KEY));
-            setProfileCountry(localStorage.getItem(MOCK_AUTH_COUNTRY_KEY));
-        } catch (e) {
-            console.error("Error loading user-specific details from localStorage", e);
-        }
+        fetchUserProfile(user); // Fetch Firestore profile data
       } else {
         setFirebaseUser(null);
-        setSubscriptionTier('free');
-        setStripeCustomerId(null);
+        setUserProfile({});
         setProfileCity(null);
         setProfileState(null);
         setProfileCountry(null);
+        setSubscriptionDetails('free', null); // Reset subscription context on logout
+        // Clear local storage related to profile on logout
+        localStorage.removeItem(MOCK_AUTH_CITY_KEY);
+        localStorage.removeItem(MOCK_AUTH_STATE_KEY);
+        localStorage.removeItem(MOCK_AUTH_COUNTRY_KEY);
+        localStorage.removeItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY);
+        localStorage.removeItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
       }
-      setIsLoading(false);
+      setIsAuthLoading(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [fetchUserProfile, setSubscriptionDetails]);
 
   const handleLogout = async () => {
     try {
       await auth.signOut();
       toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
-      localStorage.removeItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY);
-      localStorage.removeItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
-      localStorage.removeItem(MOCK_AUTH_CITY_KEY);
-      localStorage.removeItem(MOCK_AUTH_STATE_KEY);
-      localStorage.removeItem(MOCK_AUTH_COUNTRY_KEY);
-      router.push('/');
+      // States are reset by onAuthStateChanged listener
+      router.push('/login');
     } catch (error) {
       console.error("Error signing out: ", error);
       toast({ title: 'Logout Error', description: 'Failed to log out.', variant: 'destructive' });
@@ -90,37 +132,42 @@ export default function MyAccountPage() {
       return false;
     }
     setIsSavingProfile(true);
-    let overallSuccess = false;
     const successMessages: string[] = [];
     const errorMessages: string[] = [];
+    let authUpdatesSuccessful = false;
+    let firestoreUpdateSuccessful = false;
 
-    // Update Display Name in Firebase Auth
+    // 1. Update Display Name in Firebase Auth
     const newDisplayName = `${data.firstName} ${data.lastName}`.trim();
     if (newDisplayName && newDisplayName !== firebaseUser.displayName) {
       try {
         await updateProfile(firebaseUser, { displayName: newDisplayName });
-        // Note: firebaseUser state will update via onAuthStateChanged, may not be immediate here.
-        // For immediate reflection, we'd manually update a local copy, but onAuthStateChanged is cleaner.
-        successMessages.push("Display Name updated in Firebase.");
-        overallSuccess = true;
+        // FirebaseUser state will update via onAuthStateChanged, triggering re-fetch or use current
+        // For immediate UI update of displayName, we can setFirebaseUser, but onAuthStateChanged is cleaner
+        setFirebaseUser(auth.currentUser); // Force re-fetch of firebaseUser which has updated displayName
+        successMessages.push("Display Name updated.");
+        authUpdatesSuccessful = true;
       } catch (error: any) {
         console.error("Error updating display name:", error);
         errorMessages.push(`Failed to update display name: ${error.message}`);
       }
+    } else if (newDisplayName === firebaseUser.displayName) {
+        // No change, no message
     }
 
-    // Update Email in Firebase Auth
-    if (data.email.toLowerCase() !== firebaseUser.email?.toLowerCase()) {
+
+    // 2. Update Email in Firebase Auth
+    if (data.email.toLowerCase() !== (firebaseUser.email?.toLowerCase() || '')) {
       try {
         await updateEmail(firebaseUser, data.email);
-        successMessages.push("Email updated in Firebase.");
-        overallSuccess = true;
+        setFirebaseUser(auth.currentUser); // Re-fetch user for new email
+        successMessages.push("Email updated. You may need to re-verify if changed.");
+        authUpdatesSuccessful = true;
       } catch (error: any) {
         const authError = error as AuthError;
-        console.error("Error updating email:", authError);
         let specificMessage = `Failed to update email: ${authError.message}`;
         if (authError.code === 'auth/requires-recent-login') {
-          specificMessage = "Email update requires re-authentication. Please log out and log back in, then try again.";
+          specificMessage = "Email update requires re-authentication. Please log out, log back in, then try again.";
         } else if (authError.code === 'auth/email-already-in-use') {
           specificMessage = "This email address is already in use by another account.";
         }
@@ -128,76 +175,103 @@ export default function MyAccountPage() {
       }
     }
 
-    // Update localStorage for City, State, Country (mock/local part)
+    // 3. Update profile details in Firestore
+    const userDocRef = doc(db, "users", firebaseUser.uid);
+    const firestoreProfileData: Partial<UserProfile> = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      city: data.city,
+      state: data.state,
+      country: data.country,
+      // email and displayName are primarily managed by Firebase Auth, but we can mirror them here
+      email: data.email, // Mirror the new email
+      displayName: newDisplayName, // Mirror the new display name (from firstName, lastName)
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Ensure createdAt is only set if the document is being newly created
+    const docSnap = await getDoc(userDocRef);
+    if (!docSnap.exists()) {
+      firestoreProfileData.createdAt = new Date().toISOString();
+      firestoreProfileData.subscriptionTier = 'free'; // Set default tier for new Firestore doc
+      firestoreProfileData.stripeCustomerId = null;  // Set default Stripe ID for new Firestore doc
+    }
+
+
     try {
+      await setDoc(userDocRef, firestoreProfileData, { merge: true });
+      firestoreUpdateSuccessful = true;
+      successMessages.push("Profile details saved to server.");
+      
+      // Update local state for immediate UI reflection & sync localStorage
+      setUserProfile(prev => ({...prev, ...firestoreProfileData}));
+      setProfileCity(data.city);
+      setProfileState(data.state);
+      setProfileCountry(data.country);
       localStorage.setItem(MOCK_AUTH_CITY_KEY, data.city);
       localStorage.setItem(MOCK_AUTH_STATE_KEY, data.state);
       localStorage.setItem(MOCK_AUTH_COUNTRY_KEY, data.country);
-      setProfileCity(data.city); // Update local state for immediate UI reflection
-      setProfileState(data.state);
-      setProfileCountry(data.country);
-      if (data.city || data.state || data.country) { // Only add message if location details were provided
-          successMessages.push("Location details saved locally.");
-      }
-      overallSuccess = true; // Consider local save a success for UI purposes
-    } catch (error) {
-        console.error("Error saving location to localStorage:", error);
-        errorMessages.push("Failed to save location details locally.");
+
+    } catch (error: any) {
+      console.error("Error saving profile to Firestore:", error);
+      errorMessages.push(`Failed to save profile details to server: ${error.message}`);
     }
 
     if (successMessages.length > 0) {
-      toast({ title: "Profile Update", description: successMessages.join(' ') });
+      toast({ title: "Profile Update Successful", description: successMessages.join(' ') });
     }
     if (errorMessages.length > 0) {
       toast({ title: "Profile Update Issues", description: errorMessages.join(' '), variant: "destructive", duration: 7000 });
     }
     
-    if (overallSuccess) { // Close dialog if any part of the update was considered a success
+    const overallSuccess = authUpdatesSuccessful || firestoreUpdateSuccessful;
+    if (overallSuccess && errorMessages.length === 0) { 
         setIsEditProfileOpen(false);
     }
     setIsSavingProfile(false);
-    return overallSuccess; // Return true if at least local save or one Firebase update occurred
+    return overallSuccess && errorMessages.length === 0;
   };
 
-  if (isLoading) {
+  if (isAuthLoading || (!firebaseUser && !isAuthLoading)) { // Show main loader if auth is loading or user is null (and auth not loading)
     return (
+      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
+        <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
+        <p className="text-lg font-semibold text-primary font-body">
+          {isAuthLoading ? "Authenticating..." : "Please log in."}
+        </p>
+         {!isAuthLoading && !firebaseUser && (
+            <Link href="/login" passHref className="mt-4">
+                <Button>Go to Login</Button>
+            </Link>
+         )}
+      </div>
+    );
+  }
+  
+  // User is authenticated, now check if profile is loading
+  if (isProfileLoading) {
+     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
-        <p className="font-body text-muted-foreground">Loading account details...</p>
+        <Loader2 className="h-10 w-10 animate-spin text-primary mr-3" />
+        <p className="font-body text-muted-foreground text-lg">Loading account details...</p>
       </div>
     );
   }
 
-  if (!firebaseUser && !isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-250px)] text-center">
-        <Card className="w-full max-w-md p-8 shadow-lg">
-          <UserCircle className="h-16 w-16 text-primary mx-auto mb-4" />
-          <h1 className="text-2xl font-headline text-primary mb-2">My Account</h1>
-          <p className="text-muted-foreground font-body mb-6">
-            You are not currently signed in.
-          </p>
-          <Link href="/login" passHref>
-            <Button className="w-full font-body bg-primary text-primary-foreground hover:bg-primary/90">
-              Log In / Sign Up
-            </Button>
-          </Link>
-        </Card>
-      </div>
-    );
-  }
+  const currentFirstName = userProfile.firstName || (firebaseUser?.displayName?.split(' ')[0] || '');
+  const currentLastName = userProfile.lastName || (firebaseUser?.displayName?.split(' ').slice(1).join(' ') || '');
+  const currentEmail = userProfile.email || firebaseUser?.email || '';
 
-  const nameParts = firebaseUser?.displayName ? firebaseUser.displayName.split(' ') : [];
-  const currentFirstName = nameParts[0] || '';
-  const currentLastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-
-  const initialProfileDataForEdit = {
+  const initialProfileDataForEdit: EditProfileFormData = {
     firstName: currentFirstName,
     lastName: currentLastName,
-    email: firebaseUser?.email || '',
-    city: profileCity || '',
+    email: currentEmail,
+    city: profileCity || '', // Use local state which is synced from Firestore/localStorage
     state: profileState || '',
     country: profileCountry || '',
   };
+  
+  const displayUserName = firebaseUser?.displayName || userProfile.displayName || 'User';
 
   return (
     <div className="space-y-8">
@@ -205,7 +279,7 @@ export default function MyAccountPage() {
         <CardHeader className="text-center">
           <UserCircle className="h-20 w-20 text-primary mx-auto mb-3" />
           <CardTitle className="font-headline text-3xl text-primary">
-            Welcome, {firebaseUser?.displayName || firebaseUser?.email || 'User'}!
+            Welcome, {displayUserName}!
           </CardTitle>
           <CardDescription className="font-body text-lg">
             Manage your account details and subscription.
@@ -216,8 +290,8 @@ export default function MyAccountPage() {
             <ShieldAlert className="h-4 w-4 text-yellow-600" />
             <AlertTitle className="font-headline text-yellow-700">Profile Management</AlertTitle>
             <AlertDescription className="font-body">
-              Your Display Name and Email are updated with Firebase Authentication.
-              Location details (City, State, Country) are saved locally for now and will use Firestore in a future update.
+              Your First Name, Last Name, and Location details are now stored securely on our servers.
+              Email and Display Name are managed by Firebase Authentication.
             </AlertDescription>
           </Alert>
 
@@ -244,35 +318,33 @@ export default function MyAccountPage() {
               </Dialog>
             </div>
             
-            {firebaseUser?.displayName && (
-              <p className="font-body text-sm flex items-center">
-                  <User className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                  <strong>Display Name:</strong>&nbsp;{firebaseUser.displayName}
-              </p>
-            )}
-             {!firebaseUser?.displayName && firebaseUser?.email && (
-                <p className="font-body text-sm flex items-center">
-                    <User className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                    <strong>Display Name:</strong>&nbsp;[Not Set]
-                </p>
-            )}
-            {firebaseUser?.email && (
-              <p className="font-body text-sm flex items-center">
-                  <Mail className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                  <strong>Email:</strong>&nbsp;{firebaseUser.email}
-              </p>
-            )}
+            <p className="font-body text-sm flex items-center">
+                <User className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
+                <strong>Display Name:</strong>&nbsp;{firebaseUser?.displayName || '[Not Set]'}
+            </p>
+            <p className="font-body text-sm flex items-center">
+                <User className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
+                <strong>First Name:</strong>&nbsp;{userProfile.firstName || '[Not Set]'}
+            </p>
+            <p className="font-body text-sm flex items-center">
+                <User className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
+                <strong>Last Name:</strong>&nbsp;{userProfile.lastName || '[Not Set]'}
+            </p>
+            <p className="font-body text-sm flex items-center">
+                <Mail className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
+                <strong>Email:</strong>&nbsp;{firebaseUser?.email || userProfile.email || '[Not Set]'}
+            </p>
             <p className="font-body text-sm flex items-center">
                 <MapPin className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>City:</strong>&nbsp;{profileCity || '[Not Provided]'}
+                <strong>City:</strong>&nbsp;{profileCity || userProfile.city || '[Not Provided]'}
             </p>
             <p className="font-body text-sm flex items-center">
                 <Building className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>State / Region:</strong>&nbsp;{profileState || '[Not Provided]'}
+                <strong>State / Region:</strong>&nbsp;{profileState || userProfile.state || '[Not Provided]'}
             </p>
              <p className="font-body text-sm flex items-center">
                 <Globe className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>Country:</strong>&nbsp;{profileCountry || '[Not Provided]'}
+                <strong>Country:</strong>&nbsp;{profileCountry || userProfile.country || '[Not Provided]'}
             </p>
           </div>
 
