@@ -16,24 +16,33 @@ export function BottomNavigation() {
       <div className="container mx-auto px-2 sm:px-4">
         <ul className="flex justify-around items-center h-16">
           {bottomNavItems.map((item) => {
-            const isActive = item.href === '/dashboard-details' 
-              ? (pathname === '/' || pathname === '/dashboard-details') 
-              : pathname === item.href;
+            // The "Dashboard" item in nav links to /dashboard-details.
+            // It should be active if path is / (main dashboard) OR /dashboard-details.
+            const isDashboardItem = item.href === '/dashboard-details';
+            
+            let isActive;
+            if (isDashboardItem) {
+              isActive = (pathname === '/' || pathname === '/dashboard-details');
+            } else {
+              isActive = pathname === item.href;
+            }
               
             return (
               <li key={item.label} className="flex-1 text-center">
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex flex-col items-center justify-center p-2 rounded-md transition-colors h-full", // Added h-full for better vertical alignment
-                    isActive ? "text-accent" : "text-accent/50 hover:text-accent", // Changed: active is accent, inactive is accent/50
+                    "flex flex-col items-center justify-center p-2 rounded-md transition-colors h-full",
+                    isActive ? "text-accent" : "text-accent/50 hover:text-accent", 
                   )}
                   aria-current={isActive ? "page" : undefined}
-                  title={item.label} // Add title attribute for accessibility
+                  title={item.label}
                 >
-                  <item.icon className={cn("w-7 h-7", isActive ? "text-accent" : "text-accent opacity-50")} /> {/* Changed: applied accent and opacity */}
-                  {/* The span with item.label has been removed */}
-                  <span className="sr-only">{item.label}</span> {/* Keep label for screen readers */}
+                  <item.icon 
+                    className={cn("w-7 h-7", isActive ? "text-accent" : "text-accent opacity-50")} 
+                    strokeWidth={2.5} // Added strokeWidth for bolder icons
+                  />
+                  <span className="sr-only">{item.label}</span>
                 </Link>
               </li>
             );
