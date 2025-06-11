@@ -13,11 +13,11 @@ export interface NavItem {
 // Main navigation items for the dashboard grid and potentially other global navs
 export const navItems: NavItem[] = [
   {
-    href: '/dashboard-details', // Changed from '/'
-    label: 'Dashboard Details', // Changed from 'Dashboard'
-    icon: LayoutDashboard,    // Changed from Home
-    description: "Access your travel statistics, rewards program, and other detailed dashboard views.", // Updated description
-    keywords: 'statistics rewards' // Updated keywords
+    href: '/dashboard-details',
+    label: 'Dashboard', // Changed from 'Dashboard Details'
+    icon: LayoutDashboard,
+    description: "Access your travel statistics, rewards program, and other detailed dashboard views.",
+    keywords: 'statistics rewards'
   },
   {
     href: '/vehicles',
@@ -75,8 +75,6 @@ export const navItems: NavItem[] = [
     description: "Update your profile, manage your subscription, and view your account details.",
     keywords: 'profile user'
   },
-  // The explicit "Dashboard Hub" card with href: '/dashboard-details' is removed here.
-  // Its function is now served by the updated "Dashboard Details" card above.
 ];
 
 // Specific items for the /dashboard-details page (this remains the same)
