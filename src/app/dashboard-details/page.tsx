@@ -28,14 +28,12 @@ export default function DashboardDetailsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex-grow flex flex-col justify-between">
-                <CardDescription className="font-body text-sm text-muted-foreground mb-4">
-                  {item.label === 'Travel Stats'
-                    ? 'View your accumulated travel statistics, trip history insights, and milestones.'
-                    : 'Discover how you can earn rewards, badges, and benefits with KamperHub.'}
+                <CardDescription className="font-body text-sm text-muted-foreground mb-4 line-clamp-3">
+                  {item.description}
                 </CardDescription>
                 <div
                   className="h-32 w-full bg-muted/30 rounded-md flex items-center justify-center my-2 overflow-hidden"
-                  data-ai-hint={item.keywords || item.label.toLowerCase().split(' ')[0]}
+                  data-ai-hint={item.keywords}
                 >
                   <item.icon className="w-16 h-16 text-primary opacity-20" />
                 </div>

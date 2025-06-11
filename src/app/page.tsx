@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Home as HomeIcon, Loader2 } from 'lucide-react'; 
+import { GripVertical, Home as HomeIcon, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
@@ -44,9 +44,8 @@ function SortableNavItem({ id, item, isMobile }: SortableNavItemProps) {
                     <item.icon className="w-6 h-6 mr-3 text-primary" />
                     {item.label}
                 </CardTitle>
-                <CardDescription className="font-body text-sm text-muted-foreground line-clamp-2">
-                    Access tools and information for {item.label.toLowerCase()} to enhance your caravanning experience.
-                    {item.href === '/subscribe' && ' Unlock premium features and support KamperHub!'}
+                <CardDescription className="font-body text-sm text-muted-foreground line-clamp-3">
+                    {item.description}
                 </CardDescription>
             </div>
             {!isMobile && (
@@ -58,7 +57,7 @@ function SortableNavItem({ id, item, isMobile }: SortableNavItemProps) {
         <CardContent className="flex-grow flex flex-col justify-between pt-0">
           <div
             className="h-32 w-full bg-muted/30 rounded-md flex items-center justify-center my-2 overflow-hidden"
-            data-ai-hint={item.keywords || item.label.toLowerCase().split(' ')[0]}
+            data-ai-hint={item.keywords}
           >
             <item.icon className="w-16 h-16 text-primary opacity-20" />
           </div>
@@ -100,6 +99,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (hasMounted && !isAuthLoading && !firebaseUser) {
       router.push('/login');
+      router.refresh();
     }
   }, [hasMounted, isAuthLoading, firebaseUser, router]);
 
@@ -132,7 +132,7 @@ export default function DashboardPage() {
       setIsLoadingLayout(false);
     } else if (hasMounted && !firebaseUser && !isAuthLoading) {
       // If not logged in and auth check is complete, don't try to load layout, redirect is happening
-      setIsLoadingLayout(false); 
+      setIsLoadingLayout(false);
     }
   }, [hasMounted, firebaseUser, isAuthLoading]);
 
@@ -180,7 +180,7 @@ export default function DashboardPage() {
       </div>
     );
   }
-  
+
   // User is authenticated, proceed to dashboard loading/rendering
   if (isLoadingLayout) {
      return (
