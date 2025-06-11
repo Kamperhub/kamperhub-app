@@ -69,12 +69,12 @@ function SortableNavItem({ id, item, isMobile }: SortableNavItemProps) {
 
 export default function DashboardPage() {
   const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>([]);
-  const [isLoadingLayout, setIsLoadingLayout] = useState(true); // For dashboard layout loading
+  const [isLoadingLayout, setIsLoadingLayout] = useState(true); 
   const [hasMounted, setHasMounted] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
 
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true); // For auth state loading
+  const [isAuthLoading, setIsAuthLoading] = useState(true); 
   const router = useRouter();
 
   useEffect(() => {
@@ -104,34 +104,36 @@ export default function DashboardPage() {
   }, [hasMounted, isAuthLoading, firebaseUser, router]);
 
   useEffect(() => {
-    if (hasMounted && firebaseUser) { // Only load layout if user is authenticated
+    if (hasMounted && firebaseUser) { 
       try {
         const storedLayout = localStorage.getItem(DASHBOARD_LAYOUT_STORAGE_KEY);
+        // Filter defaultNavItems to exclude the one with href '/dashboard-details' for the main page
+        const mainPageNavItems = defaultNavItems.filter(item => item.href !== '/dashboard-details');
+
         if (storedLayout) {
           const storedItemOrder: string[] = JSON.parse(storedLayout);
-          const itemsFromStorage = storedItemOrder.map(href => defaultNavItems.find(item => item.href === href)).filter(Boolean) as NavItem[];
-          const currentDefaultHrefs = new Set(defaultNavItems.map(item => item.href));
+          const itemsFromStorage = storedItemOrder.map(href => mainPageNavItems.find(item => item.href === href)).filter(Boolean) as NavItem[];
+          const currentMainPageHrefs = new Set(mainPageNavItems.map(item => item.href));
           const itemsInStorageHrefs = new Set(itemsFromStorage.map(item => item.href));
 
           let finalItems = [...itemsFromStorage];
-          defaultNavItems.forEach(defaultItem => {
+          mainPageNavItems.forEach(defaultItem => {
             if (!itemsInStorageHrefs.has(defaultItem.href)) {
               finalItems.push(defaultItem);
             }
           });
-          finalItems = finalItems.filter(item => currentDefaultHrefs.has(item.href));
+          finalItems = finalItems.filter(item => currentMainPageHrefs.has(item.href));
 
           setOrderedNavItems(finalItems);
         } else {
-          setOrderedNavItems(defaultNavItems);
+          setOrderedNavItems(mainPageNavItems);
         }
       } catch (error) {
         console.error("Error loading dashboard layout from localStorage:", error);
-        setOrderedNavItems(defaultNavItems);
+        setOrderedNavItems(defaultNavItems.filter(item => item.href !== '/dashboard-details'));
       }
       setIsLoadingLayout(false);
     } else if (hasMounted && !firebaseUser && !isAuthLoading) {
-      // If not logged in and auth check is complete, don't try to load layout, redirect is happening
       setIsLoadingLayout(false);
     }
   }, [hasMounted, firebaseUser, isAuthLoading]);
@@ -171,8 +173,6 @@ export default function DashboardPage() {
   }
 
   if (!firebaseUser) {
-     // User is not authenticated and auth check is complete, redirecting.
-     // Show a brief message or a minimal loading state.
     return (
       <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
         <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
@@ -181,7 +181,6 @@ export default function DashboardPage() {
     );
   }
 
-  // User is authenticated, proceed to dashboard loading/rendering
   if (isLoadingLayout) {
      return (
       <div className="space-y-8">
@@ -204,7 +203,6 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <Skeleton className="h-32 w-full rounded-md mb-2" />
-                <Skeleton className="h-10 w-full" />
               </CardContent>
             </Card>
           ))}
@@ -231,6 +229,11 @@ export default function DashboardPage() {
             <p className="font-body text-muted-foreground">Your ultimate caravanning companion. Drag to reorder cards.</p>
           </div>
         </div>
+         <Link href="/dashboard-details" passHref>
+            <Button variant="outline" className="font-body">
+              <HomeIcon className="mr-2 h-4 w-4" /> View Dashboard Hub
+            </Button>
+          </Link>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={isMobileView ? undefined : handleDragEnd}>

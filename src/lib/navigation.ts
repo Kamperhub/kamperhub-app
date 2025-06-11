@@ -6,14 +6,14 @@ export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  description: string; // New field for personalized card description
-  keywords: string; // For AI hint on placeholder images (1-2 words)
+  description: string; 
+  keywords: string; 
 }
 
 // Main navigation items for the dashboard grid and potentially other global navs
 export const navItems: NavItem[] = [
   {
-    href: '/dashboard-details',
+    href: '/', // Changed from /dashboard-details to / for the main dashboard page
     label: 'Dashboard',
     icon: Home,
     description: "Your central hub for quick stats, upcoming trips, and personalized insights. Rearrange cards to fit your needs.",
@@ -75,6 +75,9 @@ export const navItems: NavItem[] = [
     description: "Update your profile, manage your subscription, and view your account details.",
     keywords: 'profile user'
   },
+  // Dashboard Details link itself, if needed as a direct nav item elsewhere,
+  // or it can be implicitly part of the main Dashboard's functionality.
+  // For now, keeping dashboard detail items separate for the /dashboard-details page.
 ];
 
 // Specific items for the /dashboard-details page
@@ -83,14 +86,14 @@ export const dashboardDetailItems: NavItem[] = [
     href: '/stats',
     label: 'Travel Stats',
     icon: BarChart3,
-    description: "View your accumulated travel statistics, trip history insights, and milestones.",
+    description: "View your accumulated travel statistics, trip history insights, and milestones achieved on your journeys.",
     keywords: 'trips summary'
   },
   {
     href: '/rewards',
     label: 'Rewards Program',
     icon: Award,
-    description: "Discover how you can earn rewards, badges, and benefits with KamperHub.",
+    description: "Discover how you can earn rewards, badges, and benefits with KamperHub as you explore.",
     keywords: 'loyalty points'
   },
 ];
