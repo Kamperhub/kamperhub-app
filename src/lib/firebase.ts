@@ -27,7 +27,6 @@ if (getApps().length === 0) {
     console.warn(
       'Firebase configuration is missing or incomplete. Please ensure all NEXT_PUBLIC_FIREBASE_ environment variables are set in your .env file.'
     );
-    // Initialize with empty config if vars are missing to avoid hard crash, though Firebase services won't work.
     app = initializeApp({});
   } else {
      app = initializeApp(firebaseConfig);
@@ -41,16 +40,16 @@ db = getFirestore(app);
 
 // Initialize App Check
 if (typeof window !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.projectId) {
-  const reCAPTCHASiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY;
-  console.log("[AppCheck] NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY from env:", reCAPTCHASiteKey); // Diagnostic log
+  const reCAPTCHASiteKeyFromEnv = process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY;
+  console.log("[AppCheck] NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY from env:", reCAPTCHASiteKeyFromEnv);
 
-  const isRecaptchaKeyValid = reCAPTCHASiteKey && reCAPTCHASiteKey !== 'your_recaptcha_v3_site_key_here' && reCAPTCHASiteKey.length > 10;
-  console.log("[AppCheck] Is reCAPTCHA key considered valid for use?", isRecaptchaKeyValid); // Diagnostic log
+  const isRecaptchaKeyValid = reCAPTCHASiteKeyFromEnv && reCAPTCHASiteKeyFromEnv !== 'your_recaptcha_v3_site_key_here' && reCAPTCHASiteKeyFromEnv.length > 10;
+  console.log("[AppCheck] Is reCAPTCHA key considered valid for use?", isRecaptchaKeyValid);
 
   if (isRecaptchaKeyValid) {
     try {
       appCheck = initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider(reCAPTCHASiteKey),
+        provider: new ReCaptchaV3Provider(reCAPTCHASiteKeyFromEnv),
         isTokenAutoRefreshEnabled: true
       });
       console.log("Firebase App Check initialized successfully with reCAPTCHA v3.");
@@ -61,34 +60,29 @@ if (typeof window !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.pro
       }
     }
   } else {
-    // Fallback for local development using debug token, if reCAPTCHA key is not set or is a placeholder.
     if (process.env.NODE_ENV === 'development') {
-        (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-        console.log(
+      (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+      console.log(
         "Firebase App Check: reCAPTCHA v3 site key not configured, is a placeholder, or too short. DEBUG MODE for App Check activated. " +
         "Look for a debug token in your browser's console logs (it might appear after an attempted Firebase call), " +
         "then add it to Firebase Console > App Check > Your Web App > Manage debug tokens."
-        );
-        try {
-            // Simpler call for debug mode, relying on the global debug flag.
-            // isTokenAutoRefreshEnabled defaults to true.
-            appCheck = initializeAppCheck(app);
-            console.log("[AppCheck] Attempted initialization in debug mode.");
-        } catch(e: any) {
-            console.error("Error initializing App Check in debug mode (this might be expected until a debug token is registered):", e.message);
-        }
-
+      );
+      try {
+        appCheck = initializeAppCheck(app); // Initialize with default debug provider
+        console.log("[AppCheck] Firebase App Check initialized successfully in debug mode.");
+      } catch (e: any) {
+        console.error("Error initializing App Check in debug mode (this might be expected until a debug token is registered):", e.message);
+      }
     } else {
-        console.warn(
-            "Firebase App Check: NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY is not configured or is a placeholder. " +
-            "App Check will not be initialized with reCAPTCHA for production. " +
-            "If App Check is enforced, Firebase operations might fail."
-        );
+      console.warn(
+        "Firebase App Check: NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY is not configured or is a placeholder. " +
+        "App Check will not be initialized with reCAPTCHA for production. " +
+        "If App Check is enforced, Firebase operations might fail."
+      );
     }
   }
 } else if (typeof window !== 'undefined') {
   console.warn("Firebase App Check not initialized because Firebase config is incomplete or not in a browser environment.");
 }
-
 
 export { app, auth, db, appCheck };
