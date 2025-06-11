@@ -6,18 +6,18 @@ export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  description: string; 
-  keywords: string; 
+  description: string;
+  keywords: string;
 }
 
 // Main navigation items for the dashboard grid and potentially other global navs
 export const navItems: NavItem[] = [
   {
-    href: '/', // Changed from /dashboard-details to / for the main dashboard page
+    href: '/',
     label: 'Dashboard',
     icon: Home,
     description: "Your central hub for quick stats, upcoming trips, and personalized insights. Rearrange cards to fit your needs.",
-    keywords: 'overview stats'
+    keywords: 'app overview' // Changed from 'overview stats'
   },
   {
     href: '/vehicles',
@@ -75,9 +75,6 @@ export const navItems: NavItem[] = [
     description: "Update your profile, manage your subscription, and view your account details.",
     keywords: 'profile user'
   },
-  // Dashboard Details link itself, if needed as a direct nav item elsewhere,
-  // or it can be implicitly part of the main Dashboard's functionality.
-  // For now, keeping dashboard detail items separate for the /dashboard-details page.
 ];
 
 // Specific items for the /dashboard-details page
