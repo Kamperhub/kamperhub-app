@@ -9,10 +9,13 @@ import { Button } from '@/components/ui/button';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Home as HomeIcon } from 'lucide-react'; 
+import { GripVertical, Home as HomeIcon, Loader2 } from 'lucide-react'; 
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
-import Image from 'next/image'; // Import the Image component
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 
 const DASHBOARD_LAYOUT_STORAGE_KEY = 'kamperhub_dashboard_layout_v2';
 
@@ -33,7 +36,7 @@ function SortableNavItem({ id, item, isMobile }: SortableNavItemProps) {
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="touch-manipulation h-full"> {/* Ensure SortableItem fills height */}
+    <div ref={setNodeRef} style={style} className="touch-manipulation h-full">
       <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
         <CardHeader className="pb-3 flex-row items-start justify-between space-y-0">
             <div className="space-y-1">
@@ -59,7 +62,6 @@ function SortableNavItem({ id, item, isMobile }: SortableNavItemProps) {
           >
             <item.icon className="w-16 h-16 text-primary opacity-20" />
           </div>
-          {/* Removed the "Explore" text and ArrowRight icon div */}
         </CardContent>
       </Card>
     </div>
@@ -68,22 +70,41 @@ function SortableNavItem({ id, item, isMobile }: SortableNavItemProps) {
 
 export default function DashboardPage() {
   const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingLayout, setIsLoadingLayout] = useState(true); // For dashboard layout loading
   const [hasMounted, setHasMounted] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
+
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true); // For auth state loading
+  const router = useRouter();
 
   useEffect(() => {
     setHasMounted(true);
     const handleResize = () => {
       setIsMobileView(window.innerWidth < 768); // md breakpoint
     };
-    handleResize(); // Initial check
+    handleResize();
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user);
+      setIsAuthLoading(false);
+    });
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      unsubscribeAuth();
+    };
   }, []);
 
   useEffect(() => {
-    if (hasMounted) {
+    if (hasMounted && !isAuthLoading && !firebaseUser) {
+      router.push('/login');
+    }
+  }, [hasMounted, isAuthLoading, firebaseUser, router]);
+
+  useEffect(() => {
+    if (hasMounted && firebaseUser) { // Only load layout if user is authenticated
       try {
         const storedLayout = localStorage.getItem(DASHBOARD_LAYOUT_STORAGE_KEY);
         if (storedLayout) {
@@ -108,9 +129,12 @@ export default function DashboardPage() {
         console.error("Error loading dashboard layout from localStorage:", error);
         setOrderedNavItems(defaultNavItems);
       }
-      setIsLoading(false);
+      setIsLoadingLayout(false);
+    } else if (hasMounted && !firebaseUser && !isAuthLoading) {
+      // If not logged in and auth check is complete, don't try to load layout, redirect is happening
+      setIsLoadingLayout(false); 
     }
-  }, [hasMounted]);
+  }, [hasMounted, firebaseUser, isAuthLoading]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -137,8 +161,29 @@ export default function DashboardPage() {
     }
   }, []);
 
-  if (!hasMounted || isLoading) {
+  if (!hasMounted || isAuthLoading) {
     return (
+      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
+        <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
+        <p className="text-lg font-semibold text-primary font-body">Authenticating...</p>
+      </div>
+    );
+  }
+
+  if (!firebaseUser) {
+     // User is not authenticated and auth check is complete, redirecting.
+     // Show a brief message or a minimal loading state.
+    return (
+      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
+        <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
+        <p className="text-lg font-semibold text-primary font-body">Redirecting to login...</p>
+      </div>
+    );
+  }
+  
+  // User is authenticated, proceed to dashboard loading/rendering
+  if (isLoadingLayout) {
+     return (
       <div className="space-y-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
@@ -175,10 +220,10 @@ export default function DashboardPage() {
           <Image
             src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.firebasestorage.app/o/KamperHub%20512x512.jpg?alt=media&token=00bf2acd-dbca-4cc2-984e-58461f67fdbd"
             alt="KamperHub Logo"
-            width={60} // Adjust width as needed
-            height={60} // Adjust height as needed
+            width={60}
+            height={60}
             className="mr-4 rounded-md"
-            priority // Good for LCP elements
+            priority
             data-ai-hint="logo brand"
           />
           <div>
@@ -192,7 +237,7 @@ export default function DashboardPage() {
         <SortableContext items={orderedNavItems.map(item => item.href)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {orderedNavItems.map((item) => (
-              <Link key={item.href} href={item.href} className="block h-full no-underline group"> {/* Added group class for hover state */}
+              <Link key={item.href} href={item.href} className="block h-full no-underline group">
                 <SortableNavItem id={item.href} item={item} isMobile={isMobileView} />
               </Link>
             ))}

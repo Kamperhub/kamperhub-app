@@ -10,12 +10,11 @@ import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-// Removed MOCK_AUTH keys as they are not primarily used for auth state anymore
 
 export function Header() {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // Added isLoading state
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -28,7 +27,7 @@ export function Header() {
         setFirebaseUser(null);
         setIsLoggedIn(false);
       }
-      setIsLoading(false); // Set loading to false after auth state is determined
+      setIsLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -36,13 +35,11 @@ export function Header() {
   const handleLogout = async () => {
     try {
       await auth.signOut();
-      // Firebase onAuthStateChanged will handle state updates (isLoggedIn, firebaseUser)
       toast({
         title: 'Logged Out',
         description: 'You have been successfully logged out.',
       });
-      router.push('/'); // Redirect to home page after logout
-      // router.refresh(); // Often not needed if onAuthStateChanged handles UI updates correctly
+      router.push('/login'); // Changed from '/' to '/login'
     } catch (error) {
       console.error("Error signing out: ", error);
       toast({
@@ -53,7 +50,7 @@ export function Header() {
     }
   };
 
-  if (isLoading) { // Consistent loading state with fixed height
+  if (isLoading) {
     return (
       <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-40">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between h-[68px]">
@@ -74,11 +71,11 @@ export function Header() {
           <Image
             src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.firebasestorage.app/o/Kamper%20Social%20Media%20Banner.jpg?alt=media&token=1050fb50-5c13-4f03-8cad-d80954cf9072"
             alt="KamperHub Banner Logo"
-            width={160} // Provided width
-            height={40} // Provided height
+            width={160}
+            height={40}
             priority
-            className="object-contain" // Ensures aspect ratio is maintained within bounds
-            style={{ width: 'auto', height: '40px' }} // Or style={{ width: '160px', height: 'auto' }}
+            className="object-contain"
+            style={{ width: 'auto', height: '40px' }}
             data-ai-hint="logo brand banner"
           />
         </Link>
@@ -90,7 +87,7 @@ export function Header() {
             </Button>
           </Link>
 
-          {isLoggedIn && firebaseUser ? ( // Added firebaseUser check here for more safety
+          {isLoggedIn && firebaseUser ? (
             <>
               <Link href="/my-account" passHref>
                 <Button variant="ghost" className="p-0 sm:px-3 sm:py-2 hover:bg-primary/80 flex items-center">
