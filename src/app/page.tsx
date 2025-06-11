@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Home as HomeIcon, Loader2 } from 'lucide-react';
+import { GripVertical, Home as HomeIcon, Loader2, LayoutDashboard } from 'lucide-react'; // Added LayoutDashboard just in case, though HomeIcon is used for /
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
@@ -99,7 +99,6 @@ export default function DashboardPage() {
   useEffect(() => {
     if (hasMounted && !isAuthLoading && !firebaseUser) {
       router.push('/login');
-      // router.refresh(); // Removed refresh from here to prevent potential loop
     }
   }, [hasMounted, isAuthLoading, firebaseUser, router]);
 
@@ -107,20 +106,24 @@ export default function DashboardPage() {
     if (hasMounted && firebaseUser) {
       try {
         const storedLayout = localStorage.getItem(DASHBOARD_LAYOUT_STORAGE_KEY);
-        const mainPageNavItems = defaultNavItems.filter(item => item.href !== '/dashboard-details');
+        // Use all items from defaultNavItems for the main page grid now
+        const mainPageNavItems = defaultNavItems; 
 
         if (storedLayout) {
           const storedItemOrder: string[] = JSON.parse(storedLayout);
+          // Ensure items from storage are still valid and present in current defaultNavItems
           const itemsFromStorage = storedItemOrder.map(href => mainPageNavItems.find(item => item.href === href)).filter(Boolean) as NavItem[];
           const currentMainPageHrefs = new Set(mainPageNavItems.map(item => item.href));
           const itemsInStorageHrefs = new Set(itemsFromStorage.map(item => item.href));
 
           let finalItems = [...itemsFromStorage];
+          // Add any new items from defaultNavItems that weren't in storage
           mainPageNavItems.forEach(defaultItem => {
             if (!itemsInStorageHrefs.has(defaultItem.href)) {
               finalItems.push(defaultItem);
             }
           });
+          // Remove any items from storage that no longer exist in defaultNavItems
           finalItems = finalItems.filter(item => currentMainPageHrefs.has(item.href));
 
           setOrderedNavItems(finalItems);
@@ -129,10 +132,11 @@ export default function DashboardPage() {
         }
       } catch (error) {
         console.error("Error loading dashboard layout from localStorage:", error);
-        setOrderedNavItems(defaultNavItems.filter(item => item.href !== '/dashboard-details'));
+        setOrderedNavItems(defaultNavItems); // Fallback to defaultNavItems (which now includes Dashboard Hub)
       }
       setIsLoadingLayout(false);
     } else if (hasMounted && !firebaseUser && !isAuthLoading) {
+      // If not logged in and auth state is resolved, don't show loading for layout
       setIsLoadingLayout(false);
     }
   }, [hasMounted, firebaseUser, isAuthLoading]);
@@ -172,6 +176,8 @@ export default function DashboardPage() {
   }
 
   if (!firebaseUser) {
+    // This state is usually brief as the useEffect above will redirect.
+    // Displaying a message can improve UX during that brief moment.
     return (
       <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
         <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
@@ -188,7 +194,6 @@ export default function DashboardPage() {
              <Skeleton className="mr-3 h-10 w-10 rounded-full" />
             <h1 className="text-3xl font-headline text-primary">Welcome to KamperHub</h1>
           </div>
-          <Skeleton className="h-12 w-48" />
         </div>
         <p className="font-body text-lg text-muted-foreground">
           Your ultimate caravanning companion. Loading your personalized dashboard...
@@ -228,11 +233,7 @@ export default function DashboardPage() {
             <p className="font-body text-muted-foreground">Your ultimate caravanning companion. Drag to reorder cards.</p>
           </div>
         </div>
-         <Link href="/dashboard-details" passHref>
-            <Button variant="outline" className="font-body">
-              <HomeIcon className="mr-2 h-4 w-4" /> View Dashboard Hub
-            </Button>
-          </Link>
+         {/* The standalone "View Dashboard Hub" button is now removed as it's part of the grid */}
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={isMobileView ? undefined : handleDragEnd}>

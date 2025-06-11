@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route, History, BedDouble, CreditCard, BarChart3, Award, UserCircle } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -69,6 +69,13 @@ export const navItems: NavItem[] = [
     keywords: 'campsite booking'
   },
   {
+    href: '/dashboard-details',
+    label: 'Dashboard Hub',
+    icon: LayoutDashboard,
+    description: "Access your travel statistics and explore our upcoming rewards program.",
+    keywords: 'hub details'
+  },
+  {
     href: '/my-account',
     label: 'My Account',
     icon: UserCircle,
@@ -94,4 +101,3 @@ export const dashboardDetailItems: NavItem[] = [
     keywords: 'user achievement'
   },
 ];
-
