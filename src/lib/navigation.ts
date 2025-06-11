@@ -17,7 +17,7 @@ export const navItems: NavItem[] = [
     label: 'Dashboard',
     icon: Home,
     description: "Your central hub for quick stats, upcoming trips, and personalized insights. Rearrange cards to fit your needs.",
-    keywords: 'app overview' // Changed from 'overview stats'
+    keywords: 'symbol' // Changed from 'app overview'
   },
   {
     href: '/vehicles',
