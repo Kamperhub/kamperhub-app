@@ -9,13 +9,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { auth } from '@/lib/firebase'; 
+import { auth, db } from '@/lib/firebase'; 
 import { createUserWithEmailAndPassword, updateProfile, type AuthError } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { UserPlus, Mail, User, KeyRound, MapPin, Building, Globe } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { MOCK_AUTH_LOGGED_IN_KEY } from '@/types/auth'; 
+import type { UserProfile } from '@/types/auth';
 
 const signupSchema = z.object({
   firstName: z.string().min(1, "First Name is required"),
@@ -60,9 +62,11 @@ export default function SignupPage() {
   useEffect(() => {
     setHasMounted(true);
     if (typeof window !== 'undefined') {
+        // This check helps redirect users away from login if they are already authenticated.
+        // MOCK_AUTH_LOGGED_IN_KEY is legacy, auth.currentUser is the source of truth.
         const isLoggedInViaMock = localStorage.getItem(MOCK_AUTH_LOGGED_IN_KEY) === 'true';
-        if ((isLoggedInViaMock || auth.currentUser) && auth.currentUser) {
-            router.push('/'); 
+        if (auth.currentUser || isLoggedInViaMock) { // Prioritize auth.currentUser
+            if (auth.currentUser) router.push('/'); 
         }
     }
   }, [router]);
@@ -76,20 +80,33 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
 
+      // Set display name in Firebase Auth
       await updateProfile(firebaseUser, {
         displayName: username, 
       });
 
-      // Note: City, State, Country are not stored in Firebase Auth user profile directly.
-      // This data will need to be saved to Firestore in a later step, associated with firebaseUser.uid.
+      // Create user profile document in Firestore
+      const userProfileData: UserProfile = {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        displayName: username,
+        firstName: firstName,
+        lastName: lastName,
+        city: city,
+        state: state,
+        country: country,
+        subscriptionTier: 'free', // Default to free tier
+        stripeCustomerId: null,   // No Stripe ID initially
+        createdAt: new Date().toISOString(), // Or serverTimestamp() if preferred and handled
+      };
+
+      await setDoc(doc(db, "users", firebaseUser.uid), userProfileData);
 
       toast({
         title: 'Sign Up Successful!',
         description: `Welcome, ${firstName}! Your account for ${email} has been created. You are now logged in.`,
       });
-
-      // No longer setting MOCK_AUTH_LOGGED_IN_KEY here. Firebase Auth is the source of truth.
-
+      
       router.push('/'); 
       router.refresh(); 
 
@@ -141,7 +158,7 @@ export default function SignupPage() {
             <UserPlus className="mr-2 h-6 w-6" /> Create Your KamperHub Account
           </CardTitle>
           <CardDescription className="font-body">
-            All fields marked * are required.
+            All fields marked * are required. Location details will be saved to your profile.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -265,7 +282,7 @@ export default function SignupPage() {
             </div>
 
             <Button type="submit" className="w-full font-body bg-primary text-primary-foreground hover:bg-primary/90 mt-6" disabled={isLoading}>
-              {isLoading ? 'Creating Account...' : 'Sign Up with Firebase'}
+              {isLoading ? 'Creating Account...' : 'Sign Up'}
             </Button>
           </form>
           <p className="text-sm text-center text-muted-foreground mt-4 font-body">
