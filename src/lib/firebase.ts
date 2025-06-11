@@ -2,108 +2,49 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
-import { initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from "firebase/app-check";
+import { getAnalytics, type Analytics } from 'firebase/analytics'; // Import getAnalytics
 
-// Your web app's Firebase configuration
+// Your web app's Firebase configuration (as provided by user)
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  apiKey: "AIzaSyDislaqwT2blN_zaj6rF4qJj8rs6eGiCJE",
+  authDomain: "kamperhub-s4hc2.firebaseapp.com",
+  projectId: "kamperhub-s4hc2",
+  storageBucket: "kamperhub-s4hc2.firebasestorage.app", // Using user provided value
+  messagingSenderId: "74707729193",
+  appId: "1:74707729193:web:b06f6dce5757fd1d431538",
+  measurementId: "G-V1CTQMC6BD"
 };
 
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
-let appCheck: AppCheck | undefined = undefined;
+let analytics: Analytics | undefined = undefined; // Define analytics variable
 
 if (getApps().length === 0) {
-  if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-    console.warn(
-      'Firebase configuration is missing or incomplete. Please ensure all NEXT_PUBLIC_FIREBASE_ environment variables are set.'
-    );
-    app = initializeApp({});
-  } else {
-    app = initializeApp(firebaseConfig);
-  }
+  // Using hardcoded config, so no need to check for missing apiKey/projectId from env vars
+  app = initializeApp(firebaseConfig);
+  console.log("[Firebase] Firebase app initialized with hardcoded config.");
 } else {
   app = getApps()[0];
+  console.log("[Firebase] Firebase app re-used existing instance.");
 }
 
 auth = getAuth(app);
 db = getFirestore(app);
 
+// Initialize Analytics only on the client side and if measurementId is present
 if (typeof window !== 'undefined') {
-  if (firebaseConfig.apiKey && firebaseConfig.projectId) {
-    const reCAPTCHASiteKeyFromEnv = process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY;
-    const isRecaptchaKeyValid = reCAPTCHASiteKeyFromEnv && reCAPTCHASiteKeyFromEnv !== 'your_recaptcha_v3_site_key_here' && reCAPTCHASiteKeyFromEnv.length > 10;
-
-    console.log(`[AppCheck] Effective NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY: "${reCAPTCHASiteKeyFromEnv}"`);
-    console.log(`[AppCheck] Is reCAPTCHA key considered valid for use? ${isRecaptchaKeyValid}`);
-
-    if (isRecaptchaKeyValid) {
-      try {
-        appCheck = initializeAppCheck(app, {
-          provider: new ReCaptchaV3Provider(reCAPTCHASiteKeyFromEnv),
-          isTokenAutoRefreshEnabled: true,
-        });
-        console.log("[AppCheck] Firebase App Check initialized successfully with reCAPTCHA v3.");
-      } catch (e: any) {
-        console.error("[AppCheck] Error initializing Firebase App Check with reCAPTCHA v3:", e.message);
-        if (e.message && (e.message.includes('reCAPTCHA V3 site key is not valid') || e.message.includes('Invalid site key'))) {
-          console.warn("[AppCheck] Ensure your NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY is correct and the domain is registered in Google Cloud Console for reCAPTCHA.");
-        }
-        // If reCAPTCHA init fails, consider debug mode for development
-        if (process.env.NODE_ENV === 'development') {
-          console.warn("[AppCheck] reCAPTCHA V3 initialization failed. Attempting to initialize App Check in DEBUG MODE for development as a fallback.");
-          (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-          try {
-            appCheck = initializeAppCheck(app);
-            console.log(
-              "[AppCheck] Firebase App Check initialized in DEBUG MODE (fallback after reCAPTCHA failure). " +
-              "Look for a debug token in your browser's console logs and add it to Firebase Console."
-            );
-          } catch (debugError: any) {
-            console.error("[AppCheck] Error initializing App Check in debug mode (fallback):", debugError.message);
-          }
-        }
-      }
-    } else {
-      // reCAPTCHA key is not valid (missing, placeholder, or too short)
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(
-          "[AppCheck] Firebase App Check: reCAPTCHA v3 site key not configured, is a placeholder, or too short. " +
-          "DEBUG MODE for App Check activated."
-        );
-        (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-        try {
-          appCheck = initializeAppCheck(app);
-          console.log(
-            "[AppCheck] Firebase App Check initialized in DEBUG MODE. " +
-            "Look for a debug token in your browser's console logs (it might appear after an attempted Firebase call), " +
-            "then add it to Firebase Console > App Check > Your Web App > Manage debug tokens."
-          );
-        } catch (e: any) {
-          console.error("[AppCheck] Error initializing App Check in debug mode (this might be expected until a debug token is registered or if config is incomplete):", e.message);
-        }
-      } else { // Production or other non-development environments
-        console.warn(
-          "[AppCheck] Firebase App Check: reCAPTCHA v3 site key is NOT valid or not configured for this non-development environment. " +
-          "App Check will NOT be initialized with reCAPTCHA. " +
-          "If App Check is enforced on backend services, Firebase operations might fail."
-        );
-      }
+  if (firebaseConfig.measurementId) {
+    try {
+      analytics = getAnalytics(app);
+      console.log("[Firebase] Analytics initialized.");
+    } catch (e: any) {
+      console.error("[Firebase] Error initializing Analytics:", e.message);
     }
   } else {
-    console.warn("[AppCheck] Firebase App Check: Not initializing because Firebase config (apiKey/projectId) is incomplete.");
+    console.warn("[Firebase] Analytics not initialized: measurementId is missing or invalid in firebaseConfig.");
   }
-} else {
-  // console.log("[AppCheck] Firebase App Check: Not initializing (not in a browser environment).");
 }
 
-export { app, auth, db, appCheck };
-
-    
+export { app, auth, db, analytics };
