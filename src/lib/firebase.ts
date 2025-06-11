@@ -21,6 +21,8 @@ let auth: Auth;
 let db: Firestore;
 let analytics: Analytics | undefined = undefined; // Define analytics variable
 
+const DATABASE_ID = 'kamperhubv2'; // Your named database ID
+
 if (getApps().length === 0) {
   // Using hardcoded config, so no need to check for missing apiKey/projectId from env vars
   app = initializeApp(firebaseConfig);
@@ -31,7 +33,9 @@ if (getApps().length === 0) {
 }
 
 auth = getAuth(app);
-db = getFirestore(app);
+// Initialize Firestore with the specific database ID
+db = getFirestore(app, DATABASE_ID);
+console.log(`[Firebase] Firestore initialized with database ID: ${DATABASE_ID}`);
 
 // Initialize Analytics only on the client side and if measurementId is present
 if (typeof window !== 'undefined') {
@@ -48,4 +52,3 @@ if (typeof window !== 'undefined') {
 }
 
 export { app, auth, db, analytics };
-
