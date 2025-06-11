@@ -7,16 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import { onAuthStateChanged, type User as FirebaseUser, updateProfile, updateEmail, type AuthError } from 'firebase/auth';
 import {
-  MOCK_AUTH_SUBSCRIPTION_TIER_KEY, // Kept for subscription
-  MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY, // Kept for subscription
-  MOCK_AUTH_CITY_KEY, // For profile form initial data if not in Firestore yet
+  MOCK_AUTH_SUBSCRIPTION_TIER_KEY,
+  MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY,
+  MOCK_AUTH_CITY_KEY,
   MOCK_AUTH_STATE_KEY,
   MOCK_AUTH_COUNTRY_KEY,
-  MOCK_AUTH_USER_REGISTRY_KEY, // For profile edit, to be replaced by Firestore
+  // MOCK_AUTH_USER_REGISTRY_KEY, // No longer needed for profile updates here
 } from '@/types/auth';
-import type { SubscriptionTier, MockUserRegistryEntry } from '@/types/auth';
+import type { SubscriptionTier } from '@/types/auth'; // Removed MockUserRegistryEntry
 import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -30,7 +30,6 @@ export default function MyAccountPage() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   
-  // Subscription and mock profile details still from localStorage for now
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>('free');
   const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null);
   const [profileCity, setProfileCity] = useState<string | null>(null);
@@ -44,23 +43,18 @@ export default function MyAccountPage() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setFirebaseUser(user);
-        // Load other details for this user if they exist (from localStorage for now)
-        // This part will eventually move to Firestore
         try {
             const storedTier = localStorage.getItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY) as SubscriptionTier | null;
             const storedStripeId = localStorage.getItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
             setSubscriptionTier(storedTier || 'free');
             setStripeCustomerId(storedStripeId);
 
-            // For profile form - these will be replaced by Firestore later
             setProfileCity(localStorage.getItem(MOCK_AUTH_CITY_KEY));
             setProfileState(localStorage.getItem(MOCK_AUTH_STATE_KEY));
             setProfileCountry(localStorage.getItem(MOCK_AUTH_COUNTRY_KEY));
-
         } catch (e) {
             console.error("Error loading user-specific details from localStorage", e);
         }
-
       } else {
         setFirebaseUser(null);
         setSubscriptionTier('free');
@@ -74,24 +68,16 @@ export default function MyAccountPage() {
     return () => unsubscribe();
   }, []);
 
-
   const handleLogout = async () => {
     try {
       await auth.signOut();
-      // onAuthStateChanged will handle setting firebaseUser to null and isLoading to false
       toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
-      // No need to clear MOCK_AUTH_LOGGED_IN_KEY here, Firebase state is king.
-      // Clearing subscription tier for demo purposes on explicit logout.
       localStorage.removeItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY);
       localStorage.removeItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
-      // For now, also clear profile details from localStorage for this demo
       localStorage.removeItem(MOCK_AUTH_CITY_KEY);
       localStorage.removeItem(MOCK_AUTH_STATE_KEY);
       localStorage.removeItem(MOCK_AUTH_COUNTRY_KEY);
-      // Note: MOCK_AUTH_USER_REGISTRY_KEY is not cleared on logout, only on signup/edit.
-
-      router.push('/'); // Redirect to home after logout
-      // router.refresh(); // Potentially redundant
+      router.push('/');
     } catch (error) {
       console.error("Error signing out: ", error);
       toast({ title: 'Logout Error', description: 'Failed to log out.', variant: 'destructive' });
@@ -104,75 +90,73 @@ export default function MyAccountPage() {
       return false;
     }
     setIsSavingProfile(true);
+    let overallSuccess = false;
+    const successMessages: string[] = [];
+    const errorMessages: string[] = [];
 
-    // TODO: Integrate Firebase updateProfile for displayName and email.
-    // TODO: Integrate Firestore for city, state, country.
-    // For now, this updates the old mock registry for demonstration.
+    // Update Display Name in Firebase Auth
+    const newDisplayName = `${data.firstName} ${data.lastName}`.trim();
+    if (newDisplayName && newDisplayName !== firebaseUser.displayName) {
+      try {
+        await updateProfile(firebaseUser, { displayName: newDisplayName });
+        // Note: firebaseUser state will update via onAuthStateChanged, may not be immediate here.
+        // For immediate reflection, we'd manually update a local copy, but onAuthStateChanged is cleaner.
+        successMessages.push("Display Name updated in Firebase.");
+        overallSuccess = true;
+      } catch (error: any) {
+        console.error("Error updating display name:", error);
+        errorMessages.push(`Failed to update display name: ${error.message}`);
+      }
+    }
+
+    // Update Email in Firebase Auth
+    if (data.email.toLowerCase() !== firebaseUser.email?.toLowerCase()) {
+      try {
+        await updateEmail(firebaseUser, data.email);
+        successMessages.push("Email updated in Firebase.");
+        overallSuccess = true;
+      } catch (error: any) {
+        const authError = error as AuthError;
+        console.error("Error updating email:", authError);
+        let specificMessage = `Failed to update email: ${authError.message}`;
+        if (authError.code === 'auth/requires-recent-login') {
+          specificMessage = "Email update requires re-authentication. Please log out and log back in, then try again.";
+        } else if (authError.code === 'auth/email-already-in-use') {
+          specificMessage = "This email address is already in use by another account.";
+        }
+        errorMessages.push(specificMessage);
+      }
+    }
+
+    // Update localStorage for City, State, Country (mock/local part)
     try {
-      const storedRegistryJson = localStorage.getItem(MOCK_AUTH_USER_REGISTRY_KEY);
-      let userRegistry: MockUserRegistryEntry[] = storedRegistryJson ? JSON.parse(storedRegistryJson) : [];
-      
-      let emailChanged = data.email.toLowerCase() !== (firebaseUser.email?.toLowerCase() || '');
-      let newEmailIsAvailable = true;
-
-      if (emailChanged) {
-        const emailExists = userRegistry.some(
-          user => user.email.toLowerCase() === data.email.toLowerCase() && user.username.toLowerCase() !== firebaseUser.displayName!.toLowerCase() // Assuming displayName is username for mock
-        );
-        if (emailExists) {
-          newEmailIsAvailable = false;
-          toast({ title: 'Update Failed', description: 'This Email address is already registered by another user.', variant: 'destructive' });
-        }
-      }
-      
-      if (!newEmailIsAvailable) {
-        setIsSavingProfile(false);
-        return false;
-      }
-
-      // Mock update logic using displayName as username key
-      userRegistry = userRegistry.map(user => {
-        if (user.username.toLowerCase() === firebaseUser.displayName?.toLowerCase()) { // Assuming displayName is username
-          return {
-            ...user,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            email: data.email,
-            city: data.city,
-            state: data.state,
-            country: data.country,
-          };
-        }
-        return user;
-      });
-      localStorage.setItem(MOCK_AUTH_USER_REGISTRY_KEY, JSON.stringify(userRegistry));
-
-      // Update localStorage for immediate reflection (will be replaced by Firestore reads)
       localStorage.setItem(MOCK_AUTH_CITY_KEY, data.city);
       localStorage.setItem(MOCK_AUTH_STATE_KEY, data.state);
       localStorage.setItem(MOCK_AUTH_COUNTRY_KEY, data.country);
-      
-      // Update local state for immediate UI update
-      setProfileCity(data.city);
+      setProfileCity(data.city); // Update local state for immediate UI reflection
       setProfileState(data.state);
       setProfileCountry(data.country);
-      
-      // Note: Firebase displayName and email are not updated here yet.
-      // Need to call firebaseUser.updateProfile() and firebaseUser.updateEmail()
-      // This will be part of a future refactor.
-      // For now, display name changes from this form won't reflect in firebaseUser.displayName
-
-      toast({ title: "Profile Updated (Mock)", description: "Your account details have been saved to local storage." });
-      setIsEditProfileOpen(false);
-      setIsSavingProfile(false);
-      return true;
-
+      if (data.city || data.state || data.country) { // Only add message if location details were provided
+          successMessages.push("Location details saved locally.");
+      }
+      overallSuccess = true; // Consider local save a success for UI purposes
     } catch (error) {
-      console.error("Error saving profile (mock):", error);
-      toast({ title: "Error", description: "Could not save profile changes.", variant: "destructive" });
-      setIsSavingProfile(false);
-      return false;
+        console.error("Error saving location to localStorage:", error);
+        errorMessages.push("Failed to save location details locally.");
     }
+
+    if (successMessages.length > 0) {
+      toast({ title: "Profile Update", description: successMessages.join(' ') });
+    }
+    if (errorMessages.length > 0) {
+      toast({ title: "Profile Update Issues", description: errorMessages.join(' '), variant: "destructive", duration: 7000 });
+    }
+    
+    if (overallSuccess) { // Close dialog if any part of the update was considered a success
+        setIsEditProfileOpen(false);
+    }
+    setIsSavingProfile(false);
+    return overallSuccess; // Return true if at least local save or one Firebase update occurred
   };
 
   if (isLoading) {
@@ -183,7 +167,7 @@ export default function MyAccountPage() {
     );
   }
 
-  if (!firebaseUser && !isLoading) { // Check !firebaseUser directly
+  if (!firebaseUser && !isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-250px)] text-center">
         <Card className="w-full max-w-md p-8 shadow-lg">
@@ -202,23 +186,18 @@ export default function MyAccountPage() {
     );
   }
 
-  // This part is rendered only if firebaseUser is available
   const nameParts = firebaseUser?.displayName ? firebaseUser.displayName.split(' ') : [];
   const currentFirstName = nameParts[0] || '';
   const currentLastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
 
   const initialProfileDataForEdit = {
-    // Use currentFirstName/LastName for the form, as these reflect what's in Firebase Auth displayName
-    // If these are empty, it means displayName wasn't set well, but form can still take input.
     firstName: currentFirstName,
     lastName: currentLastName,
     email: firebaseUser?.email || '',
-    // Location details still from localStorage for this mock version
     city: profileCity || '',
     state: profileState || '',
     country: profileCountry || '',
   };
-
 
   return (
     <div className="space-y-8">
@@ -235,9 +214,10 @@ export default function MyAccountPage() {
         <CardContent className="space-y-6">
           <Alert variant="default" className="bg-yellow-50 border-yellow-300 text-yellow-700">
             <ShieldAlert className="h-4 w-4 text-yellow-600" />
-            <AlertTitle className="font-headline text-yellow-700">Authentication Update</AlertTitle>
+            <AlertTitle className="font-headline text-yellow-700">Profile Management</AlertTitle>
             <AlertDescription className="font-body">
-              Account management now uses Firebase. Profile editing (Display Name, Email) will soon update Firebase directly. Other details (City, State, Country) will use Firestore.
+              Your Display Name and Email are updated with Firebase Authentication.
+              Location details (City, State, Country) are saved locally for now and will use Firestore in a future update.
             </AlertDescription>
           </Alert>
 
@@ -247,12 +227,12 @@ export default function MyAccountPage() {
               <Dialog open={isEditProfileOpen} onOpenChange={setIsEditProfileOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm" className="font-body">
-                    <Edit3 className="mr-2 h-4 w-4" /> Edit Profile (Mock)
+                    <Edit3 className="mr-2 h-4 w-4" /> Edit Profile
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[625px]">
                   <DialogHeader>
-                    <DialogTitle className="font-headline">Edit Your Profile (Mock)</DialogTitle>
+                    <DialogTitle className="font-headline">Edit Your Profile</DialogTitle>
                   </DialogHeader>
                   <EditProfileForm
                     initialData={initialProfileDataForEdit}
@@ -333,3 +313,5 @@ export default function MyAccountPage() {
     </div>
   );
 }
+
+    
