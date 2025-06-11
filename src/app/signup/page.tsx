@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase'; 
 import { createUserWithEmailAndPassword, updateProfile, type AuthError } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore'; // Removed serverTimestamp as not used in current logic
 import { UserPlus, Mail, User, KeyRound, MapPin, Building, Globe } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,13 +26,18 @@ const signupSchema = z.object({
     .min(3, "User Name must be at least 3 characters long")
     .regex(/^[a-zA-Z0-9_.-]+$/, "User Name can only contain letters, numbers, underscores, hyphens, and periods."),
   email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters long"),
-  confirmPassword: z.string().min(6, "Please confirm your password"),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters.")
+    .regex(/[a-z]/, "Must include at least one lowercase letter.")
+    .regex(/[A-Z]/, "Must include at least one uppercase letter.")
+    .regex(/[0-9]/, "Must include at least one number.")
+    .regex(/[\W_]/, "Must include at least one special character (e.g., !@#$%^&*)."), // \W is non-alphanumeric including underscore
+  confirmPassword: z.string().min(1, "Please confirm your password."),
   city: z.string().min(1, "City is required*"),
   state: z.string().min(1, "State / Region is required*"),
   country: z.string().min(1, "Country is required*"),
 }).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
+  message: "Passwords do not match.",
   path: ["confirmPassword"],
 });
 
@@ -62,10 +67,8 @@ export default function SignupPage() {
   useEffect(() => {
     setHasMounted(true);
     if (typeof window !== 'undefined') {
-        // This check helps redirect users away from login if they are already authenticated.
-        // MOCK_AUTH_LOGGED_IN_KEY is legacy, auth.currentUser is the source of truth.
         const isLoggedInViaMock = localStorage.getItem(MOCK_AUTH_LOGGED_IN_KEY) === 'true';
-        if (auth.currentUser || isLoggedInViaMock) { // Prioritize auth.currentUser
+        if (auth.currentUser || isLoggedInViaMock) { 
             if (auth.currentUser) router.push('/'); 
         }
     }
@@ -80,12 +83,10 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
 
-      // Set display name in Firebase Auth
       await updateProfile(firebaseUser, {
         displayName: username, 
       });
 
-      // Create user profile document in Firestore
       const userProfileData: UserProfile = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
@@ -95,9 +96,9 @@ export default function SignupPage() {
         city: city,
         state: state,
         country: country,
-        subscriptionTier: 'free', // Default to free tier
-        stripeCustomerId: null,   // No Stripe ID initially
-        createdAt: new Date().toISOString(), // Or serverTimestamp() if preferred and handled
+        subscriptionTier: 'free',
+        stripeCustomerId: null,
+        createdAt: new Date().toISOString(),
       };
 
       await setDoc(doc(db, "users", firebaseUser.uid), userProfileData);
@@ -126,7 +127,7 @@ export default function SignupPage() {
             toastMessage = 'Email/password accounts are not enabled.';
             break;
           case 'auth/weak-password':
-            toastMessage = 'The password is too weak.';
+            toastMessage = 'The password is too weak. Please ensure it meets the complexity requirements.';
             break;
           default:
             toastMessage = authError.message || 'An unknown sign-up error occurred.';
@@ -230,11 +231,14 @@ export default function SignupPage() {
                   id="password"
                   type="password"
                   {...register("password")}
-                  placeholder="Min. 6 characters"
+                  placeholder="Enter your password"
                   disabled={isLoading}
                   className="font-body pl-10"
                 />
               </div>
+              <p className="text-xs text-muted-foreground mt-1 font-body">
+                Min. 8 characters. Must include uppercase, lowercase, number, and special character.
+              </p>
               {errors.password && <p className="text-xs text-destructive font-body mt-1">{errors.password.message}</p>}
             </div>
             <div>
@@ -296,3 +300,5 @@ export default function SignupPage() {
     </div>
   );
 }
+
+    
