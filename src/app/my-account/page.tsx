@@ -236,24 +236,30 @@ export default function MyAccountPage() {
 
       if (response.ok && session.url) {
         console.log("MyAccountPage: Successfully received session URL:", session.url);
-        console.log("MyAccountPage: Attempting to redirect to Stripe via window.location.href...");
-        try {
-          window.location.href = session.url; // Reverted to window.location.href
-          console.log("MyAccountPage: Redirect initiated."); 
-        } catch (redirectError: any) {
-          console.error("MyAccountPage: Error during window.location.href assignment:", redirectError.message, redirectError.stack);
-          toast({ title: "Redirect Error", description: `Could not navigate to Stripe: ${redirectError.message}. Please try again or check your browser settings.`, variant: "destructive", duration: 10000 });
-          setIsRedirectingToCheckout(false); 
+        console.log("MyAccountPage: Attempting to open Stripe in new tab...");
+        const newWindow = window.open(session.url, '_blank', 'noopener,noreferrer');
+        if (newWindow) {
+            console.log("MyAccountPage: New tab opened (or popup blocker might have intervened).");
+            newWindow.focus(); // Attempt to focus the new tab/window
+        } else {
+            console.error("MyAccountPage: Failed to open new tab. It might have been blocked by a popup blocker.");
+            toast({ title: "Popup Blocked?", description: "Could not open the Stripe page. Please check if your browser blocked a popup and allow it for this site.", variant: "destructive", duration: 10000 });
         }
       } else {
         console.error("MyAccountPage: Failed to create Stripe session or URL missing. Backend error:", session.error);
         toast({ title: "Upgrade Error", description: session.error || "Could not initiate upgrade. Please try again.", variant: "destructive" });
-        setIsRedirectingToCheckout(false);
       }
     } catch (error: any) {
       console.error("MyAccountPage: Error calling /api/create-checkout-session or processing response:", error.message, error.stack);
       toast({ title: "Upgrade Error", description: `An unexpected error occurred: ${error.message}. Please try again.`, variant: "destructive" });
-      setIsRedirectingToCheckout(false);
+    } finally {
+        // We don't set setIsRedirectingToCheckout(false) here immediately
+        // because the action is to open a new tab; the current tab doesn't "finish" redirecting.
+        // User might need to interact with a popup blocker message if it appears.
+        // It's better to leave the button disabled or change its text to "Processing..."
+        // For simplicity here, we'll re-enable it, but in a real app, more sophisticated handling
+        // of popup blocking would be needed.
+        setIsRedirectingToCheckout(false);
     }
   };
 
@@ -409,7 +415,7 @@ export default function MyAccountPage() {
                   ) : (
                     <CreditCard className="mr-2 h-4 w-4" />
                   )}
-                  {isRedirectingToCheckout ? 'Redirecting...' : 'Upgrade to KamperHub Pro'}
+                  {isRedirectingToCheckout ? 'Processing...' : 'Upgrade to KamperHub Pro'}
                 </Button>
               </>
             )}
@@ -448,6 +454,8 @@ export default function MyAccountPage() {
     
 
 
+
+    
 
     
 
