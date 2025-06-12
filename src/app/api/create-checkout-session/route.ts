@@ -18,13 +18,19 @@ if (stripeSecretKey) {
 }
 
 export async function POST(req: NextRequest) {
-  console.log('Create Checkout Session: POST handler invoked.'); // New log
+  console.log('Create Checkout Session: POST handler invoked.');
 
-  if (!stripeSecretKey || !stripe) {
-    console.error('Create Checkout Session: Stripe is not initialized because STRIPE_SECRET_KEY is missing.');
+  if (!stripeSecretKey) {
+    console.error('Create Checkout Session: Stripe is not configured because STRIPE_SECRET_KEY is missing at runtime.');
     return NextResponse.json({ error: 'Stripe configuration error on server. Secret key missing.' }, { status: 500 });
   }
-  console.log('Create Checkout Session: STRIPE_SECRET_KEY is present.'); // New log
+  if (!stripe) {
+    // This case should ideally be caught by the above, but as a fallback:
+    console.error('Create Checkout Session: Stripe instance is not initialized. This likely means STRIPE_SECRET_KEY was missing at module load time or during re-check.');
+    return NextResponse.json({ error: 'Stripe not initialized on server. Secret key might be missing or invalid.' }, { status: 500 });
+  }
+  console.log('Create Checkout Session: STRIPE_SECRET_KEY is present and Stripe instance seems initialized.');
+
 
   try {
     const { email, userId } = await req.json();
@@ -36,6 +42,8 @@ export async function POST(req: NextRequest) {
     console.log('Create Checkout Session: Received email:', email, 'userId:', userId);
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    console.log('Create Checkout Session: Using appUrl for redirects:', appUrl); // Log the appUrl
+
     // Ensure this is the actual, live Stripe Price ID for the Pro subscription.
     const proPriceId = 'price_1RY5kuFHAncsAftmG1YtLyp9'; // CONFIRMED LIVE PRICE ID
 
@@ -73,3 +81,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Internal Server Error creating Stripe session: ${stripeErrorMessage}` }, { status: 500 });
   }
 }
+
