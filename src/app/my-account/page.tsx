@@ -19,7 +19,7 @@ import {
 } from '@/types/auth';
 import type { SubscriptionTier, UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info } from 'lucide-react'; // Added Info
+import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info } from 'lucide-react'; 
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -236,12 +236,12 @@ export default function MyAccountPage() {
 
       if (response.ok && session.url) {
         console.log("MyAccountPage: Successfully received session URL:", session.url);
-        console.log("MyAccountPage: Attempting to redirect to Stripe via window.top.location.href...");
+        console.log("MyAccountPage: Attempting to redirect to Stripe via window.location.href...");
         try {
-          window.top.location.href = session.url; // Use window.top.location.href
+          window.location.href = session.url; // Reverted to window.location.href
           console.log("MyAccountPage: Redirect initiated."); 
         } catch (redirectError: any) {
-          console.error("MyAccountPage: Error during window.top.location.href assignment:", redirectError.message, redirectError.stack);
+          console.error("MyAccountPage: Error during window.location.href assignment:", redirectError.message, redirectError.stack);
           toast({ title: "Redirect Error", description: `Could not navigate to Stripe: ${redirectError.message}. Please try again or check your browser settings.`, variant: "destructive", duration: 10000 });
           setIsRedirectingToCheckout(false); 
         }
@@ -448,5 +448,7 @@ export default function MyAccountPage() {
     
 
 
+
+    
 
     
