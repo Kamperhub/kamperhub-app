@@ -19,7 +19,7 @@ import {
 } from '@/types/auth';
 import type { SubscriptionTier, UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard } from 'lucide-react';
+import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info } from 'lucide-react'; // Added Info
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -236,14 +236,14 @@ export default function MyAccountPage() {
 
       if (response.ok && session.url) {
         console.log("MyAccountPage: Successfully received session URL:", session.url);
-        console.log("MyAccountPage: Attempting to redirect to Stripe via window.location.href...");
+        console.log("MyAccountPage: Attempting to redirect to Stripe via window.top.location.href...");
         try {
-          window.location.href = session.url;
-          console.log("MyAccountPage: Redirect initiated."); // This might not log if redirect is immediate
+          window.top.location.href = session.url; // Use window.top.location.href
+          console.log("MyAccountPage: Redirect initiated."); 
         } catch (redirectError: any) {
-          console.error("MyAccountPage: Error during window.location.href assignment:", redirectError.message, redirectError.stack);
+          console.error("MyAccountPage: Error during window.top.location.href assignment:", redirectError.message, redirectError.stack);
           toast({ title: "Redirect Error", description: `Could not navigate to Stripe: ${redirectError.message}. Please try again or check your browser settings.`, variant: "destructive", duration: 10000 });
-          setIsRedirectingToCheckout(false); // Reset button state on redirect error
+          setIsRedirectingToCheckout(false); 
         }
       } else {
         console.error("MyAccountPage: Failed to create Stripe session or URL missing. Backend error:", session.error);
@@ -255,8 +255,6 @@ export default function MyAccountPage() {
       toast({ title: "Upgrade Error", description: `An unexpected error occurred: ${error.message}. Please try again.`, variant: "destructive" });
       setIsRedirectingToCheckout(false);
     }
-    // Note: setIsRedirectingToCheckout(false) might not be hit if redirect is successful.
-    // If redirect fails before navigating, it will be hit.
   };
 
 
@@ -389,18 +387,31 @@ export default function MyAccountPage() {
             )}
             
             {subscriptionTier === 'free' && (
-              <Button
-                onClick={handleUpgradeToPro}
-                className="mt-4 w-full sm:w-auto bg-accent hover:bg-accent/90 text-accent-foreground font-body"
-                disabled={isRedirectingToCheckout}
-              >
-                {isRedirectingToCheckout ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <CreditCard className="mr-2 h-4 w-4" />
-                )}
-                {isRedirectingToCheckout ? 'Redirecting...' : 'Upgrade to KamperHub Pro'}
-              </Button>
+              <>
+                <Alert variant="default" className="mt-4 mb-3">
+                  <Info className="h-4 w-4" />
+                  <AlertTitle className="font-headline">Stripe Checkout Tip</AlertTitle>
+                  <AlertDescription className="font-body">
+                    If the payment page doesn't open correctly (e.g., blank screen),
+                    your security software (like Kaspersky Safe Money, some ad blockers)
+                    or browser extensions might be interfering.
+                    Consider temporarily disabling them or adding an exception for this site and checkout.stripe.com.
+                    Using an Incognito/Private browser window can also help diagnose this.
+                  </AlertDescription>
+                </Alert>
+                <Button
+                  onClick={handleUpgradeToPro}
+                  className="w-full sm:w-auto bg-accent hover:bg-accent/90 text-accent-foreground font-body"
+                  disabled={isRedirectingToCheckout}
+                >
+                  {isRedirectingToCheckout ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <CreditCard className="mr-2 h-4 w-4" />
+                  )}
+                  {isRedirectingToCheckout ? 'Redirecting...' : 'Upgrade to KamperHub Pro'}
+                </Button>
+              </>
             )}
 
             <p className="font-body text-sm mt-3 text-muted-foreground">
@@ -411,13 +422,7 @@ export default function MyAccountPage() {
                 className="mt-2 font-body w-full sm:w-auto"
                 onClick={() => {
                   if (stripeCustomerId) {
-                    // This is where you would implement the call to your backend to create a Stripe Portal session
-                    // For now, it's a conceptual toast message
                     toast({title: "Conceptual Action", description: "This would redirect to Stripe Customer Portal. Backend logic for portal session needed."});
-                    // Example of what the backend call might look like:
-                    // fetch('/api/create-portal-session', { method: 'POST', body: JSON.stringify({ customerId: stripeCustomerId })})
-                    //   .then(res => res.json())
-                    //   .then(data => { if(data.url) window.location.href = data.url; });
                   } else {
                     toast({title: "No Subscription Found", description: "No active Stripe subscription to manage for this account.", variant: "destructive"});
                   }
@@ -442,3 +447,6 @@ export default function MyAccountPage() {
 
     
 
+
+
+    
