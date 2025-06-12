@@ -75,7 +75,6 @@ export function Header() {
             height={40}
             priority
             className="object-contain"
-            style={{ width: 'auto', height: '40px' }}
             data-ai-hint="logo brand banner"
           />
         </Link>
