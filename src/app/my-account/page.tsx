@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, type User as FirebaseUser, updateProfile, updateEmail, type AuthError } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 import {
   MOCK_AUTH_SUBSCRIPTION_TIER_KEY,
@@ -18,8 +18,8 @@ import {
   MOCK_AUTH_COUNTRY_KEY,
 } from '@/types/auth';
 import type { SubscriptionTier, UserProfile } from '@/types/auth';
-import { useSubscription } from '@/hooks/useSubscription'; // Import useSubscription
-import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2 } from 'lucide-react';
+import { useSubscription } from '@/hooks/useSubscription';
+import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -28,13 +28,13 @@ import { EditProfileForm, type EditProfileFormData } from '@/components/features
 
 export default function MyAccountPage() {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  const [userProfile, setUserProfile] = useState<Partial<UserProfile>>({}); // Store Firestore profile data
-  const [isAuthLoading, setIsAuthLoading] = useState(true); // For initial auth check
-  const [isProfileLoading, setIsProfileLoading] = useState(false); // For Firestore profile fetch
+  const [userProfile, setUserProfile] = useState<Partial<UserProfile>>({});
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
   
-  // Local state for display, synced from userProfile (Firestore) or localStorage as fallback
   const { subscriptionTier, stripeCustomerId, setSubscriptionDetails } = useSubscription();
   const [profileCity, setProfileCity] = useState<string | null>(null);
   const [profileState, setProfileState] = useState<string | null>(null);
@@ -52,19 +52,16 @@ export default function MyAccountPage() {
       if (docSnap.exists()) {
         const profileData = docSnap.data() as UserProfile;
         setUserProfile(profileData);
-        // Sync Firestore data to local display state and localStorage/context for wider app consistency
         setProfileCity(profileData.city || null);
         setProfileState(profileData.state || null);
         setProfileCountry(profileData.country || null);
         setSubscriptionDetails(profileData.subscriptionTier || 'free', profileData.stripeCustomerId || null);
 
-        // Update localStorage for these specific items if still needed by other components
         if (profileData.city) localStorage.setItem(MOCK_AUTH_CITY_KEY, profileData.city); else localStorage.removeItem(MOCK_AUTH_CITY_KEY);
         if (profileData.state) localStorage.setItem(MOCK_AUTH_STATE_KEY, profileData.state); else localStorage.removeItem(MOCK_AUTH_STATE_KEY);
         if (profileData.country) localStorage.setItem(MOCK_AUTH_COUNTRY_KEY, profileData.country); else localStorage.removeItem(MOCK_AUTH_COUNTRY_KEY);
       } else {
         console.log("No Firestore profile document found for user:", user.uid, ". It will be created on first save.");
-        // Fallback to localStorage for subscription if no Firestore doc (for older users)
         const storedTier = localStorage.getItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY) as SubscriptionTier | null;
         const storedStripeId = localStorage.getItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
         setSubscriptionDetails(storedTier || 'free', storedStripeId);
@@ -72,12 +69,11 @@ export default function MyAccountPage() {
         setProfileCity(localStorage.getItem(MOCK_AUTH_CITY_KEY));
         setProfileState(localStorage.getItem(MOCK_AUTH_STATE_KEY));
         setProfileCountry(localStorage.getItem(MOCK_AUTH_COUNTRY_KEY));
-        setUserProfile({ email: user.email, displayName: user.displayName }); // Basic info from auth
+        setUserProfile({ email: user.email, displayName: user.displayName });
       }
     } catch (error) {
       console.error("Error fetching user profile from Firestore:", error);
       toast({ title: "Error", description: "Could not load your profile details from the server.", variant: "destructive" });
-      // Fallback to localStorage if Firestore fails
       const storedTier = localStorage.getItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY) as SubscriptionTier | null;
       const storedStripeId = localStorage.getItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
       setSubscriptionDetails(storedTier || 'free', storedStripeId);
@@ -94,15 +90,14 @@ export default function MyAccountPage() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setFirebaseUser(user);
-        fetchUserProfile(user); // Fetch Firestore profile data
+        fetchUserProfile(user);
       } else {
         setFirebaseUser(null);
         setUserProfile({});
         setProfileCity(null);
         setProfileState(null);
         setProfileCountry(null);
-        setSubscriptionDetails('free', null); // Reset subscription context on logout
-        // Clear local storage related to profile on logout
+        setSubscriptionDetails('free', null);
         localStorage.removeItem(MOCK_AUTH_CITY_KEY);
         localStorage.removeItem(MOCK_AUTH_STATE_KEY);
         localStorage.removeItem(MOCK_AUTH_COUNTRY_KEY);
@@ -118,7 +113,6 @@ export default function MyAccountPage() {
     try {
       await auth.signOut();
       toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
-      // States are reset by onAuthStateChanged listener
       router.push('/login');
     } catch (error) {
       console.error("Error signing out: ", error);
@@ -137,30 +131,22 @@ export default function MyAccountPage() {
     let authUpdatesSuccessful = false;
     let firestoreUpdateSuccessful = false;
 
-    // 1. Update Display Name in Firebase Auth
     const newDisplayName = `${data.firstName} ${data.lastName}`.trim();
     if (newDisplayName && newDisplayName !== firebaseUser.displayName) {
       try {
         await updateProfile(firebaseUser, { displayName: newDisplayName });
-        // FirebaseUser state will update via onAuthStateChanged, triggering re-fetch or use current
-        // For immediate UI update of displayName, we can setFirebaseUser, but onAuthStateChanged is cleaner
-        setFirebaseUser(auth.currentUser); // Force re-fetch of firebaseUser which has updated displayName
+        setFirebaseUser(auth.currentUser);
         successMessages.push("Display Name updated.");
         authUpdatesSuccessful = true;
       } catch (error: any) {
-        console.error("Error updating display name:", error);
         errorMessages.push(`Failed to update display name: ${error.message}`);
       }
-    } else if (newDisplayName === firebaseUser.displayName) {
-        // No change, no message
     }
 
-
-    // 2. Update Email in Firebase Auth
     if (data.email.toLowerCase() !== (firebaseUser.email?.toLowerCase() || '')) {
       try {
         await updateEmail(firebaseUser, data.email);
-        setFirebaseUser(auth.currentUser); // Re-fetch user for new email
+        setFirebaseUser(auth.currentUser);
         successMessages.push("Email updated. You may need to re-verify if changed.");
         authUpdatesSuccessful = true;
       } catch (error: any) {
@@ -175,7 +161,6 @@ export default function MyAccountPage() {
       }
     }
 
-    // 3. Update profile details in Firestore
     const userDocRef = doc(db, "users", firebaseUser.uid);
     const firestoreProfileData: Partial<UserProfile> = {
       firstName: data.firstName,
@@ -183,27 +168,23 @@ export default function MyAccountPage() {
       city: data.city,
       state: data.state,
       country: data.country,
-      // email and displayName are primarily managed by Firebase Auth, but we can mirror them here
-      email: data.email, // Mirror the new email
-      displayName: newDisplayName, // Mirror the new display name (from firstName, lastName)
+      email: data.email,
+      displayName: newDisplayName,
       updatedAt: new Date().toISOString(),
     };
 
-    // Ensure createdAt is only set if the document is being newly created
     const docSnap = await getDoc(userDocRef);
     if (!docSnap.exists()) {
       firestoreProfileData.createdAt = new Date().toISOString();
-      firestoreProfileData.subscriptionTier = 'free'; // Set default tier for new Firestore doc
-      firestoreProfileData.stripeCustomerId = null;  // Set default Stripe ID for new Firestore doc
+      firestoreProfileData.subscriptionTier = 'free';
+      firestoreProfileData.stripeCustomerId = null;
     }
-
 
     try {
       await setDoc(userDocRef, firestoreProfileData, { merge: true });
       firestoreUpdateSuccessful = true;
       successMessages.push("Profile details saved to server.");
       
-      // Update local state for immediate UI reflection & sync localStorage
       setUserProfile(prev => ({...prev, ...firestoreProfileData}));
       setProfileCity(data.city);
       setProfileState(data.state);
@@ -213,7 +194,6 @@ export default function MyAccountPage() {
       localStorage.setItem(MOCK_AUTH_COUNTRY_KEY, data.country);
 
     } catch (error: any) {
-      console.error("Error saving profile to Firestore:", error);
       errorMessages.push(`Failed to save profile details to server: ${error.message}`);
     }
 
@@ -232,7 +212,39 @@ export default function MyAccountPage() {
     return overallSuccess && errorMessages.length === 0;
   };
 
-  if (isAuthLoading || (!firebaseUser && !isAuthLoading)) { // Show main loader if auth is loading or user is null (and auth not loading)
+  const handleUpgradeToPro = async () => {
+    if (!firebaseUser || !firebaseUser.email) {
+      toast({ title: "Error", description: "You must be logged in to upgrade.", variant: "destructive" });
+      return;
+    }
+    setIsRedirectingToCheckout(true);
+    try {
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: firebaseUser.email, userId: firebaseUser.uid }),
+      });
+
+      const session = await response.json();
+
+      if (response.ok && session.url) {
+        window.location.href = session.url;
+      } else {
+        console.error("Failed to create Stripe session:", session.error);
+        toast({ title: "Upgrade Error", description: session.error || "Could not initiate upgrade. Please try again.", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("Error calling create-checkout-session:", error);
+      toast({ title: "Upgrade Error", description: "An unexpected error occurred. Please try again.", variant: "destructive" });
+    } finally {
+      setIsRedirectingToCheckout(false);
+    }
+  };
+
+
+  if (isAuthLoading || (!firebaseUser && !isAuthLoading)) {
     return (
       <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
         <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
@@ -248,7 +260,6 @@ export default function MyAccountPage() {
     );
   }
   
-  // User is authenticated, now check if profile is loading
   if (isProfileLoading) {
      return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
@@ -266,9 +277,9 @@ export default function MyAccountPage() {
     firstName: currentFirstName,
     lastName: currentLastName,
     email: currentEmail,
-    city: profileCity || '', // Use local state which is synced from Firestore/localStorage
-    state: profileState || '',
-    country: profileCountry || '',
+    city: profileCity || userProfile.city || '',
+    state: profileState || userProfile.state || '',
+    country: profileCountry || userProfile.country || '',
   };
   
   const displayUserName = firebaseUser?.displayName || userProfile.displayName || 'User';
@@ -360,6 +371,22 @@ export default function MyAccountPage() {
             {stripeCustomerId && (
                <p className="font-body text-xs mt-1 text-muted-foreground">Stripe Customer ID: {stripeCustomerId}</p>
             )}
+            
+            {subscriptionTier === 'free' && (
+              <Button
+                onClick={handleUpgradeToPro}
+                className="mt-4 w-full sm:w-auto bg-accent hover:bg-accent/90 text-accent-foreground font-body"
+                disabled={isRedirectingToCheckout}
+              >
+                {isRedirectingToCheckout ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CreditCard className="mr-2 h-4 w-4" />
+                )}
+                {isRedirectingToCheckout ? 'Redirecting...' : 'Upgrade to KamperHub Pro'}
+              </Button>
+            )}
+
             <p className="font-body text-sm mt-3 text-muted-foreground">
               Your subscription (including free trial cancellation or managing payment methods) is managed through Stripe.
             </p>
@@ -367,7 +394,17 @@ export default function MyAccountPage() {
                 variant="outline"
                 className="mt-2 font-body w-full sm:w-auto"
                 onClick={() => {
-                  toast({title: "Conceptual Action", description: "This would redirect to Stripe Customer Portal."});
+                  if (stripeCustomerId) {
+                    // This is where you would implement the call to your backend to create a Stripe Portal session
+                    // For now, it's a conceptual toast message
+                    toast({title: "Conceptual Action", description: "This would redirect to Stripe Customer Portal. Backend logic for portal session needed."});
+                    // Example of what the backend call might look like:
+                    // fetch('/api/create-portal-session', { method: 'POST', body: JSON.stringify({ customerId: stripeCustomerId })})
+                    //   .then(res => res.json())
+                    //   .then(data => { if(data.url) window.location.href = data.url; });
+                  } else {
+                    toast({title: "No Subscription Found", description: "No active Stripe subscription to manage for this account.", variant: "destructive"});
+                  }
                 }}
             >
               Manage Subscription in Stripe <ExternalLink className="ml-2 h-4 w-4" />
@@ -385,5 +422,6 @@ export default function MyAccountPage() {
     </div>
   );
 }
+    
 
     
