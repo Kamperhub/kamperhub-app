@@ -213,11 +213,14 @@ export default function MyAccountPage() {
   };
 
   const handleUpgradeToPro = async () => {
+    console.log("MyAccountPage: handleUpgradeToPro initiated.");
     if (!firebaseUser || !firebaseUser.email) {
       toast({ title: "Error", description: "You must be logged in to upgrade.", variant: "destructive" });
+      console.error("MyAccountPage: Upgrade attempt failed - no Firebase user or email.");
       return;
     }
     setIsRedirectingToCheckout(true);
+    console.log("MyAccountPage: Calling /api/create-checkout-session with email:", firebaseUser.email, "userId:", firebaseUser.uid);
     try {
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
@@ -226,21 +229,34 @@ export default function MyAccountPage() {
         },
         body: JSON.stringify({ email: firebaseUser.email, userId: firebaseUser.uid }),
       });
+      console.log("MyAccountPage: Response status from /api/create-checkout-session:", response.status);
 
       const session = await response.json();
+      console.log("MyAccountPage: Session data received from backend:", session);
 
       if (response.ok && session.url) {
-        window.location.href = session.url;
+        console.log("MyAccountPage: Successfully received session URL:", session.url);
+        console.log("MyAccountPage: Attempting to redirect to Stripe via window.location.href...");
+        try {
+          window.location.href = session.url;
+          console.log("MyAccountPage: Redirect initiated."); // This might not log if redirect is immediate
+        } catch (redirectError: any) {
+          console.error("MyAccountPage: Error during window.location.href assignment:", redirectError.message, redirectError.stack);
+          toast({ title: "Redirect Error", description: `Could not navigate to Stripe: ${redirectError.message}. Please try again or check your browser settings.`, variant: "destructive", duration: 10000 });
+          setIsRedirectingToCheckout(false); // Reset button state on redirect error
+        }
       } else {
-        console.error("Failed to create Stripe session:", session.error);
+        console.error("MyAccountPage: Failed to create Stripe session or URL missing. Backend error:", session.error);
         toast({ title: "Upgrade Error", description: session.error || "Could not initiate upgrade. Please try again.", variant: "destructive" });
+        setIsRedirectingToCheckout(false);
       }
-    } catch (error) {
-      console.error("Error calling create-checkout-session:", error);
-      toast({ title: "Upgrade Error", description: "An unexpected error occurred. Please try again.", variant: "destructive" });
-    } finally {
+    } catch (error: any) {
+      console.error("MyAccountPage: Error calling /api/create-checkout-session or processing response:", error.message, error.stack);
+      toast({ title: "Upgrade Error", description: `An unexpected error occurred: ${error.message}. Please try again.`, variant: "destructive" });
       setIsRedirectingToCheckout(false);
     }
+    // Note: setIsRedirectingToCheckout(false) might not be hit if redirect is successful.
+    // If redirect fails before navigating, it will be hit.
   };
 
 
@@ -425,3 +441,4 @@ export default function MyAccountPage() {
     
 
     
+
