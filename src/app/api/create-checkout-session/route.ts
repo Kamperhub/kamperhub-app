@@ -17,8 +17,7 @@ export async function POST(req: NextRequest) {
     // Use NEXT_PUBLIC_APP_URL from environment variables for success and cancel URLs
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-    // Replace placeholder with your actual Stripe Price ID for the Pro subscription.
-    // This Price ID should correspond to a Product in your Stripe dashboard that has a 3-day trial configured.
+    // Ensure this is the actual, live Stripe Price ID for the Pro subscription.
     const proPriceId = 'price_1RY5kuFHAncsAftmG1YtLyp9'; // CONFIRMED LIVE PRICE ID
 
     const checkoutSessionParams: Stripe.Checkout.SessionCreateParams = {
@@ -30,23 +29,15 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
       ],
-      // The trial is typically configured on the Price object in Stripe itself.
-      // If your Price ID in Stripe has a trial_period_days set, it will be used.
       customer_email: email,
-      // Pass the userId to the checkout session's metadata.
-      // This helps link the Stripe session back to your user in the webhook.
       metadata: {
         userId: userId,
       },
-      // Ensure you have /subscribe/success and /subscribe/cancel pages in your app
       success_url: `${appUrl}/subscribe/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/subscribe/cancel`,
     };
 
-    // If the price ID in Stripe already has a trial configured,
-    // you might not need to set subscription_data.trial_period_days here.
-    // Stripe recommends setting trials on the Price object.
-    // For this example, I'm assuming the trial is set on the Stripe Price.
+    console.log('Create Checkout Session: Params sent to Stripe:', checkoutSessionParams);
 
     const session = await stripe.checkout.sessions.create(checkoutSessionParams);
 
@@ -55,9 +46,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Could not create Stripe session.' }, { status: 500 });
     }
 
+    console.log('Create Checkout Session: Stripe Checkout Session URL:', session.url);
     return NextResponse.json({ url: session.url });
   } catch (error: any) {
     console.error('Error creating Stripe Checkout Session:', error.message);
-    return NextResponse.json({ error: 'Internal Server Error: ' + error.message }, { status: 500 });
+    // Send back a more specific error if available from Stripe, otherwise generic.
+    const stripeErrorMessage = error.type ? `${error.type}: ${error.message}` : error.message;
+    return NextResponse.json({ error: `Internal Server Error: ${stripeErrorMessage}` }, { status: 500 });
   }
 }
