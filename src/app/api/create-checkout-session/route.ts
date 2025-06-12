@@ -17,9 +17,9 @@ export async function POST(req: NextRequest) {
     // Use NEXT_PUBLIC_APP_URL from environment variables for success and cancel URLs
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-    // IMPORTANT: Replace 'your_stripe_price_id_here' with your actual Stripe Price ID for the Pro subscription.
-    // This Price ID should correspond to a Product in your Stripe dashboard that has a 3-day trial configured if you want the trial.
-    const proPriceId = 'your_stripe_price_id_here'; // Placeholder - MUST BE REPLACED
+    // Replace placeholder with your actual Stripe Price ID for the Pro subscription.
+    // This Price ID should correspond to a Product in your Stripe dashboard that has a 3-day trial configured.
+    const proPriceId = 'price_1RY5kuFHAncsAftmG1YtLyp9'; // CONFIRMED LIVE PRICE ID
 
     const checkoutSessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
@@ -32,10 +32,6 @@ export async function POST(req: NextRequest) {
       ],
       // The trial is typically configured on the Price object in Stripe itself.
       // If your Price ID in Stripe has a trial_period_days set, it will be used.
-      // You can also override or set it here if needed, but it's often cleaner to manage on Stripe.
-      // subscription_data: {
-      //   trial_period_days: 3, // Example if you want to define it here
-      // },
       customer_email: email,
       // Pass the userId to the checkout session's metadata.
       // This helps link the Stripe session back to your user in the webhook.
@@ -51,10 +47,6 @@ export async function POST(req: NextRequest) {
     // you might not need to set subscription_data.trial_period_days here.
     // Stripe recommends setting trials on the Price object.
     // For this example, I'm assuming the trial is set on the Stripe Price.
-    // If you need to explicitly set it from the backend:
-    // if (proPriceId === 'your_price_id_that_needs_explicit_trial_override') {
-    //   checkoutSessionParams.subscription_data = { trial_period_days: 3 };
-    // }
 
     const session = await stripe.checkout.sessions.create(checkoutSessionParams);
 
