@@ -396,13 +396,16 @@ export default function MyAccountPage() {
               <>
                 <Alert variant="default" className="mt-4 mb-3">
                   <Info className="h-4 w-4" />
-                  <AlertTitle className="font-headline">Stripe Checkout Tip</AlertTitle>
-                  <AlertDescription className="font-body">
-                    If the payment page doesn't open correctly (e.g., blank screen),
-                    your security software (like Kaspersky Safe Money, some ad blockers)
-                    or browser extensions might be interfering.
-                    Consider temporarily disabling them or adding an exception for this site and checkout.stripe.com.
-                    Using an Incognito/Private browser window can also help diagnose this.
+                  <AlertTitle className="font-headline">Stripe Checkout & Security Tip</AlertTitle>
+                  <AlertDescription className="font-body text-sm">
+                    If the Stripe payment page doesn't open correctly (e.g., blank screen), if CAPTCHA challenges (like hCaptcha) are not working, or if you encounter unexpected errors submitting payment:
+                    <ul className="list-disc pl-5 mt-1 space-y-0.5">
+                      <li>Aggressive security software (e.g., Kaspersky Safe Money, other antivirus web protection features) or browser extensions (ad blockers, privacy tools) might be interfering.</li>
+                      <li>Consider adding an exception for <code>checkout.stripe.com</code> and <code>js.stripe.com</code> in your security software/extensions.</li>
+                      <li>Alternatively, temporarily disabling such tools for the payment process can help diagnose the issue.</li>
+                      <li>Using an Incognito/Private browser window (which often disables extensions) is a good troubleshooting step.</li>
+                      <li>Ensure your browser allows pop-ups from Stripe for any authentication steps.</li>
+                    </ul>
                   </AlertDescription>
                 </Alert>
                 <Button
@@ -460,3 +463,5 @@ export default function MyAccountPage() {
     
 
     
+
+      
