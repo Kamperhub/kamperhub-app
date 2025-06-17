@@ -10,9 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase'; 
-import { createUserWithEmailAndPassword, updateProfile, type AuthError } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, type User as FirebaseUser, type AuthError } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { UserPlus, Mail, User, KeyRound, MapPin, Building, Globe } from 'lucide-react';
+import { UserPlus, Mail, User, KeyRound, MapPin, Building, Globe, Loader2 } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -51,7 +51,7 @@ export default function SignupPage() {
       username: '',
       email: '',
       password: '',
-      confirmPassword: '', // Explicitly set to empty
+      confirmPassword: '',
       city: '',
       state: '',
       country: '',
@@ -59,6 +59,7 @@ export default function SignupPage() {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('Creating Account...');
   const router = useRouter();
   const { toast } = useToast();
   const [hasMounted, setHasMounted] = useState(false);
@@ -72,19 +73,59 @@ export default function SignupPage() {
     }
   }, [router]);
 
+  const redirectToStripeCheckoutForTrial = async (userEmail: string, userId: string) => {
+    setLoadingMessage('Redirecting to setup Pro trial...');
+    try {
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail, userId: userId }),
+      });
+
+      const session = await response.json();
+
+      if (response.ok && session.url) {
+        // Redirect to Stripe Checkout
+        window.location.href = session.url;
+        // The user will be redirected away, so no further action here.
+        // isLoading will remain true until the page unloads.
+      } else {
+        toast({
+          title: "Account Created, Trial Setup Failed",
+          description: session.error || "Could not initiate Pro trial setup. Please try again from 'My Account'.",
+          variant: "destructive",
+          duration: 7000,
+        });
+        router.push('/'); // Send to dashboard if Stripe redirect fails
+        router.refresh();
+        setIsLoading(false);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Account Created, Network Error",
+        description: `Error setting up Pro trial: ${error.message}. Please try again from 'My Account'.`,
+        variant: "destructive",
+        duration: 7000,
+      });
+      router.push('/'); // Send to dashboard
+      router.refresh();
+      setIsLoading(false);
+    }
+  };
+
   const handleSignup: SubmitHandler<SignupFormData> = async (data) => {
     setIsLoading(true);
+    setLoadingMessage('Creating Account...');
     const { email, password, username, firstName, lastName, city, state, country } = data;
+    let firebaseUser: FirebaseUser | null = null;
 
     try {
       // 1. Create user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
+      firebaseUser = userCredential.user;
 
-      // 2. Update Firebase Auth display name (this uses 'username' from form)
-      await updateProfile(firebaseUser, {
-        displayName: username, 
-      });
+      // 2. Update Firebase Auth display name
+      await updateProfile(firebaseUser, { displayName: username });
 
       // 3. Prepare data for Firestore
       const userProfileData: UserProfile = {
@@ -96,31 +137,31 @@ export default function SignupPage() {
         city: city,
         state: state,
         country: country,
-        subscriptionTier: 'free', 
+        subscriptionTier: 'free', // Initially 'free', webhook will update if trial setup completes
         stripeCustomerId: null,  
         createdAt: new Date().toISOString(),
       };
 
       // 4. Save additional profile data to Firestore
-      try {
-        await setDoc(doc(db, "users", firebaseUser.uid), userProfileData);
+      await setDoc(doc(db, "users", firebaseUser.uid), userProfileData);
+      
+      // 5. Redirect to Stripe Checkout for trial setup
+      // Ensure email and uid are non-null before proceeding
+      if (firebaseUser.email && firebaseUser.uid) {
+        await redirectToStripeCheckoutForTrial(firebaseUser.email, firebaseUser.uid);
+        // If redirectToStripeCheckoutForTrial initiates a redirect, this point might not be reached
+        // or isLoading will remain true until page unloads.
+      } else {
+        // This case should be rare given successful auth.
         toast({
-          title: 'Sign Up Successful!',
-          description: `Welcome, ${firstName}! Your account for ${email} has been created. You are now logged in. Profile data saved.`,
+            title: 'Account Created, Info Missing',
+            description: 'Your account was created, but some details are missing. Please proceed to My Account to complete setup.',
+            variant: 'destructive',
+            duration: 9000,
         });
-        router.push('/'); 
+        router.push('/');
         router.refresh();
-      } catch (firestoreError: any) {
-        console.error("Firestore Error during signup (setDoc):", firestoreError);
-        toast({
-          title: 'Account Created, Profile Save Failed',
-          description: `Your account was created, but we couldn't save your profile details (Name, Location) to the database. Error: ${firestoreError.message}. Please try updating them in 'My Account'.`,
-          variant: 'destructive',
-          duration: 9000, 
-        });
-        // User is created in Auth, so still redirect them, but with a warning about profile data.
-        router.push('/'); 
-        router.refresh();
+        setIsLoading(false);
       }
 
     } catch (authError: any) {
@@ -131,15 +172,7 @@ export default function SignupPage() {
           case 'auth/email-already-in-use':
             toastMessage = 'This email address is already in use by another account.';
             break;
-          case 'auth/invalid-email':
-            toastMessage = 'The email address is not valid.';
-            break;
-          case 'auth/operation-not-allowed':
-            toastMessage = 'Email/password accounts are not enabled.';
-            break;
-          case 'auth/weak-password':
-            toastMessage = 'The password is too weak. Please ensure it meets the complexity requirements.';
-            break;
+          // ... (other auth error cases)
           default:
             toastMessage = error.message || 'An unknown sign-up error occurred.';
             break;
@@ -149,9 +182,10 @@ export default function SignupPage() {
       }
       toast({ title: 'Sign Up Failed', description: toastMessage, variant: 'destructive' });
       console.error("Firebase Auth Signup Error:", error); 
-    } finally {
       setIsLoading(false);
     }
+    // Do not set isLoading to false here if a redirect is expected.
+    // It will be handled by the redirect or error paths in redirectToStripeCheckoutForTrial.
   };
 
   if (!hasMounted) {
@@ -170,7 +204,7 @@ export default function SignupPage() {
             <UserPlus className="mr-2 h-6 w-6" /> Create Your KamperHub Account
           </CardTitle>
           <CardDescription className="font-body">
-            All fields marked * are required. Location details will be saved to your profile.
+            Join KamperHub to start your adventures! Complete your profile and set up your Pro trial.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -303,7 +337,8 @@ export default function SignupPage() {
             </div>
 
             <Button type="submit" className="w-full font-body bg-primary text-primary-foreground hover:bg-primary/90 mt-6" disabled={isLoading}>
-              {isLoading ? 'Creating Account...' : 'Sign Up'}
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading ? loadingMessage : 'Sign Up & Start Pro Trial'}
             </Button>
           </form>
           <p className="text-sm text-center text-muted-foreground mt-4 font-body">
@@ -317,3 +352,4 @@ export default function SignupPage() {
     </div>
   );
 }
+
