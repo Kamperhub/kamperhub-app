@@ -9,17 +9,16 @@ import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, type User as FirebaseUser, updateProfile, updateEmail, type AuthError } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { format, parseISO, isFuture } from 'date-fns';
 
 import {
-  MOCK_AUTH_SUBSCRIPTION_TIER_KEY,
-  MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY,
   MOCK_AUTH_CITY_KEY,
   MOCK_AUTH_STATE_KEY,
   MOCK_AUTH_COUNTRY_KEY,
 } from '@/types/auth';
 import type { SubscriptionTier, UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info } from 'lucide-react'; 
+import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, CalendarClock } from 'lucide-react'; 
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -35,7 +34,7 @@ export default function MyAccountPage() {
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
   
-  const { subscriptionTier, stripeCustomerId, setSubscriptionDetails } = useSubscription();
+  const { subscriptionTier, stripeCustomerId, trialEndsAt, setSubscriptionDetails, hasProAccess } = useSubscription();
   const [profileCity, setProfileCity] = useState<string | null>(null);
   const [profileState, setProfileState] = useState<string | null>(null);
   const [profileCountry, setProfileCountry] = useState<string | null>(null);
@@ -55,31 +54,24 @@ export default function MyAccountPage() {
         setProfileCity(profileData.city || null);
         setProfileState(profileData.state || null);
         setProfileCountry(profileData.country || null);
-        setSubscriptionDetails(profileData.subscriptionTier || 'free', profileData.stripeCustomerId || null);
+        setSubscriptionDetails(
+          profileData.subscriptionTier || 'free', 
+          profileData.stripeCustomerId || null,
+          profileData.trialEndsAt || null
+        );
 
         if (profileData.city) localStorage.setItem(MOCK_AUTH_CITY_KEY, profileData.city); else localStorage.removeItem(MOCK_AUTH_CITY_KEY);
         if (profileData.state) localStorage.setItem(MOCK_AUTH_STATE_KEY, profileData.state); else localStorage.removeItem(MOCK_AUTH_STATE_KEY);
         if (profileData.country) localStorage.setItem(MOCK_AUTH_COUNTRY_KEY, profileData.country); else localStorage.removeItem(MOCK_AUTH_COUNTRY_KEY);
       } else {
-        console.log("No Firestore profile document found for user:", user.uid, ". It will be created on first save.");
-        const storedTier = localStorage.getItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY) as SubscriptionTier | null;
-        const storedStripeId = localStorage.getItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
-        setSubscriptionDetails(storedTier || 'free', storedStripeId);
-        
-        setProfileCity(localStorage.getItem(MOCK_AUTH_CITY_KEY));
-        setProfileState(localStorage.getItem(MOCK_AUTH_STATE_KEY));
-        setProfileCountry(localStorage.getItem(MOCK_AUTH_COUNTRY_KEY));
+        console.log("No Firestore profile document found for user:", user.uid, ". It will be created on first save or if a trial was just initiated.");
+        // If no Firestore doc, rely on what might have been set by signup/useSubscription hook (e.g. from trial)
+        // This case is less likely now with signup creating a Firestore doc with trial info.
         setUserProfile({ email: user.email, displayName: user.displayName });
       }
     } catch (error) {
       console.error("Error fetching user profile from Firestore:", error);
       toast({ title: "Error", description: "Could not load your profile details from the server.", variant: "destructive" });
-      const storedTier = localStorage.getItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY) as SubscriptionTier | null;
-      const storedStripeId = localStorage.getItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
-      setSubscriptionDetails(storedTier || 'free', storedStripeId);
-      setProfileCity(localStorage.getItem(MOCK_AUTH_CITY_KEY));
-      setProfileState(localStorage.getItem(MOCK_AUTH_STATE_KEY));
-      setProfileCountry(localStorage.getItem(MOCK_AUTH_COUNTRY_KEY));
     } finally {
       setIsProfileLoading(false);
     }
@@ -97,12 +89,10 @@ export default function MyAccountPage() {
         setProfileCity(null);
         setProfileState(null);
         setProfileCountry(null);
-        setSubscriptionDetails('free', null);
+        setSubscriptionDetails('free', null, null); // Clear all subscription details
         localStorage.removeItem(MOCK_AUTH_CITY_KEY);
         localStorage.removeItem(MOCK_AUTH_STATE_KEY);
         localStorage.removeItem(MOCK_AUTH_COUNTRY_KEY);
-        localStorage.removeItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY);
-        localStorage.removeItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
       }
       setIsAuthLoading(false);
     });
@@ -126,6 +116,9 @@ export default function MyAccountPage() {
       return false;
     }
     setIsSavingProfile(true);
+    // ... (rest of the save profile logic remains the same) ...
+    // Ensure that `subscriptionTier` and `trialEndsAt` are NOT overwritten here by default.
+    // Only user-editable fields should be part of `firestoreProfileData`.
     const successMessages: string[] = [];
     const errorMessages: string[] = [];
     let authUpdatesSuccessful = false;
@@ -146,7 +139,7 @@ export default function MyAccountPage() {
     if (data.email.toLowerCase() !== (firebaseUser.email?.toLowerCase() || '')) {
       try {
         await updateEmail(firebaseUser, data.email);
-        setFirebaseUser(auth.currentUser);
+        setFirebaseUser(auth.currentUser); // Refresh user object
         successMessages.push("Email updated. You may need to re-verify if changed.");
         authUpdatesSuccessful = true;
       } catch (error: any) {
@@ -162,29 +155,24 @@ export default function MyAccountPage() {
     }
 
     const userDocRef = doc(db, "users", firebaseUser.uid);
-    const firestoreProfileData: Partial<UserProfile> = {
+    const firestoreProfileData: Partial<UserProfile> = { // Only update these specific fields
       firstName: data.firstName,
       lastName: data.lastName,
       city: data.city,
       state: data.state,
       country: data.country,
-      email: data.email,
-      displayName: newDisplayName,
+      email: data.email, // Sync email in Firestore too
+      displayName: newDisplayName, // Sync display name
       updatedAt: new Date().toISOString(),
     };
-
-    const docSnap = await getDoc(userDocRef);
-    if (!docSnap.exists()) {
-      firestoreProfileData.createdAt = new Date().toISOString();
-      firestoreProfileData.subscriptionTier = 'free';
-      firestoreProfileData.stripeCustomerId = null;
-    }
+    // DO NOT update subscriptionTier or trialEndsAt here, those are managed by signup/webhook.
 
     try {
       await setDoc(userDocRef, firestoreProfileData, { merge: true });
       firestoreUpdateSuccessful = true;
       successMessages.push("Profile details saved to server.");
       
+      // Update local state for display
       setUserProfile(prev => ({...prev, ...firestoreProfileData}));
       setProfileCity(data.city);
       setProfileState(data.state);
@@ -212,59 +200,40 @@ export default function MyAccountPage() {
     return overallSuccess && errorMessages.length === 0;
   };
 
-  const handleUpgradeToPro = async () => {
-    console.log("MyAccountPage: handleUpgradeToPro initiated.");
+  const handleSubscribeToPro = async () => {
     if (!firebaseUser || !firebaseUser.email) {
-      toast({ title: "Error", description: "You must be logged in to upgrade.", variant: "destructive" });
-      console.error("MyAccountPage: Upgrade attempt failed - no Firebase user or email.");
+      toast({ title: "Error", description: "You must be logged in to subscribe.", variant: "destructive" });
       return;
     }
     setIsRedirectingToCheckout(true);
-    console.log("MyAccountPage: Calling /api/create-checkout-session with email:", firebaseUser.email, "userId:", firebaseUser.uid);
     try {
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: firebaseUser.email, userId: firebaseUser.uid }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: firebaseUser.email, 
+          userId: firebaseUser.uid,
+          startTrial: false // Always false here, as this is for immediate paid subscription
+        }),
       });
-      console.log("MyAccountPage: Response status from /api/create-checkout-session:", response.status);
-
       const session = await response.json();
-      console.log("MyAccountPage: Session data received from backend:", session);
-
       if (response.ok && session.url) {
-        console.log("MyAccountPage: Successfully received session URL:", session.url);
-        console.log("MyAccountPage: Attempting to open Stripe in new tab...");
         const newWindow = window.open(session.url, '_blank', 'noopener,noreferrer');
-        if (newWindow) {
-            console.log("MyAccountPage: New tab opened (or popup blocker might have intervened).");
-            newWindow.focus(); // Attempt to focus the new tab/window
-        } else {
-            console.error("MyAccountPage: Failed to open new tab. It might have been blocked by a popup blocker.");
-            toast({ title: "Popup Blocked?", description: "Could not open the Stripe page. Please check if your browser blocked a popup and allow it for this site.", variant: "destructive", duration: 10000 });
+        if (!newWindow) {
+           toast({ title: "Popup Blocked?", description: "Could not open the Stripe page. Please check if your browser blocked a popup.", variant: "destructive", duration: 10000 });
         }
       } else {
-        console.error("MyAccountPage: Failed to create Stripe session or URL missing. Backend error:", session.error);
-        toast({ title: "Upgrade Error", description: session.error || "Could not initiate upgrade. Please try again.", variant: "destructive" });
+        toast({ title: "Subscription Error", description: session.error || "Could not initiate subscription. Please try again.", variant: "destructive" });
       }
     } catch (error: any) {
-      console.error("MyAccountPage: Error calling /api/create-checkout-session or processing response:", error.message, error.stack);
-      toast({ title: "Upgrade Error", description: `An unexpected error occurred: ${error.message}. Please try again.`, variant: "destructive" });
+      toast({ title: "Subscription Error", description: `An unexpected error occurred: ${error.message}. Please try again.`, variant: "destructive" });
     } finally {
-        // We don't set setIsRedirectingToCheckout(false) here immediately
-        // because the action is to open a new tab; the current tab doesn't "finish" redirecting.
-        // User might need to interact with a popup blocker message if it appears.
-        // It's better to leave the button disabled or change its text to "Processing..."
-        // For simplicity here, we'll re-enable it, but in a real app, more sophisticated handling
-        // of popup blocking would be needed.
-        setIsRedirectingToCheckout(false);
+      setIsRedirectingToCheckout(false);
     }
   };
 
-
   if (isAuthLoading || (!firebaseUser && !isAuthLoading)) {
+    // ... (loading spinner logic, same as before) ...
     return (
       <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
         <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
@@ -281,7 +250,8 @@ export default function MyAccountPage() {
   }
   
   if (isProfileLoading) {
-     return (
+     // ... (loading spinner logic, same as before) ...
+      return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-10 w-10 animate-spin text-primary mr-3" />
         <p className="font-body text-muted-foreground text-lg">Loading account details...</p>
@@ -289,20 +259,18 @@ export default function MyAccountPage() {
     );
   }
 
-  const currentFirstName = userProfile.firstName || (firebaseUser?.displayName?.split(' ')[0] || '');
-  const currentLastName = userProfile.lastName || (firebaseUser?.displayName?.split(' ').slice(1).join(' ') || '');
-  const currentEmail = userProfile.email || firebaseUser?.email || '';
-
   const initialProfileDataForEdit: EditProfileFormData = {
-    firstName: currentFirstName,
-    lastName: currentLastName,
-    email: currentEmail,
+    firstName: userProfile.firstName || (firebaseUser?.displayName?.split(' ')[0] || ''),
+    lastName: userProfile.lastName || (firebaseUser?.displayName?.split(' ').slice(1).join(' ') || ''),
+    email: userProfile.email || firebaseUser?.email || '',
     city: profileCity || userProfile.city || '',
     state: profileState || userProfile.state || '',
     country: profileCountry || userProfile.country || '',
   };
   
   const displayUserName = firebaseUser?.displayName || userProfile.displayName || 'User';
+  const isTrialActive = subscriptionTier === 'trialing' && trialEndsAt && isFuture(parseISO(trialEndsAt));
+  const hasTrialExpired = subscriptionTier === 'trialing' && trialEndsAt && !isFuture(parseISO(trialEndsAt));
 
   return (
     <div className="space-y-8">
@@ -317,16 +285,8 @@ export default function MyAccountPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <Alert variant="default" className="bg-yellow-50 border-yellow-300 text-yellow-700">
-            <ShieldAlert className="h-4 w-4 text-yellow-600" />
-            <AlertTitle className="font-headline text-yellow-700">Profile Management</AlertTitle>
-            <AlertDescription className="font-body">
-              Your First Name, Last Name, and Location details are now stored securely on our servers.
-              Email and Display Name are managed by Firebase Authentication.
-            </AlertDescription>
-          </Alert>
-
-          <div className="p-4 border rounded-md bg-muted/30 space-y-2">
+          {/* Profile Details Section ... (same as before) ... */}
+           <div className="p-4 border rounded-md bg-muted/30 space-y-2">
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-lg font-headline text-foreground">Account Details:</h3>
               <Dialog open={isEditProfileOpen} onOpenChange={setIsEditProfileOpen}>
@@ -379,25 +339,49 @@ export default function MyAccountPage() {
             </p>
           </div>
 
+          {/* Subscription Section */}
           <div className="p-4 border rounded-md bg-muted/30">
             <h3 className="text-lg font-headline text-foreground mb-2">Subscription Status:</h3>
-            <div className="font-body text-sm flex items-center">
-              <Star className={`h-4 w-4 mr-2 ${subscriptionTier === 'pro' ? 'text-yellow-500 fill-yellow-400' : 'text-primary/80'}`} />
-              <strong>Current Tier:</strong>&nbsp;
-              <Badge variant={subscriptionTier === 'pro' ? 'default' : 'secondary'} className={subscriptionTier === 'pro' ? 'bg-yellow-500 text-white' : ''}>
-                {subscriptionTier?.toUpperCase() || 'N/A'}
+            <div className="font-body text-sm flex items-center mb-2">
+              <Star className={`h-4 w-4 mr-2 ${hasProAccess ? 'text-yellow-500 fill-yellow-400' : 'text-primary/80'}`} />
+              <strong>Current Access:</strong>&nbsp;
+              <Badge variant={hasProAccess ? 'default' : 'secondary'} className={hasProAccess ? 'bg-yellow-500 text-white' : ''}>
+                {hasProAccess ? 'PRO ACCESS' : 'FREE TIER'}
               </Badge>
             </div>
-            {stripeCustomerId && (
+
+            {isTrialActive && trialEndsAt && (
+              <Alert variant="default" className="mb-3 bg-blue-50 border-blue-300">
+                <CalendarClock className="h-4 w-4 text-blue-600" />
+                <AlertTitle className="font-headline text-blue-700">Pro Trial Active!</AlertTitle>
+                <AlertDescription className="font-body text-blue-600">
+                  Your 7-day Pro trial ends on: {format(parseISO(trialEndsAt), "PPP")}.
+                  Subscribe now to keep Pro features after your trial.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {hasTrialExpired && subscriptionTier !== 'pro' && (
+              <Alert variant="destructive" className="mb-3">
+                <CalendarClock className="h-4 w-4" />
+                <AlertTitle className="font-headline">Pro Trial Expired</AlertTitle>
+                <AlertDescription className="font-body">
+                  Your Pro trial has ended. Subscribe to regain access to Pro features.
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {stripeCustomerId && subscriptionTier === 'pro' && (
                <p className="font-body text-xs mt-1 text-muted-foreground">Stripe Customer ID: {stripeCustomerId}</p>
             )}
             
-            {subscriptionTier === 'free' && (
+            {subscriptionTier !== 'pro' && ( // Show subscribe button if not already Pro
               <>
                 <Alert variant="default" className="mt-4 mb-3">
                   <Info className="h-4 w-4" />
                   <AlertTitle className="font-headline">Stripe Checkout & Security Tip</AlertTitle>
                   <AlertDescription className="font-body text-sm">
+                    {/* ... (security tip content remains the same) ... */}
                     If the Stripe payment page doesn't open correctly (e.g., blank screen), if CAPTCHA challenges (like hCaptcha) are not working, or if you encounter unexpected errors submitting payment:
                     <ul className="list-disc pl-5 mt-1 space-y-0.5">
                       <li>Aggressive security software (e.g., Kaspersky Safe Money, other antivirus web protection features) or browser extensions (ad blockers, privacy tools) might be interfering.</li>
@@ -409,7 +393,7 @@ export default function MyAccountPage() {
                   </AlertDescription>
                 </Alert>
                 <Button
-                  onClick={handleUpgradeToPro}
+                  onClick={handleSubscribeToPro}
                   className="w-full sm:w-auto bg-accent hover:bg-accent/90 text-accent-foreground font-body"
                   disabled={isRedirectingToCheckout}
                 >
@@ -418,30 +402,34 @@ export default function MyAccountPage() {
                   ) : (
                     <CreditCard className="mr-2 h-4 w-4" />
                   )}
-                  {isRedirectingToCheckout ? 'Processing...' : 'Upgrade to KamperHub Pro'}
+                  {isRedirectingToCheckout ? 'Processing...' : 'Subscribe to KamperHub Pro'}
                 </Button>
+                 <p className="text-xs text-muted-foreground mt-2 font-body">
+                    This will start your paid Pro subscription immediately.
+                 </p>
               </>
             )}
 
-            <p className="font-body text-sm mt-3 text-muted-foreground">
-              Your subscription (including free trial cancellation or managing payment methods) is managed through Stripe.
-            </p>
-            <Button
-                variant="outline"
-                className="mt-2 font-body w-full sm:w-auto"
-                onClick={() => {
-                  if (stripeCustomerId) {
-                    toast({title: "Conceptual Action", description: "This would redirect to Stripe Customer Portal. Backend logic for portal session needed."});
-                  } else {
-                    toast({title: "No Subscription Found", description: "No active Stripe subscription to manage for this account.", variant: "destructive"});
-                  }
-                }}
-            >
-              Manage Subscription in Stripe <ExternalLink className="ml-2 h-4 w-4" />
-            </Button>
-             <p className="text-xs text-muted-foreground mt-2 font-body">
-                Note: If you started with a free trial, it will automatically convert to a paid Pro subscription unless canceled via Stripe before the trial ends.
-             </p>
+            {subscriptionTier === 'pro' && (
+              <>
+                <p className="font-body text-sm mt-3 text-muted-foreground">
+                  Your subscription is managed through Stripe.
+                </p>
+                <Button
+                    variant="outline"
+                    className="mt-2 font-body w-full sm:w-auto"
+                    onClick={() => {
+                      if (stripeCustomerId) {
+                        toast({title: "Conceptual Action", description: "This would redirect to Stripe Customer Portal. Backend logic for portal session needed."});
+                      } else {
+                        toast({title: "No Subscription Found", description: "No active Stripe subscription to manage for this account.", variant: "destructive"});
+                      }
+                    }}
+                >
+                  Manage Subscription in Stripe <ExternalLink className="ml-2 h-4 w-4" />
+                </Button>
+              </>
+            )}
           </div>
 
           <Button onClick={handleLogout} variant="destructive" className="w-full font-body">
@@ -452,16 +440,3 @@ export default function MyAccountPage() {
     </div>
   );
 }
-    
-
-    
-
-
-
-    
-
-    
-
-    
-
-      

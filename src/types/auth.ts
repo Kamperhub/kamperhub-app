@@ -15,11 +15,13 @@ export const MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY = 'kamperhub_mock_stripe_customer_
 export const MOCK_AUTH_CITY_KEY = 'kamperhub_mock_city';
 export const MOCK_AUTH_STATE_KEY = 'kamperhub_mock_state';
 export const MOCK_AUTH_COUNTRY_KEY = 'kamperhub_mock_country';
+export const MOCK_AUTH_TRIAL_ENDS_AT_KEY = 'kamperhub_mock_trial_ends_at';
+
 
 // This registry is being replaced by Firebase Authentication & Firestore.
 export const MOCK_AUTH_USER_REGISTRY_KEY = 'kamperhub_mock_user_registry';
 
-export type SubscriptionTier = 'free' | 'pro';
+export type SubscriptionTier = 'free' | 'pro' | 'trialing' | 'trial_expired';
 
 // Represents the user data stored in Firestore.
 export interface UserProfile {
@@ -33,6 +35,7 @@ export interface UserProfile {
   country: string | null;
   subscriptionTier: SubscriptionTier;
   stripeCustomerId: string | null;
+  trialEndsAt?: string | null; // ISO Date string or Firestore Timestamp
   createdAt: string; // ISO Date string or Firestore Timestamp
   updatedAt?: string; // ISO Date string or Firestore Timestamp
 }
@@ -49,6 +52,7 @@ export interface MockAuthSession {
   city?: string | null;
   state?: string | null;
   country?: string | null;
+  trialEndsAt?: string | null;
 }
 
 // This interface was for the old mock user registry.
@@ -58,8 +62,9 @@ export interface MockUserRegistryEntry {
   email: string;
   firstName: string;
   lastName: string;
-  password?: string;
+  password?: string; // Only for mock system, Firebase handles actual passwords
   city?: string;
   state?: string;
   country?: string;
 }
+
