@@ -167,16 +167,22 @@ export function UserManualContent() {
       )
     },
     {
-      title: "9. My Account (/my-account)",
+      title: "9. My Account (/my-account) & Subscriptions",
       icon: UserCircle,
       content: (
          <>
             <p>Manage your KamperHub user profile and subscription details.</p>
-            <ul className="list-disc pl-5 space-y-1">
-                <li><strong>Profile Information:</strong> View your display name and email address.</li>
-                <li><strong>Edit Profile:</strong> Update your first name, last name, and email. Email updates are handled by Firebase Authentication and may require re-authentication for security. Location details (city, state, country) are currently saved locally but are planned for future Firebase integration.</li>
-                <li><strong>Subscription Status:</strong> View your current subscription tier (Free or Pro).</li>
-                <li><strong>Manage Subscription:</strong> A conceptual button to redirect to a Stripe Customer Portal (if Stripe integration were fully implemented) for managing payment methods, viewing invoices, or cancelling subscriptions.</li>
+            <ul className="list-disc pl-5 space-y-2">
+                <li><strong>User Profile:</strong> View your display name, email, and other profile details like name and location. Use the "Edit Profile" button to update this information. Email changes are handled by Firebase Authentication and may require re-authentication.</li>
+                <li>
+                  <strong>Subscription Model:</strong>
+                  <ul className="list-circle pl-5 space-y-1 mt-1">
+                    <li><strong>Automatic 7-Day Pro Trial:</strong> Upon signing up for KamperHub, you automatically receive a 7-day free trial of all Pro features. No payment details are required to start this trial. Your account will be marked as 'trialing', and you can see the trial end date on the "My Account" page.</li>
+                    <li><strong>Subscribing to Pro:</strong> If you wish to continue using Pro features after your trial ends, or if you want to subscribe at any time, navigate to the "My Account" page. Click the "Subscribe to KamperHub Pro" button. This will redirect you to Stripe to enter your payment details and start an immediate paid subscription (this does not start another trial).</li>
+                    <li><strong>Free Tier:</strong> If you do not subscribe to Pro after your trial, your account will revert to the free tier, and access to Pro-specific features or limits (e.g., adding more than one vehicle/caravan) will be restricted.</li>
+                  </ul>
+                </li>
+                <li><strong>Manage Active Subscription:</strong> If you have an active paid Pro subscription, a "Manage Subscription in Stripe" button will appear. Clicking this will securely redirect you to your Stripe Customer Portal, where you can update payment methods, view invoices, or cancel your subscription directly with Stripe.</li>
                 <li><strong>Logout:</strong> Securely sign out of your KamperHub account.</li>
             </ul>
         </>
