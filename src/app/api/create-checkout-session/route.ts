@@ -17,6 +17,8 @@ if (stripeSecretKey) {
   // We'll let the POST handler try and fail to make this clear in logs if it even gets called.
 }
 
+const TRIAL_PERIOD_DAYS = 7; // Centralized trial period definition
+
 export async function POST(req: NextRequest) {
   console.log('Create Checkout Session: POST handler invoked.');
 
@@ -33,20 +35,19 @@ export async function POST(req: NextRequest) {
 
 
   try {
-    const { email, userId } = await req.json();
+    const { email, userId, startTrial } = await req.json(); // startTrial is new, defaults to true if undefined
 
     if (!email || !userId) {
       console.error('Create Checkout Session: Email or userId missing in request body.');
       return NextResponse.json({ error: 'Email and userId are required.' }, { status: 400 });
     }
-    console.log('Create Checkout Session: Received email:', email, 'userId:', userId);
+    console.log('Create Checkout Session: Received email:', email, 'userId:', userId, 'startTrial:', startTrial);
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    console.log('Create Checkout Session: Using appUrl for redirects:', appUrl); // Log the appUrl
+    console.log('Create Checkout Session: Using appUrl for redirects:', appUrl);
 
     // Ensure this is the actual, live Stripe Price ID for the Pro subscription.
     const proPriceId = 'price_1RY5kuFHAncsAftmG1YtLyp9'; // CONFIRMED LIVE PRICE ID
-    const TRIAL_PERIOD_DAYS = 7; // Define the trial period in days
 
     const checkoutSessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
@@ -57,9 +58,6 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
       ],
-      subscription_data: {
-        trial_period_days: TRIAL_PERIOD_DAYS,
-      },
       customer_email: email,
       metadata: {
         userId: userId,
@@ -67,6 +65,18 @@ export async function POST(req: NextRequest) {
       success_url: `${appUrl}/subscribe/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/subscribe/cancel`,
     };
+
+    // Conditionally add trial_period_days
+    // If startTrial is explicitly false, no trial. Otherwise (true or undefined), add trial.
+    if (startTrial !== false) {
+      checkoutSessionParams.subscription_data = {
+        trial_period_days: TRIAL_PERIOD_DAYS,
+      };
+      console.log('Create Checkout Session: Trial period of', TRIAL_PERIOD_DAYS, 'days will be applied.');
+    } else {
+      console.log('Create Checkout Session: No trial period will be applied (immediate subscription).');
+    }
+
 
     console.log('Create Checkout Session: Params sent to Stripe:', checkoutSessionParams);
 
@@ -80,7 +90,7 @@ export async function POST(req: NextRequest) {
     console.log('Create Checkout Session: Stripe Checkout Session URL:', session.url);
     return NextResponse.json({ url: session.url });
   } catch (error: any) {
-    console.error('Create Checkout Session: Error in POST handler:', error.message, error.stack); // Added error.stack
+    console.error('Create Checkout Session: Error in POST handler:', error.message, error.stack);
     const stripeErrorMessage = error.type ? `${error.type}: ${error.message}` : error.message;
     return NextResponse.json({ error: `Internal Server Error creating Stripe session: ${stripeErrorMessage}` }, { status: 500 });
   }
