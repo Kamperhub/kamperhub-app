@@ -12,11 +12,21 @@ import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase'; 
 import { createUserWithEmailAndPassword, updateProfile, type User as FirebaseUser, type AuthError } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { UserPlus, Mail, User, KeyRound, MapPin, Building, Globe, Loader2 } from 'lucide-react';
+import { UserPlus, Mail, User, KeyRound, MapPin, Building, Globe, Loader2, ShieldCheck, ArrowRight } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { UserProfile } from '@/types/auth';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const signupSchema = z.object({
   firstName: z.string().min(1, "First Name is required"),
@@ -60,6 +70,8 @@ export default function SignupPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Creating Account...');
+  const [showSubscriptionChoiceDialog, setShowSubscriptionChoiceDialog] = useState(false);
+  const [createdUser, setCreatedUser] = useState<{ email: string, uid: string } | null>(null);
   const router = useRouter();
   const { toast } = useToast();
   const [hasMounted, setHasMounted] = useState(false);
@@ -73,45 +85,62 @@ export default function SignupPage() {
     }
   }, [router]);
 
-  const redirectToStripeCheckoutForTrial = async (userEmail: string, userId: string) => {
+  const redirectToStripeCheckoutForTrial = async () => {
+    if (!createdUser || !createdUser.email || !createdUser.uid) {
+      toast({ title: "Error", description: "User details not available for trial setup.", variant: "destructive" });
+      setIsLoading(false);
+      return;
+    }
+    
+    setShowSubscriptionChoiceDialog(false); // Close the choice dialog
+    setIsLoading(true); // Show loading indicator for Stripe redirection
     setLoadingMessage('Redirecting to setup Pro trial...');
+
     try {
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: userEmail, userId: userId }),
+        body: JSON.stringify({ email: createdUser.email, userId: createdUser.uid }),
       });
 
       const session = await response.json();
 
       if (response.ok && session.url) {
-        // Redirect to Stripe Checkout
         window.location.href = session.url;
-        // The user will be redirected away, so no further action here.
-        // isLoading will remain true until the page unloads.
       } else {
         toast({
-          title: "Account Created, Trial Setup Failed",
+          title: "Trial Setup Failed",
           description: session.error || "Could not initiate Pro trial setup. Please try again from 'My Account'.",
           variant: "destructive",
           duration: 7000,
         });
-        router.push('/'); // Send to dashboard if Stripe redirect fails
+        router.push('/'); 
         router.refresh();
         setIsLoading(false);
       }
     } catch (error: any) {
       toast({
-        title: "Account Created, Network Error",
+        title: "Network Error",
         description: `Error setting up Pro trial: ${error.message}. Please try again from 'My Account'.`,
         variant: "destructive",
         duration: 7000,
       });
-      router.push('/'); // Send to dashboard
+      router.push('/'); 
       router.refresh();
       setIsLoading(false);
     }
   };
+
+  const handleContinueWithFreePlan = () => {
+    setShowSubscriptionChoiceDialog(false);
+    toast({
+        title: "Welcome to KamperHub!",
+        description: "You're all set with the free plan. Explore and enjoy!",
+    });
+    router.push('/');
+    router.refresh();
+  };
+
 
   const handleSignup: SubmitHandler<SignupFormData> = async (data) => {
     setIsLoading(true);
@@ -120,14 +149,10 @@ export default function SignupPage() {
     let firebaseUser: FirebaseUser | null = null;
 
     try {
-      // 1. Create user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       firebaseUser = userCredential.user;
-
-      // 2. Update Firebase Auth display name
       await updateProfile(firebaseUser, { displayName: username });
 
-      // 3. Prepare data for Firestore
       const userProfileData: UserProfile = {
         uid: firebaseUser.uid,
         email: firebaseUser.email, 
@@ -137,32 +162,21 @@ export default function SignupPage() {
         city: city,
         state: state,
         country: country,
-        subscriptionTier: 'free', // Initially 'free', webhook will update if trial setup completes
+        subscriptionTier: 'free', 
         stripeCustomerId: null,  
         createdAt: new Date().toISOString(),
       };
 
-      // 4. Save additional profile data to Firestore
       await setDoc(doc(db, "users", firebaseUser.uid), userProfileData);
       
-      // 5. Redirect to Stripe Checkout for trial setup
-      // Ensure email and uid are non-null before proceeding
-      if (firebaseUser.email && firebaseUser.uid) {
-        await redirectToStripeCheckoutForTrial(firebaseUser.email, firebaseUser.uid);
-        // If redirectToStripeCheckoutForTrial initiates a redirect, this point might not be reached
-        // or isLoading will remain true until page unloads.
-      } else {
-        // This case should be rare given successful auth.
-        toast({
-            title: 'Account Created, Info Missing',
-            description: 'Your account was created, but some details are missing. Please proceed to My Account to complete setup.',
-            variant: 'destructive',
-            duration: 9000,
-        });
-        router.push('/');
-        router.refresh();
-        setIsLoading(false);
-      }
+      toast({
+        title: 'Account Created Successfully!',
+        description: `Welcome to KamperHub, ${username}! Please choose your next step.`,
+      });
+      
+      setCreatedUser({ email: firebaseUser.email!, uid: firebaseUser.uid });
+      setShowSubscriptionChoiceDialog(true); // Open the choice dialog
+      setIsLoading(false); // Stop loading for account creation part
 
     } catch (authError: any) {
       const error = authError as AuthError;
@@ -172,7 +186,6 @@ export default function SignupPage() {
           case 'auth/email-already-in-use':
             toastMessage = 'This email address is already in use by another account.';
             break;
-          // ... (other auth error cases)
           default:
             toastMessage = error.message || 'An unknown sign-up error occurred.';
             break;
@@ -184,8 +197,6 @@ export default function SignupPage() {
       console.error("Firebase Auth Signup Error:", error); 
       setIsLoading(false);
     }
-    // Do not set isLoading to false here if a redirect is expected.
-    // It will be handled by the redirect or error paths in redirectToStripeCheckoutForTrial.
   };
 
   if (!hasMounted) {
@@ -197,6 +208,7 @@ export default function SignupPage() {
   }
 
   return (
+    <>
     <div className="flex justify-center items-start pt-10 min-h-screen">
       <Card className="w-full max-w-lg shadow-xl">
         <CardHeader>
@@ -204,7 +216,7 @@ export default function SignupPage() {
             <UserPlus className="mr-2 h-6 w-6" /> Create Your KamperHub Account
           </CardTitle>
           <CardDescription className="font-body">
-            Join KamperHub to start your adventures! Complete your profile and set up your Pro trial.
+            Join KamperHub to start your adventures!
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -338,7 +350,7 @@ export default function SignupPage() {
 
             <Button type="submit" className="w-full font-body bg-primary text-primary-foreground hover:bg-primary/90 mt-6" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isLoading ? loadingMessage : 'Sign Up & Start Pro Trial'}
+              {isLoading ? loadingMessage : 'Create Account'}
             </Button>
           </form>
           <p className="text-sm text-center text-muted-foreground mt-4 font-body">
@@ -350,6 +362,36 @@ export default function SignupPage() {
         </CardContent>
       </Card>
     </div>
+
+    <AlertDialog open={showSubscriptionChoiceDialog} onOpenChange={setShowSubscriptionChoiceDialog}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle className="font-headline text-xl">Choose Your KamperHub Experience</AlertDialogTitle>
+            <AlertDialogDescription className="font-body">
+                Your account is created! Would you like to start a 7-day free trial of KamperHub Pro, or continue with the free plan?
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                <Button 
+                    onClick={handleContinueWithFreePlan} 
+                    variant="outline" 
+                    disabled={isLoading} 
+                    className="font-body w-full sm:w-auto"
+                >
+                    <ArrowRight className="mr-2 h-4 w-4" /> Continue with Free Plan
+                </Button>
+                <Button 
+                    onClick={redirectToStripeCheckoutForTrial} 
+                    disabled={isLoading} 
+                    className="font-body w-full sm:w-auto bg-accent hover:bg-accent/90 text-accent-foreground"
+                >
+                    {isLoading && loadingMessage.startsWith("Redirecting") ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+                    {isLoading && loadingMessage.startsWith("Redirecting") ? "Processing..." : "Start 7-Day Pro Trial"}
+                </Button>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 
