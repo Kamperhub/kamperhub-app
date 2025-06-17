@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
 
     // Ensure this is the actual, live Stripe Price ID for the Pro subscription.
     const proPriceId = 'price_1RY5kuFHAncsAftmG1YtLyp9'; // CONFIRMED LIVE PRICE ID
+    const TRIAL_PERIOD_DAYS = 7; // Define the trial period in days
 
     const checkoutSessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
@@ -56,6 +57,9 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
       ],
+      subscription_data: {
+        trial_period_days: TRIAL_PERIOD_DAYS,
+      },
       customer_email: email,
       metadata: {
         userId: userId,
@@ -81,4 +85,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Internal Server Error creating Stripe session: ${stripeErrorMessage}` }, { status: 500 });
   }
 }
-
