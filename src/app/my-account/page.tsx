@@ -33,6 +33,7 @@ export default function MyAccountPage() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
+  const [isRedirectingToPortal, setIsRedirectingToPortal] = useState(false);
   
   const { subscriptionTier, stripeCustomerId, trialEndsAt, setSubscriptionDetails, hasProAccess } = useSubscription();
   const [profileCity, setProfileCity] = useState<string | null>(null);
@@ -65,8 +66,6 @@ export default function MyAccountPage() {
         if (profileData.country) localStorage.setItem(MOCK_AUTH_COUNTRY_KEY, profileData.country); else localStorage.removeItem(MOCK_AUTH_COUNTRY_KEY);
       } else {
         console.log("No Firestore profile document found for user:", user.uid, ". It will be created on first save or if a trial was just initiated.");
-        // If no Firestore doc, rely on what might have been set by signup/useSubscription hook (e.g. from trial)
-        // This case is less likely now with signup creating a Firestore doc with trial info.
         setUserProfile({ email: user.email, displayName: user.displayName });
       }
     } catch (error) {
@@ -89,7 +88,7 @@ export default function MyAccountPage() {
         setProfileCity(null);
         setProfileState(null);
         setProfileCountry(null);
-        setSubscriptionDetails('free', null, null); // Clear all subscription details
+        setSubscriptionDetails('free', null, null); 
         localStorage.removeItem(MOCK_AUTH_CITY_KEY);
         localStorage.removeItem(MOCK_AUTH_STATE_KEY);
         localStorage.removeItem(MOCK_AUTH_COUNTRY_KEY);
@@ -116,9 +115,6 @@ export default function MyAccountPage() {
       return false;
     }
     setIsSavingProfile(true);
-    // ... (rest of the save profile logic remains the same) ...
-    // Ensure that `subscriptionTier` and `trialEndsAt` are NOT overwritten here by default.
-    // Only user-editable fields should be part of `firestoreProfileData`.
     const successMessages: string[] = [];
     const errorMessages: string[] = [];
     let authUpdatesSuccessful = false;
@@ -139,7 +135,7 @@ export default function MyAccountPage() {
     if (data.email.toLowerCase() !== (firebaseUser.email?.toLowerCase() || '')) {
       try {
         await updateEmail(firebaseUser, data.email);
-        setFirebaseUser(auth.currentUser); // Refresh user object
+        setFirebaseUser(auth.currentUser); 
         successMessages.push("Email updated. You may need to re-verify if changed.");
         authUpdatesSuccessful = true;
       } catch (error: any) {
@@ -155,24 +151,22 @@ export default function MyAccountPage() {
     }
 
     const userDocRef = doc(db, "users", firebaseUser.uid);
-    const firestoreProfileData: Partial<UserProfile> = { // Only update these specific fields
+    const firestoreProfileData: Partial<UserProfile> = { 
       firstName: data.firstName,
       lastName: data.lastName,
       city: data.city,
       state: data.state,
       country: data.country,
-      email: data.email, // Sync email in Firestore too
-      displayName: newDisplayName, // Sync display name
+      email: data.email, 
+      displayName: newDisplayName, 
       updatedAt: new Date().toISOString(),
     };
-    // DO NOT update subscriptionTier or trialEndsAt here, those are managed by signup/webhook.
 
     try {
       await setDoc(userDocRef, firestoreProfileData, { merge: true });
       firestoreUpdateSuccessful = true;
       successMessages.push("Profile details saved to server.");
       
-      // Update local state for display
       setUserProfile(prev => ({...prev, ...firestoreProfileData}));
       setProfileCity(data.city);
       setProfileState(data.state);
@@ -213,7 +207,7 @@ export default function MyAccountPage() {
         body: JSON.stringify({ 
           email: firebaseUser.email, 
           userId: firebaseUser.uid,
-          startTrial: false // Always false here, as this is for immediate paid subscription
+          startTrial: false 
         }),
       });
       const session = await response.json();
@@ -232,8 +226,36 @@ export default function MyAccountPage() {
     }
   };
 
+  const handleManageSubscription = async () => {
+    if (!firebaseUser) {
+      toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
+      return;
+    }
+    if (!stripeCustomerId) {
+        toast({ title: "No Subscription Found", description: "No active Stripe subscription to manage for this account.", variant: "destructive"});
+        return;
+    }
+    setIsRedirectingToPortal(true);
+    try {
+      const response = await fetch('/api/create-customer-portal-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: firebaseUser.uid }), 
+      });
+      const sessionData = await response.json();
+      if (response.ok && sessionData.url) {
+        window.location.href = sessionData.url;
+      } else {
+        toast({ title: "Error", description: sessionData.error || "Could not open customer portal.", variant: "destructive" });
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: `An unexpected error occurred: ${error.message}`, variant: "destructive" });
+    } finally {
+      setIsRedirectingToPortal(false);
+    }
+  };
+
   if (isAuthLoading || (!firebaseUser && !isAuthLoading)) {
-    // ... (loading spinner logic, same as before) ...
     return (
       <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
         <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
@@ -250,7 +272,6 @@ export default function MyAccountPage() {
   }
   
   if (isProfileLoading) {
-     // ... (loading spinner logic, same as before) ...
       return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-10 w-10 animate-spin text-primary mr-3" />
@@ -285,7 +306,6 @@ export default function MyAccountPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Profile Details Section ... (same as before) ... */}
            <div className="p-4 border rounded-md bg-muted/30 space-y-2">
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-lg font-headline text-foreground">Account Details:</h3>
@@ -339,7 +359,6 @@ export default function MyAccountPage() {
             </p>
           </div>
 
-          {/* Subscription Section */}
           <div className="p-4 border rounded-md bg-muted/30">
             <h3 className="text-lg font-headline text-foreground mb-2">Subscription Status:</h3>
             <div className="font-body text-sm flex items-center mb-2">
@@ -375,13 +394,12 @@ export default function MyAccountPage() {
                <p className="font-body text-xs mt-1 text-muted-foreground">Stripe Customer ID: {stripeCustomerId}</p>
             )}
             
-            {subscriptionTier !== 'pro' && ( // Show subscribe button if not already Pro
+            {subscriptionTier !== 'pro' && ( 
               <>
                 <Alert variant="default" className="mt-4 mb-3">
                   <Info className="h-4 w-4" />
                   <AlertTitle className="font-headline">Stripe Checkout & Security Tip</AlertTitle>
                   <AlertDescription className="font-body text-sm">
-                    {/* ... (security tip content remains the same) ... */}
                     If the Stripe payment page doesn't open correctly (e.g., blank screen), if CAPTCHA challenges (like hCaptcha) are not working, or if you encounter unexpected errors submitting payment:
                     <ul className="list-disc pl-5 mt-1 space-y-0.5">
                       <li>Aggressive security software (e.g., Kaspersky Safe Money, other antivirus web protection features) or browser extensions (ad blockers, privacy tools) might be interfering.</li>
@@ -418,15 +436,11 @@ export default function MyAccountPage() {
                 <Button
                     variant="outline"
                     className="mt-2 font-body w-full sm:w-auto"
-                    onClick={() => {
-                      if (stripeCustomerId) {
-                        toast({title: "Conceptual Action", description: "This would redirect to Stripe Customer Portal. Backend logic for portal session needed."});
-                      } else {
-                        toast({title: "No Subscription Found", description: "No active Stripe subscription to manage for this account.", variant: "destructive"});
-                      }
-                    }}
+                    onClick={handleManageSubscription}
+                    disabled={isRedirectingToPortal || !stripeCustomerId}
                 >
-                  Manage Subscription in Stripe <ExternalLink className="ml-2 h-4 w-4" />
+                  {isRedirectingToPortal ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ExternalLink className="mr-2 h-4 w-4" />}
+                  Manage Subscription in Stripe
                 </Button>
               </>
             )}
