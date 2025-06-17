@@ -68,6 +68,11 @@ export async function POST(req: NextRequest) {
       try {
         // Retrieve the full subscription object to get status and current_period_end
         const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+        if (!subscription) {
+          console.error(`Error: Failed to retrieve subscription object for ID ${stripeSubscriptionId} from Stripe.`);
+          return NextResponse.json({ error: 'Failed to retrieve subscription details from Stripe.' }, { status: 500 });
+        }
+        console.log(`Successfully retrieved subscription ${subscription.id}, status: ${subscription.status}, current_period_end: ${new Date(subscription.current_period_end * 1000).toISOString()}`);
 
         const userDocRef = adminFirestore.collection('users').doc(userId);
         const userProfileUpdate = {
