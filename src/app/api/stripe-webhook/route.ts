@@ -18,6 +18,11 @@ const stripe = new Stripe(stripeSecretKey!, {
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 export async function POST(req: NextRequest) {
+  console.log('Stripe Webhook: POST handler invoked.');
+  console.log(`Stripe Webhook: GOOGLE_APPLICATION_CREDENTIALS_JSON is ${process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON ? 'SET' : 'NOT SET (or empty)'} in this runtime.`);
+  console.log(`Stripe Webhook: adminFirestore instance is ${adminFirestore ? 'DEFINED' : 'UNDEFINED'}`);
+
+
   if (!stripeSecretKey) {
     console.error("Webhook Error: Stripe is not configured on the server (STRIPE_SECRET_KEY missing at runtime).");
     return NextResponse.json({ error: 'Stripe is not configured on the server.' }, { status: 500 });
@@ -86,17 +91,19 @@ export async function POST(req: NextRequest) {
         const userDocRef = adminFirestore.collection('users').doc(userId);
         
         let determinedTier: SubscriptionTier;
-        if (subscription.status === 'trialing') {
-          determinedTier = 'trialing';
-        } else if (subscription.status === 'active' && session.payment_status === 'paid') {
-          determinedTier = 'pro';
+        // If the session payment status is 'paid' and subscription status is 'active', it's 'pro'.
+        // If subscription status is 'trialing', it's 'trialing'.
+        // Default to 'trialing' if unclear but session was completed, Stripe might update status later.
+        if (session.payment_status === 'paid' && subscription.status === 'active') {
+            determinedTier = 'pro';
+        } else if (subscription.status === 'trialing') {
+            determinedTier = 'trialing';
         } else {
-          // Fallback: if not clearly 'trialing' or 'active' + 'paid', assume 'pro' if payment was made.
-          // This could happen if the subscription becomes active immediately after a trial within the same checkout flow.
-          // More complex states ('incomplete', 'past_due') might need further handling or rely on other events.
-          console.warn(`Webhook: checkout.session.completed for session ${session.id} - Subscription status is '${subscription.status}' and payment_status is '${session.payment_status}'. Determining tier. If paid, setting to 'pro'.`);
-          determinedTier = (session.payment_status === 'paid') ? 'pro' : 'trialing'; // Simplified: paid -> pro, else trialing if status says so.
+            console.warn(`Webhook: checkout.session.completed for session ${session.id} - Subscription status is '${subscription.status}' and payment_status is '${session.payment_status}'. Defaulting tier to 'trialing' for now as this is a new subscription.`);
+            determinedTier = 'trialing'; // Could also be 'pro' if trial_period_days was 0 in checkout.
         }
+        console.log(`Webhook: Determined tier for user ${userId} is: ${determinedTier}`);
+
 
         const userProfileUpdate: Partial<UserProfile> = {
           subscriptionTier: determinedTier, 
@@ -104,11 +111,16 @@ export async function POST(req: NextRequest) {
           stripeSubscriptionId: stripeSubscriptionId,
           subscriptionStatus: subscription.status,
           currentPeriodEnd: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : undefined,
-          trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
+          trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null, // Handle null trial_end
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         };
 
         console.log(`Webhook: Attempting to update Firestore for user ${userId} with data:`, JSON.stringify(userProfileUpdate));
+        if (!adminFirestore) {
+             console.error('Webhook Error: adminFirestore is NOT defined before Firestore set operation for user:', userId);
+             // Potentially return an error response or throw to be caught by outer try-catch
+             throw new Error("Firebase Admin Firestore client is not available.");
+        }
         await userDocRef.set(userProfileUpdate, { merge: true });
         console.log(`Webhook: Successfully updated Firestore for user ${userId} with subscription details from session ${session.id}.`);
 
@@ -144,6 +156,10 @@ export async function POST(req: NextRequest) {
               updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             };
             console.log(`Webhook: Attempting to update Firestore for user ${userDoc.id} from invoice ${invoice.id} with data:`, JSON.stringify(userProfileUpdate));
+            if (!adminFirestore) {
+                 console.error('Webhook Error: adminFirestore is NOT defined before Firestore set operation for invoice.payment_succeeded, user:', userDoc.id);
+                 throw new Error("Firebase Admin Firestore client is not available.");
+            }
             await userDoc.ref.set(userProfileUpdate, { merge: true });
             console.log(`Webhook: Subscription renewed/updated in Firestore for user ${userDoc.id} from invoice ${invoice.id}.`);
           } else {
@@ -177,6 +193,10 @@ export async function POST(req: NextRequest) {
               updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             };
             console.log(`Webhook: Attempting to update Firestore for user ${userDoc.id} from failed_invoice ${failedInvoice.id} with data:`, JSON.stringify(userProfileUpdate));
+             if (!adminFirestore) {
+                 console.error('Webhook Error: adminFirestore is NOT defined before Firestore set operation for invoice.payment_failed, user:', userDoc.id);
+                 throw new Error("Firebase Admin Firestore client is not available.");
+            }
             await userDoc.ref.set(userProfileUpdate, { merge: true });
             console.log(`Webhook: Subscription status updated in Firestore for user ${userDoc.id} due to failed invoice ${failedInvoice.id}.`);
           } else {
@@ -229,6 +249,10 @@ export async function POST(req: NextRequest) {
             }
 
             console.log(`Webhook: Attempting to update Firestore for user ${userDoc.id} from subscription.updated ${updatedSubscription.id} with data:`, JSON.stringify(userProfileUpdate));
+            if (!adminFirestore) {
+                 console.error('Webhook Error: adminFirestore is NOT defined before Firestore set operation for customer.subscription.updated, user:', userDoc.id);
+                 throw new Error("Firebase Admin Firestore client is not available.");
+            }
             await userDoc.ref.set(userProfileUpdate, { merge: true });
             console.log(`Webhook: Subscription details updated in Firestore for user ${userDoc.id} from subscription.updated event ${updatedSubscription.id}.`);
         } else {
@@ -252,14 +276,19 @@ export async function POST(req: NextRequest) {
             const userDoc = snapshot.docs[0];
             const userProfileUpdate: Partial<UserProfile> = { 
               subscriptionTier: 'free',
-              subscriptionStatus: 'canceled', 
+              subscriptionStatus: 'canceled', // Or use deletedSubscription.status which might be 'canceled'
+              stripeSubscriptionId: null, // Ensure it's explicitly nulled
               currentPeriodEnd: null, 
               trialEndsAt: null, 
               updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             };
              console.log(`Webhook: Attempting to update Firestore for user ${userDoc.id} from subscription.deleted ${deletedSubscription.id} with data:`, JSON.stringify(userProfileUpdate));
+             if (!adminFirestore) {
+                 console.error('Webhook Error: adminFirestore is NOT defined before Firestore set operation for customer.subscription.deleted, user:', userDoc.id);
+                 throw new Error("Firebase Admin Firestore client is not available.");
+            }
             await userDoc.ref.set(userProfileUpdate, { merge: true });
-            console.log(`Webhook: Subscription set to 'free' in Firestore for user ${userDoc.id} (Stripe sub ID: ${deletedSubscription.id}).`);
+            console.log(`Webhook: Subscription set to 'free' and details cleared in Firestore for user ${userDoc.id} (Stripe sub ID: ${deletedSubscription.id}).`);
         } else {
             console.warn(`Webhook Warning: No user found for deleted stripeSubscriptionId ${deletedSubscription.id}.`);
         }
@@ -278,3 +307,4 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ received: true });
 }
 
+    
