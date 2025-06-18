@@ -214,7 +214,7 @@ export default function MyAccountPage() {
       if (response.ok && session.url) {
         const newWindow = window.open(session.url, '_blank', 'noopener,noreferrer');
         if (!newWindow) {
-           toast({ title: "Popup Blocked?", description: "Could not open the Stripe page. Please check if your browser blocked a popup.", variant: "destructive", duration: 10000 });
+           toast({ title: "Opening Stripe...", description: "Attempting to open Stripe Checkout. If it doesn't appear, please check for a new tab or ensure popups are allowed for this site.", variant: "default", duration: 10000 });
         }
       } else {
         toast({ title: "Subscription Error", description: session.error || "Could not initiate subscription. Please try again.", variant: "destructive" });
@@ -454,3 +454,6 @@ export default function MyAccountPage() {
     </div>
   );
 }
+
+
+    
