@@ -215,8 +215,8 @@ export default function MyAccountPage() {
         const newWindow = window.open(session.url, '_blank', 'noopener,noreferrer');
         if (!newWindow) {
            toast({ 
-            title: "Popup Blocker?", 
-            description: "Attempting to open Stripe Checkout. If it doesn't appear, please check if your browser blocked a popup and allow it, or look for a new tab.", 
+            title: "Stripe Page Ready", 
+            description: "Attempting to open Stripe Checkout. If it doesn't appear automatically, please check if your browser blocked a popup or look for a new tab/window.", 
             variant: "default", 
             duration: 10000 
           });
@@ -395,13 +395,28 @@ export default function MyAccountPage() {
               </Alert>
             )}
             
-            {stripeCustomerId && subscriptionTier === 'pro' && (
-               <p className="font-body text-xs mt-1 text-muted-foreground">Stripe Customer ID: {stripeCustomerId}</p>
+            {/* Manage Subscription Button - visible if stripeCustomerId exists */}
+            {stripeCustomerId && (
+              <div className="mt-3">
+                <p className="font-body text-sm text-muted-foreground">
+                  Manage your payment methods, view invoices, or update/cancel your subscription.
+                </p>
+                <Button
+                    variant="outline"
+                    className="mt-2 font-body w-full sm:w-auto"
+                    onClick={handleManageSubscription}
+                    disabled={isRedirectingToPortal}
+                >
+                  {isRedirectingToPortal ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ExternalLink className="mr-2 h-4 w-4" />}
+                  Manage Subscription in Stripe
+                </Button>
+              </div>
             )}
             
+            {/* Subscribe to Pro Button - show if not currently 'pro' */}
             {subscriptionTier !== 'pro' && ( 
-              <>
-                <Alert variant="default" className="mt-4 mb-3">
+              <div className="mt-4"> {/* Added mt-4 for spacing if both buttons show */}
+                <Alert variant="default" className="mb-3">
                   <Info className="h-4 w-4" />
                   <AlertTitle className="font-headline">Stripe Checkout & Security Tip</AlertTitle>
                   <AlertDescription className="font-body text-sm">
@@ -425,29 +440,16 @@ export default function MyAccountPage() {
                   ) : (
                     <CreditCard className="mr-2 h-4 w-4" />
                   )}
-                  {isRedirectingToCheckout ? 'Processing...' : 'Subscribe to KamperHub Pro'}
+                  {isRedirectingToCheckout ? 'Processing...' : (isTrialActive ? 'Subscribe to Pro Now' : 'Upgrade to KamperHub Pro')}
                 </Button>
                  <p className="text-xs text-muted-foreground mt-2 font-body">
-                    This will start your paid Pro subscription immediately.
+                    {isTrialActive ? 'This will end your trial and start your paid Pro subscription immediately.' : 'This will start your paid Pro subscription.'}
                  </p>
-              </>
+              </div>
             )}
-
-            {subscriptionTier === 'pro' && (
-              <>
-                <p className="font-body text-sm mt-3 text-muted-foreground">
-                  Your subscription is managed through Stripe.
-                </p>
-                <Button
-                    variant="outline"
-                    className="mt-2 font-body w-full sm:w-auto"
-                    onClick={handleManageSubscription}
-                    disabled={isRedirectingToPortal || !stripeCustomerId}
-                >
-                  {isRedirectingToPortal ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ExternalLink className="mr-2 h-4 w-4" />}
-                  Manage Subscription in Stripe
-                </Button>
-              </>
+            
+            {stripeCustomerId && subscriptionTier === 'pro' && (
+               <p className="font-body text-xs mt-1 text-muted-foreground">Stripe Customer ID: {stripeCustomerId}</p>
             )}
           </div>
 
@@ -459,8 +461,3 @@ export default function MyAccountPage() {
     </div>
   );
 }
-
-
-    
-
-    
