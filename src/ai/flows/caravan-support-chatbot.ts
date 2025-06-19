@@ -142,15 +142,17 @@ const prompt = ai.definePrompt({
   input: {schema: CaravanSupportChatbotInputSchema},
   output: {schema: CaravanSupportChatbotOutputSchema},
   tools: [getFaqAnswer, getArticleInfoTool, findYoutubeLink],
-  prompt: `You are a friendly and helpful caravan support chatbot for KamperHub. Your primary goal is to provide accurate and useful answers to user questions about caravanning.
+  prompt: `You are a friendly and helpful caravan support chatbot for KamperHub. Your primary goal is to provide accurate and useful answers to user questions about caravanning, prioritizing information from KamperHub's own knowledge base.
 
 When a user asks a question:
-1. First, use the 'getFaqAnswer' tool to check if there's a pre-defined answer for the topic in our local knowledge base. Provide relevant keywords from the user's question to this tool.
-2. If the 'getFaqAnswer' tool returns an answer, use this information as the core of your response. Rephrase it slightly to be conversational if needed, but ensure the factual content comes from the tool's output. Set 'relatedArticleTitle' to null.
-3. If 'getFaqAnswer' does not return an answer, then use the 'getArticleInfoTool' with keywords from the user's question to search our published articles.
-4. If the 'getArticleInfoTool' returns an article (title, summary, topic), base your answer on the provided 'summary'. Also, set the 'relatedArticleTitle' output field to the 'title' of the article found. You can additionally mention to the user that more details are available in the article titled "[Article Title]" in our Support Center.
-5. If neither 'getFaqAnswer' nor 'getArticleInfoTool' provides a specific answer, then answer the question to the best of your general knowledge about caravanning. Set 'relatedArticleTitle' to null in this case.
-6. Regardless of how the answer was sourced, if you believe a YouTube video would further help the user, use the 'findYoutubeLink' tool with a relevant search query to find a video link and include it in your 'youtubeLink' output field. Otherwise, set 'youtubeLink' to null.
+1.  **Prioritize Internal Knowledge:** First, use the 'getFaqAnswer' tool with relevant keywords from the user's question.
+2.  **If FAQ Answer Found:** If 'getFaqAnswer' returns an answer, use this as the core of your response. You can rephrase it conversationally but ensure the factual content comes from the tool. Set 'relatedArticleTitle' to null.
+3.  **If No FAQ Answer, Check Articles:** If 'getFaqAnswer' does *not* return an answer, then use the 'getArticleInfoTool' with keywords from the user's question to search our published articles.
+4.  **If Article Found:** If 'getArticleInfoTool' returns an article (title, summary, topic), base your answer on the provided 'summary'. Set the 'relatedArticleTitle' output field to the article's 'title'. You can also mention that more details are available in the article "[Article Title]" in our Support Center.
+5.  **Last Resort - General Knowledge:** ONLY if BOTH 'getFaqAnswer' AND 'getArticleInfoTool' provide no specific, relevant answer or information for the user's question, then you may answer the question using your general knowledge about caravanning. In this case, set 'relatedArticleTitle' to null.
+6.  **Optional YouTube Link:** Regardless of how the answer was sourced (FAQ, Article, or General Knowledge), if you believe a YouTube video would be genuinely helpful to the user, use the 'findYoutubeLink' tool with a relevant search query and include the link in the 'youtubeLink' output field. Otherwise, set 'youtubeLink' to null.
+
+Strictly follow this order of operations. Do not use general knowledge if internal tools can provide an answer.
 
 User's Question: {{{question}}}
 `,
@@ -164,33 +166,53 @@ const caravanSupportChatbotFlow = ai.defineFlow(
   },
   async (input): Promise<CaravanSupportChatbotOutput> => {
     try {
-      const {output} = await prompt(input);
+      const {output, usage} = await prompt(input); // Include usage for detailed logging
+      
+      // Log the raw output from the model for easier debugging
+      console.log('CaravanSupportChatbotFlow: Raw AI model output:', JSON.stringify(output, null, 2));
+      console.log('CaravanSupportChatbotFlow: AI model usage:', JSON.stringify(usage, null, 2));
+
+
       if (!output) {
-        console.warn('CaravanSupportChatbotFlow: AI model returned null output.');
+        console.warn('CaravanSupportChatbotFlow: AI model returned null output. This might be due to schema mismatch or other non-fatal errors from the model.');
         return { 
           answer: "I'm sorry, I had trouble generating a response in the expected format. Could you try rephrasing your question?", 
           youtubeLink: null,
           relatedArticleTitle: null,
         };
       }
-      // Ensure relatedArticleTitle is explicitly null if not set by the model, as per schema
+      
+      // Validate output against schema more explicitly if needed, though Genkit usually handles this.
+      // For now, assume output structure is mostly correct if not null.
+      
       return {
-        answer: output.answer,
+        answer: output.answer || "I'm not sure how to respond to that. Can you try asking differently?", // Fallback if answer is empty
         youtubeLink: output.youtubeLink || null,
         relatedArticleTitle: output.relatedArticleTitle || null,
       };
     } catch (error: any) {
       console.error("Error in caravanSupportChatbotFlow calling prompt:", error);
-      
+      console.error("Prompt Error Details:", {
+        message: error.message,
+        stack: error.stack,
+        cause: error.cause, // Might contain more specific info from underlying API
+        name: error.name,
+      });
+      if (error.cause && typeof error.cause === 'object') {
+        console.error("Prompt Error Cause Object:", JSON.stringify(error.cause, Object.getOwnPropertyNames(error.cause)));
+      }
+
       let answer = "An unexpected error occurred while communicating with the AI assistant. Please try again later.";
       if (error.message) {
         const errorMessage = error.message.toLowerCase();
-        if (errorMessage.includes("service unavailable") || errorMessage.includes("overloaded") || errorMessage.includes("model is overloaded")) {
+        if (errorMessage.includes("service unavailable") || errorMessage.includes("overloaded") || errorMessage.includes("model is overloaded") || (error.cause && typeof error.cause === 'object' && 'status' in error.cause && error.cause.status === 503) ) {
           answer = "The AI assistant is currently experiencing high demand or is temporarily unavailable. Please try again in a few moments.";
-        } else if (errorMessage.includes("429") || errorMessage.includes("quota") || errorMessage.includes("rate limit")) {
+        } else if (errorMessage.includes("429") || errorMessage.includes("quota") || errorMessage.includes("rate limit") || (error.cause && typeof error.cause === 'object' && 'status' in error.cause && error.cause.status === 429)) {
           answer = "The AI assistant has hit a usage limit for the current period. Please try again later. If this issue persists, please check API plan details.";
-        } else if (errorMessage.includes("api key not valid")){
-           answer = "There seems to be an issue with the AI service configuration. Please contact support if this persists.";
+        } else if (errorMessage.includes("api key not valid") || (error.cause && typeof error.cause === 'object' && 'status' in error.cause && (error.cause.status === 401 || error.cause.status === 403)) ){
+           answer = "There seems to be an issue with the AI service configuration (e.g. API key). Please contact support if this persists.";
+        } else if (errorMessage.includes("failed to parse schema") || errorMessage.includes("output_schema")) {
+           answer = "I had a little trouble formatting my thoughts. Could you try asking in a slightly different way?";
         }
       }
       
