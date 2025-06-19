@@ -200,13 +200,31 @@ export function UserManualContent() {
         <ShieldAlert className="h-4 w-4" />
         <AlertTitle className="font-headline">Important Note on Data Storage:</AlertTitle>
         <AlertDescription className="space-y-1">
-          <p>KamperHub stores all your data (vehicles, caravans, inventory, trips, checklists, bookings) locally in your web browser's storage. This means:</p>
+           <p>
+            KamperHub uses Firebase Authentication for user accounts and Firebase Firestore for storing your core profile and subscription details. This means your login credentials, name, email, location, and subscription status are securely stored in the cloud and synced across your sessions.
+          </p>
+          <p>
+            However, most other application data you generate and save — such as your:
+          </p>
           <ul className="list-disc pl-5">
-            <li>Your data is private to your browser on your device.</li>
-            <li>Clearing your browser's cache or site data for KamperHub will <strong>permanently delete all your saved information.</strong></li>
-            <li>Data is not automatically synced across different devices or browsers.</li>
+            <li>Vehicle, Caravan, and WDH details</li>
+            <li>Inventory items and water tank levels</li>
+            <li>Trip plans and logged trips</li>
+            <li>Checklists (both trip-specific and caravan defaults)</li>
+            <li>Accommodation bookings</li>
+            <li>Customized dashboard layout</li>
           </ul>
-           <p>For features requiring persistent data across sessions (like user accounts or saved preferences beyond a single browser), a backend database and user authentication system (e.g., Firebase) would typically be implemented in a full-scale application.</p>
+          <p>
+            is currently stored <strong>locally in your web browser's storage</strong>. This means:
+          </p>
+          <ul className="list-disc pl-5">
+            <li>This specific data is private to the browser you are using on your current device.</li>
+            <li>Clearing your browser's cache or site data for KamperHub will <strong>permanently delete all this locally stored application data.</strong> Your user account and subscription will remain, but your vehicles, trips, etc., will be lost.</li>
+            <li>This data is not automatically synced across different devices or browsers.</li>
+          </ul>
+          <p>
+            For a future version, we aim to migrate more of this application data to cloud storage for better persistence and multi-device access.
+          </p>
         </AlertDescription>
       </Alert>
 
