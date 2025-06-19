@@ -4,16 +4,44 @@
 import Link from 'next/link'; 
 import { VideoCard } from '@/components/features/learn/VideoCard';
 import { ArticleDisplayCard } from '@/components/features/learn/ArticleDisplayCard';
-import { UserManualContent } from '@/components/features/learn/UserManualContent'; // Import new component
+import { UserManualContent } from '@/components/features/learn/UserManualContent'; 
 import { sampleVideos, staticCaravanningArticles, type AiGeneratedArticle } from '@/types/learn'; 
 import { ChatInterface } from '@/components/features/chatbot/ChatInterface'; 
-import { FileText, Youtube, MessageSquare, Video, BookText } from 'lucide-react'; // Added BookText
+import { FileText, Youtube, MessageSquare, Video, BookText } from 'lucide-react'; 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from '@/components/ui/scroll-area';
-
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function SupportPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const articles: AiGeneratedArticle[] = staticCaravanningArticles;
+
+  const validTabs = ["videos", "articles", "chatbot", "manual"] as const;
+  type ValidTab = typeof validTabs[number];
+  const defaultTab: ValidTab = "videos";
+
+  const [activeTab, setActiveTab] = useState<ValidTab>(() => {
+    const tabFromQuery = searchParams.get('tab') as ValidTab | null;
+    return tabFromQuery && validTabs.includes(tabFromQuery) ? tabFromQuery : defaultTab;
+  });
+
+  useEffect(() => {
+    const tabFromQuery = searchParams.get('tab') as ValidTab | null;
+    const currentActiveTabInQuery = tabFromQuery && validTabs.includes(tabFromQuery) ? tabFromQuery : defaultTab;
+    if (activeTab !== currentActiveTabInQuery) {
+      setActiveTab(currentActiveTabInQuery);
+    }
+  }, [searchParams, activeTab]);
+
+  const handleTabChange = (newTabValue: string) => {
+    if (validTabs.includes(newTabValue as ValidTab)) {
+      const newTab = newTabValue as ValidTab;
+      setActiveTab(newTab);
+      router.push(`/learn?tab=${newTab}`, { scroll: false });
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -24,8 +52,12 @@ export default function SupportPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="videos" className="w-full">
-        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4 mb-6"> {/* Updated grid-cols */}
+      <Tabs 
+        value={activeTab} 
+        onValueChange={handleTabChange}
+        className="w-full"
+      >
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4 mb-6">
           <TabsTrigger value="videos" className="font-body text-sm sm:text-base">
             <Video className="mr-2 h-5 w-5" /> Educational Videos
           </TabsTrigger>
@@ -35,7 +67,7 @@ export default function SupportPage() {
           <TabsTrigger value="chatbot" className="font-body text-sm sm:text-base">
             <MessageSquare className="mr-2 h-5 w-5" /> AI Chatbot
           </TabsTrigger>
-          <TabsTrigger value="manual" className="font-body text-sm sm:text-base"> {/* New TabTrigger */}
+          <TabsTrigger value="manual" className="font-body text-sm sm:text-base">
             <BookText className="mr-2 h-5 w-5" /> User Manual
           </TabsTrigger>
         </TabsList>
@@ -90,7 +122,7 @@ export default function SupportPage() {
           <ChatInterface />
         </TabsContent>
 
-        <TabsContent value="manual"> {/* New TabsContent */}
+        <TabsContent value="manual">
           <div className="bg-card p-0 sm:p-6 rounded-lg shadow-sm border">
             <div className="mb-0 sm:mb-4 px-6 pt-6 sm:p-0"> 
               <h2 className="font-headline text-2xl text-primary flex items-center mb-1"> 
@@ -102,7 +134,7 @@ export default function SupportPage() {
               </p>
             </div>
             <div className="px-0 sm:px-2"> 
-              <ScrollArea className="h-[calc(100vh-300px)] sm:h-[calc(100vh-350px)] pr-0 sm:pr-4"> {/* Adjusted height and padding for scroll area */}
+              <ScrollArea className="h-[calc(100vh-300px)] sm:h-[calc(100vh-350px)] pr-0 sm:pr-4">
                 <UserManualContent />
               </ScrollArea>
             </div>
@@ -112,5 +144,3 @@ export default function SupportPage() {
     </div>
   );
 }
-
-    

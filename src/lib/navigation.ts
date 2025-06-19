@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -14,7 +14,7 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   {
     href: '/dashboard-details',
-    label: 'Dashboard', // Changed from 'Dashboard Details'
+    label: 'Dashboard', 
     icon: LayoutDashboard,
     description: "Access your travel statistics, rewards program, and other detailed dashboard views.",
     keywords: 'statistics rewards'
@@ -39,6 +39,13 @@ export const navItems: NavItem[] = [
     icon: BookOpen,
     description: "Access helpful articles, video guides, our AI Chatbot, and the user manual to master your caravanning adventures.",
     keywords: 'support guide'
+  },
+  {
+    href: '/learn?tab=manual',
+    label: 'User Manual',
+    icon: BookText,
+    description: "Access the detailed KamperHub user guide and feature explanations.",
+    keywords: "manual guide help"
   },
   {
     href: '/tripplanner',
