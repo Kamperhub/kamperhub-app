@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: [TODO: Add sitemap URL if/when you have one, e.g., https://kamperhub-s4hc2.web.app/sitemap.xml]
