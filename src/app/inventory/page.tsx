@@ -274,7 +274,7 @@ export default function InventoryPage() {
             <Link href="/vehicles" passHref>
               <Button variant="link" className="p-0 h-auto ml-1 text-foreground hover:underline font-body">Go to Vehicles</Button>
             </Link>
-             Currently, weight calculations use default zero values.
+            {' '}Currently, weight calculations use default zero values.
           </AlertDescription>
         </Alert>
       )}
