@@ -9,25 +9,26 @@ let app: AdminApp;
 if (admin.apps.length === 0) {
   const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
 
-  if (!serviceAccountJsonString) {
-    throw new Error(
-      'GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is not set. ' +
-      'This is required for Firebase Admin SDK initialization. ' +
-      'Please provide the content of your Firebase service account JSON key.'
-    );
-  }
-
-  try {
-    const serviceAccount = JSON.parse(serviceAccountJsonString);
-    app = admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      // No need to specify databaseURL if using default Firestore,
-      // but for named databases, Firestore client handles it directly.
-    });
-    console.log('[Firebase Admin] SDK initialized successfully.');
-  } catch (error: any) {
-    console.error('[Firebase Admin] Error parsing service account JSON or initializing app:', error.message);
-    throw new Error('Failed to initialize Firebase Admin SDK. Check GOOGLE_APPLICATION_CREDENTIALS_JSON format and content.');
+  if (serviceAccountJsonString) {
+    // If GOOGLE_APPLICATION_CREDENTIALS_JSON is explicitly provided (e.g., local dev), use it.
+    try {
+      const serviceAccount = JSON.parse(serviceAccountJsonString);
+      app = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+      console.log('[Firebase Admin] SDK initialized successfully using GOOGLE_APPLICATION_CREDENTIALS_JSON.');
+    } catch (error: any) {
+      console.error('[Firebase Admin] Error parsing GOOGLE_APPLICATION_CREDENTIALS_JSON or initializing app with it:', error.message);
+      // Fallback to default initialization if parsing fails but we are in an env that might provide it
+      console.warn('[Firebase Admin] Falling back to default initialization due to error with explicit credentials. Ensure the build/runtime environment provides default credentials.');
+      app = admin.initializeApp();
+      console.log('[Firebase Admin] SDK initialized successfully with default credentials (after explicit credential failure).');
+    }
+  } else {
+    // If GOOGLE_APPLICATION_CREDENTIALS_JSON is not explicitly provided (e.g., Firebase Hosting, Cloud Functions),
+    // initialize without arguments to use Application Default Credentials.
+    app = admin.initializeApp();
+    console.log('[Firebase Admin] SDK initialized successfully with default credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON was not set).');
   }
 } else {
   app = admin.app();
@@ -35,11 +36,6 @@ if (admin.apps.length === 0) {
 }
 
 // Initialize Firestore for the specific database
-// The Admin SDK's Firestore client will respect the database ID if the main app (client-side)
-// is configured for a specific database ID when operations are performed through Cloud Functions
-// or server-side logic that uses this admin instance.
-// For direct admin operations, you typically get the default Firestore instance.
-// If operations need to target a non-default database, it's often handled at the point of DB interaction.
 const firestore = admin.firestore(app);
 // Note: The Admin SDK Firestore client gets the default database.
 // To work with a *named database* (like 'kamperhubv2') specifically through the Admin SDK
