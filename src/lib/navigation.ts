@@ -40,13 +40,14 @@ export const navItems: NavItem[] = [
     description: "Access helpful articles, video guides, our AI Chatbot, and the user manual to master your caravanning adventures.",
     keywords: 'support guide'
   },
-  {
-    href: '/learn?tab=manual',
-    label: 'User Manual',
-    icon: BookText,
-    description: "Access the detailed KamperHub user guide and feature explanations.",
-    keywords: "manual guide help"
-  },
+  // Removed User Manual item from here
+  // {
+  //   href: '/learn?tab=manual',
+  //   label: 'User Manual',
+  //   icon: BookText,
+  //   description: "Access the detailed KamperHub user guide and feature explanations.",
+  //   keywords: "manual guide help"
+  // },
   {
     href: '/tripplanner',
     label: 'Trip Planner',
