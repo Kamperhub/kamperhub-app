@@ -22,23 +22,27 @@ export default function SupportPage() {
   type ValidTab = typeof validTabs[number];
   const defaultTab: ValidTab = "videos";
 
+  // Initialize state from URL or default
   const [activeTab, setActiveTab] = useState<ValidTab>(() => {
     const tabFromQuery = searchParams.get('tab') as ValidTab | null;
     return tabFromQuery && validTabs.includes(tabFromQuery) ? tabFromQuery : defaultTab;
   });
 
+  // Effect to update activeTab state when URL searchParams change
   useEffect(() => {
     const tabFromQuery = searchParams.get('tab') as ValidTab | null;
-    const currentActiveTabInQuery = tabFromQuery && validTabs.includes(tabFromQuery) ? tabFromQuery : defaultTab;
-    if (activeTab !== currentActiveTabInQuery) {
-      setActiveTab(currentActiveTabInQuery);
+    const newTabBasedOnQuery = tabFromQuery && validTabs.includes(tabFromQuery) ? tabFromQuery : defaultTab;
+    if (newTabBasedOnQuery !== activeTab) {
+      setActiveTab(newTabBasedOnQuery);
     }
-  }, [searchParams, activeTab]);
+  }, [searchParams, activeTab]); // Keep activeTab dependency to prevent setting if already correct
 
   const handleTabChange = (newTabValue: string) => {
     if (validTabs.includes(newTabValue as ValidTab)) {
       const newTab = newTabValue as ValidTab;
+      // Optimistically update the state for immediate UI feedback
       setActiveTab(newTab);
+      // Update the URL; the useEffect will ensure consistency if needed
       router.push(`/learn?tab=${newTab}`, { scroll: false });
     }
   };
