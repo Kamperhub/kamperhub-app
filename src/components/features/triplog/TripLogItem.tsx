@@ -99,7 +99,7 @@ export function TripLogItem({ trip, onDelete, onRecall, onAddToCalendar, onStart
         )}
 
         <Button variant="ghost" size="sm" onClick={() => onAddToCalendar(trip)} className="font-body text-primary" disabled={!trip.plannedStartDate}>
-          <CalendarPlus className="mr-2 h-4 w-4" /> Calendar
+          <CalendarPlus className="mr-2 h-4 w-4" /> Add to Calendar
         </Button>
         <Button variant="outline" size="sm" onClick={() => onRecall(trip)} className="font-body">
           <Repeat className="mr-2 h-4 w-4" /> Recall
