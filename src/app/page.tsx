@@ -232,7 +232,7 @@ export default function DashboardPage() {
           />
           <div>
             <h1 className="text-3xl font-headline text-primary">Welcome to KamperHub</h1>
-            <p className="font-body text-muted-foreground">Your ultimate caravanning companion. Drag to reorder cards.</p>
+            <p className="font-body text-muted-foreground">Your ultimate travelling companion for everyone.</p>
           </div>
         </div>
       </div>
