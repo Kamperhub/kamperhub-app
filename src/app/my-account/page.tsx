@@ -432,7 +432,7 @@ export default function MyAccountPage() {
                 </Alert>
                 <Button
                   onClick={handleSubscribeToPro}
-                  className="w-full sm:w-auto bg-accent hover:bg-accent/90 text-accent-foreground font-body"
+                  className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-body"
                   disabled={isRedirectingToCheckout}
                 >
                   {isRedirectingToCheckout ? (
@@ -461,3 +461,4 @@ export default function MyAccountPage() {
     </div>
   );
 }
+
