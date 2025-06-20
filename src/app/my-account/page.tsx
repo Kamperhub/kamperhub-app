@@ -336,7 +336,7 @@ export default function MyAccountPage() {
             
             <p className="font-body text-sm flex items-center">
                 <User className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>Display Name:</strong>&nbsp;{firebaseUser?.displayName || '[Not Set]'}
+                <strong>Display Name:</strong>&nbsp;{firebaseUser?.displayName || userProfile.displayName || '[Not Set]'}
             </p>
             <p className="font-body text-sm flex items-center">
                 <User className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
