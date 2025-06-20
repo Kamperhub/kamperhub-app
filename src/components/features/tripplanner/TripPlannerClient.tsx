@@ -347,12 +347,12 @@ export function TripPlannerClient() {
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
             setPointsOfInterest(results);
             if (results.length === 0) {
-                toast({ title: "No Attractions Found", description: "No attractions found in the current map area."});
+                toast({ title: "No Attractions Found", description: "No attractions found in the current map area. Try zooming in on the map to see attractions."});
             } else {
                  toast({ title: "Attractions Found", description: `${results.length} attractions loaded on the map.`});
             }
         } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-            toast({ title: "No Attractions Found", description: "No attractions found in the current map area."});
+            toast({ title: "No Attractions Found", description: "No attractions found in the current map area. Try zooming in on the map to see attractions."});
         } else {
             toast({ title: "Error Finding Attractions", description: `Could not fetch attractions: ${status}`, variant: "destructive"});
             console.error("Places API error:", status);
@@ -770,3 +770,5 @@ export function TripPlannerClient() {
     </>
   );
 }
+
+    
