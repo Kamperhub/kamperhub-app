@@ -17,15 +17,15 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { format, parseISO, isValid } from 'date-fns';
+import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { UserCog, ShieldAlert, CalendarIcon, AlertTriangle, Loader2, Send } from 'lucide-react';
+import { UserCog, ShieldAlert, CalendarIcon, AlertTriangle, Loader2, Send, Mail } from 'lucide-react';
 import type { SubscriptionTier } from '@/types/auth';
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
 const updateSubscriptionFormSchema = z.object({
-  targetUserId: z.string().min(1, "Target User ID is required"),
+  targetUserEmail: z.string().email("Please enter a valid email address for the target user."),
   newTier: z.enum(["free", "pro", "trialing", "trial_expired"]),
   newStatus: z.string().optional(),
   newTrialEndsAt: z.date().nullable().optional(),
@@ -44,7 +44,7 @@ export default function AdminPage() {
   const { control, handleSubmit, register, formState: { errors }, reset } = useForm<UpdateSubscriptionFormData>({
     resolver: zodResolver(updateSubscriptionFormSchema),
     defaultValues: {
-      targetUserId: '',
+      targetUserEmail: '',
       newTier: 'free',
       newStatus: '',
       newTrialEndsAt: null,
@@ -57,10 +57,9 @@ export default function AdminPage() {
       setCurrentUser(user);
       setIsAuthLoading(false);
       if (user && user.email !== ADMIN_EMAIL) {
-        // Non-admin user, redirect or show access denied
-        // For now, we'll handle this in the render method
+        // Non-admin user, handled in render
       } else if (!user) {
-        router.push('/login'); // Not logged in, redirect to login
+        router.push('/login');
       }
     });
     return () => unsubscribe();
@@ -76,7 +75,7 @@ export default function AdminPage() {
     try {
       const idToken = await currentUser.getIdToken(true);
       const payload: any = {
-        targetUserId: data.targetUserId,
+        targetUserEmail: data.targetUserEmail,
         newTier: data.newTier,
       };
       if (data.newStatus) payload.newStatus = data.newStatus;
@@ -96,7 +95,7 @@ export default function AdminPage() {
 
       if (response.ok) {
         toast({ title: "Success", description: result.message || "Subscription updated successfully." });
-        reset(); // Reset form on success
+        reset();
       } else {
         toast({
           title: "Error Updating Subscription",
@@ -146,7 +145,7 @@ export default function AdminPage() {
             <UserCog className="mr-3 h-7 w-7" /> Admin - User Subscription Management
           </CardTitle>
           <CardDescription className="font-body">
-            Update subscription details for a specific user. Ensure User ID is correct.
+            Update subscription details for a specific user by their email address.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -160,15 +159,19 @@ export default function AdminPage() {
           </Alert>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div>
-              <Label htmlFor="targetUserId" className="font-body">Target User ID (Firebase UID)</Label>
-              <Input
-                id="targetUserId"
-                {...register("targetUserId")}
-                placeholder="Enter the Firebase UID of the user"
-                className="font-body"
-                disabled={isSubmitting}
-              />
-              {errors.targetUserId && <p className="text-sm text-destructive mt-1 font-body">{errors.targetUserId.message}</p>}
+              <Label htmlFor="targetUserEmail" className="font-body">Target User Email Address</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="targetUserEmail"
+                  {...register("targetUserEmail")}
+                  placeholder="Enter the email address of the user"
+                  className="font-body pl-10"
+                  disabled={isSubmitting}
+                  type="email"
+                />
+              </div>
+              {errors.targetUserEmail && <p className="text-sm text-destructive mt-1 font-body">{errors.targetUserEmail.message}</p>}
             </div>
 
             <div>
