@@ -31,7 +31,7 @@ export default function ContactPage() {
   });
 
   const onSubmit: SubmitHandler<ContactFormData> = (data) => {
-    const mailtoLink = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(data.subject)}&body=${encodeURIComponent(
+    const mailtoLink = `mailto:${CONTACT_EMAIL}?cc=${encodeURIComponent(data.email)}&subject=${encodeURIComponent(data.subject)}&body=${encodeURIComponent(
       `Name: ${data.name}\nEmail: ${data.email}\n\nMessage:\n${data.message}`
     )}`;
     
@@ -61,7 +61,7 @@ export default function ContactPage() {
             <MailIcon className="mr-3 h-7 w-7" /> Contact KamperHub
           </CardTitle>
           <CardDescription className="font-body">
-            Have questions, feedback, or need support? Fill out the form below, and clicking "Send Email" will open your default email client with the details pre-filled.
+            Have questions, feedback, or need support? Fill out the form below, and clicking "Send Email" will open your default email client with the details pre-filled. The sender will be CC'd.
           </CardDescription>
         </CardHeader>
         <CardContent>
