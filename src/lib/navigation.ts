@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -40,14 +40,6 @@ export const navItems: NavItem[] = [
     description: "Access helpful articles, video guides, our AI Chatbot, and the user manual to master your caravanning adventures.",
     keywords: 'support guide'
   },
-  // Removed User Manual item from here
-  // {
-  //   href: '/learn?tab=manual',
-  //   label: 'User Manual',
-  //   icon: BookText,
-  //   description: "Access the detailed KamperHub user guide and feature explanations.",
-  //   keywords: "manual guide help"
-  // },
   {
     href: '/tripplanner',
     label: 'Trip Planner',
@@ -77,6 +69,13 @@ export const navItems: NavItem[] = [
     keywords: 'campsite booking'
   },
   {
+    href: '/contact',
+    label: 'Contact Us',
+    icon: Mail,
+    description: "Get in touch with the KamperHub team for support, feedback, or inquiries.",
+    keywords: 'support email help'
+  },
+  {
     href: '/my-account',
     label: 'My Account',
     icon: UserCircle,
@@ -102,3 +101,4 @@ export const dashboardDetailItems: NavItem[] = [
     keywords: 'user achievement'
   }
 ];
+
