@@ -57,7 +57,7 @@ export default function SupportPage() {
         onValueChange={handleTabChange}
         className="w-full"
       >
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1 sm:gap-2 mb-6">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1 sm:gap-2 mb-6 bg-background">
           <TabsTrigger 
             value="videos" 
             className="font-body text-xs xxs:text-sm sm:text-base whitespace-normal sm:whitespace-nowrap h-auto py-2"
