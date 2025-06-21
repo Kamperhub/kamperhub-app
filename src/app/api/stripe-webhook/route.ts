@@ -31,6 +31,11 @@ export async function POST(req: NextRequest) {
     console.error("Webhook Error: Stripe webhook secret is not configured (STRIPE_WEBHOOK_SECRET missing at runtime).");
     return NextResponse.json({ error: 'Stripe webhook secret is not configured.' }, { status: 500 });
   }
+  
+  if (!adminFirestore) {
+    console.error("Webhook Error: Firestore Admin SDK not initialized at start of request.");
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
 
   const sig = req.headers.get('stripe-signature');
   const body = await req.text();
@@ -117,10 +122,6 @@ export async function POST(req: NextRequest) {
         };
 
         console.log(`Webhook: Attempting to update Firestore for user ${userId} with data:`, JSON.stringify(userProfileUpdate));
-        if (!adminFirestore) {
-             console.error('Webhook Error: adminFirestore is NOT defined before Firestore set operation for user:', userId);
-             throw new Error("Firebase Admin Firestore client is not available.");
-        }
         await userDocRef.set(userProfileUpdate, { merge: true });
         console.log(`Webhook: Successfully updated Firestore for user ${userId} with subscription details from session ${session.id}.`);
 
@@ -164,10 +165,6 @@ export async function POST(req: NextRequest) {
               updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             };
             console.log(`Webhook: Attempting to update Firestore for user ${userDoc.id} from invoice ${invoice.id} with data:`, JSON.stringify(userProfileUpdate));
-            if (!adminFirestore) {
-                 console.error('Webhook Error: adminFirestore is NOT defined before Firestore set operation for invoice.payment_succeeded, user:', userDoc.id);
-                 throw new Error("Firebase Admin Firestore client is not available.");
-            }
             await userDoc.ref.set(userProfileUpdate, { merge: true });
             console.log(`Webhook: Subscription renewed/updated in Firestore for user ${userDoc.id} from invoice ${invoice.id}.`);
           } else {
@@ -211,10 +208,6 @@ export async function POST(req: NextRequest) {
               updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             };
             console.log(`Webhook: Attempting to update Firestore for user ${userDoc.id} from failed_invoice ${failedInvoice.id} with data:`, JSON.stringify(userProfileUpdate));
-             if (!adminFirestore) {
-                 console.error('Webhook Error: adminFirestore is NOT defined before Firestore set operation for invoice.payment_failed, user:', userDoc.id);
-                 throw new Error("Firebase Admin Firestore client is not available.");
-            }
             await userDoc.ref.set(userProfileUpdate, { merge: true });
             console.log(`Webhook: Subscription status updated in Firestore for user ${userDoc.id} due to failed invoice ${failedInvoice.id}.`);
           } else {
@@ -262,10 +255,6 @@ export async function POST(req: NextRequest) {
             }
             
             console.log(`Webhook: Attempting to update Firestore for user ${userDoc.id} from subscription.updated ${updatedSubscription.id} with data:`, JSON.stringify(userProfileUpdate));
-            if (!adminFirestore) {
-                 console.error('Webhook Error: adminFirestore is NOT defined before Firestore set operation for customer.subscription.updated, user:', userDoc.id);
-                 throw new Error("Firebase Admin Firestore client is not available.");
-            }
             await userDoc.ref.set(userProfileUpdate, { merge: true });
             console.log(`Webhook: Subscription details updated in Firestore for user ${userDoc.id} from subscription.updated event ${updatedSubscription.id}.`);
         } else {
@@ -296,10 +285,6 @@ export async function POST(req: NextRequest) {
               updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             };
              console.log(`Webhook: Attempting to update Firestore for user ${userDoc.id} from subscription.deleted ${deletedSubscription.id} with data:`, JSON.stringify(userProfileUpdate));
-             if (!adminFirestore) {
-                 console.error('Webhook Error: adminFirestore is NOT defined before Firestore set operation for customer.subscription.deleted, user:', userDoc.id);
-                 throw new Error("Firebase Admin Firestore client is not available.");
-            }
             await userDoc.ref.set(userProfileUpdate, { merge: true });
             console.log(`Webhook: Subscription set to 'free' and details cleared in Firestore for user ${userDoc.id} (Stripe sub ID: ${deletedSubscription.id}).`);
         } else {
@@ -319,7 +304,3 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ received: true });
 }
-    
-    
-    
-

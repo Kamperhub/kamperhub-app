@@ -20,6 +20,11 @@ export async function POST(req: NextRequest) {
     console.error('Create Customer Portal Session: Stripe is not configured or STRIPE_SECRET_KEY is missing.');
     return NextResponse.json({ error: 'Stripe configuration error on server.' }, { status: 500 });
   }
+  
+  if (!adminFirestore) {
+    console.error('Create Customer Portal Session: Firestore Admin SDK not initialized.');
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
 
   try {
     const { userId } = await req.json();
