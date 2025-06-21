@@ -18,12 +18,14 @@ import {
 } from '@/types/auth';
 import type { SubscriptionTier, UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, CalendarClock } from 'lucide-react'; 
+import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, CalendarClock, UserCog } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { EditProfileForm, type EditProfileFormData } from '@/components/features/account/EditProfileForm';
+
+const ADMIN_EMAIL = 'info@kamperhub.com'; // Define admin email
 
 export default function MyAccountPage() {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
@@ -297,6 +299,7 @@ export default function MyAccountPage() {
   const displayUserName = firebaseUser?.displayName || userProfile.displayName || 'User';
   const isTrialActive = subscriptionTier === 'trialing' && trialEndsAt && isFuture(parseISO(trialEndsAt));
   const hasTrialExpired = subscriptionTier === 'trialing' && trialEndsAt && !isFuture(parseISO(trialEndsAt));
+  const isAdminUser = firebaseUser?.email === ADMIN_EMAIL;
 
   return (
     <div className="space-y-8">
@@ -453,6 +456,14 @@ export default function MyAccountPage() {
             )}
           </div>
 
+          {isAdminUser && (
+            <Link href="/admin" passHref>
+              <Button variant="secondary" className="w-full font-body mt-2 mb-2">
+                <UserCog className="mr-2 h-4 w-4" /> Admin Only - Manage Users
+              </Button>
+            </Link>
+          )}
+
           <Button onClick={handleLogout} variant="destructive" className="w-full font-body">
             <LogOut className="mr-2 h-4 w-4" /> Log Out
           </Button>
@@ -462,3 +473,5 @@ export default function MyAccountPage() {
   );
 }
 
+
+    
