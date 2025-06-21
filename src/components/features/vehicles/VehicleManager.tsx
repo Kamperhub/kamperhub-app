@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { StoredVehicle, VehicleFormData, VehicleStorageLocation } from '@/types/vehicle';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -14,17 +15,25 @@ import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, Weight, Axe, Car, Package
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-const VEHICLES_STORAGE_KEY = 'kamperhub_vehicles_list';
-const ACTIVE_VEHICLE_ID_KEY = 'kamperhub_active_vehicle_id';
+import { 
+  fetchVehicles, 
+  createVehicle, 
+  updateVehicle, 
+  deleteVehicle,
+  fetchUserPreferences,
+  updateUserPreferences
+} from '@/lib/api-client';
+import { auth } from '@/lib/firebase';
+import type { UserProfile } from '@/types/auth';
+import { useSubscription } from '@/hooks/useSubscription';
 
 export function VehicleManager() {
   const { toast } = useToast();
-  const [vehicles, setVehicles] = useState<StoredVehicle[]>([]);
-  const [activeVehicleId, setActiveVehicleId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { hasProAccess } = useSubscription();
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<StoredVehicle | null>(null);
-  const [hasMounted, setHasMounted] = useState(false);
   const [deleteDialogState, setDeleteDialogState] = useState<{ isOpen: boolean; vehicleId: string | null; vehicleName: string | null; confirmationText: string }>({
     isOpen: false,
     vehicleId: null,
@@ -32,108 +41,105 @@ export function VehicleManager() {
     confirmationText: '',
   });
 
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
+  const user = auth.currentUser;
 
-  useEffect(() => {
-    if (hasMounted) {
-      try {
-        const storedVehicles = localStorage.getItem(VEHICLES_STORAGE_KEY);
-        if (storedVehicles) {
-          const parsedVehicles: StoredVehicle[] = JSON.parse(storedVehicles);
-          // Sanitize data: ensure storageLocations is always an array
-          const sanitizedVehicles = parsedVehicles.map(v => ({
-            ...v,
-            storageLocations: Array.isArray(v.storageLocations) ? v.storageLocations : [],
-          }));
-          setVehicles(sanitizedVehicles);
-        }
-        const storedActiveId = localStorage.getItem(ACTIVE_VEHICLE_ID_KEY);
-        if (storedActiveId) {
-          setActiveVehicleId(storedActiveId);
-        }
-      } catch (error) {
-        console.error("Error loading vehicle data from localStorage:", error);
-        toast({ title: "Error Loading Vehicles", variant: "destructive", description: "Could not load vehicle data. Your saved vehicles might not appear." });
+  const { data: vehicles = [], isLoading: isLoadingVehicles, error: vehiclesError } = useQuery<StoredVehicle[]>({
+    queryKey: ['vehicles'],
+    queryFn: fetchVehicles,
+    enabled: !!user,
+  });
+
+  const { data: userPrefs, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
+    queryKey: ['userPreferences'],
+    queryFn: fetchUserPreferences,
+    enabled: !!user,
+  });
+  
+  const activeVehicleId = userPrefs?.activeVehicleId;
+  const isLoading = isLoadingVehicles || isLoadingPrefs;
+  const queryError = vehiclesError || prefsError;
+
+  const saveVehicleMutation = useMutation({
+    mutationFn: (vehicleData: VehicleFormData | StoredVehicle) => {
+      const dataToSend = editingVehicle ? { ...editingVehicle, ...vehicleData } : vehicleData;
+      return 'id' in dataToSend && dataToSend.id ? updateVehicle(dataToSend as StoredVehicle) : createVehicle(dataToSend as VehicleFormData);
+    },
+    onSuccess: (savedVehicle) => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      toast({
+        title: editingVehicle ? "Vehicle Updated" : "Vehicle Added",
+        description: `${savedVehicle.make} ${savedVehicle.model} has been saved.`,
+      });
+      setIsFormOpen(false);
+      setEditingVehicle(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Save Failed",
+        description: error.message || "Could not save the vehicle.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteVehicleMutation = useMutation({
+    mutationFn: deleteVehicle,
+    onSuccess: (_, vehicleId) => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      if (activeVehicleId === vehicleId) {
+        queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
       }
-    }
-  }, [hasMounted, toast]);
+      toast({ title: "Vehicle Deleted" });
+      setDeleteDialogState({ isOpen: false, vehicleId: null, vehicleName: null, confirmationText: '' });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Delete Failed", description: error.message, variant: "destructive" });
+      setDeleteDialogState({ isOpen: false, vehicleId: null, vehicleName: null, confirmationText: '' });
+    },
+  });
 
-  const saveVehiclesToStorage = useCallback((updatedVehicles: StoredVehicle[]) => {
-    if (!hasMounted || typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(VEHICLES_STORAGE_KEY, JSON.stringify(updatedVehicles));
-    } catch (error) {
-      toast({ title: "Error Saving Vehicles", variant: "destructive", description: "Your changes might not be saved." });
+  const setActiveVehicleMutation = useMutation({
+    mutationFn: (vehicleId: string) => updateUserPreferences({ activeVehicleId: vehicleId }),
+    onSuccess: (_, vehicleId) => {
+      queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
+      const vehicle = vehicles.find(v => v.id === vehicleId);
+      toast({ title: "Active Vehicle Set", description: `${vehicle?.make} ${vehicle?.model} is now active.` });
+    },
+    onError: (error: Error) => {
+       toast({ title: "Update Failed", description: error.message, variant: "destructive" });
     }
-  }, [toast, hasMounted]);
-
-  const saveActiveVehicleIdToStorage = useCallback((id: string | null) => {
-    if (!hasMounted || typeof window === 'undefined') return;
-    try {
-      if (id) {
-        localStorage.setItem(ACTIVE_VEHICLE_ID_KEY, id);
-      } else {
-        localStorage.removeItem(ACTIVE_VEHICLE_ID_KEY);
-      }
-    } catch (error) {
-      toast({ title: "Error Saving Active Vehicle", variant: "destructive", description: "Active vehicle selection might not be saved." });
-    }
-  }, [toast, hasMounted]);
+  });
 
   const handleSaveVehicle = (data: VehicleFormData) => {
-    let updatedVehicles;
-    if (editingVehicle) {
-      updatedVehicles = vehicles.map(v => v.id === editingVehicle.id ? { ...editingVehicle, ...data, storageLocations: data.storageLocations || [] } : v);
-      toast({ title: "Vehicle Updated", description: `${data.make} ${data.model} updated.` });
-    } else {
-      const newVehicle: StoredVehicle = { ...data, id: Date.now().toString(), storageLocations: data.storageLocations || [] };
-      updatedVehicles = [...vehicles, newVehicle];
-      toast({ title: "Vehicle Added", description: `${data.make} ${data.model} added.` });
-    }
-    setVehicles(updatedVehicles);
-    saveVehiclesToStorage(updatedVehicles);
-    setIsFormOpen(false);
-    setEditingVehicle(null);
+    saveVehicleMutation.mutate(data);
   };
 
   const handleEditVehicle = (vehicle: StoredVehicle) => {
-    setEditingVehicle({...vehicle, storageLocations: vehicle.storageLocations || []});
+    setEditingVehicle(vehicle);
     setIsFormOpen(true);
   };
-
+  
   const handleDeleteVehicle = (id: string, name: string) => {
     setDeleteDialogState({ isOpen: true, vehicleId: id, vehicleName: name, confirmationText: '' });
   };
-
+  
   const confirmDeleteVehicle = () => {
     if (deleteDialogState.vehicleId && deleteDialogState.confirmationText === "DELETE") {
-      const updatedVehicles = vehicles.filter(v => v.id !== deleteDialogState.vehicleId);
-      setVehicles(updatedVehicles);
-      saveVehiclesToStorage(updatedVehicles);
-      if (activeVehicleId === deleteDialogState.vehicleId) {
-        setActiveVehicleId(null);
-        saveActiveVehicleIdToStorage(null);
-      }
-      toast({ title: "Vehicle Deleted", description: `${deleteDialogState.vehicleName} has been removed.` });
+      deleteVehicleMutation.mutate(deleteDialogState.vehicleId);
+    } else {
+       setDeleteDialogState({ isOpen: false, vehicleId: null, vehicleName: null, confirmationText: '' });
     }
-    setDeleteDialogState({ isOpen: false, vehicleId: null, vehicleName: null, confirmationText: '' });
   };
-
 
   const handleSetActiveVehicle = (id: string) => {
-    setActiveVehicleId(id);
-    saveActiveVehicleIdToStorage(id);
-    const vehicle = vehicles.find(v => v.id === id);
-    toast({ title: "Active Vehicle Set", description: `${vehicle?.make} ${vehicle?.model} is now active.` });
+    setActiveVehicleMutation.mutate(id);
   };
-
+  
   const handleOpenFormForNew = () => {
     setEditingVehicle(null);
     setIsFormOpen(true);
   };
-
+  
   const formatPositionText = (loc: VehicleStorageLocation) => {
     const longText = {
       'front-of-front-axle': 'Front of F.Axle',
@@ -153,25 +159,35 @@ export function VehicleManager() {
     return typeof value === 'number' ? `${value}${unit}` : 'N/A';
   };
 
-  if (!hasMounted) {
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle className="font-headline">Tow Vehicles</CardTitle>
+            <Skeleton className="h-8 w-1/3" />
             <Skeleton className="h-9 w-[180px]" />
           </div>
-          <CardDescription className="font-body">
-            Loading vehicle data...
-          </CardDescription>
+          <Skeleton className="h-4 w-2/3 mt-2" />
         </CardHeader>
         <CardContent className="space-y-4">
           <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full mt-4" />
         </CardContent>
       </Card>
     );
   }
+
+  if (queryError) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-destructive">Error Loading Vehicles</CardTitle>
+                <CardDescription>{queryError.message}</CardDescription>
+            </CardHeader>
+        </Card>
+    );
+  }
+
+  const isAddButtonDisabled = !hasProAccess && vehicles.length >= 1;
 
   return (
     <>
@@ -184,7 +200,7 @@ export function VehicleManager() {
               if (!isOpen) setEditingVehicle(null);
             }}>
               <DialogTrigger asChild>
-                <Button onClick={handleOpenFormForNew} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body">
+                <Button onClick={handleOpenFormForNew} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body" disabled={isAddButtonDisabled}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Add New Vehicle
                 </Button>
               </DialogTrigger>
@@ -197,6 +213,7 @@ export function VehicleManager() {
                     initialData={editingVehicle || undefined}
                     onSave={handleSaveVehicle}
                     onCancel={() => { setIsFormOpen(false); setEditingVehicle(null); }}
+                    isLoading={saveVehicleMutation.isPending}
                   />
                 </ScrollArea>
               </DialogContent>
@@ -204,10 +221,11 @@ export function VehicleManager() {
           </div>
           <CardDescription className="font-body">
             Manage your tow vehicles. Select one as active for trip planning.
+            {!hasProAccess && " (Free tier limit: 1)"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {vehicles.length === 0 && hasMounted && (
+          {vehicles.length === 0 && (
             <p className="text-muted-foreground text-center font-body py-4">No vehicles added yet. Click "Add New Vehicle" to start.</p>
           )}
           {vehicles.map(vehicle => {
@@ -232,8 +250,8 @@ export function VehicleManager() {
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center self-start sm:self-auto flex-shrink-0 mt-2 sm:mt-0">
                     {activeVehicleId !== vehicle.id && (
-                      <Button variant="outline" size="sm" onClick={() => handleSetActiveVehicle(vehicle.id)} className="font-body whitespace-nowrap">
-                        <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Set Active
+                      <Button variant="outline" size="sm" onClick={() => handleSetActiveVehicle(vehicle.id)} className="font-body whitespace-nowrap" disabled={setActiveVehicleMutation.isPending}>
+                        {setActiveVehicleMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <CheckCircle className="mr-2 h-4 w-4 text-green-500" />} Set Active
                       </Button>
                     )}
                      {activeVehicleId === vehicle.id && (
@@ -301,18 +319,20 @@ export function VehicleManager() {
               onChange={(e) => setDeleteDialogState(prev => ({ ...prev, confirmationText: e.target.value }))}
               placeholder='Type DELETE to confirm'
               className="mt-2 font-body"
+              disabled={deleteVehicleMutation.isPending}
             />
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setDeleteDialogState({ isOpen: false, vehicleId: null, vehicleName: null, confirmationText: '' })} className="font-body">
+            <Button variant="outline" onClick={() => setDeleteDialogState({ isOpen: false, vehicleId: null, vehicleName: null, confirmationText: '' })} className="font-body" disabled={deleteVehicleMutation.isPending}>
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={confirmDeleteVehicle}
-              disabled={deleteDialogState.confirmationText !== "DELETE"}
+              disabled={deleteDialogState.confirmationText !== "DELETE" || deleteVehicleMutation.isPending}
               className="font-body"
             >
+              {deleteVehicleMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Confirm Delete
             </Button>
           </div>

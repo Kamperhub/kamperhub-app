@@ -4,6 +4,7 @@ import './globals.css';
 import { AppShell } from '@/components/layout/AppShell';
 import { Toaster } from "@/components/ui/toaster";
 import { SubscriptionProvider } from '@/hooks/useSubscription';
+import { QueryProvider } from '@/components/layout/QueryProvider';
 
 export const metadata: Metadata = {
   title: 'KamperHub',
@@ -27,11 +28,13 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <SubscriptionProvider>
-          <AppShell>
-            {children}
-          </AppShell>
-        </SubscriptionProvider>
+        <QueryProvider>
+          <SubscriptionProvider>
+            <AppShell>
+              {children}
+            </AppShell>
+          </SubscriptionProvider>
+        </QueryProvider>
         <Toaster />
       </body>
     </html>
