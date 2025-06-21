@@ -1,16 +1,9 @@
 
 import type { DateRange } from 'react-day-picker';
 
-export interface Waypoint {
-  address: string;
-  location?: google.maps.LatLngLiteral; // Geocoded location, optional
-  // We could add more details here later, like stopover duration, notes per waypoint, etc.
-}
-
 export interface TripPlannerFormValues {
   startLocation: string;
   endLocation: string;
-  waypoints?: string[]; // Array of waypoint addresses
   fuelEfficiency: number; // L/100km
   fuelPrice: number; // Price per liter
   dateRange?: DateRange | null;
@@ -24,8 +17,6 @@ export interface RouteDetails {
   endAddress?: string;
   startLocation?: google.maps.LatLngLiteral;
   endLocation?: google.maps.LatLngLiteral;
-  // For multi-stop, the main routeDetails might represent the overall trip.
-  // Individual leg details could be stored separately if needed or derived.
 }
 
 export interface FuelEstimate {
@@ -39,7 +30,6 @@ export interface LoggedTrip {
   timestamp: string; // ISO string for date
   startLocationDisplay: string; // The string input by the user for start
   endLocationDisplay: string; // The string input by the user for end
-  waypoints?: Waypoint[]; // Array of saved waypoints
   fuelEfficiency: number;
   fuelPrice: number;
   routeDetails: RouteDetails;
