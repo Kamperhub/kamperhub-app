@@ -8,8 +8,39 @@ import {
 } from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LayoutDashboard, Settings2, Backpack, ListChecks, Route as RouteIcon, History, BedDouble, BookOpen, ShieldAlert, UserCircle } from 'lucide-react';
+import { cn } from "@/lib/utils";
 
 export function UserManualContent() {
+  const importantNoteContent = (
+    <>
+      <p>
+        KamperHub uses Firebase Authentication for user accounts and Firebase Firestore for storing your core profile and subscription details. This means your login credentials, name, email, location, and subscription status are securely stored in the cloud and synced across your sessions.
+      </p>
+      <p className="mt-2">
+        However, most other application data you generate and save — such as your:
+      </p>
+      <ul className="list-disc pl-5 my-2 space-y-1">
+        <li>Vehicle, Caravan, and WDH details</li>
+        <li>Inventory items and water tank levels</li>
+        <li>Trip plans and logged trips</li>
+        <li>Checklists (both trip-specific and caravan defaults)</li>
+        <li>Accommodation bookings</li>
+        <li>Customized dashboard layout</li>
+      </ul>
+      <p>
+        is currently stored <strong>locally in your web browser's storage</strong>. This means:
+      </p>
+      <ul className="list-disc pl-5 my-2 space-y-1">
+        <li>This specific data is private to the browser you are using on your current device.</li>
+        <li>Clearing your browser's cache or site data for KamperHub will <strong>permanently delete all this locally stored application data.</strong> Your user account and subscription will remain, but your vehicles, trips, etc., will be lost.</li>
+        <li>This data is not automatically synced across different devices or browsers.</li>
+      </ul>
+      <p>
+        For a future version, we aim to migrate more of this application data to cloud storage for better persistence and multi-device access.
+      </p>
+    </>
+  );
+
   const manualSections = [
     {
       title: "1. Dashboard",
@@ -19,6 +50,12 @@ export function UserManualContent() {
           <p>The Dashboard is your home screen, providing quick access to all of KamperHub's features. Each card represents a core section of the app. You can drag and drop these cards to customize the layout to your preference (on desktop). This layout is saved locally in your browser.</p>
         </>
       )
+    },
+    {
+      title: "Important Note on Data Storage",
+      icon: ShieldAlert,
+      isAlertSection: true,
+      content: importantNoteContent
     },
     {
       title: "2. Vehicle, Caravan, Storage & WDH Data (/vehicles)",
@@ -196,49 +233,29 @@ export function UserManualContent() {
 
       <p>Welcome to KamperHub, your ultimate caravanning companion! This manual will guide you through the features of the app to help you plan, manage, and enjoy your adventures.</p>
 
-      <Alert variant="destructive" className="my-4">
-        <ShieldAlert className="h-4 w-4" />
-        <AlertTitle className="font-headline">Important Note on Data Storage:</AlertTitle>
-        <AlertDescription className="space-y-1">
-           <p>
-            KamperHub uses Firebase Authentication for user accounts and Firebase Firestore for storing your core profile and subscription details. This means your login credentials, name, email, location, and subscription status are securely stored in the cloud and synced across your sessions.
-          </p>
-          <p>
-            However, most other application data you generate and save — such as your:
-          </p>
-          <ul className="list-disc pl-5">
-            <li>Vehicle, Caravan, and WDH details</li>
-            <li>Inventory items and water tank levels</li>
-            <li>Trip plans and logged trips</li>
-            <li>Checklists (both trip-specific and caravan defaults)</li>
-            <li>Accommodation bookings</li>
-            <li>Customized dashboard layout</li>
-          </ul>
-          <p>
-            is currently stored <strong>locally in your web browser's storage</strong>. This means:
-          </p>
-          <ul className="list-disc pl-5">
-            <li>This specific data is private to the browser you are using on your current device.</li>
-            <li>Clearing your browser's cache or site data for KamperHub will <strong>permanently delete all this locally stored application data.</strong> Your user account and subscription will remain, but your vehicles, trips, etc., will be lost.</li>
-            <li>This data is not automatically synced across different devices or browsers.</li>
-          </ul>
-          <p>
-            For a future version, we aim to migrate more of this application data to cloud storage for better persistence and multi-device access.
-          </p>
-        </AlertDescription>
-      </Alert>
-
       <Accordion type="single" collapsible className="w-full">
         {manualSections.map((section, index) => (
-          <AccordionItem value={`item-${index + 1}`} key={index}>
-            <AccordionTrigger className="text-left hover:no-underline">
-              <span className="flex items-center font-headline text-lg text-primary">
-                <section.icon className="mr-3 h-5 w-5 text-primary/80" />
+          <AccordionItem value={`item-${index + 1}`} key={index} className={cn(section.isAlertSection ? "border-destructive" : "")}>
+            <AccordionTrigger className={cn(
+                "text-left hover:no-underline",
+                 section.isAlertSection ? "text-destructive hover:text-destructive/90" : "text-primary"
+              )}
+            >
+              <span className={cn(
+                "flex items-center font-headline text-lg",
+                 section.isAlertSection ? "text-destructive" : "text-primary"
+                )}
+              >
+                <section.icon className={cn("mr-3 h-5 w-5", section.isAlertSection ? "text-destructive" : "text-primary/80")} />
                 {section.title}
               </span>
             </AccordionTrigger>
             <AccordionContent className="pt-2 pb-4">
-              <div className="prose prose-sm sm:prose-base max-w-none font-body text-foreground">
+              <div className={cn(
+                "prose prose-sm sm:prose-base max-w-none font-body",
+                section.isAlertSection ? "text-destructive/90" : "text-foreground"
+                )}
+              >
                 {section.content}
               </div>
             </AccordionContent>
@@ -251,4 +268,3 @@ export function UserManualContent() {
     </div>
   );
 }
-
