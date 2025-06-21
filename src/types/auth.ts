@@ -35,9 +35,13 @@ export interface UserProfile {
   country: string | null;
   subscriptionTier: SubscriptionTier;
   stripeCustomerId: string | null;
+  stripeSubscriptionId?: string | null; // Added this for completeness from webhook
+  subscriptionStatus?: string | null; // Added from webhook, e.g. "active", "trialing", "canceled"
+  currentPeriodEnd?: string | null; // Added from webhook
   trialEndsAt?: string | null; // ISO Date string or Firestore Timestamp
   createdAt: string; // ISO Date string or Firestore Timestamp
   updatedAt?: string; // ISO Date string or Firestore Timestamp
+  isAdmin?: boolean; // New field for admin privileges
 }
 
 // This interface was for the old mock system.
@@ -67,4 +71,3 @@ export interface MockUserRegistryEntry {
   state?: string;
   country?: string;
 }
-
