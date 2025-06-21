@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { VideoCard } from '@/components/features/learn/VideoCard';
 import { ArticleDisplayCard } from '@/components/features/learn/ArticleDisplayCard';
 import { UserManualContent } from '@/components/features/learn/UserManualContent'; 
+import { TermsOfServiceContent } from '@/components/features/learn/TermsOfServiceContent'; // New import
 import { sampleVideos, staticCaravanningArticles, type AiGeneratedArticle } from '@/types/learn'; 
-import { FileText, Youtube, Video, BookText } from 'lucide-react'; 
+import { FileText, Youtube, Video, BookText, FileLock2 } from 'lucide-react'; // Added FileLock2
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -17,7 +18,7 @@ export default function SupportPage() {
   const searchParams = useSearchParams();
   const articles: AiGeneratedArticle[] = staticCaravanningArticles;
 
-  const validTabs = ["videos", "articles", "manual"] as const;
+  const validTabs = ["videos", "articles", "manual", "tos"] as const; // Added "tos"
   type ValidTab = typeof validTabs[number];
   const defaultTab: ValidTab = "videos";
 
@@ -49,7 +50,7 @@ export default function SupportPage() {
       <div>
         <h1 className="text-3xl font-headline mb-2 text-primary">KamperHub Support Center</h1>
         <p className="text-muted-foreground font-body mb-6">
-          Find helpful videos, articles, and the user manual. For AI assistance, please visit our dedicated Chatbot page.
+          Find helpful videos, articles, the user manual, and terms of service. For AI assistance, please visit our dedicated Chatbot page.
         </p>
       </div>
 
@@ -58,7 +59,7 @@ export default function SupportPage() {
         onValueChange={handleTabChange}
         className="w-full"
       >
-        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 mb-6">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4 mb-6"> {/* Adjusted for 4 tabs */}
           <TabsTrigger value="videos" className="font-body text-sm sm:text-base">
             <Video className="mr-2 h-5 w-5" /> Educational Videos
           </TabsTrigger>
@@ -67,6 +68,9 @@ export default function SupportPage() {
           </TabsTrigger>
           <TabsTrigger value="manual" className="font-body text-sm sm:text-base">
             <BookText className="mr-2 h-5 w-5" /> User Manual
+          </TabsTrigger>
+          <TabsTrigger value="tos" className="font-body text-sm sm:text-base"> {/* New Tab Trigger */}
+            <FileLock2 className="mr-2 h-5 w-5" /> Terms of Service
           </TabsTrigger>
         </TabsList>
 
@@ -134,6 +138,26 @@ export default function SupportPage() {
             </div>
           </div>
         </TabsContent>
+
+        <TabsContent value="tos"> {/* New Tab Content */}
+          <div className="bg-card p-0 sm:p-6 rounded-lg shadow-sm border">
+            <div className="mb-0 sm:mb-4 px-6 pt-6 sm:p-0"> 
+              <h2 className="font-headline text-2xl text-primary flex items-center mb-1"> 
+                <FileLock2 className="h-7 w-7 text-primary mr-3" />
+                Terms of Service
+              </h2>
+              <p className="text-muted-foreground font-body">
+                Please review our terms and conditions.
+              </p>
+            </div>
+            <div className="px-0 sm:px-2"> 
+              <ScrollArea className="h-[calc(100vh-300px)] sm:h-[calc(100vh-350px)] pr-0 sm:pr-4">
+                <TermsOfServiceContent />
+              </ScrollArea>
+            </div>
+          </div>
+        </TabsContent>
+
       </Tabs>
     </div>
   );
