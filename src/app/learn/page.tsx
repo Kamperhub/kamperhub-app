@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { VideoCard } from '@/components/features/learn/VideoCard';
 import { ArticleDisplayCard } from '@/components/features/learn/ArticleDisplayCard';
 import { UserManualContent } from '@/components/features/learn/UserManualContent'; 
-import { TermsOfServiceContent } from '@/components/features/learn/TermsOfServiceContent'; // New import
+import { TermsOfServiceContent } from '@/components/features/learn/TermsOfServiceContent';
 import { sampleVideos, staticCaravanningArticles, type AiGeneratedArticle } from '@/types/learn'; 
-import { FileText, Youtube, Video, BookText, FileLock2 } from 'lucide-react'; // Added FileLock2
+import { FileText, Youtube, Video, BookText, FileLock2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -18,17 +18,15 @@ export default function SupportPage() {
   const searchParams = useSearchParams();
   const articles: AiGeneratedArticle[] = staticCaravanningArticles;
 
-  const validTabs = ["videos", "articles", "manual", "tos"] as const; // Added "tos"
+  const validTabs = ["videos", "articles", "manual", "tos"] as const;
   type ValidTab = typeof validTabs[number];
   const defaultTab: ValidTab = "videos";
 
-  // Initialize state from URL or default
   const [activeTab, setActiveTab] = useState<ValidTab>(() => {
     const tabFromQuery = searchParams.get('tab') as ValidTab | null;
     return tabFromQuery && validTabs.includes(tabFromQuery) ? tabFromQuery : defaultTab;
   });
 
-  // Effect to update activeTab state when URL searchParams change
   useEffect(() => {
     const tabFromQuery = searchParams.get('tab') as ValidTab | null;
     const newTabBasedOnQuery = tabFromQuery && validTabs.includes(tabFromQuery) ? tabFromQuery : defaultTab;
@@ -59,18 +57,30 @@ export default function SupportPage() {
         onValueChange={handleTabChange}
         className="w-full"
       >
-        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4 mb-6"> {/* Adjusted for 4 tabs */}
-          <TabsTrigger value="videos" className="font-body text-sm sm:text-base">
-            <Video className="mr-2 h-5 w-5" /> Educational Videos
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1 sm:gap-2 mb-6">
+          <TabsTrigger 
+            value="videos" 
+            className="font-body text-xs xxs:text-sm sm:text-base whitespace-normal sm:whitespace-nowrap h-auto py-2"
+          >
+            <Video className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> Educational Videos
           </TabsTrigger>
-          <TabsTrigger value="articles" className="font-body text-sm sm:text-base">
-            <FileText className="mr-2 h-5 w-5" /> Articles & Guides
+          <TabsTrigger 
+            value="articles" 
+            className="font-body text-xs xxs:text-sm sm:text-base whitespace-normal sm:whitespace-nowrap h-auto py-2"
+          >
+            <FileText className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> Articles & Guides
           </TabsTrigger>
-          <TabsTrigger value="manual" className="font-body text-sm sm:text-base">
-            <BookText className="mr-2 h-5 w-5" /> User Manual
+          <TabsTrigger 
+            value="manual" 
+            className="font-body text-xs xxs:text-sm sm:text-base whitespace-normal sm:whitespace-nowrap h-auto py-2"
+          >
+            <BookText className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> User Manual
           </TabsTrigger>
-          <TabsTrigger value="tos" className="font-body text-sm sm:text-base"> {/* New Tab Trigger */}
-            <FileLock2 className="mr-2 h-5 w-5" /> Terms of Service
+          <TabsTrigger 
+            value="tos" 
+            className="font-body text-xs xxs:text-sm sm:text-base whitespace-normal sm:whitespace-nowrap h-auto py-2"
+          >
+            <FileLock2 className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> Terms of Service
           </TabsTrigger>
         </TabsList>
 
@@ -139,7 +149,7 @@ export default function SupportPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="tos"> {/* New Tab Content */}
+        <TabsContent value="tos">
           <div className="bg-card p-0 sm:p-6 rounded-lg shadow-sm border">
             <div className="mb-0 sm:mb-4 px-6 pt-6 sm:p-0"> 
               <h2 className="font-headline text-2xl text-primary flex items-center mb-1"> 
