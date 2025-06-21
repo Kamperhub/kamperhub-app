@@ -177,6 +177,8 @@ export default function ChecklistsPage() {
   const selectedTrip = loggedTrips.find(trip => trip.id === selectedTripId);
   const selectedCaravanForDefaults = storedCaravans.find(cv => cv.id === selectedCaravanIdForDefaults);
 
+  const tabTriggerStyles = "font-body whitespace-normal h-auto py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md";
+
   return (
     <div className="space-y-8">
       <div>
@@ -233,10 +235,10 @@ export default function ChecklistsPage() {
                 <AlertTitle className="font-headline font-bold text-foreground">Checklists for Trip: {currentTripChecklistSet.tripName}</AlertTitle>
               </Alert>
               <Tabs defaultValue="preDeparture" className="w-full">
-                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 mb-4">
-                  <TabsTrigger value="preDeparture" className="font-body">Pre-Departure</TabsTrigger>
-                  <TabsTrigger value="campsiteSetup" className="font-body">Campsite Setup</TabsTrigger>
-                  <TabsTrigger value="packDown" className="font-body">Pack-Down</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-3 gap-2 mb-4 bg-background p-0">
+                  <TabsTrigger value="preDeparture" className={tabTriggerStyles}>Pre-Departure</TabsTrigger>
+                  <TabsTrigger value="campsiteSetup" className={tabTriggerStyles}>Campsite Setup</TabsTrigger>
+                  <TabsTrigger value="packDown" className={tabTriggerStyles}>Pack-Down</TabsTrigger>
                 </TabsList>
                 { (['preDeparture', 'campsiteSetup', 'packDown'] as ChecklistCategory[]).map(cat => (
                   <TabsContent key={cat} value={cat}>
@@ -298,10 +300,10 @@ export default function ChecklistsPage() {
                 <AlertTitle className="font-headline font-bold text-foreground">Default Checklists for: {selectedCaravanForDefaults?.year} {selectedCaravanForDefaults?.make} {selectedCaravanForDefaults?.model}</AlertTitle>
               </Alert>
               <Tabs defaultValue="preDeparture" className="w-full">
-                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 mb-4">
-                  <TabsTrigger value="preDeparture" className="font-body">Pre-Departure</TabsTrigger>
-                  <TabsTrigger value="campsiteSetup" className="font-body">Campsite Setup</TabsTrigger>
-                  <TabsTrigger value="packDown" className="font-body">Pack-Down</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-3 gap-2 mb-4 bg-background p-0">
+                  <TabsTrigger value="preDeparture" className={tabTriggerStyles}>Pre-Departure</TabsTrigger>
+                  <TabsTrigger value="campsiteSetup" className={tabTriggerStyles}>Campsite Setup</TabsTrigger>
+                  <TabsTrigger value="packDown" className={tabTriggerStyles}>Pack-Down</TabsTrigger>
                 </TabsList>
                 {(['preDeparture', 'campsiteSetup', 'packDown'] as ChecklistCategory[]).map(cat => (
                   <TabsContent key={cat} value={cat}>
