@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { NavItem } from '@/lib/navigation';
 import { navItems as defaultNavItems } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,8 +17,9 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
-
-const DASHBOARD_LAYOUT_STORAGE_KEY = 'kamperhub_dashboard_layout_v2';
+import { fetchUserPreferences, updateUserPreferences } from '@/lib/api-client';
+import type { UserProfile } from '@/types/auth';
+import { useToast } from '@/hooks/use-toast';
 
 interface SortableNavItemProps {
   id: string;
@@ -69,18 +71,36 @@ function SortableNavItem({ id, item, isMobile }: SortableNavItemProps) {
 
 export default function DashboardPage() {
   const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>([]);
-  const [isLoadingLayout, setIsLoadingLayout] = useState(true);
   const [hasMounted, setHasMounted] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
 
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const { data: userPrefs, isLoading: isLoadingLayout, error: prefsError } = useQuery<Partial<UserProfile>>({
+    queryKey: ['userPreferences', firebaseUser?.uid],
+    queryFn: fetchUserPreferences,
+    enabled: !!firebaseUser,
+  });
+
+  const updateUserPrefsMutation = useMutation({
+    mutationFn: updateUserPreferences,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userPreferences', firebaseUser?.uid] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Could Not Save Layout", description: error.message, variant: "destructive" });
+    }
+  });
+
 
   useEffect(() => {
     setHasMounted(true);
     const handleResize = () => {
-      setIsMobileView(window.innerWidth < 768); // md breakpoint
+      setIsMobileView(window.innerWidth < 768);
     };
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -103,38 +123,32 @@ export default function DashboardPage() {
   }, [hasMounted, isAuthLoading, firebaseUser, router]);
 
   useEffect(() => {
-    if (hasMounted && firebaseUser) {
-      try {
-        const storedLayout = localStorage.getItem(DASHBOARD_LAYOUT_STORAGE_KEY);
-        const mainPageNavItems = defaultNavItems; 
+    if (userPrefs) {
+      const mainPageNavItems = defaultNavItems; 
+      const storedLayoutHrefs = userPrefs.dashboardLayout;
 
-        if (storedLayout) {
-          const storedItemOrder: string[] = JSON.parse(storedLayout);
-          const itemsFromStorage = storedItemOrder.map(href => mainPageNavItems.find(item => item.href === href)).filter(Boolean) as NavItem[];
-          const currentMainPageHrefs = new Set(mainPageNavItems.map(item => item.href));
-          const itemsInStorageHrefs = new Set(itemsFromStorage.map(item => item.href));
+      if (storedLayoutHrefs && storedLayoutHrefs.length > 0) {
+        const itemsFromStorage = storedLayoutHrefs.map(href => mainPageNavItems.find(item => item.href === href)).filter(Boolean) as NavItem[];
+        const currentMainPageHrefs = new Set(mainPageNavItems.map(item => item.href));
+        const itemsInStorageHrefs = new Set(itemsFromStorage.map(item => item.href));
 
-          let finalItems = [...itemsFromStorage];
-          mainPageNavItems.forEach(defaultItem => {
-            if (!itemsInStorageHrefs.has(defaultItem.href)) {
-              finalItems.push(defaultItem);
-            }
-          });
-          finalItems = finalItems.filter(item => currentMainPageHrefs.has(item.href));
+        let finalItems = [...itemsFromStorage];
+        mainPageNavItems.forEach(defaultItem => {
+          if (!itemsInStorageHrefs.has(defaultItem.href)) {
+            finalItems.push(defaultItem);
+          }
+        });
+        finalItems = finalItems.filter(item => currentMainPageHrefs.has(item.href));
 
-          setOrderedNavItems(finalItems);
-        } else {
-          setOrderedNavItems(mainPageNavItems);
-        }
-      } catch (error) {
-        console.error("Error loading dashboard layout from localStorage:", error);
-        setOrderedNavItems(defaultNavItems);
+        setOrderedNavItems(finalItems);
+      } else {
+        setOrderedNavItems(mainPageNavItems);
       }
-      setIsLoadingLayout(false);
-    } else if (hasMounted && !firebaseUser && !isAuthLoading) {
-      setIsLoadingLayout(false);
+    } else if (!isLoadingLayout) {
+      setOrderedNavItems(defaultNavItems);
     }
-  }, [hasMounted, firebaseUser, isAuthLoading]);
+  }, [userPrefs, isLoadingLayout]);
+
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -147,28 +161,18 @@ export default function DashboardPage() {
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      setOrderedNavItems((currentItems) => {
-        const oldIndex = currentItems.findIndex((item) => item.href === active.id);
-        const newIndex = currentItems.findIndex((item) => item.href === over.id);
-
-        if (oldIndex === -1 || newIndex === -1) {
-          console.warn(
-            'DND Error: Draggable item ID not found in current state. Aborting reorder.',
-            { activeId: active.id, overId: over.id, currentItemHrefs: currentItems.map(i => i.href) }
-          );
-          return currentItems; // Return original items to prevent error
-        }
-        
-        const newOrder = arrayMove(currentItems, oldIndex, newIndex);
-        try {
-          localStorage.setItem(DASHBOARD_LAYOUT_STORAGE_KEY, JSON.stringify(newOrder.map(item => item.href)));
-        } catch (error) {
-          console.error("Error saving dashboard layout to localStorage:", error);
-        }
-        return newOrder;
-      });
+      const newOrder = arrayMove(orderedNavItems, 
+        orderedNavItems.findIndex((item) => item.href === active.id),
+        orderedNavItems.findIndex((item) => item.href === over.id)
+      );
+      
+      setOrderedNavItems(newOrder); 
+      
+      const newLayoutHrefs = newOrder.map(item => item.href);
+      updateUserPrefsMutation.mutate({ dashboardLayout: newLayoutHrefs });
     }
-  }, []); 
+  }, [orderedNavItems, updateUserPrefsMutation]); 
+
 
   if (!hasMounted || isAuthLoading) {
     return (
