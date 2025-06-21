@@ -1,5 +1,6 @@
-
 // src/types/auth.ts
+
+import type { CaravanDefaultChecklistSet } from './checklist';
 
 // These keys are related to the OLD MOCK system or temporary localStorage syncing.
 // Many will be primarily sourced from Firestore going forward.
@@ -42,6 +43,14 @@ export interface UserProfile {
   createdAt: string; // ISO Date string or Firestore Timestamp
   updatedAt?: string; // ISO Date string or Firestore Timestamp
   isAdmin?: boolean;
+
+  // User Preferences
+  activeVehicleId?: string | null;
+  activeCaravanId?: string | null;
+  activeWdhId?: string | null;
+  dashboardLayout?: string[] | null;
+  caravanWaterLevels?: Record<string, Record<string, number>> | null; // { [caravanId]: { [tankId]: level } }
+  caravanDefaultChecklists?: Record<string, CaravanDefaultChecklistSet> | null; // { [caravanId]: ChecklistSet }
 }
 
 // This interface was for the old mock system.
