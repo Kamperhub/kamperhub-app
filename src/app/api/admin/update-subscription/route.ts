@@ -28,9 +28,15 @@ export async function POST(req: NextRequest) {
     let decodedToken;
     try {
       decodedToken = await admin.auth().verifyIdToken(idToken);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error verifying Firebase ID token:', error);
-      return NextResponse.json({ error: 'Unauthorized: Invalid ID token.' }, { status: 401 });
+      // Log more details from the error object
+      console.error('Firebase ID token verification error details:', {
+        message: error.message,
+        code: error.code, // This can be very informative
+        stack: error.stack, // Full stack trace for server-side debugging
+      });
+      return NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message, errorCode: error.code }, { status: 401 });
     }
 
     const adminUid = decodedToken.uid;
@@ -99,7 +105,11 @@ export async function POST(req: NextRequest) {
     if (error instanceof ZodError) {
       return NextResponse.json({ error: 'Invalid request body.', details: error.format() }, { status: 400 });
     }
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    // Catch all for any other unexpected errors
+    if (error.code && error.message) { // Check if it's a Firebase-like error
+        return NextResponse.json({ error: 'Internal Server Error', code: error.code, details: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ error: 'Internal Server Error', details: error.message || 'An unknown error occurred.' }, { status: 500 });
   }
 }
 
@@ -114,5 +124,4 @@ export async function GET() {
     firestoreStatus: adminFirestore ? "Initialized" : "Not Initialized or Error",
   });
 }
-
     
