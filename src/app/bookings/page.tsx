@@ -1,81 +1,80 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { BookingEntry } from '@/types/booking';
-import { BOOKINGS_STORAGE_KEY, sampleAffiliateLinks, AffiliateLink } from '@/types/booking';
+import { sampleAffiliateLinks } from '@/types/booking';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { PlusCircle, BedDouble, ExternalLink, Info } from 'lucide-react';
+import { PlusCircle, BedDouble, ExternalLink, Info, Loader2 } from 'lucide-react';
 import { BookingForm } from '@/components/features/bookings/BookingForm';
 import { BookingList } from '@/components/features/bookings/BookingList';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-// Removed Image import as it's no longer used for affiliate links
+import { fetchBookings, createBooking, updateBooking, deleteBooking } from '@/lib/api-client';
+import { auth } from '@/lib/firebase';
 import Link from 'next/link';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function BookingsPage() {
-  const [bookings, setBookings] = useState<BookingEntry[]>([]);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const user = auth.currentUser;
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<BookingEntry | null>(null);
-  const [hasMounted, setHasMounted] = useState(false);
-  const { toast } = useToast();
 
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
+  const { data: bookings = [], isLoading: isLoadingBookings, error: bookingsError } = useQuery<BookingEntry[]>({
+    queryKey: ['bookings', user?.uid],
+    queryFn: fetchBookings,
+    enabled: !!user,
+  });
 
-  useEffect(() => {
-    if (hasMounted) {
-      try {
-        const storedBookings = localStorage.getItem(BOOKINGS_STORAGE_KEY);
-        if (storedBookings) {
-          setBookings(JSON.parse(storedBookings));
-        }
-      } catch (error) {
-        console.error("Error loading bookings from localStorage:", error);
-        toast({ title: "Error Loading Bookings", description: "Could not load your saved bookings.", variant: "destructive" });
-      }
+  const createBookingMutation = useMutation({
+    mutationFn: (newBookingData: Omit<BookingEntry, 'id' | 'timestamp'>) => createBooking(newBookingData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings', user?.uid] });
+      toast({ title: "Booking Added" });
+      setIsFormOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error Adding Booking", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateBookingMutation = useMutation({
+    mutationFn: (bookingData: BookingEntry) => updateBooking(bookingData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings', user?.uid] });
+      toast({ title: "Booking Updated" });
+      setIsFormOpen(false);
+      setEditingBooking(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error Updating Booking", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const deleteBookingMutation = useMutation({
+    mutationFn: (bookingId: string) => deleteBooking(bookingId),
+    onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['bookings', user?.uid] });
+        toast({ title: "Booking Deleted" });
+    },
+    onError: (error: Error) => {
+        toast({ title: "Error Deleting Booking", description: error.message, variant: "destructive" });
     }
-  }, [hasMounted, toast]);
+  });
 
-  const saveBookingsToStorage = useCallback((updatedBookings: BookingEntry[]) => {
-    if (!hasMounted) return;
-    try {
-      localStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(updatedBookings));
-    } catch (error) {
-      console.error("Error saving bookings to localStorage:", error);
-      toast({ title: "Error Saving Bookings", description: "Could not save your changes.", variant: "destructive" });
-    }
-  }, [toast, hasMounted]);
 
   const handleSaveBooking = (data: Omit<BookingEntry, 'id' | 'timestamp'>) => {
-    let updatedBookings;
-    const bookingData = {
-      ...data,
-      checkInDate: data.checkInDate,
-      checkOutDate: data.checkOutDate
-    };
-
     if (editingBooking) {
-      updatedBookings = bookings.map(b =>
-        b.id === editingBooking.id ? { ...editingBooking, ...bookingData, timestamp: new Date().toISOString() } : b
-      );
-      toast({ title: "Booking Updated", description: `Booking for ${data.siteName} updated.` });
+      updateBookingMutation.mutate({ ...editingBooking, ...data });
     } else {
-      const newBooking: BookingEntry = {
-        ...bookingData,
-        id: Date.now().toString(),
-        timestamp: new Date().toISOString()
-      };
-      updatedBookings = [...bookings, newBooking];
-      toast({ title: "Booking Added", description: `Booking for ${data.siteName} added.` });
+      createBookingMutation.mutate(data);
     }
-    setBookings(updatedBookings);
-    saveBookingsToStorage(updatedBookings);
-    setIsFormOpen(false);
-    setEditingBooking(null);
   };
 
   const handleEditBooking = (booking: BookingEntry) => {
@@ -86,10 +85,7 @@ export default function BookingsPage() {
   const handleDeleteBooking = (id: string) => {
     const bookingToDelete = bookings.find(b => b.id === id);
     if (window.confirm(`Are you sure you want to delete the booking for ${bookingToDelete?.siteName}?`)) {
-      const updatedBookings = bookings.filter(b => b.id !== id);
-      setBookings(updatedBookings);
-      saveBookingsToStorage(updatedBookings);
-      toast({ title: "Booking Deleted" });
+      deleteBookingMutation.mutate(id);
     }
   };
 
@@ -97,15 +93,8 @@ export default function BookingsPage() {
     setEditingBooking(null);
     setIsFormOpen(true);
   };
-
-  if (!hasMounted) {
-    return (
-      <div className="space-y-8">
-        <h1 className="text-3xl font-headline mb-6 text-primary">Accommodation Bookings</h1>
-        <p className="font-body">Loading booking data...</p>
-      </div>
-    );
-  }
+  
+  const isMutationLoading = createBookingMutation.isPending || updateBookingMutation.isPending;
 
   return (
     <div className="space-y-8">
@@ -135,32 +124,37 @@ export default function BookingsPage() {
               initialData={editingBooking || undefined}
               onSave={handleSaveBooking}
               onCancel={() => { setIsFormOpen(false); setEditingBooking(null); }}
+              isLoading={isMutationLoading}
             />
           </DialogContent>
         </Dialog>
       </div>
+      
+      {bookingsError && (
+        <Alert variant="destructive">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Error Loading Bookings</AlertTitle>
+            <AlertDescription>{bookingsError.message}</AlertDescription>
+        </Alert>
+      )}
 
-      <Alert variant="default" className="bg-primary/10 border-primary/30">
-        <Info className="h-4 w-4 text-primary" />
-        <AlertTitle className="font-headline text-primary">Manual Booking Log</AlertTitle>
-        <AlertDescription className="font-body text-primary/80">
-          This section is for manually logging bookings you've made externally.
-          KamperHub does not integrate directly with booking platforms for automated tracking.
-          Booking data is stored locally in your browser.
-        </AlertDescription>
-      </Alert>
-
-      <BookingList
-        bookings={bookings}
-        onEdit={handleEditBooking}
-        onDelete={handleDeleteBooking}
-      />
+      {isLoadingBookings ? (
+        <div className="space-y-4">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      ) : (
+        <BookingList
+            bookings={bookings}
+            onEdit={handleEditBooking}
+            onDelete={handleDeleteBooking}
+        />
+      )}
 
       <div className="pt-8">
         <h2 className="text-2xl font-headline text-primary mb-4">Book Your Stay</h2>
         <p className="text-muted-foreground font-body mb-6">
           Explore these popular platforms to find and book your next caravan park or campsite.
-          (Note: Some URLs may contain placeholder affiliate IDs. Replace with your actual affiliate links.)
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {sampleAffiliateLinks.map(link => (
