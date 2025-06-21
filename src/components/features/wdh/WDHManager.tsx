@@ -11,13 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { WDHForm } from './WDHForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Link2, ShieldAlert, Settings2 } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, Link2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useSubscription } from '@/hooks/useSubscription';
-import Link from 'next/link';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
-const FREE_TIER_WDH_LIMIT = 1;
 
 export function WDHManager() {
   const { toast } = useToast();
@@ -26,7 +21,6 @@ export function WDHManager() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingWdh, setEditingWdh] = useState<StoredWDH | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
-  const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
   const [deleteDialogState, setDeleteDialogState] = useState<{ isOpen: boolean; wdhId: string | null; wdhName: string | null; confirmationText: string }>({
     isOpen: false,
     wdhId: null,
@@ -88,16 +82,6 @@ export function WDHManager() {
   }, [toast, hasMounted]);
 
   const handleSaveWdh = useCallback((data: WDHFormData) => {
-    if (!isSubscribed && wdhs.length >= FREE_TIER_WDH_LIMIT && !editingWdh) {
-      toast({
-        title: "Free Limit Reached",
-        description: `You can only add ${FREE_TIER_WDH_LIMIT} WDH on the free plan. Upgrade to Pro for unlimited WDHs.`,
-        variant: "destructive",
-      });
-      setIsFormOpen(false);
-      return;
-    }
-
     let updatedWdhsArray;
     if (editingWdh) {
       updatedWdhsArray = wdhs.map(w => w.id === editingWdh.id ? { ...editingWdh, ...data } : w);
@@ -111,7 +95,7 @@ export function WDHManager() {
     saveWdhsToStorage(updatedWdhsArray);
     setIsFormOpen(false);
     setEditingWdh(null);
-  }, [isSubscribed, wdhs, editingWdh, toast, saveWdhsToStorage]);
+  }, [wdhs, editingWdh, toast, saveWdhsToStorage]);
 
   const handleEditWdh = useCallback((wdh: StoredWDH) => {
     setEditingWdh(wdh);
@@ -144,27 +128,11 @@ export function WDHManager() {
   }, [wdhs, toast, saveActiveWdhIdToStorage]);
 
   const handleOpenFormForNew = useCallback(() => {
-    if (!isSubscribed && wdhs.length >= FREE_TIER_WDH_LIMIT) {
-      toast({
-        title: "Upgrade to Pro",
-        description: `Manage more than ${FREE_TIER_WDH_LIMIT} WDH with KamperHub Pro!`,
-        variant: "default",
-        className: "bg-primary text-primary-foreground",
-        action: (
-          <Link href="/subscribe">
-            <Button variant="outline" size="sm" className="ml-auto text-primary-foreground border-primary-foreground hover:bg-primary-foreground hover:text-primary">
-              Upgrade
-            </Button>
-          </Link>
-        ),
-      });
-      return;
-    }
     setEditingWdh(null);
     setIsFormOpen(true);
-  }, [isSubscribed, wdhs, toast]);
+  }, []);
 
-  if (!hasMounted || isSubscriptionLoading) {
+  if (!hasMounted) {
     return (
       <Card>
         <CardHeader>
@@ -183,8 +151,6 @@ export function WDHManager() {
     );
   }
 
-  const canAddMoreWdhs = isSubscribed || wdhs.length < FREE_TIER_WDH_LIMIT;
-
   return (
     <>
     <Card>
@@ -196,7 +162,7 @@ export function WDHManager() {
             if (!isOpen) setEditingWdh(null);
           }}>
             <DialogTrigger asChild>
-              <Button onClick={handleOpenFormForNew} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body" disabled={!canAddMoreWdhs && !editingWdh}>
+              <Button onClick={handleOpenFormForNew} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body">
                 <PlusCircle className="mr-2 h-4 w-4" /> Add New WDH
               </Button>
             </DialogTrigger>
@@ -214,23 +180,9 @@ export function WDHManager() {
         </div>
         <CardDescription className="font-body">
           Manage your Weight Distribution Hitches. Select one as active if used.
-          {!isSubscribed && ` Free plan: ${FREE_TIER_WDH_LIMIT} WDH limit.`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!isSubscribed && wdhs.length >= FREE_TIER_WDH_LIMIT && (
-          <Alert variant="default" className="bg-primary/10 border-primary/30">
-            <ShieldAlert className="h-4 w-4 text-primary" />
-            <AlertTitle className="font-headline text-primary">Free Tier Limit Reached</AlertTitle>
-            <AlertDescription className="font-body text-primary/80">
-              You've reached the maximum of {FREE_TIER_WDH_LIMIT} WDH for the free plan.
-              <Link href="/subscribe" passHref>
-                <Button variant="link" className="p-0 h-auto ml-1 text-primary hover:underline font-body">Upgrade to Pro</Button>
-              </Link>
-              &nbsp;to add unlimited WDHs.
-            </AlertDescription>
-          </Alert>
-        )}
         {wdhs.length === 0 && hasMounted && (
           <p className="text-muted-foreground text-center font-body py-4">No WDHs added yet. Click "Add New WDH" to start.</p>
         )}
