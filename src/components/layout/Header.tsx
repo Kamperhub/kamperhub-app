@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, UserCircle, LogIn, LogOut } from 'lucide-react';
+import { Home, UserCircle, LogIn, LogOut, MessageSquare } from 'lucide-react'; // Added MessageSquare
 import { Button } from '@/components/ui/button';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
@@ -39,7 +39,7 @@ export function Header() {
         title: 'Logged Out',
         description: 'You have been successfully logged out.',
       });
-      router.push('/login'); // Changed from '/' to '/login'
+      router.push('/login'); 
     } catch (error) {
       console.error("Error signing out: ", error);
       toast({
@@ -56,6 +56,7 @@ export function Header() {
         <div className="container mx-auto px-4 py-3 flex items-center justify-between h-[68px]">
           <div className="h-[40px] w-[160px] bg-primary/50 rounded animate-pulse"></div>
           <div className="flex items-center gap-3">
+             <div className="h-7 w-7 bg-primary/50 rounded-full animate-pulse"></div>
              <div className="h-7 w-7 bg-primary/50 rounded-full animate-pulse"></div>
              <div className="h-7 w-20 bg-primary/50 rounded animate-pulse"></div>
           </div>
@@ -79,10 +80,16 @@ export function Header() {
           />
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link href="/" passHref>
             <Button variant="ghost" size="icon" aria-label="Go to Homepage" className="p-0 hover:bg-primary/80">
               <Home className="h-7 w-7" />
+            </Button>
+          </Link>
+
+          <Link href="/chatbot" passHref>
+            <Button variant="ghost" size="icon" aria-label="AI Chatbot" className="p-0 hover:bg-primary/80">
+              <MessageSquare className="h-6 w-6" />
             </Button>
           </Link>
 
