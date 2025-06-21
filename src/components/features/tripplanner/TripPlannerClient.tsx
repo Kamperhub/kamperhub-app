@@ -7,14 +7,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { usePathname } from 'next/navigation';
 import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip } from '@/types/tripplanner';
-import { TRIP_LOG_STORAGE_KEY, RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
+import { RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner'; // Removed TRIP_LOG_STORAGE_KEY
 import type { StoredVehicle } from '@/types/vehicle';
 import { VEHICLES_STORAGE_KEY, ACTIVE_VEHICLE_ID_KEY } from '@/types/vehicle';
-import type { StoredCaravan } from '@/types/caravan'; // Import StoredCaravan
-import { CARAVANS_STORAGE_KEY, ACTIVE_CARAVAN_ID_KEY } from '@/types/caravan'; // Import ACTIVE_CARAVAN_ID_KEY
-
-import type { AllTripChecklists, ChecklistItem, ChecklistCategory, TripChecklistSet, AllCaravanDefaultChecklists, CaravanDefaultChecklistSet } from '@/types/checklist';
-import { initialChecklists as globalDefaultChecklistTemplate, TRIP_CHECKLISTS_STORAGE_KEY, CARAVAN_DEFAULT_CHECKLISTS_STORAGE_KEY } from '@/types/checklist';
+import type { CaravanDefaultChecklistSet, ChecklistItem, ChecklistCategory, TripChecklistSet } from '@/types/checklist';
+import { initialChecklists as globalDefaultChecklistTemplate } from '@/types/checklist'; // Removed storage keys
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +34,12 @@ import {
 } from "@/components/ui/popover";
 import type { DateRange } from 'react-day-picker';
 import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesAutocompleteInput';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { auth } from '@/lib/firebase';
+import type { User as FirebaseUser } from 'firebase/auth';
+import { createTrip, fetchUserPreferences } from '@/lib/api-client';
+import type { UserProfile } from '@/types/auth';
+
 
 const tripPlannerSchema = z.object({
   startLocation: z.string().min(3, "Start location is required (min 3 chars)"),
@@ -83,6 +86,14 @@ export function TripPlannerClient() {
   const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
   const { toast } = useToast();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
+  const user = auth.currentUser;
+
+  const { data: userPrefs } = useQuery<Partial<UserProfile>>({
+    queryKey: ['userPreferences', user?.uid],
+    queryFn: fetchUserPreferences,
+    enabled: !!user,
+  });
 
   const [isSaveTripDialogOpen, setIsSaveTripDialogOpen] = useState(false);
   const [pendingTripName, setPendingTripName] = useState('');
@@ -135,6 +146,8 @@ export function TripPlannerClient() {
 
       if (!recalledTripLoaded) {
         try {
+          // This part still uses localStorage to get default fuel efficiency.
+          // This is acceptable for now as the main goal is migrating the *write* operations.
           const activeVehicleId = localStorage.getItem(ACTIVE_VEHICLE_ID_KEY);
           const storedVehiclesJson = localStorage.getItem(VEHICLES_STORAGE_KEY);
           if (activeVehicleId && storedVehiclesJson) {
@@ -370,6 +383,20 @@ export function TripPlannerClient() {
     setIsSaveTripDialogOpen(true);
   }, [routeDetails, getValues, currentTripNotes, toast]);
   
+  const createTripMutation = useMutation({
+    mutationFn: createTrip,
+    onSuccess: (savedTrip) => {
+      queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
+      toast({
+        title: "Trip Saved!",
+        description: `"${savedTrip.name}" has been added to your Trip Log and a checklist has been created.`,
+      });
+      setIsSaveTripDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Save Failed", description: error.message, variant: "destructive" });
+    },
+  });
   
   const handleConfirmSaveTrip = useCallback(() => {
     if (!pendingTripName.trim()) {
@@ -381,75 +408,44 @@ export function TripPlannerClient() {
         return;
     }
 
+    const tempTripId = Date.now().toString(); // Temporary ID for checklist generation
+    let sourceChecklistSet: CaravanDefaultChecklistSet | Readonly<Record<ChecklistCategory, readonly ChecklistItem[]>> = globalDefaultChecklistTemplate;
+    const activeCaravanId = userPrefs?.activeCaravanId;
+
+    if (activeCaravanId && userPrefs?.caravanDefaultChecklists?.[activeCaravanId]) {
+      sourceChecklistSet = userPrefs.caravanDefaultChecklists[activeCaravanId];
+      toast({ title: "Checklist Source", description: "Used default checklist from active caravan.", duration: 2000 });
+    } else if (activeCaravanId) {
+       toast({ title: "Checklist Source", description: "Active caravan has no default checklist. Used global template.", duration: 2000 });
+    } else {
+       toast({ title: "Checklist Source", description: "No active caravan. Used global checklist template.", duration: 2000 });
+    }
+    
+    const newTripChecklistSet: TripChecklistSet = {
+      preDeparture: createChecklistCopyForTrip(sourceChecklistSet.preDeparture, tempTripId, 'pd'),
+      campsiteSetup: createChecklistCopyForTrip(sourceChecklistSet.campsiteSetup, tempTripId, 'cs'),
+      packDown: createChecklistCopyForTrip(sourceChecklistSet.packDown, tempTripId, 'pk'),
+    };
+    
     const currentFormData = getValues();
-    const newTripId = Date.now().toString();
-    const newLoggedTrip: LoggedTrip = {
-      id: newTripId,
+    const newLoggedTripForApi: Omit<LoggedTrip, 'id' | 'timestamp'> = {
       name: pendingTripName.trim(),
-      timestamp: new Date().toISOString(),
       startLocationDisplay: currentFormData.startLocation,
       endLocationDisplay: currentFormData.endLocation,
       fuelEfficiency: currentFormData.fuelEfficiency,
       fuelPrice: currentFormData.fuelPrice,
-      routeDetails: routeDetails, 
+      routeDetails: routeDetails,
       fuelEstimate: fuelEstimate,
       plannedStartDate: currentFormData.dateRange?.from ? currentFormData.dateRange.from.toISOString() : null,
       plannedEndDate: currentFormData.dateRange?.to ? currentFormData.dateRange.to.toISOString() : null,
-      notes: pendingTripNotes.trim() || undefined, 
+      notes: pendingTripNotes.trim() || undefined,
+      checklists: newTripChecklistSet,
     };
     
     setCurrentTripNotes(pendingTripNotes.trim() || undefined);
+    createTripMutation.mutate(newLoggedTripForApi);
 
-    try {
-      // Save Trip Log
-      const existingTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
-      const existingTrips: LoggedTrip[] = existingTripsJson ? JSON.parse(existingTripsJson) : [];
-      const updatedTripsArray = [...existingTrips, newLoggedTrip];
-      localStorage.setItem(TRIP_LOG_STORAGE_KEY, JSON.stringify(updatedTripsArray));
-
-      // Determine checklist source
-      let sourceChecklistSet: CaravanDefaultChecklistSet | Readonly<Record<ChecklistCategory, readonly ChecklistItem[]>> = globalDefaultChecklistTemplate;
-      const activeCaravanId = localStorage.getItem(ACTIVE_CARAVAN_ID_KEY);
-
-      if (activeCaravanId) {
-        const allCaravanDefaultsJson = localStorage.getItem(CARAVAN_DEFAULT_CHECKLISTS_STORAGE_KEY);
-        if (allCaravanDefaultsJson) {
-          const allCaravanDefaults: AllCaravanDefaultChecklists = JSON.parse(allCaravanDefaultsJson);
-          if (allCaravanDefaults[activeCaravanId]) {
-            sourceChecklistSet = allCaravanDefaults[activeCaravanId];
-            toast({ title: "Checklist Source", description: "Used default checklist from active caravan.", duration: 2000 });
-          } else {
-             toast({ title: "Checklist Source", description: "Active caravan has no default checklist. Used global template.", duration: 2000 });
-          }
-        }
-      } else {
-        toast({ title: "Checklist Source", description: "No active caravan. Used global checklist template.", duration: 2000 });
-      }
-      
-      const newTripChecklistSet: TripChecklistSet = {
-        tripName: newLoggedTrip.name,
-        preDeparture: createChecklistCopyForTrip(sourceChecklistSet.preDeparture, newTripId, 'pd'),
-        campsiteSetup: createChecklistCopyForTrip(sourceChecklistSet.campsiteSetup, newTripId, 'cs'),
-        packDown: createChecklistCopyForTrip(sourceChecklistSet.packDown, newTripId, 'pk'),
-      };
-
-      const allTripChecklistsJson = localStorage.getItem(TRIP_CHECKLISTS_STORAGE_KEY);
-      const allTripChecklists: AllTripChecklists = allTripChecklistsJson ? JSON.parse(allTripChecklistsJson) : {};
-      allTripChecklists[newTripId] = newTripChecklistSet;
-      localStorage.setItem(TRIP_CHECKLISTS_STORAGE_KEY, JSON.stringify(allTripChecklists));
-
-      toast({ title: "Trip Saved!", description: `"${newLoggedTrip.name}" has been added to your Trip Log and a checklist has been created.` });
-      setIsSaveTripDialogOpen(false);
-    } catch (storageError: any) {
-      console.error("Critical Storage Error:", storageError.name, storageError.message, storageError.stack);
-      toast({ 
-        title: "Critical Storage Error", 
-        description: `Could not save trip or checklist: ${storageError.message || 'Unknown storage error'}. LocalStorage might be full or disabled.`, 
-        variant: "destructive",
-        duration: 9000
-      });
-    }
-  }, [routeDetails, getValues, fuelEstimate, toast, pendingTripName, pendingTripNotes]);
+  }, [routeDetails, getValues, fuelEstimate, toast, pendingTripName, pendingTripNotes, userPrefs, createTripMutation]);
 
 
   const mapHeight = "400px"; 
@@ -715,9 +711,10 @@ export function TripPlannerClient() {
                 variant="default"
                 size="sm"
                 className="font-body w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                disabled={!routeDetails}
+                disabled={!routeDetails || createTripMutation.isPending}
               >
-                <Save className="mr-2 h-4 w-4" /> Save Trip
+                {createTripMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                Save Trip
               </Button>
             </div>
           </div>
@@ -758,10 +755,11 @@ export function TripPlannerClient() {
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setIsSaveTripDialogOpen(false)} className="font-body">
+            <Button type="button" variant="outline" onClick={() => setIsSaveTripDialogOpen(false)} className="font-body" disabled={createTripMutation.isPending}>
               Cancel
             </Button>
-            <Button type="button" onClick={handleConfirmSaveTrip} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body">
+            <Button type="button" onClick={handleConfirmSaveTrip} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body" disabled={createTripMutation.isPending}>
+              {createTripMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
               Save Trip
             </Button>
           </DialogFooter>
@@ -770,5 +768,3 @@ export function TripPlannerClient() {
     </>
   );
 }
-
-    
