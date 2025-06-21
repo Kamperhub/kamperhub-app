@@ -91,16 +91,17 @@ export async function POST(req: NextRequest) {
         const userDocRef = adminFirestore.collection('users').doc(userId);
         
         let determinedTier: SubscriptionTier;
-        // If the session payment status is 'paid' and subscription status is 'active', it's 'pro'.
-        // If subscription status is 'trialing', it's 'trialing'.
-        // Default to 'trialing' if unclear but session was completed, Stripe might update status later.
-        if (session.payment_status === 'paid' && subscription.status === 'active') {
+        if (subscription.status === 'active') { // If Stripe says 'active', it's 'pro'
             determinedTier = 'pro';
         } else if (subscription.status === 'trialing') {
             determinedTier = 'trialing';
         } else {
-            console.warn(`Webhook: checkout.session.completed for session ${session.id} - Subscription status is '${subscription.status}' and payment_status is '${session.payment_status}'. Defaulting tier to 'trialing' for now as this is a new subscription.`);
-            determinedTier = 'trialing'; // Could also be 'pro' if trial_period_days was 0 in checkout.
+            // For other statuses like 'incomplete' immediately after checkout.session.completed
+            // (which can happen if SCA is required), it's safer to assume 'trialing' if a trial_end exists.
+            // If no trial_end, default to 'free' or review.
+            // Given our signup flow grants a trial, 'trialing' is a safe bet here if not 'active'.
+            determinedTier = subscription.trial_end ? 'trialing' : 'free'; 
+            console.warn(`Webhook: checkout.session.completed for session ${session.id} - Subscription status is '${subscription.status}'. Determined tier as '${determinedTier}'.`);
         }
         console.log(`Webhook: Determined tier for user ${userId} is: ${determinedTier}`);
 
@@ -111,14 +112,13 @@ export async function POST(req: NextRequest) {
           stripeSubscriptionId: stripeSubscriptionId,
           subscriptionStatus: subscription.status,
           currentPeriodEnd: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : undefined,
-          trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null, // Handle null trial_end
+          trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null, 
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         };
 
         console.log(`Webhook: Attempting to update Firestore for user ${userId} with data:`, JSON.stringify(userProfileUpdate));
         if (!adminFirestore) {
              console.error('Webhook Error: adminFirestore is NOT defined before Firestore set operation for user:', userId);
-             // Potentially return an error response or throw to be caught by outer try-catch
              throw new Error("Firebase Admin Firestore client is not available.");
         }
         await userDocRef.set(userProfileUpdate, { merge: true });
@@ -148,10 +148,18 @@ export async function POST(req: NextRequest) {
 
           if (!snapshot.empty) {
             const userDoc = snapshot.docs[0];
+            
+            let newTier: SubscriptionTier = 'free';
+            if (subscriptionFromInvoice.status === 'active') {
+                newTier = 'pro';
+            } else if (subscriptionFromInvoice.status === 'trialing') {
+                newTier = 'trialing';
+            }
+
             const userProfileUpdate: Partial<UserProfile> = {
               subscriptionStatus: subscriptionFromInvoice.status,
               currentPeriodEnd: new Date(subscriptionFromInvoice.current_period_end * 1000).toISOString(),
-              subscriptionTier: subscriptionFromInvoice.status === 'active' || subscriptionFromInvoice.status === 'trialing' ? 'pro' : 'free', 
+              subscriptionTier: newTier, 
               trialEndsAt: subscriptionFromInvoice.trial_end ? new Date(subscriptionFromInvoice.trial_end * 1000).toISOString() : null,
               updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             };
@@ -188,8 +196,18 @@ export async function POST(req: NextRequest) {
           const snapshot = await usersRef.where('stripeSubscriptionId', '==', subId).limit(1).get();
           if (!snapshot.empty) {
             const userDoc = snapshot.docs[0];
+
+            let newTier: SubscriptionTier = 'free';
+            if (subscriptionDetails.status === 'active') {
+                newTier = 'pro';
+            } else if (subscriptionDetails.status === 'trialing') {
+                // This case is unlikely for payment_failed if trial was free, but included for completeness
+                newTier = 'trialing';
+            } // Otherwise, stays 'free' for statuses like 'past_due', 'canceled', 'incomplete'
+
             const userProfileUpdate: Partial<UserProfile> = { 
               subscriptionStatus: subscriptionDetails.status, 
+              subscriptionTier: newTier,
               updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             };
             console.log(`Webhook: Attempting to update Firestore for user ${userDoc.id} from failed_invoice ${failedInvoice.id} with data:`, JSON.stringify(userProfileUpdate));
@@ -213,12 +231,9 @@ export async function POST(req: NextRequest) {
 
     case 'customer.subscription.updated':
       const updatedSubscription = event.data.object as Stripe.Subscription;
-      console.log(`Webhook: Subscription updated: ${updatedSubscription.id}, Status: ${updatedSubscription.status}, Current Period End: ${new Date(updatedSubscription.current_period_end * 1000).toISOString()}`);
+      console.log(`Webhook: Subscription updated: ${updatedSubscription.id}, Status: ${updatedSubscription.status}, Current Period End: ${new Date(updatedSubscription.current_period_end * 1000).toISOString()}, Trial End: ${updatedSubscription.trial_end ? new Date(updatedSubscription.trial_end * 1000).toISOString() : 'N/A'}`);
       try {
         const usersRef = adminFirestore.collection('users');
-        // It's more reliable to find the user by stripeCustomerId if available, 
-        // as stripeSubscriptionId might change in some complex scenarios (though rare for simple updates).
-        // For now, assuming stripeSubscriptionId is primary link after initial creation.
         const queryField = updatedSubscription.id.startsWith('sub_') ? 'stripeSubscriptionId' : 'stripeCustomerId';
         const queryValue = updatedSubscription.id.startsWith('sub_') ? updatedSubscription.id : (updatedSubscription.customer as string);
 
@@ -231,23 +246,21 @@ export async function POST(req: NextRequest) {
               stripeSubscriptionId: updatedSubscription.id, 
               subscriptionStatus: updatedSubscription.status,
               currentPeriodEnd: new Date(updatedSubscription.current_period_end * 1000).toISOString(),
+              trialEndsAt: updatedSubscription.trial_end ? new Date(updatedSubscription.trial_end * 1000).toISOString() : null,
               updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             };
 
-            if (updatedSubscription.status === 'active' || updatedSubscription.status === 'trialing') {
+            if (updatedSubscription.status === 'active') {
               userProfileUpdate.subscriptionTier = 'pro';
-            } else if (updatedSubscription.status === 'canceled' && updatedSubscription.cancel_at_period_end) {
-              userProfileUpdate.subscriptionTier = 'pro'; 
+            } else if (updatedSubscription.status === 'trialing') {
+              userProfileUpdate.subscriptionTier = 'trialing';
             } else {
-              userProfileUpdate.subscriptionTier = 'free'; 
+              // Handles 'canceled', 'incomplete', 'past_due', etc.
+              // If trial ended and status is now e.g. 'incomplete', 'free' is a good default.
+              // Access is ultimately controlled by useSubscription hook based on trialEndsAt for 'trialing' tier.
+              userProfileUpdate.subscriptionTier = 'free';
             }
             
-            if (updatedSubscription.trial_end) {
-                userProfileUpdate.trialEndsAt = new Date(updatedSubscription.trial_end * 1000).toISOString();
-            } else if (updatedSubscription.status !== 'trialing') {
-                 userProfileUpdate.trialEndsAt = null; 
-            }
-
             console.log(`Webhook: Attempting to update Firestore for user ${userDoc.id} from subscription.updated ${updatedSubscription.id} with data:`, JSON.stringify(userProfileUpdate));
             if (!adminFirestore) {
                  console.error('Webhook Error: adminFirestore is NOT defined before Firestore set operation for customer.subscription.updated, user:', userDoc.id);
@@ -276,8 +289,8 @@ export async function POST(req: NextRequest) {
             const userDoc = snapshot.docs[0];
             const userProfileUpdate: Partial<UserProfile> = { 
               subscriptionTier: 'free',
-              subscriptionStatus: 'canceled', // Or use deletedSubscription.status which might be 'canceled'
-              stripeSubscriptionId: null, // Ensure it's explicitly nulled
+              subscriptionStatus: 'canceled', 
+              stripeSubscriptionId: null, 
               currentPeriodEnd: null, 
               trialEndsAt: null, 
               updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -309,3 +322,4 @@ export async function POST(req: NextRequest) {
     
     
     
+
