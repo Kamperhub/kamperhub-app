@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -34,11 +34,18 @@ export const navItems: NavItem[] = [
     keywords: 'camping gear'
   },
   {
+    href: '/chatbot',
+    label: 'AI Chatbot',
+    icon: MessageSquare,
+    description: "Chat with our AI assistant for instant caravanning support, tips, and information.",
+    keywords: 'ai support chat'
+  },
+  {
     href: '/learn',
     label: 'Support & Learn',
     icon: BookOpen,
-    description: "Access helpful articles, video guides, our AI Chatbot, and the user manual to master your caravanning adventures.",
-    keywords: 'support guide'
+    description: "Access helpful articles, video guides, and the user manual to master your caravanning adventures.",
+    keywords: 'support guide manual'
   },
   {
     href: '/tripplanner',

@@ -1,3 +1,4 @@
+
 import { ChatInterface } from '@/components/features/chatbot/ChatInterface';
 
 export default function ChatbotPage() {
