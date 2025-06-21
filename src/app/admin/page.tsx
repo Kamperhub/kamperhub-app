@@ -26,7 +26,9 @@ const ADMIN_EMAIL = 'info@kamperhub.com';
 
 const updateSubscriptionFormSchema = z.object({
   targetUserEmail: z.string().email("Please enter a valid email address for the target user."),
-  newTier: z.enum(["free", "pro", "trialing", "trial_expired"]),
+  newTier: z.enum(["free", "pro", "trialing", "trial_expired"], {
+    required_error: "New subscription tier is required.",
+  }),
   newStatus: z.string().optional(),
   newTrialEndsAt: z.date().nullable().optional(),
   newCurrentPeriodEnd: z.date().nullable().optional(),
@@ -45,7 +47,7 @@ export default function AdminPage() {
     resolver: zodResolver(updateSubscriptionFormSchema),
     defaultValues: {
       targetUserEmail: '',
-      newTier: 'free',
+      newTier: 'free', // Default to 'free'
       newStatus: '',
       newTrialEndsAt: null,
       newCurrentPeriodEnd: null,
@@ -187,7 +189,7 @@ export default function AdminPage() {
                     <SelectContent>
                       {(["free", "pro", "trialing", "trial_expired"] as SubscriptionTier[]).map(tier => (
                         <SelectItem key={tier} value={tier} className="font-body">
-                          {tier.charAt(0).toUpperCase() + tier.slice(1)}
+                          {tier.charAt(0).toUpperCase() + tier.slice(1).replace('_', ' ')}
                         </SelectItem>
                       ))}
                     </SelectContent>
