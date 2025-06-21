@@ -12,11 +12,12 @@ import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase'; 
 import { createUserWithEmailAndPassword, updateProfile, type User as FirebaseUser, type AuthError } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { UserPlus, Mail, User, KeyRound, MapPin, Building, Globe, Loader2 } from 'lucide-react';
-import { useForm, type SubmitHandler } from 'react-hook-form';
+import { UserPlus, Mail, User, KeyRound, MapPin, Building, Globe, Loader2, CheckSquare } from 'lucide-react';
+import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { UserProfile } from '@/types/auth';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const signupSchema = z.object({
   firstName: z.string().min(1, "First Name is required"),
@@ -35,6 +36,9 @@ const signupSchema = z.object({
   city: z.string().min(1, "City is required*"),
   state: z.string().min(1, "State / Region is required*"),
   country: z.string().min(1, "Country is required*"),
+  agreeToTerms: z.boolean().refine(value => value === true, {
+    message: "You must agree to the Terms of Service and Privacy Policy to create an account.",
+  }),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match.",
   path: ["confirmPassword"],
@@ -43,7 +47,7 @@ const signupSchema = z.object({
 type SignupFormData = z.infer<typeof signupSchema>;
 
 export default function SignupPage() {
-  const { register, handleSubmit, formState: { errors } } = useForm<SignupFormData>({
+  const { register, handleSubmit, formState: { errors }, control } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
       firstName: '',
@@ -55,6 +59,7 @@ export default function SignupPage() {
       city: '',
       state: '',
       country: '',
+      agreeToTerms: false,
     }
   });
 
@@ -280,6 +285,33 @@ export default function SignupPage() {
                 {errors.country && <p className="text-xs text-destructive font-body mt-1">{errors.country.message}</p>}
               </div>
             </div>
+            
+            <div className="pt-2">
+              <div className="flex items-start space-x-2">
+                <Controller
+                  name="agreeToTerms"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="agreeToTerms"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={isLoading}
+                      className="mt-0.5 flex-shrink-0" 
+                    />
+                  )}
+                />
+                <Label htmlFor="agreeToTerms" className="font-body text-sm leading-normal data-[disabled]:cursor-not-allowed data-[disabled]:opacity-70">
+                  I have read and agree to the KamperHub{' '}
+                  <Link href="/learn?tab=tos" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                    Terms of Service and Privacy Policy
+                  </Link>
+                  *.
+                </Label>
+              </div>
+              {errors.agreeToTerms && <p className="text-xs text-destructive font-body mt-1 pl-7">{errors.agreeToTerms.message}</p>}
+            </div>
+
 
             <Button type="submit" className="w-full font-body bg-primary text-primary-foreground hover:bg-primary/90 mt-6" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -297,3 +329,4 @@ export default function SignupPage() {
     </div>
   );
 }
+
