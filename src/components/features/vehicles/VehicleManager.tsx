@@ -1,7 +1,6 @@
-
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Added useEffect
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { StoredVehicle, VehicleFormData, VehicleStorageLocation } from '@/types/vehicle';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { VehicleForm } from './VehicleForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, Weight, Axe, Car, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Ruler, Backpack } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, Weight, Axe, Car, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Ruler, Backpack, Loader2 } from 'lucide-react'; // Added Loader2
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -24,6 +23,7 @@ import {
   updateUserPreferences
 } from '@/lib/api-client';
 import { auth } from '@/lib/firebase';
+import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth'; // Added onAuthStateChanged and FirebaseUser
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
 
@@ -31,6 +31,9 @@ export function VehicleManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
+  
+  const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<StoredVehicle | null>(null);
@@ -41,7 +44,13 @@ export function VehicleManager() {
     confirmationText: '',
   });
 
-  const user = auth.currentUser;
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        setUser(currentUser);
+        setIsAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const { data: vehicles = [], isLoading: isLoadingVehicles, error: vehiclesError } = useQuery<StoredVehicle[]>({
     queryKey: ['vehicles'],
@@ -56,7 +65,7 @@ export function VehicleManager() {
   });
   
   const activeVehicleId = userPrefs?.activeVehicleId;
-  const isLoading = isLoadingVehicles || isLoadingPrefs;
+  const isLoading = isAuthLoading || isLoadingVehicles || isLoadingPrefs;
   const queryError = vehiclesError || prefsError;
 
   const saveVehicleMutation = useMutation({
