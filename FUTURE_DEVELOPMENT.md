@@ -49,3 +49,21 @@ This document tracks potential new features and enhancements for the KamperHub a
 
 *   **CI/CD Pipeline Optimization:**
     *   Further refine the deployment pipeline for smoother and more reliable updates.
+
+## Newly Suggested Feature Ideas
+
+*   **Internal Campsite/POI Review & Rating System:**
+    *   Allow users to write personal reviews, give star ratings, and upload photos for campsites or POIs.
+    *   Initially stored locally, with potential for cloud sync and community sharing later.
+    *   Could integrate with Trip Log and Bookings.
+
+*   **Fuel Log & Basic Maintenance Tracker:**
+    *   **Fuel Log:** Users log fuel fill-ups (date, odometer, liters, price, location) to calculate actual fuel consumption.
+    *   **Maintenance Tracker:** Log important maintenance tasks for tow vehicle and caravan (oil changes, services, certificate expiries) with dates, costs, and notes.
+
+*   **Travel Journaling & Photo Gallery per Trip:**
+    *   Within the Trip Log, allow users to add daily journal entries and upload/link a few photos for each trip to capture memories.
+
+*   **AI-Powered Packing Assistant:**
+    *   Utilize Genkit to create a flow that suggests packing items based on user input (trip duration, destination type, season, number of people).
+    *   Could integrate with Inventory or Checklists features.
