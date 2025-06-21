@@ -34,13 +34,6 @@ export const navItems: NavItem[] = [
     keywords: 'camping gear'
   },
   {
-    href: '/chatbot',
-    label: 'AI Chatbot',
-    icon: MessageSquare,
-    description: "Chat with our AI assistant for instant caravanning support, tips, and information.",
-    keywords: 'ai support chat'
-  },
-  {
     href: '/learn',
     label: 'Support & Learn',
     icon: BookOpen,
