@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
+// Import admin and adminFirestore, which might be undefined if initialization failed
 import { admin, adminFirestore } from '@/lib/firebase-admin';
 import type { UserProfile, SubscriptionTier } from '@/types/auth';
 import { z, ZodError } from 'zod';
@@ -14,6 +15,12 @@ const updateSubscriptionSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // Check if admin SDK services are available
+  if (!adminFirestore || !admin.auth) {
+    console.error('API Error: Admin SDK not properly initialized. Firestore or Auth service is unavailable.');
+    return NextResponse.json({ error: 'Server configuration error: Admin services are not available.' }, { status: 503 });
+  }
+
   try {
     // 1. Authenticate the caller (admin user)
     const authorizationHeader = req.headers.get('Authorization');
@@ -65,17 +72,16 @@ export async function POST(req: NextRequest) {
 
     const updateData: Partial<UserProfile> = {
       subscriptionTier: newTier as SubscriptionTier,
-      updatedAt: new Date().toISOString(), // Or use admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: new Date().toISOString(),
     };
     
-    // Only include fields in the update if they were actually provided in the request
     if (newStatus !== undefined) {
         updateData.subscriptionStatus = newStatus;
     }
-    if (newTrialEndsAt !== undefined) { // Can be null to clear it
+    if (newTrialEndsAt !== undefined) {
         updateData.trialEndsAt = newTrialEndsAt;
     }
-    if (newCurrentPeriodEnd !== undefined) { // Can be null to clear it
+    if (newCurrentPeriodEnd !== undefined) {
         updateData.currentPeriodEnd = newCurrentPeriodEnd;
     }
 
@@ -85,7 +91,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Error in admin update-subscription endpoint:', error);
-    if (error instanceof ZodError) { // Should be caught by safeParse, but as a fallback
+    if (error instanceof ZodError) {
       return NextResponse.json({ error: 'Invalid request body.', details: error.format() }, { status: 400 });
     }
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
@@ -93,13 +99,14 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  // Basic check to see if the admin config is okay, and to provide a simple way to test the route exists
   const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-  const adminSDKInitialized = admin.apps.length > 0;
+  // Safely check admin and admin.apps
+  const adminSDKInitialized = admin && admin.apps && admin.apps.length > 0;
 
   return NextResponse.json({ 
     message: "Admin update-subscription endpoint. Use POST to update.",
-    adminSDKStatus: adminSDKInitialized ? "Initialized" : "Not Initialized",
+    adminSDKStatus: adminSDKInitialized ? "Initialized" : "Not Initialized or Error",
     serviceAccountEnvVarSet: !!serviceAccountJsonString,
+    firestoreStatus: adminFirestore ? "Initialized" : "Not Initialized or Error",
   });
 }
