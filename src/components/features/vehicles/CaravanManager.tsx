@@ -35,7 +35,9 @@ export function CaravanManager() {
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
 
-  const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCaravan, setEditingCaravan] = useState<StoredCaravan | null>(null);
   const [deleteDialogState, setDeleteDialogState] = useState<{ isOpen: boolean; caravanId: string | null; caravanName: string | null; confirmationText: string }>({
@@ -48,6 +50,7 @@ export function CaravanManager() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
         setUser(currentUser);
+        setIsAuthLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -71,7 +74,7 @@ export function CaravanManager() {
   });
 
   const activeCaravanId = userPrefs?.activeCaravanId;
-  const isLoading = isLoadingCaravans || isLoadingPrefs;
+  const isLoadingData = isLoadingCaravans || isLoadingPrefs;
   const queryError = caravansError || prefsError;
 
   const saveCaravanMutation = useMutation({
@@ -176,22 +179,32 @@ export function CaravanManager() {
     const latText = { 'left': 'Left', 'center': 'Center', 'right': 'Right' }[item.lateralPosition] || item.lateralPosition;
     return `${longText} / ${latText}`;
   };
+  
+  const loadingSkeleton = (
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-1/3" />
+          <Skeleton className="h-9 w-[190px]" />
+        </div>
+        <Skeleton className="h-4 w-2/3 mt-2" />
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Skeleton className="h-24 w-full" />
+      </CardContent>
+    </Card>
+  );
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <Skeleton className="h-8 w-1/3" />
-            <Skeleton className="h-9 w-[190px]" />
-          </div>
-          <Skeleton className="h-4 w-2/3 mt-2" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-24 w-full" />
-        </CardContent>
-      </Card>
-    );
+  if (isAuthLoading) {
+    return loadingSkeleton;
+  }
+  
+  if (!user) {
+    return null; // Don't render anything if logged out
+  }
+  
+  if (isLoadingData) {
+    return loadingSkeleton;
   }
 
   if (queryError) {

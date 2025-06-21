@@ -32,7 +32,9 @@ export function WDHManager() {
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
 
-  const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingWdh, setEditingWdh] = useState<StoredWDH | null>(null);
   const [deleteDialogState, setDeleteDialogState] = useState<{ isOpen: boolean; wdhId: string | null; wdhName: string | null; confirmationText: string }>({
@@ -45,6 +47,7 @@ export function WDHManager() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
         setUser(currentUser);
+        setIsAuthLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -62,7 +65,7 @@ export function WDHManager() {
   });
 
   const activeWdhId = userPrefs?.activeWdhId;
-  const isLoading = isLoadingWdhs || isLoadingPrefs;
+  const isLoadingData = isLoadingWdhs || isLoadingPrefs;
   const queryError = wdhsError || prefsError;
 
   const saveWdhMutation = useMutation({
@@ -139,9 +142,8 @@ export function WDHManager() {
     setEditingWdh(null);
     setIsFormOpen(true);
   };
-
-  if (isLoading) {
-    return (
+  
+  const loadingSkeleton = (
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -154,7 +156,18 @@ export function WDHManager() {
           <Skeleton className="h-20 w-full" />
         </CardContent>
       </Card>
-    );
+  );
+
+  if (isAuthLoading) {
+    return loadingSkeleton;
+  }
+  
+  if (!user) {
+    return null; // Don't render anything if logged out
+  }
+
+  if (isLoadingData) {
+    return loadingSkeleton;
   }
 
   if (queryError) {

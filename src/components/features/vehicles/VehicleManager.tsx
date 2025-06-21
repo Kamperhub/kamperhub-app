@@ -33,7 +33,8 @@ export function VehicleManager() {
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
   
-  const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<StoredVehicle | null>(null);
@@ -47,6 +48,7 @@ export function VehicleManager() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
         setUser(currentUser);
+        setIsAuthLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -64,7 +66,7 @@ export function VehicleManager() {
   });
   
   const activeVehicleId = userPrefs?.activeVehicleId;
-  const isLoading = isLoadingVehicles || isLoadingPrefs;
+  const isLoadingData = isLoadingVehicles || isLoadingPrefs;
   const queryError = vehiclesError || prefsError;
 
   const saveVehicleMutation = useMutation({
@@ -167,21 +169,31 @@ export function VehicleManager() {
     return typeof value === 'number' ? `${value}${unit}` : 'N/A';
   };
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <Skeleton className="h-8 w-1/3" />
-            <Skeleton className="h-9 w-[180px]" />
-          </div>
-          <Skeleton className="h-4 w-2/3 mt-2" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-24 w-full" />
-        </CardContent>
-      </Card>
-    );
+  const loadingSkeleton = (
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-1/3" />
+          <Skeleton className="h-9 w-[180px]" />
+        </div>
+        <Skeleton className="h-4 w-2/3 mt-2" />
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Skeleton className="h-24 w-full" />
+      </CardContent>
+    </Card>
+  );
+
+  if (isAuthLoading) {
+    return loadingSkeleton;
+  }
+  
+  if (!user) {
+    return null; // Don't render anything if logged out, prevents flicker on redirect
+  }
+
+  if (isLoadingData) {
+    return loadingSkeleton;
   }
 
   if (queryError) {
