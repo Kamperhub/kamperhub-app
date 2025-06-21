@@ -1,181 +1,190 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation'; // Import useSearchParams
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChecklistTabContent } from '@/components/features/checklists/ChecklistTabContent';
-import type { ChecklistItem, ChecklistCategory, AllTripChecklists, TripChecklistSet, CaravanDefaultChecklistSet, AllCaravanDefaultChecklists } from '@/types/checklist';
-import { TRIP_CHECKLISTS_STORAGE_KEY, CARAVAN_DEFAULT_CHECKLISTS_STORAGE_KEY, initialChecklists as globalDefaultTemplate } from '@/types/checklist';
+import type { ChecklistItem, ChecklistCategory, CaravanDefaultChecklistSet } from '@/types/checklist';
+import { initialChecklists as globalDefaultTemplate } from '@/types/checklist';
 import type { LoggedTrip } from '@/types/tripplanner';
-import { TRIP_LOG_STORAGE_KEY } from '@/types/tripplanner';
 import type { StoredCaravan } from '@/types/caravan';
-import { CARAVANS_STORAGE_KEY } from '@/types/caravan';
+import type { UserProfile } from '@/types/auth';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { Loader2, Info, ListChecks, Home, Route, PlusCircle } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { auth } from '@/lib/firebase';
+import type { User as FirebaseUser } from 'firebase/auth';
+import { 
+  fetchTrips, 
+  updateTrip, 
+  fetchCaravans, 
+  fetchUserPreferences, 
+  updateUserPreferences 
+} from '@/lib/api-client';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type ManagementMode = 'trip' | 'caravanDefault';
 
+// Helper to create deep copies of checklist items with new unique IDs
 const createChecklistCopyWithNewIds = (items: readonly ChecklistItem[], prefix: string = 'item'): ChecklistItem[] => {
   return items.map(item => ({ ...item, id: `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}` }));
 };
 
+
 export default function ChecklistsPage() {
-  const searchParams = useSearchParams(); // For reading URL query parameters
-  const [managementMode, setManagementMode] = useState<ManagementMode>('trip');
-  
-  const [loggedTrips, setLoggedTrips] = useState<LoggedTrip[]>([]);
-  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
-  const [currentTripChecklistSet, setCurrentTripChecklistSet] = useState<TripChecklistSet | null>(null);
-  
-  const [storedCaravans, setStoredCaravans] = useState<StoredCaravan[]>([]);
-  const [selectedCaravanIdForDefaults, setSelectedCaravanIdForDefaults] = useState<string | null>(null);
-  const [currentCaravanDefaultChecklistSet, setCurrentCaravanDefaultChecklistSet] = useState<CaravanDefaultChecklistSet | null>(null);
-
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLocalStorageReady, setIsLocalStorageReady] = useState(false);
+  const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
-
+  
+  const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
   useEffect(() => {
-    setIsLocalStorageReady(true);
+    const unsubscribe = auth.onAuthStateChanged(setUser);
+    return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (isLocalStorageReady && typeof window !== 'undefined') {
-      setIsLoading(true);
-      try {
-        const storedTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
-        const loadedTrips = storedTripsJson ? JSON.parse(storedTripsJson).sort((a: LoggedTrip, b: LoggedTrip) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : [];
-        setLoggedTrips(loadedTrips);
-        
-        const storedCaravansJson = localStorage.getItem(CARAVANS_STORAGE_KEY);
-        setStoredCaravans(storedCaravansJson ? JSON.parse(storedCaravansJson) : []);
+  const [managementMode, setManagementMode] = useState<ManagementMode>('trip');
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const [selectedCaravanIdForDefaults, setSelectedCaravanIdForDefaults] = useState<string | null>(null);
+  
+  // --- Data Fetching from API ---
+  const { data: loggedTrips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery<LoggedTrip[]>({
+    queryKey: ['trips', user?.uid],
+    queryFn: fetchTrips,
+    enabled: !!user,
+  });
 
-        // Check for tripId from URL query parameters
-        const tripIdFromQuery = searchParams.get('tripId');
-        if (tripIdFromQuery && loadedTrips.some((trip: LoggedTrip) => trip.id === tripIdFromQuery)) {
-          setSelectedTripId(tripIdFromQuery);
-          setManagementMode('trip'); // Ensure correct tab is active
-          toast({ title: "Trip Selected", description: "Checklist loaded for the trip from your log." });
-        }
+  const { data: storedCaravans = [], isLoading: isLoadingCaravans, error: caravansError } = useQuery<StoredCaravan[]>({
+    queryKey: ['caravans', user?.uid],
+    queryFn: fetchCaravans,
+    enabled: !!user,
+  });
 
-      } catch (e) {
-        console.error("Error loading initial data for Checklists:", e);
-        toast({ title: "Error loading data", variant: "destructive" });
-      }
-      setIsLoading(false);
+  const { data: userPrefs = {}, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
+    queryKey: ['userPreferences', user?.uid],
+    queryFn: fetchUserPreferences,
+    enabled: !!user,
+  });
+
+  const isLoading = isLoadingTrips || isLoadingCaravans || isLoadingPrefs;
+  const queryError = tripsError || caravansError || prefsError;
+
+  // --- Derived State from Queries ---
+  const sortedTrips = useMemo(() => 
+    [...loggedTrips].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), 
+    [loggedTrips]
+  );
+  
+  const selectedTrip = useMemo(() => sortedTrips.find(trip => trip.id === selectedTripId), [sortedTrips, selectedTripId]);
+  const selectedCaravanForDefaults = useMemo(() => storedCaravans.find(cv => cv.id === selectedCaravanIdForDefaults), [storedCaravans, selectedCaravanIdForDefaults]);
+
+  const currentTripChecklistSet = useMemo(() => {
+    if (managementMode !== 'trip' || !selectedTrip) return null;
+    return selectedTrip.checklists ? { ...selectedTrip.checklists, tripName: selectedTrip.name } : null;
+  }, [managementMode, selectedTrip]);
+
+  const allCaravanDefaultChecklists = useMemo(() => userPrefs?.caravanDefaultChecklists || {}, [userPrefs]);
+
+  const currentCaravanDefaultChecklistSet = useMemo(() => {
+    if (managementMode !== 'caravanDefault' || !selectedCaravanIdForDefaults) return null;
+    return allCaravanDefaultChecklists[selectedCaravanIdForDefaults] || null;
+  }, [managementMode, selectedCaravanIdForDefaults, allCaravanDefaultChecklists]);
+  
+  // --- Mutations ---
+  const updateTripMutation = useMutation({
+    mutationFn: updateTrip,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
+      toast({ title: "Checklist Saved", description: "Your trip checklist has been updated on the server." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error Saving Trip Checklist", description: error.message, variant: "destructive" });
     }
-  }, [isLocalStorageReady, toast, searchParams]);
+  });
+
+  const updateUserPrefsMutation = useMutation({
+    mutationFn: updateUserPreferences,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
+      toast({ title: "Default Checklist Saved", description: "Your caravan's default checklist has been updated." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error Saving Default Checklist", description: error.message, variant: "destructive" });
+    }
+  });
+
 
   useEffect(() => {
-    if (managementMode === 'trip' && selectedTripId && isLocalStorageReady) {
-      try {
-        const allTripChecklistsJson = localStorage.getItem(TRIP_CHECKLISTS_STORAGE_KEY);
-        const allChecklists: AllTripChecklists = allTripChecklistsJson ? JSON.parse(allTripChecklistsJson) : {};
-        setCurrentTripChecklistSet(allChecklists[selectedTripId] || null);
-      } catch (e) {
-        console.error(`Error loading checklist for trip ${selectedTripId}:`, e);
-        setCurrentTripChecklistSet(null);
-        toast({ title: "Error loading trip checklist", variant: "destructive" });
+    const tripIdFromQuery = searchParams.get('tripId');
+    if (tripIdFromQuery && loggedTrips.length > 0 && loggedTrips.some(trip => trip.id === tripIdFromQuery)) {
+      if (selectedTripId !== tripIdFromQuery) {
+        setSelectedTripId(tripIdFromQuery);
+        setManagementMode('trip');
+        toast({ title: "Trip Selected", description: "Checklist loaded for the trip from your log." });
       }
-    } else if (managementMode === 'trip' && !selectedTripId) {
-      setCurrentTripChecklistSet(null);
     }
-  }, [managementMode, selectedTripId, isLocalStorageReady, toast]);
-
-  useEffect(() => {
-    if (managementMode === 'caravanDefault' && selectedCaravanIdForDefaults && isLocalStorageReady) {
-      try {
-        const allDefaultsJson = localStorage.getItem(CARAVAN_DEFAULT_CHECKLISTS_STORAGE_KEY);
-        const allDefaults: AllCaravanDefaultChecklists = allDefaultsJson ? JSON.parse(allDefaultsJson) : {};
-        setCurrentCaravanDefaultChecklistSet(allDefaults[selectedCaravanIdForDefaults] || null);
-      } catch (e) {
-        console.error(`Error loading default checklist for caravan ${selectedCaravanIdForDefaults}:`, e);
-        setCurrentCaravanDefaultChecklistSet(null);
-        toast({ title: "Error loading caravan default checklist", variant: "destructive" });
-      }
-    } else if (managementMode === 'caravanDefault' && !selectedCaravanIdForDefaults) {
-      setCurrentCaravanDefaultChecklistSet(null);
-    }
-  }, [managementMode, selectedCaravanIdForDefaults, isLocalStorageReady, toast]);
-
+  }, [searchParams, loggedTrips, toast, selectedTripId]);
+  
+  // --- Event Handlers ---
   const handleInitializeCaravanDefault = () => {
-    if (!selectedCaravanIdForDefaults || !isLocalStorageReady) return;
-
+    if (!selectedCaravanIdForDefaults) return;
+    const caravanPrefix = selectedCaravanIdForDefaults.substring(0,4);
     const newDefaultSet: CaravanDefaultChecklistSet = {
-      preDeparture: createChecklistCopyWithNewIds(globalDefaultTemplate.preDeparture, `cv${selectedCaravanIdForDefaults.substring(0,3)}_pd`),
-      campsiteSetup: createChecklistCopyWithNewIds(globalDefaultTemplate.campsiteSetup, `cv${selectedCaravanIdForDefaults.substring(0,3)}_cs`),
-      packDown: createChecklistCopyWithNewIds(globalDefaultTemplate.packDown, `cv${selectedCaravanIdForDefaults.substring(0,3)}_pk`),
+      preDeparture: createChecklistCopyWithNewIds(globalDefaultTemplate.preDeparture, `cv${caravanPrefix}_pd`),
+      campsiteSetup: createChecklistCopyWithNewIds(globalDefaultTemplate.campsiteSetup, `cv${caravanPrefix}_cs`),
+      packDown: createChecklistCopyWithNewIds(globalDefaultTemplate.packDown, `cv${caravanPrefix}_pk`),
     };
-    
-    try {
-      const allDefaultsJson = localStorage.getItem(CARAVAN_DEFAULT_CHECKLISTS_STORAGE_KEY);
-      const allDefaults: AllCaravanDefaultChecklists = allDefaultsJson ? JSON.parse(allDefaultsJson) : {};
-      allDefaults[selectedCaravanIdForDefaults] = newDefaultSet;
-      localStorage.setItem(CARAVAN_DEFAULT_CHECKLISTS_STORAGE_KEY, JSON.stringify(allDefaults));
-      setCurrentCaravanDefaultChecklistSet(newDefaultSet);
-      toast({ title: "Default Checklist Created", description: `Default checklist initialized for the selected caravan.` });
-    } catch (e) {
-      console.error("Error initializing caravan default checklist:", e);
-      toast({ title: "Error creating default checklist", variant: "destructive" });
-    }
+    const updatedDefaults = { ...allCaravanDefaultChecklists, [selectedCaravanIdForDefaults]: newDefaultSet };
+    updateUserPrefsMutation.mutate({ caravanDefaultChecklists: updatedDefaults });
   };
 
   const handleTripChecklistChange = useCallback((category: ChecklistCategory, newItems: ChecklistItem[]) => {
-    if (!selectedTripId || !currentTripChecklistSet || !isLocalStorageReady) return;
-    
-    const updatedSet = { ...currentTripChecklistSet, [category]: newItems };
-    setCurrentTripChecklistSet(updatedSet);
-
-    try {
-      const allTripChecklistsJson = localStorage.getItem(TRIP_CHECKLISTS_STORAGE_KEY);
-      const allChecklists: AllTripChecklists = allTripChecklistsJson ? JSON.parse(allTripChecklistsJson) : {};
-      allChecklists[selectedTripId] = updatedSet;
-      localStorage.setItem(TRIP_CHECKLISTS_STORAGE_KEY, JSON.stringify(allChecklists));
-    } catch (e) {
-      console.error("Error saving trip checklist:", e);
-      toast({ title: "Error saving trip checklist", variant: "destructive" });
-    }
-  }, [selectedTripId, currentTripChecklistSet, isLocalStorageReady, toast]);
+    if (!selectedTrip) return;
+    const updatedTrip = {
+      ...selectedTrip,
+      checklists: {
+        ...(selectedTrip.checklists || { preDeparture: [], campsiteSetup: [], packDown: [] }),
+        [category]: newItems,
+      }
+    };
+    updateTripMutation.mutate(updatedTrip);
+  }, [selectedTrip, updateTripMutation]);
 
   const handleCaravanDefaultChecklistChange = useCallback((category: ChecklistCategory, newItems: ChecklistItem[]) => {
-    if (!selectedCaravanIdForDefaults || !currentCaravanDefaultChecklistSet || !isLocalStorageReady) return;
-
+    if (!selectedCaravanIdForDefaults || !currentCaravanDefaultChecklistSet) return;
     const updatedSet = { ...currentCaravanDefaultChecklistSet, [category]: newItems };
-    setCurrentCaravanDefaultChecklistSet(updatedSet);
-
-    try {
-      const allDefaultsJson = localStorage.getItem(CARAVAN_DEFAULT_CHECKLISTS_STORAGE_KEY);
-      const allDefaults: AllCaravanDefaultChecklists = allDefaultsJson ? JSON.parse(allDefaultsJson) : {};
-      allDefaults[selectedCaravanIdForDefaults] = updatedSet;
-      localStorage.setItem(CARAVAN_DEFAULT_CHECKLISTS_STORAGE_KEY, JSON.stringify(allDefaults));
-    } catch (e) {
-      console.error("Error saving caravan default checklist:", e);
-      toast({ title: "Error saving caravan default", variant: "destructive" });
-    }
-  }, [selectedCaravanIdForDefaults, currentCaravanDefaultChecklistSet, isLocalStorageReady, toast]);
+    const updatedDefaults = { ...allCaravanDefaultChecklists, [selectedCaravanIdForDefaults]: updatedSet };
+    updateUserPrefsMutation.mutate({ caravanDefaultChecklists: updatedDefaults });
+  }, [selectedCaravanIdForDefaults, currentCaravanDefaultChecklistSet, allCaravanDefaultChecklists, updateUserPrefsMutation]);
 
 
-  if (!isLocalStorageReady || isLoading) {
+  if (isLoading) {
     return (
       <div className="space-y-8">
         <h1 className="text-3xl font-headline mb-6 text-primary flex items-center"><ListChecks className="mr-3 h-8 w-8" /> Checklists</h1>
         <div className="flex items-center justify-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
-          <p className="font-body text-lg">Loading data...</p>
+          <p className="font-body text-lg">Loading checklist data...</p>
         </div>
+        <Skeleton className="h-48 w-full" />
       </div>
     );
   }
-  
-  const selectedTrip = loggedTrips.find(trip => trip.id === selectedTripId);
-  const selectedCaravanForDefaults = storedCaravans.find(cv => cv.id === selectedCaravanIdForDefaults);
+
+  if (queryError) {
+    return (
+        <Alert variant="destructive">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Error Loading Data</AlertTitle>
+            <AlertDescription>{queryError.message}</AlertDescription>
+        </Alert>
+    );
+  }
 
   const tabTriggerStyles = "font-body whitespace-normal h-auto py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md";
 
@@ -189,12 +198,11 @@ export default function ChecklistsPage() {
           <Info className="h-4 w-4 text-accent-foreground" />
           <AlertTitle className="font-headline text-accent-foreground">How Checklists Work Now</AlertTitle>
           <AlertDescription className="font-body text-accent-foreground/90 space-y-1">
-            <p>You can manage two types of checklists:</p>
+            <p>Checklist data is now stored on the server for access across your devices.</p>
             <ul className="list-disc pl-5">
-              <li><strong>Trip-Specific Checklists:</strong> When you save a trip from the Trip Planner, a checklist is created for it. This checklist is copied from the active caravan's default (if set) or a global template. Modifications here only affect this specific trip.</li>
-              <li><strong>Caravan Default Checklists:</strong> You can define a default checklist template for each of your caravans. This template will be used for new trips planned with that caravan.</li>
+              <li><strong>Trip-Specific Checklists:</strong> Created when you save a trip, modifications here only affect this specific trip.</li>
+              <li><strong>Caravan Default Checklists:</strong> Define a default template for each caravan, used for new trips planned with that caravan.</li>
             </ul>
-             <p className="pt-1">All checklist data is stored locally in your browser.</p>
           </AlertDescription>
         </Alert>
       </div>
@@ -218,7 +226,7 @@ export default function ChecklistsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none" className="font-body">-- Select a Trip --</SelectItem>
-                  {loggedTrips.map(trip => (
+                  {sortedTrips.map(trip => (
                     <SelectItem key={trip.id} value={trip.id} className="font-body">
                       {trip.name} (Saved: {format(parseISO(trip.timestamp), "PP")})
                     </SelectItem>
@@ -247,6 +255,7 @@ export default function ChecklistsPage() {
                       initialItems={currentTripChecklistSet[cat]}
                       onChecklistChange={handleTripChecklistChange}
                       entityName={currentTripChecklistSet.tripName}
+                      isDisabled={updateTripMutation.isPending}
                     />
                   </TabsContent>
                 ))}
@@ -287,7 +296,7 @@ export default function ChecklistsPage() {
           {selectedCaravanIdForDefaults && !currentCaravanDefaultChecklistSet && !isLoading && (
             <div className="text-center py-6">
               <p className="font-body text-muted-foreground mb-4">No default checklist found for {selectedCaravanForDefaults?.make} {selectedCaravanForDefaults?.model}.</p>
-              <Button onClick={handleInitializeCaravanDefault} className="font-body">
+              <Button onClick={handleInitializeCaravanDefault} className="font-body" disabled={updateUserPrefsMutation.isPending}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Create Default Checklist
               </Button>
             </div>
@@ -312,6 +321,7 @@ export default function ChecklistsPage() {
                       initialItems={currentCaravanDefaultChecklistSet[cat]}
                       onChecklistChange={handleCaravanDefaultChecklistChange}
                       entityName={`${selectedCaravanForDefaults?.make} ${selectedCaravanForDefaults?.model} (Default)`}
+                      isDisabled={updateUserPrefsMutation.isPending}
                     />
                   </TabsContent>
                 ))}
@@ -328,3 +338,5 @@ export default function ChecklistsPage() {
     </div>
   );
 }
+
+    
