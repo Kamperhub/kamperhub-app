@@ -1,12 +1,13 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react'; // Added useCallback
-import type { InventoryItem, CaravanWeightData, CaravanInventories } from '@/types/inventory';
-import type { StorageLocation as CaravanStorageLocation, WaterTank } from '@/types/caravan';
-import type { StoredVehicle, VehicleStorageLocation } from '@/types/vehicle';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { InventoryItem, CaravanWeightData } from '@/types/inventory';
+import type { StoredCaravan } from '@/types/caravan';
+import type { StoredVehicle } from '@/types/vehicle';
 import type { StoredWDH } from '@/types/wdh';
-import { INVENTORY_STORAGE_KEY } from '@/types/inventory';
+import type { UserProfile } from '@/types/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,19 +20,20 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label as RechartsLabel } from 'recharts';
 import { Slider } from "@/components/ui/slider";
 import { Progress } from '@/components/ui/progress';
+import { fetchInventory, updateInventory, updateUserPreferences } from '@/lib/api-client';
+import { auth } from '@/lib/firebase';
+import type { User as FirebaseUser } from 'firebase/auth';
 
-interface InventoryListProps {
-  caravanSpecs: CaravanWeightData;
-  activeCaravanStorageLocations?: CaravanStorageLocation[];
-  activeVehicleStorageLocations?: VehicleStorageLocation[];
-  activeCaravanWaterTanks?: WaterTank[];
-  waterTankLevels: Record<string, number>; // tankId: fillPercentage (0-100)
-  onUpdateWaterTankLevel: (tankId: string, level: number) => void;
-  activeTowVehicleSpecs: StoredVehicle | null;
-  activeWdhSpecs: StoredWDH | null;
-  initialCaravanInventory: InventoryItem[];
-  activeCaravanId: string | null;
+interface InventoryListClientProps {
+  activeCaravan: StoredCaravan | null;
+  activeVehicle: StoredVehicle | null;
+  activeWdh: StoredWDH | null;
+  userPreferences: Partial<UserProfile> | null;
 }
+
+const defaultCaravanSpecs: CaravanWeightData = {
+  tareMass: 0, atm: 0, gtm: 0, maxTowballDownload: 0, numberOfAxles: 1,
+};
 
 const DonutChartCustomLabel = ({ viewBox, value, limit, unit, name }: { viewBox?: { cx?: number, cy?: number }, value: number, limit: number, unit: string, name: string }) => {
   const { cx, cy } = viewBox || { cx: 0, cy: 0 };
@@ -60,173 +62,121 @@ const DonutChartCustomLabel = ({ viewBox, value, limit, unit, name }: { viewBox?
 };
 
 
-export function InventoryList({ 
-  caravanSpecs, 
-  activeCaravanStorageLocations = [], 
-  activeVehicleStorageLocations = [],
-  activeCaravanWaterTanks = [],
-  waterTankLevels,
-  onUpdateWaterTankLevel,
-  activeTowVehicleSpecs, 
-  activeWdhSpecs, 
-  initialCaravanInventory, 
-  activeCaravanId 
-}: InventoryListProps) {
-  const [items, setItems] = useState<InventoryItem[]>(initialCaravanInventory || []);
+export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPreferences }: InventoryListClientProps) {
+  const queryClient = useQueryClient();
+  const user = auth.currentUser;
+  const { toast } = useToast();
+
+  const { data: inventoryData, isLoading: isLoadingInventory } = useQuery<{ items: InventoryItem[] }>({
+    queryKey: ['inventory', activeCaravan?.id],
+    queryFn: () => fetchInventory(activeCaravan!.id),
+    enabled: !!activeCaravan,
+  });
+  const items = inventoryData?.items || [];
+  
   const [itemName, setItemName] = useState('');
   const [itemWeight, setItemWeight] = useState('');
   const [itemQuantity, setItemQuantity] = useState('1');
   const [itemLocationId, setItemLocationId] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
-  const { toast } = useToast();
-  const [isLocalStorageReady, setIsLocalStorageReady] = useState(false);
-
-  useEffect(() => {
-    setIsLocalStorageReady(true);
-  }, []);
   
-  useEffect(() => {
-    setItems(initialCaravanInventory || []);
-  }, [initialCaravanInventory, activeCaravanId]);
-
-
-  const saveInventoryToStorage = useCallback((updatedItemsForCurrentCaravan: InventoryItem[]) => {
-    if (!activeCaravanId || !isLocalStorageReady || typeof window === 'undefined') {
-      if(!activeCaravanId && isLocalStorageReady) { // Only toast if local storage is ready
-        toast({ title: "Cannot Save Inventory", description: "No active caravan selected.", variant: "destructive" });
+  const inventoryMutation = useMutation({
+    mutationFn: (newItems: InventoryItem[]) => updateInventory({ caravanId: activeCaravan!.id, items: newItems }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory', activeCaravan?.id] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error Saving Inventory", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const preferencesMutation = useMutation({
+    mutationFn: (prefs: Partial<UserProfile>) => updateUserPreferences(prefs),
+    onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error Saving Preferences", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const handleUpdateWaterTankLevel = useCallback((tankId: string, level: number) => {
+    if (!activeCaravan || !userPreferences) return;
+    const newLevel = Math.max(0, Math.min(100, level));
+    const currentLevels = userPreferences.caravanWaterLevels || {};
+    const updatedLevels = {
+      ...currentLevels,
+      [activeCaravan.id]: {
+        ...(currentLevels[activeCaravan.id] || {}),
+        [tankId]: newLevel,
       }
-      return;
-    }
-    try {
-      const allInventoriesJson = localStorage.getItem(INVENTORY_STORAGE_KEY);
-      const allInventories: CaravanInventories = allInventoriesJson ? JSON.parse(allInventoriesJson) : {};
-      allInventories[activeCaravanId] = updatedItemsForCurrentCaravan;
-      localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(allInventories));
-    } catch (error) {
-      console.error("Error saving inventory to localStorage:", error);
-      toast({ title: "Error Saving Inventory", description: "Could not save inventory changes.", variant: "destructive" });
-    }
-  }, [activeCaravanId, isLocalStorageReady, toast]); // Added toast to dependencies
+    };
+    preferencesMutation.mutate({ caravanWaterLevels: updatedLevels });
+  }, [activeCaravan, userPreferences, preferencesMutation]);
 
-  const totalInventoryWeight = useMemo(() => {
-    return items.reduce((sum, item) => {
-      const weight = typeof item.weight === 'number' && !isNaN(item.weight) ? item.weight : 0;
-      const quantity = typeof item.quantity === 'number' && !isNaN(item.quantity) ? item.quantity : 0;
-      return sum + (weight * quantity);
-    }, 0);
-  }, [items]);
+  const waterTankLevels = useMemo(() => {
+    if (!activeCaravan || !userPreferences?.caravanWaterLevels) return {};
+    return userPreferences.caravanWaterLevels[activeCaravan.id] || {};
+  }, [activeCaravan, userPreferences?.caravanWaterLevels]);
 
+  const totalInventoryWeight = useMemo(() => items.reduce((sum, item) => sum + (item.weight * item.quantity), 0), [items]);
+  
   const totalWaterWeight = useMemo(() => {
-    return (activeCaravanWaterTanks || []).reduce((sum, tank) => {
+    return (activeCaravan?.waterTanks || []).reduce((sum, tank) => {
       const levelPercentage = waterTankLevels[tank.id] || 0;
-      const waterInTank = (tank.capacityLiters * (levelPercentage / 100)); // Assumes 1kg/L
-      return sum + waterInTank;
+      return sum + (tank.capacityLiters * (levelPercentage / 100));
     }, 0);
-  }, [activeCaravanWaterTanks, waterTankLevels]);
+  }, [activeCaravan?.waterTanks, waterTankLevels]);
+
+  const caravanSpecs = activeCaravan ? {
+    tareMass: activeCaravan.tareMass, atm: activeCaravan.atm, gtm: activeCaravan.gtm,
+    maxTowballDownload: activeCaravan.maxTowballDownload, numberOfAxles: activeCaravan.numberOfAxles,
+  } : defaultCaravanSpecs;
+
+  const { tareMass, atm: atmLimit, gtm: gtmLimit, maxTowballDownload: caravanMaxTowballDownloadLimit } = caravanSpecs;
   
-  const atmLimit = useMemo(() => (typeof caravanSpecs.atm === 'number' && !isNaN(caravanSpecs.atm) ? caravanSpecs.atm : 0), [caravanSpecs.atm]);
-  const gtmLimit = useMemo(() => (typeof caravanSpecs.gtm === 'number' && !isNaN(caravanSpecs.gtm) ? caravanSpecs.gtm : 0), [caravanSpecs.gtm]);
-  const caravanMaxTowballDownloadLimit = useMemo(() => (typeof caravanSpecs.maxTowballDownload === 'number' && !isNaN(caravanSpecs.maxTowballDownload) ? caravanSpecs.maxTowballDownload : 0), [caravanSpecs.maxTowballDownload]);
-  const tareMass = useMemo(() => (typeof caravanSpecs.tareMass === 'number' && !isNaN(caravanSpecs.tareMass) ? caravanSpecs.tareMass : 0), [caravanSpecs.tareMass]);
+  const currentCaravanMass = tareMass + totalInventoryWeight + totalWaterWeight;
+  const remainingPayloadATM = atmLimit > 0 ? atmLimit - currentCaravanMass : 0;
+  const estimatedTowballDownload = (totalInventoryWeight + totalWaterWeight) * 0.1;
+  const currentLoadOnAxles = currentCaravanMass - estimatedTowballDownload;
+  const remainingPayloadGTM = gtmLimit > 0 ? gtmLimit - currentLoadOnAxles : 0;
 
-  const currentCaravanMass = useMemo(() => { 
-    const calculatedMass = tareMass + totalInventoryWeight + totalWaterWeight;
-    return typeof calculatedMass === 'number' && !isNaN(calculatedMass) ? calculatedMass : 0;
-  }, [tareMass, totalInventoryWeight, totalWaterWeight]);
-  
-  const remainingPayloadATM = useMemo(() => {
-    return atmLimit > 0 ? atmLimit - currentCaravanMass : 0;
-  }, [atmLimit, currentCaravanMass]);
-  
-  const estimatedTowballDownload = useMemo(() => {
-    // This is a simplistic estimation. True TBM depends on item placement relative to axles.
-    // For now, we use a common rule of thumb (e.g., 10% of payload).
-    // Future enhancement: Use detailed storage location distances for a more accurate TBM.
-    const totalPayloadWeight = totalInventoryWeight + totalWaterWeight;
-    const calculated = totalPayloadWeight * 0.1; 
-    return typeof calculated === 'number' && !isNaN(calculated) ? Math.max(0, calculated) : 0;
-  }, [totalInventoryWeight, totalWaterWeight]);
+  const vehicleMaxTowCapacity = activeVehicle?.maxTowCapacity ?? 0;
+  const vehicleMaxTowballMass = activeVehicle?.maxTowballMass ?? 0;
+  const vehicleGVM = activeVehicle?.gvm ?? 0;
+  const vehicleGCM = activeVehicle?.gcm ?? 0;
+  const isOverMaxTowCapacity = vehicleMaxTowCapacity > 0 && currentCaravanMass > vehicleMaxTowCapacity;
+  const isOverVehicleMaxTowball = vehicleMaxTowballMass > 0 && estimatedTowballDownload > vehicleMaxTowballMass;
+  const potentialGCM = currentCaravanMass + vehicleGVM;
+  const isPotentialGCMOverLimit = vehicleGCM > 0 && vehicleGVM > 0 && potentialGCM > vehicleGCM;
 
-  const currentLoadOnAxles = useMemo(() => { 
-    const calculatedLoad = currentCaravanMass - estimatedTowballDownload;
-    return typeof calculatedLoad === 'number' && !isNaN(calculatedLoad) ? Math.max(0, calculatedLoad) : 0;
-  }, [currentCaravanMass, estimatedTowballDownload]);
-
-  const remainingPayloadGTM = useMemo(() => {
-    return gtmLimit > 0 ? gtmLimit - currentLoadOnAxles : 0;
-  }, [gtmLimit, currentLoadOnAxles]);
-
-  const vehicleMaxTowCapacity = useMemo(() => activeTowVehicleSpecs?.maxTowCapacity ?? 0, [activeTowVehicleSpecs]);
-  const vehicleMaxTowballMass = useMemo(() => activeTowVehicleSpecs?.maxTowballMass ?? 0, [activeTowVehicleSpecs]);
-  const vehicleGVM = useMemo(() => activeTowVehicleSpecs?.gvm ?? 0, [activeTowVehicleSpecs]); 
-  const vehicleGCM = useMemo(() => activeTowVehicleSpecs?.gcm ?? 0, [activeTowVehicleSpecs]); 
-
-  const isOverMaxTowCapacity = useMemo(() => vehicleMaxTowCapacity > 0 && currentCaravanMass > vehicleMaxTowCapacity, [currentCaravanMass, vehicleMaxTowCapacity]);
-  const isOverVehicleMaxTowball = useMemo(() => vehicleMaxTowballMass > 0 && estimatedTowballDownload > vehicleMaxTowballMass, [estimatedTowballDownload, vehicleMaxTowballMass]);
-  
-  const potentialGCM = useMemo(() => currentCaravanMass + vehicleGVM, [currentCaravanMass, vehicleGVM]);
-  const isPotentialGCMOverLimit = useMemo(() => vehicleGCM > 0 && vehicleGVM > 0 && potentialGCM > vehicleGCM, [potentialGCM, vehicleGCM, vehicleGVM]);
-
-  const wdhMaxCapacity = useMemo(() => activeWdhSpecs?.maxCapacityKg ?? 0, [activeWdhSpecs]);
-  const wdhMinCapacity = useMemo(() => activeWdhSpecs?.minCapacityKg ?? null, [activeWdhSpecs]);
-
-  const isTowballOverWdhMax = useMemo(() => wdhMaxCapacity > 0 && estimatedTowballDownload > wdhMaxCapacity, [estimatedTowballDownload, wdhMaxCapacity]);
-  const isTowballUnderWdhMin = useMemo(() => wdhMinCapacity !== null && wdhMinCapacity > 0 && estimatedTowballDownload < wdhMinCapacity, [estimatedTowballDownload, wdhMinCapacity]);
-
+  const wdhMaxCapacity = activeWdh?.maxCapacityKg ?? 0;
+  const wdhMinCapacity = activeWdh?.minCapacityKg ?? null;
+  const isTowballOverWdhMax = wdhMaxCapacity > 0 && estimatedTowballDownload > wdhMaxCapacity;
+  const isTowballUnderWdhMin = wdhMinCapacity !== null && wdhMinCapacity > 0 && estimatedTowballDownload < wdhMinCapacity;
 
   const handleAddItem = () => {
-    if (!activeCaravanId) {
-      toast({ title: "No Active Caravan", description: "Please select an active caravan to add items.", variant: "destructive" });
+    if (!activeCaravan) {
+      toast({ title: "No Active Caravan", description: "Please select an active caravan.", variant: "destructive" });
       return;
     }
     const weight = parseFloat(itemWeight);
     const quantity = parseInt(itemQuantity, 10);
-
-    if (!itemName.trim()) {
-      toast({ title: "Invalid Input", description: "Please enter a valid item name.", variant: "destructive" });
+    if (!itemName.trim() || isNaN(weight) || weight <= 0 || isNaN(quantity) || quantity < 1) {
+      toast({ title: "Invalid Input", description: "Please provide valid item details.", variant: "destructive" });
       return;
     }
-    if (isNaN(weight) || weight <= 0) {
-      toast({ title: "Invalid Weight", description: "Item weight must be a positive number.", variant: "destructive" });
-      return;
-    }
-    if (isNaN(quantity) || quantity < 1) {
-      toast({ title: "Invalid Quantity", description: "Item quantity must be at least 1.", variant: "destructive" });
-      return;
-    }
-
     const newItem: InventoryItem = {
       id: editingItem ? editingItem.id : Date.now().toString(),
-      name: itemName.trim(),
-      weight: weight,
-      quantity: quantity,
-      locationId: itemLocationId,
+      name: itemName.trim(), weight, quantity, locationId: itemLocationId,
     };
-    
-    let updatedItems;
-    if (editingItem) {
-      updatedItems = items.map(item => item.id === editingItem.id ? newItem : item);
-      toast({ title: "Item Updated", description: `${newItem.name} has been updated.` });
-    } else {
-      updatedItems = [...items, newItem];
-      toast({ title: "Item Added", description: `${newItem.name} has been added to inventory.` });
-    }
-    
-    setItems(updatedItems);
-    saveInventoryToStorage(updatedItems);
-    
-    setItemName('');
-    setItemWeight('');
-    setItemQuantity('1');
-    setItemLocationId(null);
-    setEditingItem(null);
+    const updatedItems = editingItem ? items.map(item => (item.id === editingItem.id ? newItem : item)) : [...items, newItem];
+    inventoryMutation.mutate(updatedItems);
+    toast({ title: editingItem ? "Item Updated" : "Item Added" });
+    setItemName(''); setItemWeight(''); setItemQuantity('1'); setItemLocationId(null); setEditingItem(null);
   };
 
   const handleEditItem = (itemToEdit: InventoryItem) => {
-    if (!activeCaravanId) {
-      toast({ title: "No Active Caravan", description: "Please select an active caravan to edit items.", variant: "destructive" });
-      return;
-    }
     setEditingItem(itemToEdit);
     setItemName(itemToEdit.name);
     setItemWeight(itemToEdit.weight.toString());
@@ -235,58 +185,31 @@ export function InventoryList({
   };
 
   const handleDeleteItem = (id: string) => {
-    if (!activeCaravanId) {
-      toast({ title: "No Active Caravan", description: "Please select an active caravan to delete items.", variant: "destructive" });
-      return;
-    }
     const updatedItems = items.filter(item => item.id !== id);
-    setItems(updatedItems);
-    saveInventoryToStorage(updatedItems);
-    toast({ title: "Item Removed", description: "Item has been removed from inventory." });
-  };
-
-  const getAlertStylingVariant = (currentValue: number, limit: number, isWarning?: boolean) => {
-    if (limit <= 0 && !isWarning) return "default"; 
-    if (currentValue > limit || isWarning) return "destructive";
-    if (currentValue > limit * 0.9) return "default"; 
-    return "default"; 
+    inventoryMutation.mutate(updatedItems);
+    toast({ title: "Item Removed" });
   };
   
-  const isFormDisabled = !activeCaravanId;
-
+  const getAlertStylingVariant = (currentValue: number, limit: number, isWarning?: boolean) => {
+    if (limit <= 0 && !isWarning) return "default";
+    if (currentValue > limit || isWarning) return "destructive";
+    return "default";
+  };
+  
   const prepareChartData = (currentVal: number, limitVal: number) => {
-    const safeLimitVal = typeof limitVal === 'number' && !isNaN(limitVal) ? limitVal : 0;
-    const isLimitNotSet = safeLimitVal <= 0;
-    const safeCurrentVal = typeof currentVal === 'number' && !isNaN(currentVal) ? currentVal : 0;
-    const isOver = !isLimitNotSet && safeCurrentVal > safeLimitVal;
-    
-    if (isLimitNotSet) {
-      return {
-        data: [{ name: 'N/A', value: 100 }],
-        colors: ['hsl(var(--muted))'],
-      };
-    }
-    
+    const isLimitNotSet = limitVal <= 0;
+    const isOver = !isLimitNotSet && currentVal > limitVal;
+    if (isLimitNotSet) return { data: [{ name: 'N/A', value: 100 }], colors: ['hsl(var(--muted))'] };
     return {
-      data: [
-        { name: 'Used', value: safeCurrentVal },
-        { name: 'Remaining', value: Math.max(0, safeLimitVal - safeCurrentVal) },
-      ],
-      colors: [
-        isOver ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
-        'hsl(var(--muted))',
-      ],
+      data: [{ name: 'Used', value: currentVal }, { name: 'Remaining', value: Math.max(0, limitVal - currentVal) }],
+      colors: [isOver ? 'hsl(var(--destructive))' : 'hsl(var(--primary))', 'hsl(var(--muted))'],
     };
   };
-  
+
   const atmChart = prepareChartData(currentCaravanMass, atmLimit);
   const gtmChart = prepareChartData(currentLoadOnAxles, gtmLimit);
   const towballChart = prepareChartData(estimatedTowballDownload, caravanMaxTowballDownloadLimit);
-
-  const formatTooltipValue = (value: number) => {
-    return typeof value === 'number' && !isNaN(value) ? value.toFixed(1) : '--';
-  };
-
+  
   const enrichedCombinedStorageLocations = useMemo(() => {
     const formatPosition = (pos: { longitudinalPosition: string; lateralPosition: string; }) => {
       const longText = {
@@ -296,64 +219,31 @@ export function InventoryList({
       const latText = { 'left': 'Left', 'center': 'Center', 'right': 'Right' }[pos.lateralPosition] || pos.lateralPosition;
       return `(${longText} / ${latText})`;
     };
-
-    const caravanLocs = (activeCaravanStorageLocations || []).map(loc => ({
-      id: `cv-${loc.id}`,
-      name: `CV: ${loc.name}`,
-      details: formatPosition(loc),
-      maxWeightCapacityKg: loc.maxWeightCapacityKg,
-      type: 'caravan' as 'caravan' | 'vehicle',
-    }));
-    const vehicleLocs = (activeVehicleStorageLocations || []).map(loc => ({
-      id: `veh-${loc.id}`,
-      name: `VEH: ${loc.name}`,
-      details: formatPosition(loc),
-      maxWeightCapacityKg: loc.maxWeightCapacityKg,
-      type: 'vehicle' as 'caravan' | 'vehicle',
-    }));
+    const caravanLocs = (activeCaravan?.storageLocations || []).map(loc => ({ id: `cv-${loc.id}`, name: `CV: ${loc.name}`, details: formatPosition(loc), maxWeightCapacityKg: loc.maxWeightCapacityKg, type: 'caravan' as 'caravan' | 'vehicle' }));
+    const vehicleLocs = (activeVehicle?.storageLocations || []).map(loc => ({ id: `veh-${loc.id}`, name: `VEH: ${loc.name}`, details: formatPosition(loc), maxWeightCapacityKg: loc.maxWeightCapacityKg, type: 'vehicle' as 'caravan' | 'vehicle' }));
     return [...caravanLocs, ...vehicleLocs];
-  }, [activeCaravanStorageLocations, activeVehicleStorageLocations]);
+  }, [activeCaravan?.storageLocations, activeVehicle?.storageLocations]);
 
-  const getLocationNameById = (locationIdWithPrefix: string | null | undefined): string => {
-    if (!locationIdWithPrefix) return 'Unassigned';
-    const foundLocation = enrichedCombinedStorageLocations.find(loc => loc.id === locationIdWithPrefix);
-    return foundLocation ? `${foundLocation.name} ${foundLocation.details}` : 'Unknown Location';
-  };
+  const getLocationNameById = (locationId: string | null | undefined) => !locationId ? 'Unassigned' : enrichedCombinedStorageLocations.find(loc => loc.id === locationId)?.name || 'Unknown';
   
-  const capacityTrackedLocations = useMemo(() => {
-    return enrichedCombinedStorageLocations.filter(
-      loc => typeof loc.maxWeightCapacityKg === 'number' && loc.maxWeightCapacityKg > 0
-    );
-  }, [enrichedCombinedStorageLocations]);
-
+  const capacityTrackedLocations = useMemo(() => enrichedCombinedStorageLocations.filter(loc => typeof loc.maxWeightCapacityKg === 'number' && loc.maxWeightCapacityKg > 0), [enrichedCombinedStorageLocations]);
+  
   const locationWeights = useMemo(() => {
     const weightsMap = new Map<string, number>();
-    // Initialize all capacity-tracked locations with 0 weight
     capacityTrackedLocations.forEach(loc => weightsMap.set(loc.id, 0));
-
     items.forEach(item => {
       if (item.locationId && weightsMap.has(item.locationId)) {
-        const currentWeight = weightsMap.get(item.locationId) || 0;
-        const itemTotalWeight = (typeof item.weight === 'number' ? item.weight : 0) * (typeof item.quantity === 'number' ? item.quantity : 0);
-        weightsMap.set(item.locationId, currentWeight + itemTotalWeight);
+        weightsMap.set(item.locationId, (weightsMap.get(item.locationId) || 0) + (item.weight * item.quantity));
       }
     });
     return weightsMap;
   }, [items, capacityTrackedLocations]);
 
-  const totalAvailablePayloadForInventory = useMemo(() => {
-    if (atmLimit > 0 && tareMass > 0 && atmLimit >= tareMass) {
-      return atmLimit - tareMass - totalWaterWeight;
-    }
-    return 0;
-  }, [atmLimit, tareMass, totalWaterWeight]);
+  const totalAvailablePayloadForInventory = useMemo(() => (atmLimit > 0 && tareMass > 0 && atmLimit >= tareMass) ? atmLimit - tareMass - totalWaterWeight : 0, [atmLimit, tareMass, totalWaterWeight]);
+  
+  const totalCaravanStorageCapacity = useMemo(() => (activeCaravan?.storageLocations || []).filter(loc => typeof loc.maxWeightCapacityKg === 'number' && loc.maxWeightCapacityKg > 0).reduce((sum, loc) => sum + (loc.maxWeightCapacityKg || 0), 0), [activeCaravan?.storageLocations]);
 
-  const totalCaravanStorageCapacity = useMemo(() => {
-    return (activeCaravanStorageLocations || [])
-      .filter(loc => loc.type === 'caravan' && typeof loc.maxWeightCapacityKg === 'number' && loc.maxWeightCapacityKg > 0)
-      .reduce((sum, loc) => sum + (loc.maxWeightCapacityKg || 0), 0);
-  }, [activeCaravanStorageLocations]);
-
+  const isFormDisabled = !activeCaravan;
 
   return (
     <Card>
@@ -365,475 +255,43 @@ export function InventoryList({
             <Alert variant="default" className="bg-muted border-border">
                 <AlertTriangle className="h-4 w-4 text-foreground" />
                 <AlertTitle className="font-headline text-foreground">Select Active Caravan</AlertTitle>
-                <AlertDescription className="font-body text-muted-foreground">
-                Inventory management is disabled. Please set an active caravan in the 'Vehicles' section to add or modify items.
-                </AlertDescription>
+                <AlertDescription className="font-body text-muted-foreground">Inventory management is disabled. Please set an active caravan in 'Vehicles' to add or modify items.</AlertDescription>
             </Alert>
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-          <div>
-            <Label htmlFor="itemName" className="font-body">Item Name</Label>
-            <Input id="itemName" value={itemName} onChange={(e) => setItemName(e.target.value)} placeholder="e.g., Camping Chair" className="font-body bg-white dark:bg-neutral-800" disabled={isFormDisabled}/>
-          </div>
-          <div>
-            <Label htmlFor="itemWeight" className="font-body">Weight per Item (kg)</Label>
-            <Input id="itemWeight" type="number" value={itemWeight} onChange={(e) => setItemWeight(e.target.value)} placeholder="e.g., 2.5" className="font-body bg-white dark:bg-neutral-800" disabled={isFormDisabled}/>
-          </div>
-          <div>
-            <Label htmlFor="itemQuantity" className="font-body">Quantity</Label>
-            <Input id="itemQuantity" type="number" min="1" value={itemQuantity} onChange={(e) => setItemQuantity(e.target.value)} placeholder="e.g., 2" className="font-body bg-white dark:bg-neutral-800" disabled={isFormDisabled}/>
-          </div>
-          <div>
-            <Label htmlFor="itemLocation" className="font-body">Storage Location</Label>
-            <Select
-              value={itemLocationId || "none"}
-              onValueChange={(value) => setItemLocationId(value === "none" ? null : value)}
-              disabled={isFormDisabled || enrichedCombinedStorageLocations.length === 0}
-            >
-              <SelectTrigger className="font-body bg-white dark:bg-neutral-800">
-                <SelectValue placeholder="Select location" />
-              </SelectTrigger>
-              <SelectContent style={{ pointerEvents: 'auto' }}> {/* Ensure items are clickable */}
-                <SelectItem value="none">Unassigned</SelectItem>
-                {enrichedCombinedStorageLocations.map(loc => (
-                  <SelectItem key={loc.id} value={loc.id}>{loc.name} {loc.details}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {activeCaravanId && enrichedCombinedStorageLocations.length === 0 && (
-                 <p className="text-xs text-muted-foreground font-body mt-1">No storage locations defined for active caravan/vehicle. Add them in 'Vehicles'.</p>
-            )}
-          </div>
-          <Button onClick={handleAddItem} className="md:col-span-full lg:col-span-4 bg-accent hover:bg-accent/90 text-accent-foreground font-body" disabled={isFormDisabled}>
-            <PlusCircle className="mr-2 h-4 w-4" /> {editingItem ? 'Update Item' : 'Add Item'}
-          </Button>
+          <div><Label htmlFor="itemName" className="font-body">Item Name</Label><Input id="itemName" value={itemName} onChange={(e) => setItemName(e.target.value)} placeholder="e.g., Camping Chair" disabled={isFormDisabled}/></div>
+          <div><Label htmlFor="itemWeight" className="font-body">Weight (kg)</Label><Input id="itemWeight" type="number" value={itemWeight} onChange={(e) => setItemWeight(e.target.value)} placeholder="e.g., 2.5" disabled={isFormDisabled}/></div>
+          <div><Label htmlFor="itemQuantity" className="font-body">Quantity</Label><Input id="itemQuantity" type="number" min="1" value={itemQuantity} onChange={(e) => setItemQuantity(e.target.value)} placeholder="e.g., 2" disabled={isFormDisabled}/></div>
+          <div><Label htmlFor="itemLocation" className="font-body">Location</Label><Select value={itemLocationId || "none"} onValueChange={(v) => setItemLocationId(v === "none" ? null : v)} disabled={isFormDisabled || enrichedCombinedStorageLocations.length === 0}><SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger><SelectContent><SelectItem value="none">Unassigned</SelectItem>{enrichedCombinedStorageLocations.map(loc => (<SelectItem key={loc.id} value={loc.id}>{loc.name} {loc.details}</SelectItem>))}</SelectContent></Select></div>
+          <Button onClick={handleAddItem} className="md:col-span-full lg:col-span-4 bg-accent hover:bg-accent/90 text-accent-foreground font-body" disabled={isFormDisabled || inventoryMutation.isPending}><PlusCircle className="mr-2 h-4 w-4" /> {editingItem ? 'Update' : 'Add'} Item</Button>
         </div>
 
+        {isLoadingInventory && <p>Loading inventory...</p>}
         {items.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="font-body">Name</TableHead>
-                <TableHead className="text-center font-body">Qty</TableHead>
-                <TableHead className="text-right font-body">Unit Wt. (kg)</TableHead>
-                <TableHead className="text-right font-body">Total Wt. (kg)</TableHead>
-                <TableHead className="font-body">Location</TableHead>
-                <TableHead className="text-right font-body">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map(item => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium font-body">{item.name}</TableCell>
-                  <TableCell className="text-center font-body">{item.quantity}</TableCell>
-                  <TableCell className="text-right font-body">{item.weight.toFixed(1)}</TableCell>
-                  <TableCell className="text-right font-body font-semibold">{(item.weight * item.quantity).toFixed(1)}</TableCell>
-                  <TableCell className="font-body text-sm">
-                    <div className="flex items-center">
-                      <PackageSearch className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-                      {getLocationNameById(item.locationId)}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button variant="ghost" size="icon" onClick={() => handleEditItem(item)} disabled={isFormDisabled}>
-                      <Edit3 className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)} disabled={isFormDisabled}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-             <TableCaption className="font-body text-base">Total Inventory Items Weight: {totalInventoryWeight.toFixed(1)} kg</TableCaption>
-          </Table>
-        )}
-        {items.length === 0 && activeCaravanId && (
-             <p className="text-muted-foreground text-center font-body">No inventory items added for the active caravan yet.</p>
-        )}
-
-        {activeCaravanId && activeCaravanWaterTanks && activeCaravanWaterTanks.length > 0 && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="font-headline flex items-center"><Droplet className="mr-2 h-5 w-5 text-primary" />Water Tank Status</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 px-2 space-y-4">
-              {activeCaravanWaterTanks.map(tank => (
-                <div key={tank.id} className="space-y-2 border-b pb-3 last:border-b-0 last:pb-0">
-                  <div className="flex justify-between items-center">
-                    <Label htmlFor={`water-${tank.id}`} className="font-body font-medium">
-                      {tank.name} ({tank.capacityLiters}L - {tank.type})
-                    </Label>
-                     <span className="text-sm font-body text-muted-foreground">
-                        {waterTankLevels[tank.id] || 0}% ({((tank.capacityLiters * (waterTankLevels[tank.id] || 0)) / 100).toFixed(1)} kg)
-                     </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                      <Input
-                          id={`water-${tank.id}`}
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={waterTankLevels[tank.id] || 0}
-                          onChange={(e) => onUpdateWaterTankLevel(tank.id, parseInt(e.target.value, 10) || 0)}
-                          className="font-body h-8 w-20 text-sm"
-                          disabled={isFormDisabled}
-                      />
-                      <Slider
-                          value={[waterTankLevels[tank.id] || 0]}
-                          onValueChange={(value) => onUpdateWaterTankLevel(tank.id, value[0])}
-                          max={100}
-                          step={5}
-                          className="flex-grow"
-                          disabled={isFormDisabled}
-                      />
-                  </div>
-                  <p className="text-xs text-muted-foreground font-body">
-                    Position: {tank.longitudinalPosition} / {tank.lateralPosition}
-                    {tank.distanceFromAxleCenterMm !== null && typeof tank.distanceFromAxleCenterMm === 'number' && ` (${tank.distanceFromAxleCenterMm > 0 ? '+' : ''}${tank.distanceFromAxleCenterMm}mm from axle)`}
-                  </p>
-                </div>
-              ))}
-              <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-700 text-xs mt-2">
-                <Droplet className="h-4 w-4 text-blue-600" />
-                <AlertTitle className="font-headline text-blue-700">Note</AlertTitle>
-                <AlertDescription className="font-body">
-                  Water weight is calculated at 1kg per liter. Fill levels are saved per caravan.
-                  Current towball mass estimation includes water weight simply as 10% of total payload, but does not yet account for precise tank locations for towball mass.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-            <CardFooter className="pt-2 pb-4 justify-center">
-              <p className="font-body text-base text-muted-foreground">Total Water Weight: {totalWaterWeight.toFixed(1)} kg</p>
-            </CardFooter>
-          </Card>
-        )}
-
-        {capacityTrackedLocations.length > 0 && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="font-headline flex items-center">
-                <Archive className="mr-2 h-5 w-5 text-primary" />
-                Storage Location Load Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
-              {capacityTrackedLocations.map(loc => {
-                const currentWeightInLoc = locationWeights.get(loc.id) || 0;
-                const maxCapacity = loc.maxWeightCapacityKg!; // We filtered for this earlier
-                const percentage = maxCapacity > 0 ? Math.min((currentWeightInLoc / maxCapacity) * 100, 100) : 0; 
-                const isOverloaded = currentWeightInLoc > maxCapacity;
-
-                return (
-                  <Card key={loc.id} className={`shadow-sm ${isOverloaded ? 'border-destructive bg-destructive/10' : ''}`}>
-                    <CardHeader className="pb-2 pt-4">
-                      <CardTitle className="text-base font-body font-semibold flex items-center">
-                        {loc.type === 'caravan' ? <HomeIcon className="w-4 h-4 mr-2 text-primary/80" /> : <Car className="w-4 h-4 mr-2 text-primary/80" />}
-                        {loc.name}
-                      </CardTitle>
-                      <CardDescription className="text-xs font-body">{loc.details}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-1 text-sm font-body pb-4">
-                      <p>
-                        Load: {currentWeightInLoc.toFixed(1)}kg / {maxCapacity.toFixed(0)}kg
-                      </p>
-                      <Progress value={percentage} className={`${isOverloaded ? '[&>div]:bg-destructive': ''} h-2`} />
-                      <p className={`text-xs ${isOverloaded ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
-                        {percentage.toFixed(0)}% full
-                        {isOverloaded && ` - OVERLOADED by ${(currentWeightInLoc - maxCapacity).toFixed(1)}kg!`}
-                      </p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </CardContent>
-             {capacityTrackedLocations.length === 0 && activeCaravanId && (
-                <CardContent><p className="text-sm text-muted-foreground text-center font-body">No storage locations with defined capacities found for active caravan/vehicle.</p></CardContent>
-            )}
-          </Card>
-        )}
-         {activeCaravanId && activeCaravanStorageLocations && activeCaravanStorageLocations.length > 0 && totalCaravanStorageCapacity > 0 && (
-          <Alert variant="default" className="mt-6 bg-secondary/20 border-secondary/40">
-            <PackagePlus className="h-4 w-4 text-foreground" />
-            <AlertTitle className="font-headline text-foreground">Caravan Payload & Storage Advisory</AlertTitle>
-            <AlertDescription className="font-body text-muted-foreground space-y-1">
-              <p>Total Available Payload for Caravan Inventory (ATM - Tare - Water): <strong>{totalAvailablePayloadForInventory.toFixed(1)} kg</strong>.</p>
-              <p>Combined Max Capacity of Your Caravan's Defined Storage Locations: <strong>{totalCaravanStorageCapacity.toFixed(1)} kg</strong>.</p>
-              {totalCaravanStorageCapacity > totalAvailablePayloadForInventory && (
-                <p className="text-destructive font-semibold">
-                  Warning: Your defined storage location capacities exceed your caravan's actual available payload for items. You cannot fill all locations to their maximum.
-                </p>
-              )}
-              {totalCaravanStorageCapacity <= 0 && activeCaravanStorageLocations.length > 0 && (
-                 <p>Define max weight capacities for your caravan's storage locations in the 'Vehicles' section to see combined capacity here.</p>
-              )}
-            </AlertDescription>
-          </Alert>
-        )}
-
+          <Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Qty</TableHead><TableHead>Total Wt.</TableHead><TableHead>Location</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+            <TableBody>{items.map(item => (<TableRow key={item.id}><TableCell>{item.name}</TableCell><TableCell>{item.quantity}</TableCell><TableCell>{(item.weight * item.quantity).toFixed(1)}kg</TableCell><TableCell>{getLocationNameById(item.locationId)}</TableCell><TableCell><Button variant="ghost" size="icon" onClick={() => handleEditItem(item)}><Edit3 className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell></TableRow>))}</TableBody>
+             <TableCaption>Total Inventory Weight: {totalInventoryWeight.toFixed(1)} kg</TableCaption>
+          </Table>)}
+        
+        {activeCaravan?.waterTanks && activeCaravan.waterTanks.length > 0 && (
+          <Card><CardHeader><CardTitle className="font-headline flex items-center"><Droplet className="mr-2 h-5 w-5 text-primary" />Water Tank Status</CardTitle></CardHeader>
+            <CardContent className="pt-4 space-y-4">{activeCaravan.waterTanks.map(tank => (<div key={tank.id}><div className="flex justify-between items-center"><Label htmlFor={`water-${tank.id}`}>{tank.name} ({tank.capacityLiters}L - {tank.type})</Label><span className="text-sm">{(waterTankLevels[tank.id] || 0)}% ({((tank.capacityLiters * (waterTankLevels[tank.id] || 0)) / 100).toFixed(1)} kg)</span></div><div className="flex items-center gap-2"><Input id={`water-${tank.id}`} type="number" min="0" max="100" value={waterTankLevels[tank.id] || 0} onChange={(e) => handleUpdateWaterTankLevel(tank.id, parseInt(e.target.value, 10))} className="h-8 w-20" disabled={preferencesMutation.isPending}/><Slider value={[waterTankLevels[tank.id] || 0]} onValueChange={(v) => handleUpdateWaterTankLevel(tank.id, v[0])} max={100} step={5} disabled={preferencesMutation.isPending}/></div></div>))}
+            </CardContent><CardFooter><p>Total Water Weight: {totalWaterWeight.toFixed(1)} kg</p></CardFooter></Card>)}
 
         <div className="space-y-4 pt-4">
-          <h3 className="text-xl font-headline text-foreground">Weight Summary &amp; Compliance</h3>
-          
-          <Alert variant="default" className="mb-4 bg-yellow-50 border-yellow-300 text-yellow-700">
-            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-            <AlertTitle className="font-headline text-yellow-700">Important Weighbridge Notice</AlertTitle>
-            <AlertDescription className="font-body">
-              Always verify weights at a certified weighbridge. This application provides estimates only and should not be relied upon for legal compliance or absolute safety. Towball mass is estimated at 10% of combined inventory and water payload.
-            </AlertDescription>
-          </Alert>
-
+          <h3 className="text-xl font-headline">Weight Summary &amp; Compliance</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="font-headline text-lg flex items-center"><HomeIcon className="mr-2 h-5 w-5 text-primary"/>Caravan Compliance</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Alert variant={getAlertStylingVariant(currentCaravanMass, atmLimit)} className={currentCaravanMass > atmLimit ? '' : 'bg-background'}>
-                  <AlertTitle className="font-headline">ATM Status: {currentCaravanMass.toFixed(1)}kg / {atmLimit > 0 ? atmLimit.toFixed(0) : 'N/A'}kg</AlertTitle>
-                  <AlertDescription className="font-body">
-                    {atmLimit > 0 ? ( <> Remaining Payload (ATM): {remainingPayloadATM.toFixed(1)} kg.
-                      {currentCaravanMass > atmLimit ? <span className="font-semibold text-destructive"> OVER LIMIT!</span> : currentCaravanMass > atmLimit * 0.9 ? " Nearing limit." : ""} </>
-                    ) : "ATM not specified."}
-                  </AlertDescription>
-                </Alert>
-
-                {gtmLimit > 0 && (
-                  <Alert variant={getAlertStylingVariant(currentLoadOnAxles, gtmLimit)} className={currentLoadOnAxles > gtmLimit ? '' : 'bg-background'}>
-                      <AlertTitle className="font-headline">GTM Status: {currentLoadOnAxles.toFixed(1)}kg / {gtmLimit.toFixed(0)}kg</AlertTitle>
-                      <AlertDescription className="font-body">
-                      Remaining Payload (GTM): {remainingPayloadGTM.toFixed(1)} kg.
-                      {currentLoadOnAxles > gtmLimit ? <span className="font-semibold text-destructive"> OVER LIMIT!</span> : currentLoadOnAxles > gtmLimit * 0.9 ? " Nearing limit." : ""}
-                      </AlertDescription>
-                  </Alert>
-                )}
-                
-                {caravanMaxTowballDownloadLimit > 0 && (
-                  <Alert variant={getAlertStylingVariant(estimatedTowballDownload, caravanMaxTowballDownloadLimit)} className={estimatedTowballDownload > caravanMaxTowballDownloadLimit ? '' : 'bg-background'}>
-                      <AlertTitle className="font-headline">Est. Towball (Caravan Limit): {estimatedTowballDownload.toFixed(1)}kg / {caravanMaxTowballDownloadLimit.toFixed(0)}kg</AlertTitle>
-                      <AlertDescription className="font-body">
-                        Remaining Capacity: {(caravanMaxTowballDownloadLimit - estimatedTowballDownload).toFixed(1)} kg.
-                        {estimatedTowballDownload > caravanMaxTowballDownloadLimit ? <span className="font-semibold text-destructive"> OVER CARAVAN LIMIT!</span> : ""}
-                      </AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
-
-            {activeTowVehicleSpecs && activeTowVehicleSpecs.make && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="font-headline text-lg flex items-center"><Car className="mr-2 h-5 w-5 text-primary"/>Tow Vehicle Compliance</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {vehicleMaxTowCapacity > 0 && (
-                    <Alert variant={isOverMaxTowCapacity ? "destructive" : "default"}  className={isOverMaxTowCapacity ? '' : 'bg-background'}>
-                      <AlertTitle className="font-headline">Max Tow Capacity: {currentCaravanMass.toFixed(1)}kg / {vehicleMaxTowCapacity.toFixed(0)}kg</AlertTitle>
-                      <AlertDescription className="font-body">
-                        {isOverMaxTowCapacity ? <span className="font-semibold text-destructive">Caravan OVER vehicle's tow capacity! DANGEROUS!</span> : `Caravan weight is within vehicle's tow capacity.`}
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  {vehicleMaxTowballMass > 0 && (
-                    <Alert variant={isOverVehicleMaxTowball ? "destructive" : "default"} className={isOverVehicleMaxTowball ? '' : 'bg-background'}>
-                      <AlertTitle className="font-headline">Est. Towball (Vehicle Limit): {estimatedTowballDownload.toFixed(1)}kg / {vehicleMaxTowballMass.toFixed(0)}kg</AlertTitle>
-                      <AlertDescription className="font-body">
-                        {isOverVehicleMaxTowball ? <span className="font-semibold text-destructive">Towball OVER vehicle's limit!</span> : `Towball weight within vehicle's limit.`}
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  {vehicleGCM > 0 && vehicleGVM > 0 && (
-                     <Alert variant={isPotentialGCMOverLimit ? "destructive" : "default"} className={isPotentialGCMOverLimit ? '' : 'bg-background'}>
-                        <AlertTitle className="font-headline">GCM Advisory</AlertTitle>
-                        <AlertDescription className="font-body">
-                            Potential GCM: {potentialGCM.toFixed(1)}kg (Caravan Mass + Vehicle GVM Limit) vs GCM Limit: {vehicleGCM.toFixed(0)}kg.
-                            {isPotentialGCMOverLimit ? <span className="font-semibold text-destructive"> POTENTIAL GCM OVERLOAD! Verify actual vehicle weight.</span> : " GCM likely okay if vehicle not overloaded."}
-                            <br/><small className="italic">Note: This GCM check is an advisory. It assumes your tow vehicle is loaded to its GVM limit. Always confirm total combined mass at a weighbridge.</small>
-                        </AlertDescription>
-                    </Alert>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {activeWdhSpecs && activeWdhSpecs.name && (
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="font-headline text-lg flex items-center"><Link2Icon className="mr-2 h-5 w-5 text-primary"/>WDH Compatibility</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        <Alert variant="default" className="bg-background">
-                            <AlertTitle className="font-headline">Active WDH: {activeWdhSpecs.name}</AlertTitle>
-                            <AlertDescription className="font-body">
-                                Type: {activeWdhSpecs.type} <br />
-                                Max Towball Capacity: {wdhMaxCapacity > 0 ? `${wdhMaxCapacity}kg` : 'N/A'} <br />
-                                {wdhMinCapacity !== null && wdhMinCapacity > 0 && `Min Towball Capacity: ${wdhMinCapacity}kg`} <br />
-                                Integrated Sway Control: {activeWdhSpecs.hasIntegratedSwayControl ? 'Yes' : 'No'}
-                                {activeWdhSpecs.swayControlType && !activeWdhSpecs.hasIntegratedSwayControl && <><br/>Separate Sway Control: {activeWdhSpecs.swayControlType}</>}
-                                {activeWdhSpecs.notes && (
-                                  <div className="mt-1 pt-1 border-t border-muted-foreground/20">
-                                    <p className="text-xs flex items-start"><StickyNote className="w-3 h-3 mr-1.5 mt-0.5 text-muted-foreground"/><strong>Notes:</strong> <span className="italic whitespace-pre-wrap">{activeWdhSpecs.notes}</span></p>
-                                  </div>
-                                )}
-                            </AlertDescription>
-                        </Alert>
-                        {wdhMaxCapacity > 0 && (
-                            <Alert variant={getAlertStylingVariant(estimatedTowballDownload, wdhMaxCapacity)} className={isTowballOverWdhMax ? '' : 'bg-background'}>
-                                <AlertTitle className="font-headline">WDH Max Capacity Check</AlertTitle>
-                                <AlertDescription className="font-body">
-                                    Est. Towball Download ({estimatedTowballDownload.toFixed(1)}kg) vs WDH Max Capacity ({wdhMaxCapacity}kg).
-                                    {isTowballOverWdhMax ? <span className="font-semibold text-destructive"> Estimated towball OVER WDH max capacity!</span> : " WDH capacity is sufficient."}
-                                </AlertDescription>
-                            </Alert>
-                        )}
-                        {wdhMinCapacity !== null && wdhMinCapacity > 0 && (
-                             <Alert variant={getAlertStylingVariant(estimatedTowballDownload, wdhMinCapacity, isTowballUnderWdhMin)} className={isTowballUnderWdhMin ? '' : 'bg-background'}>
-                                <AlertTitle className="font-headline">WDH Min Capacity Check</AlertTitle>
-                                <AlertDescription className="font-body">
-                                    Est. Towball Download ({estimatedTowballDownload.toFixed(1)}kg) vs WDH Min Capacity ({wdhMinCapacity}kg).
-                                    {isTowballUnderWdhMin ? <span className="font-semibold text-destructive"> Estimated towball BELOW WDH min capacity! May not perform optimally.</span> : " WDH operating range okay."}
-                                </AlertDescription>
-                            </Alert>
-                        )}
-                    </CardContent>
-                </Card>
-            )}
+            <Card><CardHeader><CardTitle>Caravan Compliance</CardTitle></CardHeader><CardContent><Alert variant={getAlertStylingVariant(currentCaravanMass, atmLimit)}><AlertTitle>ATM: {currentCaravanMass.toFixed(1)}kg / {atmLimit > 0 ? atmLimit.toFixed(0) : 'N/A'}kg</AlertTitle><AlertDescription>Remaining: {remainingPayloadATM.toFixed(1)} kg</AlertDescription></Alert></CardContent></Card>
+            {activeVehicle && (<Card><CardHeader><CardTitle>Vehicle Compliance</CardTitle></CardHeader><CardContent><Alert variant={isOverMaxTowCapacity ? 'destructive' : 'default'}><AlertTitle>Max Tow: {currentCaravanMass.toFixed(1)}kg / {vehicleMaxTowCapacity.toFixed(0)}kg</AlertTitle><AlertDescription>{isOverMaxTowCapacity ? 'OVER LIMIT!' : 'OK'}</AlertDescription></Alert></CardContent></Card>)}
+            {activeWdh && (<Card><CardHeader><CardTitle>WDH Compatibility</CardTitle></CardHeader><CardContent><Alert variant={isTowballOverWdhMax ? 'destructive' : 'default'}><AlertTitle>WDH Max: {estimatedTowballDownload.toFixed(1)}kg / {wdhMaxCapacity}kg</AlertTitle><AlertDescription>{isTowballOverWdhMax ? 'OVER LIMIT!' : 'OK'}</AlertDescription></Alert></CardContent></Card>)}
           </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 my-6">
-            <div className="flex flex-col items-center p-3 border rounded-lg shadow-sm bg-card">
-              <ResponsiveContainer width="100%" height={150}>
-                <PieChart>
-                  <Pie
-                    data={atmChart.data}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={60}
-                    innerRadius={40}
-                    fill="#8884d8"
-                    dataKey="value"
-                    stroke="hsl(var(--background))" 
-                    strokeWidth={2}
-                  >
-                    {atmChart.data.map((entry, index) => (
-                      <Cell key={`cell-atm-${index}`} fill={atmChart.colors[index % atmChart.colors.length]} />
-                    ))}
-                     <RechartsLabel 
-                        content={<DonutChartCustomLabel name="Caravan ATM" value={currentCaravanMass} limit={atmLimit} unit="kg" />} 
-                        position="center" 
-                    />
-                  </Pie>
-                  <Tooltip formatter={(value: number, name: string) => [`${formatTooltipValue(value)} kg`, name.startsWith("N/A") ? "Limit N/A" : name]} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="flex flex-col items-center p-3 border rounded-lg shadow-sm bg-card">
-              <ResponsiveContainer width="100%" height={150}>
-                <PieChart>
-                  <Pie
-                    data={gtmChart.data}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={60}
-                    innerRadius={40}
-                    fill="#8884d8"
-                    dataKey="value"
-                    stroke="hsl(var(--background))"
-                    strokeWidth={2}
-                  >
-                    {gtmChart.data.map((entry, index) => (
-                      <Cell key={`cell-gtm-${index}`} fill={gtmChart.colors[index % gtmChart.colors.length]} />
-                    ))}
-                    <RechartsLabel 
-                        content={<DonutChartCustomLabel name="Caravan GTM" value={currentLoadOnAxles} limit={gtmLimit} unit="kg" />} 
-                        position="center" 
-                    />
-                  </Pie>
-                  <Tooltip formatter={(value: number, name: string) => [`${formatTooltipValue(value)} kg`, name.startsWith("N/A") ? "Limit N/A" : name]} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="flex flex-col items-center p-3 border rounded-lg shadow-sm bg-card">
-              <ResponsiveContainer width="100%" height={150}>
-                <PieChart>
-                  <Pie
-                    data={towballChart.data}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={60}
-                    innerRadius={40}
-                    fill="#8884d8"
-                    dataKey="value"
-                    stroke="hsl(var(--background))"
-                    strokeWidth={2}
-                  >
-                    {towballChart.data.map((entry, index) => (
-                      <Cell key={`cell-towball-${index}`} fill={towballChart.colors[index % towballChart.colors.length]} />
-                    ))}
-                     <RechartsLabel 
-                        content={<DonutChartCustomLabel name="Est. Towball" value={estimatedTowballDownload} limit={caravanMaxTowballDownloadLimit} unit="kg" />} 
-                        position="center" 
-                    />
-                  </Pie>
-                  <Tooltip formatter={(value: number, name: string) => [`${formatTooltipValue(value)} kg`, name.startsWith("N/A") ? "Limit N/A" : name]} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={150}><PieChart><Pie data={atmChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={60} innerRadius={40} dataKey="value" stroke="hsl(var(--background))">{atmChart.data.map((_, i) => (<Cell key={`cell-atm-${i}`} fill={atmChart.colors[i % atmChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="ATM" value={currentCaravanMass} limit={atmLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
+            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={150}><PieChart><Pie data={gtmChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={60} innerRadius={40} dataKey="value" stroke="hsl(var(--background))">{gtmChart.data.map((_, i) => (<Cell key={`cell-gtm-${i}`} fill={gtmChart.colors[i % gtmChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="GTM" value={currentLoadOnAxles} limit={gtmLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
+            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={150}><PieChart><Pie data={towballChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={60} innerRadius={40} dataKey="value" stroke="hsl(var(--background))">{towballChart.data.map((_, i) => (<Cell key={`cell-towball-${i}`} fill={towballChart.colors[i % towballChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Est. Towball" value={estimatedTowballDownload} limit={caravanMaxTowballDownloadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
           </div>
         </div>
-
       </CardContent>
-      <CardFooter className="flex flex-col items-start text-sm pt-4">
-        <div className="text-muted-foreground font-body space-y-2 w-full">
-           <div className="pb-2 mb-2 border-b">
-            <h4 className="font-semibold text-foreground">Active Caravan ({caravanSpecs.make || 'N/A'} {caravanSpecs.model || ''}):</h4>
-            <p><strong>Tare Mass:</strong> { (tareMass > 0) ? `${tareMass.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Base empty weight)</span></p>
-            <p><strong>Inventory Items Weight:</strong> {totalInventoryWeight.toFixed(1)}kg</p>
-            <p><strong>Water Weight:</strong> {totalWaterWeight.toFixed(1)}kg</p>
-            <p><strong>Calculated Current Caravan Mass:</strong> {currentCaravanMass.toFixed(1)}kg <span className="text-xs italic">(Tare + Inventory + Water)</span></p>
-            <p><strong>ATM (Aggregate Trailer Mass):</strong> { (atmLimit > 0) ? `${atmLimit.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max loaded, uncoupled)</span></p>
-            <p><strong>GTM (Gross Trailer Mass):</strong> { (gtmLimit > 0) ? `${gtmLimit.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max on axles, coupled)</span></p>
-            <p><strong>Caravan Max Towball:</strong> { (caravanMaxTowballDownloadLimit > 0) ? `${caravanMaxTowballDownloadLimit.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max downward force on towbar by caravan)</span></p>
-            <p><strong>Number of Axles:</strong> {caravanSpecs.numberOfAxles ? caravanSpecs.numberOfAxles : 'N/A'}</p>
-           </div>
-           {activeTowVehicleSpecs && activeTowVehicleSpecs.make && (
-            <div className="pb-2 mb-2 border-b">
-                <h4 className="font-semibold text-foreground">Active Tow Vehicle ({activeTowVehicleSpecs.make} {activeTowVehicleSpecs.model}):</h4>
-                {activeTowVehicleSpecs.kerbWeight > 0 && <p><strong>Kerb Weight:</strong> {activeTowVehicleSpecs.kerbWeight.toFixed(0)}kg <span className="text-xs italic">(Empty vehicle weight)</span></p>}
-                <p><strong>GVM (Gross Vehicle Mass Limit):</strong> {vehicleGVM > 0 ? `${vehicleGVM.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max loaded weight of vehicle itself)</span></p>
-                {activeTowVehicleSpecs.frontAxleLimit > 0 && <p><strong>Front Axle Limit:</strong> {activeTowVehicleSpecs.frontAxleLimit.toFixed(0)}kg</p>}
-                {activeTowVehicleSpecs.rearAxleLimit > 0 && <p><strong>Rear Axle Limit:</strong> {activeTowVehicleSpecs.rearAxleLimit.toFixed(0)}kg</p>}
-                <p><strong>Max Towing Capacity:</strong> {vehicleMaxTowCapacity > 0 ? `${vehicleMaxTowCapacity.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max caravan ATM vehicle can tow)</span></p>
-                <p><strong>Max Towball Mass (Vehicle):</strong> {vehicleMaxTowballMass > 0 ? `${vehicleMaxTowballMass.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max towball weight vehicle can handle)</span></p>
-                <p><strong>GCM (Gross Combined Mass Limit):</strong> {vehicleGCM > 0 ? `${vehicleGCM.toFixed(0)}kg` : 'N/A'} <span className="text-xs italic">(Max combined weight of loaded vehicle and loaded caravan)</span></p>
-            </div>
-           )}
-           {activeWdhSpecs && activeWdhSpecs.name && (
-             <div>
-                <h4 className="font-semibold text-foreground">Active WDH ({activeWdhSpecs.name}):</h4>
-                <p><strong>Type:</strong> {activeWdhSpecs.type}</p>
-                <p><strong>Max Towball Capacity:</strong> {wdhMaxCapacity > 0 ? `${wdhMaxCapacity}kg` : 'N/A'}</p>
-                {wdhMinCapacity !== null && wdhMinCapacity > 0 && <p><strong>Min Towball Capacity:</strong> {wdhMinCapacity}kg</p>}
-                <p><strong>Integrated Sway Control:</strong> {activeWdhSpecs.hasIntegratedSwayControl ? 'Yes' : 'No'}</p>
-                {activeWdhSpecs.swayControlType && !activeWdhSpecs.hasIntegratedSwayControl && <p><strong>Separate Sway Control:</strong> {activeWdhSpecs.swayControlType}</p>}
-                {activeWdhSpecs.notes && (
-                    <div className="mt-1 pt-1 border-t border-muted-foreground/20">
-                        <p className="text-xs flex items-start"><StickyNote className="w-3 h-3 mr-1.5 mt-0.5 text-muted-foreground"/><strong>Notes:</strong> <span className="italic whitespace-pre-wrap">{activeWdhSpecs.notes}</span></p>
-                    </div>
-                )}
-             </div>
-           )}
-        </div>
-      </CardFooter>
     </Card>
   );
 }
-
-    
-
-    
