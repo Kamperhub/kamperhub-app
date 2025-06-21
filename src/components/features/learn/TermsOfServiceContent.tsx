@@ -229,8 +229,6 @@ export function TermsOfServiceContent() {
 
         <h3 className="font-headline text-xl text-primary mt-6">2. Refund &amp; Cancellation Policy</h3>
         <p><strong className="text-foreground">Subscriptions:</strong> KamperHub subscriptions renew automatically each month unless cancelled.</p>
-        <p><strong className="text-foreground">Free Trial:</strong> Users may cancel during the 3-day free trial without charge.</p> 
-        {/* Note: The user mentioned a 7-day trial elsewhere. This should be consistent. Assuming 7-day for now based on previous interactions. */}
         <p><strong className="text-foreground">Refunds:</strong></p>
         <ul className="list-disc pl-5 space-y-1">
           <li>Refunds are not guaranteed once a billing period has started.</li>
@@ -291,7 +289,7 @@ export function TermsOfServiceContent() {
           <li>Support screen readers and mobile accessibility features</li>
           <li>Continually improve our app with feedback from users</li>
         </ul>
-        <p>For accessibility support, email: info@kamperhub.com</p>
+        <p>For accessibility support, email: accessibility@kamperhub.com</p>
 
         <h3 className="font-headline text-xl text-primary mt-6">8. Beta Testing Agreement (If Applicable)</h3>
         <p>Users participating in beta testing agree to:</p>
