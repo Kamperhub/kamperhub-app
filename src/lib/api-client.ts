@@ -13,6 +13,7 @@ import type { UserProfile } from '@/types/auth';
 async function getAuthToken(): Promise<string> {
   const user = auth.currentUser;
   if (!user) {
+    // This will be caught by react-query's error handling if a query is enabled without a user.
     throw new Error('User not authenticated. Cannot make API call.');
   }
   return user.getIdToken(true);
@@ -31,7 +32,9 @@ async function apiFetch(url: string, options: RequestInit = {}) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ error: `Request failed with status ${response.status}` }));
-    throw new Error(errorData.error || `Request failed with status ${response.status}`);
+    // Try to get more detailed error from server response
+    const errorMessage = errorData.error || errorData.details || `Request failed with status ${response.status}`;
+    throw new Error(errorMessage);
   }
 
   // Handle cases where response might be empty (e.g., DELETE 204 No Content)

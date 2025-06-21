@@ -1,13 +1,9 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { StoredCaravan, CaravanFormData, StorageLocation, WaterTank } from '@/types/caravan';
-import { CARAVANS_STORAGE_KEY, ACTIVE_CARAVAN_ID_KEY, WATER_TANK_LEVELS_STORAGE_KEY_PREFIX } from '@/types/caravan';
-import type { StoredWDH } from '@/types/wdh';
-import { WDHS_STORAGE_KEY, ACTIVE_WDH_ID_KEY } from '@/types/wdh';
-import type { CaravanInventories } from '@/types/inventory';
-import { INVENTORY_STORAGE_KEY } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -15,19 +11,33 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { CaravanForm } from './CaravanForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Settings2, Link2 as LinkIcon, Ruler, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Droplet, Weight, Axe } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, Link2 as LinkIcon, Ruler, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Droplet, Weight, Axe, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { 
+  fetchCaravans, 
+  createCaravan, 
+  updateCaravan, 
+  deleteCaravan,
+  fetchWdhs,
+  fetchUserPreferences,
+  updateUserPreferences
+} from '@/lib/api-client';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import type { UserProfile } from '@/types/auth';
+import type { StoredWDH } from '@/types/wdh';
+import { useSubscription } from '@/hooks/useSubscription';
 
 export function CaravanManager() {
   const { toast } = useToast();
-  const [caravans, setCaravans] = useState<StoredCaravan[]>([]);
-  const [activeCaravanId, setActiveCaravanId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { hasProAccess } = useSubscription();
+
+  const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCaravan, setEditingCaravan] = useState<StoredCaravan | null>(null);
-  const [hasMounted, setHasMounted] = useState(false);
-  const [allWdhs, setAllWdhs] = useState<StoredWDH[]>([]);
   const [deleteDialogState, setDeleteDialogState] = useState<{ isOpen: boolean; caravanId: string | null; caravanName: string | null; confirmationText: string }>({
     isOpen: false,
     caravanId: null,
@@ -36,171 +46,114 @@ export function CaravanManager() {
   });
 
   useEffect(() => {
-    setHasMounted(true);
-    if (typeof window !== 'undefined') {
-      const storedWdhs = localStorage.getItem(WDHS_STORAGE_KEY);
-      if (storedWdhs) {
-        setAllWdhs(JSON.parse(storedWdhs));
-      }
-    }
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        setUser(currentUser);
+    });
+    return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (hasMounted) {
-      try {
-        const storedCaravans = localStorage.getItem(CARAVANS_STORAGE_KEY);
-        if (storedCaravans) {
-          const parsedCaravans: StoredCaravan[] = JSON.parse(storedCaravans);
-          const sanitizedCaravans = parsedCaravans.map(c => ({
-            ...c,
-            storageLocations: Array.isArray(c.storageLocations) ? c.storageLocations : [],
-            waterTanks: Array.isArray(c.waterTanks) ? c.waterTanks : [],
-          }));
-          setCaravans(sanitizedCaravans);
-        }
-        const storedActiveId = localStorage.getItem(ACTIVE_CARAVAN_ID_KEY);
-        if (storedActiveId) setActiveCaravanId(storedActiveId);
-      } catch (error) {
-        console.error("Error loading caravan data from localStorage:", error);
-        toast({ title: "Error Loading Caravans", variant: "destructive" });
-      }
-    }
-  }, [hasMounted, toast]);
+  const { data: caravans = [], isLoading: isLoadingCaravans, error: caravansError } = useQuery<StoredCaravan[]>({
+    queryKey: ['caravans', user?.uid],
+    queryFn: fetchCaravans,
+    enabled: !!user,
+  });
 
-  const saveCaravansToStorage = useCallback((updatedCaravans: StoredCaravan[]) => {
-     if (!hasMounted || typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(CARAVANS_STORAGE_KEY, JSON.stringify(updatedCaravans));
-    } catch (error) {
-      toast({ title: "Error Saving Caravans", variant: "destructive" });
-    }
-  }, [toast, hasMounted]);
+  const { data: allWdhs = [] } = useQuery<StoredWDH[]>({
+    queryKey: ['wdhs', user?.uid],
+    queryFn: fetchWdhs,
+    enabled: !!user,
+  });
 
-  const saveActiveCaravanIdToStorage = useCallback((id: string | null) => {
-     if (!hasMounted || typeof window === 'undefined') return;
-    try {
-      if (id) {
-        localStorage.setItem(ACTIVE_CARAVAN_ID_KEY, id);
-      } else {
-        localStorage.removeItem(ACTIVE_CARAVAN_ID_KEY);
-      }
-    } catch (error) {
-      toast({ title: "Error Saving Active Caravan Selection", variant: "destructive" });
-    }
-  }, [toast, hasMounted]);
+  const { data: userPrefs, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
+    queryKey: ['userPreferences', user?.uid],
+    queryFn: fetchUserPreferences,
+    enabled: !!user,
+  });
 
-  const saveActiveWdhIdToStorage = useCallback((id: string | null) => {
-    if (!hasMounted || typeof window === 'undefined') return;
-    try {
-      if (id) {
-        localStorage.setItem(ACTIVE_WDH_ID_KEY, id);
-      } else {
-        localStorage.removeItem(ACTIVE_WDH_ID_KEY);
+  const activeCaravanId = userPrefs?.activeCaravanId;
+  const isLoading = isLoadingCaravans || isLoadingPrefs;
+  const queryError = caravansError || prefsError;
+
+  const saveCaravanMutation = useMutation({
+    mutationFn: (caravanData: CaravanFormData | StoredCaravan) => {
+      const dataToSend = editingCaravan ? { ...editingCaravan, ...caravanData } : caravanData;
+      return 'id' in dataToSend && dataToSend.id ? updateCaravan(dataToSend as StoredCaravan) : createCaravan(dataToSend as CaravanFormData);
+    },
+    onSuccess: (savedCaravan) => {
+      queryClient.invalidateQueries({ queryKey: ['caravans', user?.uid] });
+      toast({
+        title: editingCaravan ? "Caravan Updated" : "Caravan Added",
+        description: `${savedCaravan.make} ${savedCaravan.model} has been saved.`,
+      });
+      setIsFormOpen(false);
+      setEditingCaravan(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Save Failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteCaravanMutation = useMutation({
+    mutationFn: deleteCaravan,
+    onSuccess: (_, caravanId) => {
+      queryClient.invalidateQueries({ queryKey: ['caravans', user?.uid] });
+      // TODO: Invalidate inventory and water levels for this caravanId
+      if (activeCaravanId === caravanId) {
+        queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
       }
-    } catch (error) {
-      toast({ title: "Error Saving Active WDH Selection", variant: "destructive" });
+      toast({ title: "Caravan Deleted" });
+      setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Delete Failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const setActiveCaravanMutation = useMutation({
+    mutationFn: (caravanId: string) => {
+      const caravan = caravans.find(c => c.id === caravanId);
+      const associatedWdhId = caravan?.associatedWdhId || null;
+      return updateUserPreferences({ activeCaravanId: caravanId, activeWdhId: associatedWdhId });
+    },
+    onSuccess: (_, caravanId) => {
+      queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
+      const caravan = caravans.find(c => c.id === caravanId);
+      let toastMessage = `${caravan?.make} ${caravan?.model} is now active.`;
+       if (caravan?.associatedWdhId) {
+          toastMessage += ` Associated WDH activated.`;
+       } else {
+          toastMessage += ` No WDH associated.`
+       }
+      toast({ title: "Active Caravan Set", description: toastMessage });
+    },
+    onError: (error: Error) => {
+       toast({ title: "Update Failed", description: error.message, variant: "destructive" });
     }
-  }, [toast, hasMounted]);
+  });
 
   const handleSaveCaravan = (data: CaravanFormData) => {
-    let updatedCaravans;
-    const caravanDataToSave: StoredCaravan = {
-      ...data,
-      id: editingCaravan ? editingCaravan.id : Date.now().toString(),
-      storageLocations: data.storageLocations || [],
-      waterTanks: data.waterTanks || [],
-    };
-
-    if (editingCaravan) {
-      updatedCaravans = caravans.map(c => c.id === editingCaravan.id ? caravanDataToSave : c);
-      toast({ title: "Caravan Updated", description: `${data.make} ${data.model} updated.` });
-    } else {
-      updatedCaravans = [...caravans, caravanDataToSave];
-      toast({ title: "Caravan Added", description: `${data.make} ${data.model} added.` });
-    }
-    setCaravans(updatedCaravans);
-    saveCaravansToStorage(updatedCaravans);
-    setIsFormOpen(false);
-    setEditingCaravan(null);
+    saveCaravanMutation.mutate(data);
   };
 
   const handleEditCaravan = (caravan: StoredCaravan) => {
-    setEditingCaravan({
-        ...caravan,
-        storageLocations: caravan.storageLocations || [],
-        waterTanks: caravan.waterTanks || [],
-    });
+    setEditingCaravan(caravan);
     setIsFormOpen(true);
   };
 
   const handleDeleteCaravan = (id: string, name: string) => {
     setDeleteDialogState({ isOpen: true, caravanId: id, caravanName: name, confirmationText: '' });
   };
-
+  
   const confirmDeleteCaravan = () => {
-    if (!deleteDialogState.caravanId || deleteDialogState.confirmationText !== "DELETE") {
-        setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' });
-        return;
+    if (deleteDialogState.caravanId && deleteDialogState.confirmationText === "DELETE") {
+      deleteCaravanMutation.mutate(deleteDialogState.caravanId);
+    } else {
+       setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' });
     }
-
-    const idToDelete = deleteDialogState.caravanId;
-
-    if (!hasMounted || typeof window === 'undefined') return;
-
-    const updatedCaravans = caravans.filter(c => c.id !== idToDelete);
-    setCaravans(updatedCaravans);
-    saveCaravansToStorage(updatedCaravans);
-
-    try {
-      const allInventoriesJson = localStorage.getItem(INVENTORY_STORAGE_KEY);
-      if (allInventoriesJson) {
-        const allInventories: CaravanInventories = JSON.parse(allInventoriesJson);
-        if (allInventories[idToDelete]) {
-          delete allInventories[idToDelete];
-          localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(allInventories));
-        }
-      }
-    } catch (error) {
-      console.error("Error deleting caravan inventory from localStorage:", error);
-      toast({ title: "Error Deleting Inventory", description: "Could not remove associated inventory data.", variant: "destructive" });
-    }
-
-    try {
-      localStorage.removeItem(`${WATER_TANK_LEVELS_STORAGE_KEY_PREFIX}${idToDelete}`);
-    } catch (error) {
-      console.error("Error deleting caravan water tank levels from localStorage:", error);
-      toast({ title: "Error Deleting Water Levels", description: "Could not remove associated water tank level data.", variant: "destructive" });
-    }
-
-    if (activeCaravanId === idToDelete) {
-      setActiveCaravanId(null);
-      saveActiveCaravanIdToStorage(null);
-      saveActiveWdhIdToStorage(null);
-    }
-    toast({ title: "Caravan Deleted", description: `${deleteDialogState.caravanName} and its associated inventory/water levels data have been removed. Trip-specific checklists remain.` });
-    setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' });
   };
 
   const handleSetActiveCaravan = (id: string) => {
-    setActiveCaravanId(id);
-    saveActiveCaravanIdToStorage(id);
-    const caravan = caravans.find(c => c.id === id);
-    let toastMessage = `${caravan?.make} ${caravan?.model} is now active.`;
-
-    if (caravan?.associatedWdhId) {
-      const associatedWdh = allWdhs.find(w => w.id === caravan.associatedWdhId);
-      if (associatedWdh) {
-        saveActiveWdhIdToStorage(associatedWdh.id);
-        toastMessage += ` Associated WDH '${associatedWdh.name}' also activated.`;
-      } else {
-        saveActiveWdhIdToStorage(null);
-        toastMessage += ` Associated WDH (ID: ${caravan.associatedWdhId.substring(0,6)}...) not found; no WDH activated.`;
-      }
-    } else {
-      saveActiveWdhIdToStorage(null);
-      toastMessage += ` No WDH associated with this caravan. Any previously active WDH has been cleared.`;
-    }
-    toast({ title: "Active Caravan Set", description: toastMessage });
+    setActiveCaravanMutation.mutate(id);
   };
 
   const handleOpenFormForNew = () => {
@@ -211,8 +164,7 @@ export function CaravanManager() {
   const getWdhNameById = (wdhId: string | null | undefined) => {
     if (!wdhId) return null;
     const wdh = allWdhs.find(w => w.id === wdhId);
-    if (wdh) return wdh.name;
-    return `WDH (ID: ${wdhId.substring(0,6)}...) not found`;
+    return wdh ? wdh.name : `WDH (ID not found)`;
   };
 
   const formatDimension = (value: number | null | undefined, unit: string = 'mm') => {
@@ -220,39 +172,40 @@ export function CaravanManager() {
   };
 
   const formatPositionText = (item: { longitudinalPosition: string; lateralPosition: string; }) => {
-    const longText = {
-      'front-of-axles': 'Front',
-      'over-axles': 'Over Axles',
-      'rear-of-axles': 'Rear'
-    }[item.longitudinalPosition] || item.longitudinalPosition;
-    const latText = {
-      'left': 'Left',
-      'center': 'Center',
-      'right': 'Right'
-    }[item.lateralPosition] || item.lateralPosition;
+    const longText = { 'front-of-axles': 'Front', 'over-axles': 'Over Axles', 'rear-of-axles': 'Rear' }[item.longitudinalPosition] || item.longitudinalPosition;
+    const latText = { 'left': 'Left', 'center': 'Center', 'right': 'Right' }[item.lateralPosition] || item.lateralPosition;
     return `${longText} / ${latText}`;
   };
 
-
-  if (!hasMounted) {
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle className="font-headline">Caravans</CardTitle>
-            <Skeleton className="h-9 w-[180px]" />
+            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-9 w-[190px]" />
           </div>
-          <CardDescription className="font-body">
-            Loading caravan data...
-          </CardDescription>
+          <Skeleton className="h-4 w-2/3 mt-2" />
         </CardHeader>
         <CardContent className="space-y-4">
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-20 w-full mt-4" />
+          <Skeleton className="h-24 w-full" />
         </CardContent>
       </Card>
     );
   }
+
+  if (queryError) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-destructive">Error Loading Caravans</CardTitle>
+                <CardDescription>{queryError.message}</CardDescription>
+            </CardHeader>
+        </Card>
+    );
+  }
+
+  const isAddButtonDisabled = !hasProAccess && caravans.length >= 1;
 
   return (
     <>
@@ -260,12 +213,9 @@ export function CaravanManager() {
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle className="font-headline">Caravans</CardTitle>
-            <Dialog open={isFormOpen} onOpenChange={(isOpen) => {
-              setIsFormOpen(isOpen);
-              if (!isOpen) setEditingCaravan(null);
-            }}>
+            <Dialog open={isFormOpen} onOpenChange={(isOpen) => { setIsFormOpen(isOpen); if (!isOpen) setEditingCaravan(null); }}>
               <DialogTrigger asChild>
-                <Button onClick={handleOpenFormForNew} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body">
+                <Button onClick={handleOpenFormForNew} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body" disabled={isAddButtonDisabled}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Add New Caravan
                 </Button>
               </DialogTrigger>
@@ -278,6 +228,7 @@ export function CaravanManager() {
                     initialData={editingCaravan || undefined}
                     onSave={handleSaveCaravan}
                     onCancel={() => { setIsFormOpen(false); setEditingCaravan(null); }}
+                    isLoading={saveCaravanMutation.isPending}
                   />
                 </ScrollArea>
               </DialogContent>
@@ -285,12 +236,11 @@ export function CaravanManager() {
           </div>
           <CardDescription className="font-body">
             Manage your caravans. Select one as active for inventory and planning.
+            {!hasProAccess && " (Free tier limit: 1)"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {caravans.length === 0 && hasMounted &&(
-            <p className="text-muted-foreground text-center font-body py-4">No caravans added yet. Click "Add New Caravan" to start.</p>
-          )}
+          {caravans.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No caravans added yet.</p>}
           {caravans.map(caravan => {
             const caravanGrossPayload = (typeof caravan.atm === 'number' && typeof caravan.tareMass === 'number' && caravan.atm > 0 && caravan.tareMass > 0 && caravan.atm >= caravan.tareMass) ? caravan.atm - caravan.tareMass : null;
             return (
@@ -301,42 +251,23 @@ export function CaravanManager() {
                     <div className="text-sm text-muted-foreground font-body grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 mt-1">
                       <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Tare: {caravan.tareMass}kg</span>
                       <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> ATM: {caravan.atm}kg</span>
-                      {caravanGrossPayload !== null && (
-                        <span className="flex items-center"><PackagePlus className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Payload: {caravanGrossPayload.toFixed(0)}kg</span>
-                      )}
+                      {caravanGrossPayload !== null && <span className="flex items-center"><PackagePlus className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Payload: {caravanGrossPayload.toFixed(0)}kg</span>}
                       <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> GTM: {caravan.gtm}kg</span>
                       <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Towball: {caravan.maxTowballDownload}kg</span>
                       <span className="flex items-center"><Axe className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Axles: {typeof caravan.numberOfAxles === 'number' ? caravan.numberOfAxles : 'N/A'}</span>
-                      {caravan.associatedWdhId && getWdhNameById(caravan.associatedWdhId) && (
-                         <span className="flex items-center col-span-full sm:col-span-1 md:col-span-1"><LinkIcon className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> WDH: {getWdhNameById(caravan.associatedWdhId)}</span>
-                      )}
-                      <span className="flex items-center col-span-full sm:col-span-1 md:col-span-1"><Ruler className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Overall Len: {formatDimension(caravan.overallLength)}</span>
-                      <span className="flex items-center col-span-full sm:col-span-1 md:col-span-1"><Ruler className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Body Len: {formatDimension(caravan.bodyLength)}</span>
-                      <span className="flex items-center col-span-full sm:col-span-1 md:col-span-1"><Ruler className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Height: {formatDimension(caravan.overallHeight)}</span>
-                      <span className="flex items-center col-span-full sm:col-span-1 md:col-span-1"><Ruler className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Hitch-Axle: {formatDimension(caravan.hitchToAxleCenterDistance)}</span>
-                      {Number(caravan.numberOfAxles) > 1 && caravan.interAxleSpacing && (
-                        <span className="flex items-center col-span-full sm:col-span-1 md:col-span-1"><Ruler className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Inter-Axle: {formatDimension(caravan.interAxleSpacing)}</span>
-                      )}
+                      {caravan.associatedWdhId && getWdhNameById(caravan.associatedWdhId) && <span className="flex items-center col-span-full sm:col-span-1 md:col-span-1"><LinkIcon className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> WDH: {getWdhNameById(caravan.associatedWdhId)}</span>}
                     </div>
                   </div>
-                   <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center self-start sm:self-auto flex-shrink-0 mt-2 sm:mt-0">
+                  <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center self-start sm:self-auto flex-shrink-0 mt-2 sm:mt-0">
                     {activeCaravanId !== caravan.id && (
-                      <Button variant="outline" size="sm" onClick={() => handleSetActiveCaravan(caravan.id)} className="font-body w-full sm:w-auto">
-                        <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Set Active
+                      <Button variant="outline" size="sm" onClick={() => handleSetActiveCaravan(caravan.id)} className="font-body w-full sm:w-auto" disabled={setActiveCaravanMutation.isPending}>
+                        {setActiveCaravanMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <CheckCircle className="mr-2 h-4 w-4 text-green-500" />} Set Active
                       </Button>
                     )}
-                    {activeCaravanId === caravan.id && (
-                      <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white text-xs h-8 w-full sm:w-auto flex items-center justify-center">
-                        <CheckCircle className="mr-1 h-4 w-4" /> Active
-                      </Badge>
-                    )}
+                    {activeCaravanId === caravan.id && <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white text-xs h-8 w-full sm:w-auto flex items-center justify-center"><CheckCircle className="mr-1 h-4 w-4" /> Active</Badge>}
                     <div className="flex gap-1 w-full sm:w-auto">
-                      <Button variant="ghost" size="sm" onClick={() => handleEditCaravan(caravan)} className="font-body flex-grow sm:flex-grow-0">
-                        <Edit3 className="h-4 w-4 sm:mr-1" /><span className="sm:hidden ml-1">Edit</span>
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteCaravan(caravan.id, `${caravan.year} ${caravan.make} ${caravan.model}`)} className="font-body text-destructive hover:text-destructive hover:bg-destructive/10 flex-grow sm:flex-grow-0">
-                        <Trash2 className="h-4 w-4 sm:mr-1" /><span className="sm:hidden ml-1">Delete</span>
-                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleEditCaravan(caravan)} className="font-body flex-grow sm:flex-grow-0"><Edit3 className="h-4 w-4 sm:mr-1" /><span className="sm:hidden ml-1">Edit</span></Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDeleteCaravan(caravan.id, `${caravan.year} ${caravan.make} ${caravan.model}`)} className="font-body text-destructive hover:text-destructive hover:bg-destructive/10 flex-grow sm:flex-grow-0"><Trash2 className="h-4 w-4 sm:mr-1" /><span className="sm:hidden ml-1">Delete</span></Button>
                     </div>
                   </div>
                 </div>
@@ -345,21 +276,14 @@ export function CaravanManager() {
                   <CardFooter className="p-0 pt-3 mt-3 border-t flex flex-col items-start space-y-3">
                     {caravan.storageLocations && caravan.storageLocations.length > 0 && (
                       <div className="w-full">
-                        <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center">
-                          <PackagePlus className="w-4 h-4 mr-2 text-primary"/>Storage Locations:
-                        </h4>
+                        <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center"><PackagePlus className="w-4 h-4 mr-2 text-primary"/>Storage Locations:</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
                           {caravan.storageLocations.map(loc => (
                             <div key={loc.id} className="p-3 border rounded-lg bg-card shadow-sm">
-                              <h5 className="font-semibold font-body text-base flex items-center mb-1 text-primary">
-                                <MapPin className="w-4 h-4 mr-2 text-accent" /> {loc.name}
-                              </h5>
+                              <h5 className="font-semibold font-body text-base flex items-center mb-1 text-primary"><MapPin className="w-4 h-4 mr-2 text-accent" /> {loc.name}</h5>
                               <div className="space-y-0.5 text-xs font-body text-muted-foreground">
                                 <p><strong className="text-foreground/80">Position:</strong> {formatPositionText(loc)}</p>
                                 <p><strong className="text-foreground/80">Max Capacity:</strong> {formatDimension(loc.maxWeightCapacityKg, 'kg')}</p>
-                                <p className="flex items-center"><ArrowLeftRight className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Dist. from Axle:</strong>&nbsp;{formatDimension(loc.distanceFromAxleCenterMm)}</p>
-                                <p className="flex items-center"><ArrowUpDown className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Dist. from Centerline:</strong>&nbsp;{formatDimension(loc.distanceFromCenterlineMm)}</p>
-                                <p className="flex items-center"><Ruler className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Height from Ground:</strong>&nbsp;{formatDimension(loc.heightFromGroundMm)}</p>
                               </div>
                             </div>
                           ))}
@@ -368,20 +292,15 @@ export function CaravanManager() {
                     )}
                     {caravan.waterTanks && caravan.waterTanks.length > 0 && (
                       <div className="w-full">
-                        <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center">
-                          <Droplet className="w-4 h-4 mr-2 text-primary"/>Water Tanks:
-                        </h4>
+                        <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center"><Droplet className="w-4 h-4 mr-2 text-primary"/>Water Tanks:</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
                           {caravan.waterTanks.map(tank => (
                             <div key={tank.id} className="p-3 border rounded-lg bg-card shadow-sm">
-                                <h5 className="font-semibold font-body text-base flex items-center mb-1 text-primary">
-                                    <Droplet className="w-4 h-4 mr-2 text-accent" /> {tank.name}
-                                </h5>
+                                <h5 className="font-semibold font-body text-base flex items-center mb-1 text-primary"><Droplet className="w-4 h-4 mr-2 text-accent" /> {tank.name}</h5>
                                 <div className="space-y-0.5 text-xs font-body text-muted-foreground">
                                     <p><strong className="text-foreground/80">Type:</strong> {tank.type.charAt(0).toUpperCase() + tank.type.slice(1)}</p>
                                     <p><strong className="text-foreground/80">Capacity:</strong> {tank.capacityLiters}L</p>
                                     <p><strong className="text-foreground/80">Position:</strong> {formatPositionText(tank)}</p>
-                                    <p className="flex items-center"><ArrowLeftRight className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Dist. from Axle:</strong>&nbsp;{formatDimension(tank.distanceFromAxleCenterMm)}</p>
                                 </div>
                             </div>
                           ))}
@@ -398,36 +317,16 @@ export function CaravanManager() {
 
       <Dialog open={deleteDialogState.isOpen} onOpenChange={(isOpen) => setDeleteDialogState(prev => ({ ...prev, isOpen }))}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-headline text-destructive">Confirm Deletion</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle className="font-headline text-destructive">Confirm Deletion</DialogTitle></DialogHeader>
           <div className="py-4">
-            <p className="font-body">
-              Are you sure you want to delete the caravan: <strong>{deleteDialogState.caravanName}</strong>?
-              This action cannot be undone and will delete all associated inventory and water tank levels. Trip-specific checklists remain.
-            </p>
-            <p className="font-body mt-2">
-              To confirm, please type "<strong>DELETE</strong>" in the box below.
-            </p>
-            <Input
-              type="text"
-              value={deleteDialogState.confirmationText}
-              onChange={(e) => setDeleteDialogState(prev => ({ ...prev, confirmationText: e.target.value }))}
-              placeholder='Type DELETE to confirm'
-              className="mt-2 font-body"
-            />
+            <p className="font-body">Are you sure you want to delete the caravan: <strong>{deleteDialogState.caravanName}</strong>? This action cannot be undone.</p>
+            <p className="font-body mt-2">To confirm, please type "<strong>DELETE</strong>" in the box below.</p>
+            <Input type="text" value={deleteDialogState.confirmationText} onChange={(e) => setDeleteDialogState(prev => ({ ...prev, confirmationText: e.target.value }))} placeholder='Type DELETE to confirm' className="mt-2 font-body" disabled={deleteCaravanMutation.isPending}/>
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' })} className="font-body">
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDeleteCaravan}
-              disabled={deleteDialogState.confirmationText !== "DELETE"}
-              className="font-body"
-            >
-              Confirm Delete
+            <Button variant="outline" onClick={() => setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' })} className="font-body" disabled={deleteCaravanMutation.isPending}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDeleteCaravan} disabled={deleteDialogState.confirmationText !== "DELETE" || deleteCaravanMutation.isPending} className="font-body">
+              {deleteCaravanMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Confirm Delete
             </Button>
           </div>
         </DialogContent>

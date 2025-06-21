@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { useState, useEffect } from 'react'; // Added useEffect
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { StoredVehicle, VehicleFormData, VehicleStorageLocation } from '@/types/vehicle';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { VehicleForm } from './VehicleForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, Weight, Axe, Car, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Ruler, Backpack, Loader2 } from 'lucide-react'; // Added Loader2
+import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, Weight, Axe, Car, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Ruler, Backpack, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -23,7 +24,7 @@ import {
   updateUserPreferences
 } from '@/lib/api-client';
 import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth'; // Added onAuthStateChanged and FirebaseUser
+import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
 
@@ -33,7 +34,6 @@ export function VehicleManager() {
   const { hasProAccess } = useSubscription();
   
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<StoredVehicle | null>(null);
@@ -47,25 +47,24 @@ export function VehicleManager() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
         setUser(currentUser);
-        setIsAuthLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
   const { data: vehicles = [], isLoading: isLoadingVehicles, error: vehiclesError } = useQuery<StoredVehicle[]>({
-    queryKey: ['vehicles'],
+    queryKey: ['vehicles', user?.uid],
     queryFn: fetchVehicles,
     enabled: !!user,
   });
 
   const { data: userPrefs, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
-    queryKey: ['userPreferences'],
+    queryKey: ['userPreferences', user?.uid],
     queryFn: fetchUserPreferences,
     enabled: !!user,
   });
   
   const activeVehicleId = userPrefs?.activeVehicleId;
-  const isLoading = isAuthLoading || isLoadingVehicles || isLoadingPrefs;
+  const isLoading = isLoadingVehicles || isLoadingPrefs;
   const queryError = vehiclesError || prefsError;
 
   const saveVehicleMutation = useMutation({
@@ -74,7 +73,7 @@ export function VehicleManager() {
       return 'id' in dataToSend && dataToSend.id ? updateVehicle(dataToSend as StoredVehicle) : createVehicle(dataToSend as VehicleFormData);
     },
     onSuccess: (savedVehicle) => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles', user?.uid] });
       toast({
         title: editingVehicle ? "Vehicle Updated" : "Vehicle Added",
         description: `${savedVehicle.make} ${savedVehicle.model} has been saved.`,
@@ -94,9 +93,9 @@ export function VehicleManager() {
   const deleteVehicleMutation = useMutation({
     mutationFn: deleteVehicle,
     onSuccess: (_, vehicleId) => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles', user?.uid] });
       if (activeVehicleId === vehicleId) {
-        queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
+        queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
       }
       toast({ title: "Vehicle Deleted" });
       setDeleteDialogState({ isOpen: false, vehicleId: null, vehicleName: null, confirmationText: '' });
@@ -110,7 +109,7 @@ export function VehicleManager() {
   const setActiveVehicleMutation = useMutation({
     mutationFn: (vehicleId: string) => updateUserPreferences({ activeVehicleId: vehicleId }),
     onSuccess: (_, vehicleId) => {
-      queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
+      queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
       const vehicle = vehicles.find(v => v.id === vehicleId);
       toast({ title: "Active Vehicle Set", description: `${vehicle?.make} ${vehicle?.model} is now active.` });
     },
