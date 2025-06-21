@@ -52,6 +52,19 @@ const fuelEstimateSchema = z.object({
   estimatedCost: z.string(),
 });
 
+const checklistItemSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  completed: z.boolean(),
+});
+
+const tripChecklistSetSchema = z.object({
+  preDeparture: z.array(checklistItemSchema),
+  campsiteSetup: z.array(checklistItemSchema),
+  packDown: z.array(checklistItemSchema),
+});
+
+
 const createTripSchema = z.object({
   name: z.string().min(1, "Trip name is required"),
   startLocationDisplay: z.string().min(1, "Start location is required"),
@@ -65,6 +78,7 @@ const createTripSchema = z.object({
   plannedEndDate: z.string().datetime().nullable().optional(),
   notes: z.string().optional(),
   isCompleted: z.boolean().optional().default(false),
+  checklists: tripChecklistSetSchema.optional(), // Add checklists to schema
 });
 
 const updateTripSchema = createTripSchema.extend({

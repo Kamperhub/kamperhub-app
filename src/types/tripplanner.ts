@@ -1,5 +1,6 @@
 
 import type { DateRange } from 'react-day-picker';
+import type { TripChecklistSet } from '@/types/checklist';
 
 export interface TripPlannerFormValues {
   startLocation: string;
@@ -47,6 +48,7 @@ export interface LoggedTrip {
   plannedEndDate?: string | null; // Stored as ISO string
   notes?: string; // Optional notes field
   isCompleted?: boolean; // New field for completion status
+  checklists?: TripChecklistSet; // A trip can have its own checklist set
 }
 
 // Key for localStorage

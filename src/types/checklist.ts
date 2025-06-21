@@ -31,9 +31,8 @@ export const initialChecklists: Readonly<Record<ChecklistCategory, readonly Chec
   ],
 };
 
-// For storing checklists associated with a specific trip.
+// For storing checklists associated with a specific trip. This is now part of the LoggedTrip object.
 export interface TripChecklistSet {
-  tripName: string; // Name of the trip this checklist belongs to
   preDeparture: ChecklistItem[];
   campsiteSetup: ChecklistItem[];
   packDown: ChecklistItem[];
