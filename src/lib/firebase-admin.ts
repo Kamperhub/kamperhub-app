@@ -1,20 +1,46 @@
 
-import admin, { type App as AdminApp } from 'firebase-admin';
+import admin, { type App as AdminApp, type ServiceAccount } from 'firebase-admin';
 
 let app: AdminApp | undefined = undefined;
 let firestore: admin.firestore.Firestore | undefined = undefined;
 
+// This function attempts to parse the service account JSON from the environment variable.
+function getServiceAccount(): ServiceAccount | undefined {
+  const serviceAccountJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  if (!serviceAccountJson) {
+    console.log('[Firebase Admin] GOOGLE_APPLICATION_CREDENTIALS_JSON env var not found. Will attempt default initialization.');
+    return undefined;
+  }
+  try {
+    const serviceAccount = JSON.parse(serviceAccountJson);
+    console.log('[Firebase Admin] Successfully parsed service account from GOOGLE_APPLICATION_CREDENTIALS_JSON.');
+    return serviceAccount;
+  } catch (e: any) {
+    console.error('[Firebase Admin] CRITICAL: Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON.', {
+      message: e.message,
+      parseError: e,
+    });
+    return undefined;
+  }
+}
+
 try {
-  // In a managed environment like Google Cloud Run (which App Hosting uses),
-  // the Admin SDK can initialize without any parameters. It automatically
-  // discovers the service account credentials from the environment.
-  // This is the most robust method.
   if (admin.apps.length > 0) {
     app = admin.app();
     console.log('[Firebase Admin] SDK re-used existing instance.');
   } else {
-    app = admin.initializeApp();
-    console.log('[Firebase Admin] SDK initialized successfully with default credentials.');
+    const serviceAccount = getServiceAccount();
+    if (serviceAccount) {
+      // Initialize with explicit credentials if the env var is available and valid.
+      app = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+      console.log('[Firebase Admin] SDK initialized successfully with explicit credentials from env var.');
+    } else {
+      // Fallback to default credentials (for managed environments like Cloud Run).
+      app = admin.initializeApp();
+      console.log('[Firebase Admin] SDK initialized successfully with default credentials (fallback).');
+    }
   }
 
   if (app) {
