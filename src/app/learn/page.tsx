@@ -43,6 +43,11 @@ export default function SupportPage() {
     }
   };
 
+  const tabTriggerBaseStyles = "font-body text-xs xxs:text-sm sm:text-base whitespace-normal sm:whitespace-nowrap h-auto py-2";
+  const tabTriggerInactiveStyles = "text-muted-foreground hover:text-primary hover:bg-primary/10";
+  const tabTriggerActiveStyles = "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md";
+
+
   return (
     <div className="space-y-8">
       <div>
@@ -60,25 +65,25 @@ export default function SupportPage() {
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1 sm:gap-2 mb-6 bg-background">
           <TabsTrigger 
             value="videos" 
-            className="font-body text-xs xxs:text-sm sm:text-base whitespace-normal sm:whitespace-nowrap h-auto py-2"
+            className={`${tabTriggerBaseStyles} ${tabTriggerInactiveStyles} ${tabTriggerActiveStyles}`}
           >
             <Video className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> Educational Videos
           </TabsTrigger>
           <TabsTrigger 
             value="articles" 
-            className="font-body text-xs xxs:text-sm sm:text-base whitespace-normal sm:whitespace-nowrap h-auto py-2"
+            className={`${tabTriggerBaseStyles} ${tabTriggerInactiveStyles} ${tabTriggerActiveStyles}`}
           >
             <FileText className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> Articles & Guides
           </TabsTrigger>
           <TabsTrigger 
             value="manual" 
-            className="font-body text-xs xxs:text-sm sm:text-base whitespace-normal sm:whitespace-nowrap h-auto py-2"
+            className={`${tabTriggerBaseStyles} ${tabTriggerInactiveStyles} ${tabTriggerActiveStyles}`}
           >
             <BookText className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> User Manual
           </TabsTrigger>
           <TabsTrigger 
             value="tos" 
-            className="font-body text-xs xxs:text-sm sm:text-base whitespace-normal sm:whitespace-nowrap h-auto py-2"
+            className={`${tabTriggerBaseStyles} ${tabTriggerInactiveStyles} ${tabTriggerActiveStyles}`}
           >
             <FileLock2 className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> Terms of Service
           </TabsTrigger>
@@ -172,3 +177,4 @@ export default function SupportPage() {
     </div>
   );
 }
+
