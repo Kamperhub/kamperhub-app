@@ -1,3 +1,4 @@
+
 // src/app/api/inventory/[caravanId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { admin, adminFirestore } from '@/lib/firebase-admin';
@@ -30,7 +31,11 @@ async function verifyUser(req: NextRequest): Promise<{ uid: string; error?: Next
     return { uid: decodedToken.uid };
   } catch (error: any) {
     console.error('Error verifying Firebase ID token:', error);
-    return { uid: '', error: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
+    console.error('Firebase ID token verification error details:', {
+        message: error.message,
+        code: error.code, // This can be very informative
+    });
+    return { uid: '', error: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message, errorCode: error.code }, { status: 401 }) };
   }
 }
 
