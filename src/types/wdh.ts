@@ -12,6 +12,3 @@ export interface WDHFormData {
 export interface StoredWDH extends WDHFormData {
   id: string;
 }
-
-export const WDHS_STORAGE_KEY = 'kamperhub_wdhs_list';
-export const ACTIVE_WDH_ID_KEY = 'kamperhub_active_wdh_id';

@@ -42,8 +42,3 @@ export interface CaravanFormData {
 export interface StoredCaravan extends CaravanFormData {
   id: string;
 }
-
-export const CARAVANS_STORAGE_KEY = 'kamperhub_caravans_list';
-export const ACTIVE_CARAVAN_ID_KEY = 'kamperhub_active_caravan_id';
-export const WATER_TANK_LEVELS_STORAGE_KEY_PREFIX = 'kamperhub_water_tank_levels_';
-

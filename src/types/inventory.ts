@@ -17,10 +17,6 @@ export interface CaravanWeightData {
   model?: string; // Optional: for display purposes on inventory page
 }
 
-// Key for storing inventories for multiple caravans
-// The structure will be Record<caravanId, InventoryItem[]>
-export const INVENTORY_STORAGE_KEY = 'kamperhub_caravan_inventories';
-
 export type CaravanInventories = Record<string, InventoryItem[]>;
 
 

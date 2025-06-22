@@ -37,7 +37,6 @@ export interface TripChecklistSet {
   campsiteSetup: ChecklistItem[];
   packDown: ChecklistItem[];
 }
-export const TRIP_CHECKLISTS_STORAGE_KEY = 'kamperhub_trip_checklists_v3';
 export type AllTripChecklists = Record<string, TripChecklistSet>; // Key is tripId
 
 // For storing default checklists associated with a specific caravan.
@@ -47,5 +46,4 @@ export interface CaravanDefaultChecklistSet {
   campsiteSetup: ChecklistItem[];
   packDown: ChecklistItem[];
 }
-export const CARAVAN_DEFAULT_CHECKLISTS_STORAGE_KEY = 'kamperhub_caravan_default_checklists_v1';
 export type AllCaravanDefaultChecklists = Record<string, CaravanDefaultChecklistSet>; // Key is caravanId

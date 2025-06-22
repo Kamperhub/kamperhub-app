@@ -9,6 +9,7 @@ import type { InventoryItem } from '@/types/inventory';
 import type { LoggedTrip, TripPlannerFormValues } from '@/types/tripplanner';
 import type { BookingEntry } from '@/types/booking';
 import type { UserProfile } from '@/types/auth';
+import type { FuelLogEntry, MaintenanceTask } from '@/types/service';
 
 async function getAuthToken(): Promise<string> {
   const user = auth.currentUser;
@@ -82,3 +83,19 @@ export const deleteBooking = (id: string): Promise<{ message: string }> => apiFe
 // ---- User Preferences API Functions ----
 export const fetchUserPreferences = (): Promise<Partial<UserProfile>> => apiFetch('/api/user-preferences');
 export const updateUserPreferences = (preferences: Partial<UserProfile>): Promise<{ message: string }> => apiFetch('/api/user-preferences', { method: 'PUT', body: JSON.stringify(preferences) });
+
+// ---- Service Log API Functions ----
+// Fuel Logs
+export const fetchFuelLogs = (vehicleId: string): Promise<FuelLogEntry[]> => apiFetch(`/api/fuel?vehicleId=${vehicleId}`);
+export const createFuelLog = (data: Omit<FuelLogEntry, 'id' | 'timestamp'>): Promise<FuelLogEntry> => apiFetch('/api/fuel', { method: 'POST', body: JSON.stringify(data) });
+export const updateFuelLog = (data: FuelLogEntry): Promise<{ fuelLog: FuelLogEntry }> => apiFetch('/api/fuel', { method: 'PUT', body: JSON.stringify(data) });
+export const deleteFuelLog = (vehicleId: string, id: string): Promise<{ message: string }> => apiFetch('/api/fuel', { method: 'DELETE', body: JSON.stringify({ vehicleId, id }) });
+
+// Maintenance Tasks
+export const fetchMaintenanceTasks = (assetId?: string): Promise<MaintenanceTask[]> => {
+  const url = assetId ? `/api/maintenance?assetId=${assetId}` : '/api/maintenance';
+  return apiFetch(url);
+};
+export const createMaintenanceTask = (data: Omit<MaintenanceTask, 'id' | 'timestamp'>): Promise<MaintenanceTask> => apiFetch('/api/maintenance', { method: 'POST', body: JSON.stringify(data) });
+export const updateMaintenanceTask = (data: MaintenanceTask): Promise<{ maintenanceTask: MaintenanceTask }> => apiFetch('/api/maintenance', { method: 'PUT', body: JSON.stringify(data) });
+export const deleteMaintenanceTask = (id: string): Promise<{ message: string }> => apiFetch('/api/maintenance', { method: 'DELETE', body: JSON.stringify({ id }) });

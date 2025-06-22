@@ -52,5 +52,4 @@ export interface LoggedTrip {
 }
 
 // Key for localStorage
-export const TRIP_LOG_STORAGE_KEY = 'kamperhub_trip_log';
 export const RECALLED_TRIP_DATA_KEY = 'kamperhub_recalled_trip_data';

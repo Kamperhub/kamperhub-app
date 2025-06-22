@@ -15,8 +15,6 @@ export interface BookingEntry {
   timestamp: string; // ISO string for when the log was created/updated
 }
 
-export const BOOKINGS_STORAGE_KEY = 'kamperhub_bookings_log';
-
 export interface AffiliateLink {
   id: string;
   name: string;
