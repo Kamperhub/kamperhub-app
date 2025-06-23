@@ -26,9 +26,13 @@ async function apiFetch(url: string, options: RequestInit = {}) {
     } else {
       console.warn("App Check not initialized. This is expected on the server. Proceeding without token.");
     }
-  } catch (err) {
+  } catch (err: any) {
+    if (err.code === 'appCheck/recaptcha-error') {
+      console.error("App Check failed: A reCAPTCHA error occurred. This is often due to the website's domain (e.g., localhost) not being authorized for the reCAPTCHA Site Key in the Google Cloud Console. Please check your key's configuration.", err);
+    } else {
       console.error("Failed to get App Check token, proceeding without it.", err);
-      // Let the request proceed without the token; server-side App Check enforcement will handle it.
+    }
+    // Let the request proceed without the token; server-side App Check enforcement will handle it.
   }
   
   // Get Auth token
