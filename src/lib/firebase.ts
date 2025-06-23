@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
-import { initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from "firebase/app-check";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from "firebase/app-check";
 
 // This configuration is for the "Kamperhub" web app registration in the Firebase Console.
 // Any settings (like App Check) should be applied to that specific app.
@@ -25,15 +25,15 @@ if (typeof window !== 'undefined') {
     // This is a global variable, so we can check if it's already initialized.
     // This prevents errors on fast refreshes.
     if (!(window as any).appCheckInitialized) {
-      // IMPORTANT: The key provided here MUST be a reCAPTCHA Enterprise Site Key.
-      // A standard reCAPTCHA v3 key will result in an `appCheck/recaptcha-error`.
+      // IMPORTANT: This uses the ReCaptchaEnterpriseProvider.
+      // The key provided here MUST be a reCAPTCHA Enterprise Site Key.
       // Ensure the "reCAPTCHA Enterprise" API is enabled in your Google Cloud project.
       appCheck = initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider('6LcZh2orAAAAACZCrkNWXKNfNK9ha0IE0rJYXlNX'),
+        provider: new ReCaptchaEnterpriseProvider('6LcZh2orAAAAACZCrkNWXKNfNK9ha0IE0rJYXlNX'),
         isTokenAutoRefreshEnabled: true
       });
       (window as any).appCheckInitialized = true;
-      console.log('[Firebase Client] App Check Initialized.');
+      console.log('[Firebase Client] App Check Initialized with ReCaptchaEnterpriseProvider.');
     }
   } catch (error) {
     console.error("[Firebase Client] Error initializing App Check:", error);
