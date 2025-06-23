@@ -20,17 +20,22 @@ async function apiFetch(url: string, options: RequestInit = {}) {
 
   // Get App Check token
   let appCheckTokenResponse;
-  try {
-    if (appCheck) {
+  if (appCheck) {
+    try {
       appCheckTokenResponse = await getToken(appCheck, /* forceRefresh= */ false);
+    } catch (err: any) {
+      console.error("App Check getToken() failed:", err);
+      // For local development, we can tolerate this failing to allow API calls to proceed.
+      // In production, this should be a hard error.
+      if (process.env.NODE_ENV !== 'development') {
+        if (err.code === 'appCheck/recaptcha-error') {
+            throw new Error("App Check setup error: Could not verify client. Please ensure your domain is authorized and the reCAPTCHA Enterprise API is enabled (with billing) in your Google Cloud Project.");
+        }
+        throw new Error("Could not get App Check token. Your client may be considered offline or unverified.");
+      } else {
+        console.warn("[DEV MODE] App Check token fetch failed. Proceeding without token. THIS WILL FAIL IN PRODUCTION if the underlying issue is not resolved.");
+      }
     }
-  } catch (err: any) {
-    console.error("App Check getToken() failed:", err);
-    // Provide a more detailed, user-facing error.
-    if (err.code === 'appCheck/recaptcha-error') {
-      throw new Error("App Check setup error: Could not verify client. Please ensure your domain (e.g., localhost) is authorized for your reCAPTCHA key in the Google Cloud Console, and that the 'reCAPTCHA Enterprise' API is enabled for your project. This is a configuration issue, not a code issue.");
-    }
-    throw new Error("Could not get App Check token. Your client may be considered offline or unverified.");
   }
   
   // Get Auth token
