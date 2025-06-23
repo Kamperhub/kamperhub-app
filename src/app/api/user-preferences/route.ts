@@ -40,6 +40,11 @@ const userPreferencesSchema = z.object({
 
 // GET user preferences
 export async function GET(req: NextRequest) {
+  if (!adminFirestore) {
+    console.error('API Error: Admin SDK not properly initialized. Firestore service is unavailable.');
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
+    
   const { uid, error } = await verifyUser(req);
   if (error) return error;
 
@@ -51,7 +56,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({}, { status: 200 }); // Return empty object if no profile/preferences exist yet
     }
 
-    const userData = userDocSnap.data() as UserProfile;
+    const userData = (userDocSnap.data() as UserProfile) || {}; // Handle empty documents gracefully
     
     // Extract only the preference fields
     const preferences = {
@@ -72,6 +77,11 @@ export async function GET(req: NextRequest) {
 
 // PUT (update) user preferences
 export async function PUT(req: NextRequest) {
+  if (!adminFirestore) {
+    console.error('API Error: Admin SDK not properly initialized. Firestore service is unavailable.');
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
+
   const { uid, error } = await verifyUser(req);
   if (error) return error;
   
