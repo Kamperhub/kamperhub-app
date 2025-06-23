@@ -1,44 +1,27 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper function to check if the requesting user is an admin by
-    // reading the 'isAdmin' flag from their own user profile document.
-    function isAdmin() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-    }
-
-    // Helper function to check if the user is authenticated and is the owner of the document.
+    
     function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+      return request.auth.uid == userId;
     }
 
-    // Rules for the 'users' collection, which contains all user-specific data.
+    function isAdmin() {
+      // Check if the requesting user's profile document has the isAdmin flag set to true.
+      // This requires the user to be authenticated.
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Users can read/write their own data subcollections, or an admin can access any of them.
+    match /users/{userId}/{document=**} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+    
+    // Allow any authenticated user to create their own user document upon signup.
+    // They cannot create documents for other users.
     match /users/{userId} {
-      
-      // READ: A user can read their own profile. Admins can read any user's profile.
-      allow read: if isOwner(userId) || isAdmin();
-
-      // CREATE: A user can create their own profile document (e.g., on signup).
-      // This rule prevents a user from making themselves an admin upon account creation.
-      allow create: if isOwner(userId) && !('isAdmin' in request.resource.data);
-      
-      // UPDATE: A user can update their own profile, but cannot give themselves admin privileges.
-      // An admin can update any user's profile, including granting admin status.
-      allow update: if (isOwner(userId) && !('isAdmin' in request.resource.data && request.resource.data.isAdmin == true)) || isAdmin();
-
-      // DELETE: Deleting user documents from the client is disabled for safety. 
-      // This should be handled by a dedicated server function if needed.
-      allow delete: if false;
-
-      // WILDCARD for all subcollections under a user's document.
-      // This includes vehicles, caravans, trips, bookings, inventory, etc.
-      match /{subcollection}/{docId} {
-        // A user can perform any action on documents in their own subcollections.
-        // An admin can also perform these actions on any user's subcollections.
-        allow read, write, delete: if isOwner(userId) || isAdmin();
-      }
+      allow create: if isOwner(userId);
     }
   }
 }
