@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
           subscriptionStatus: subscription.status,
           currentPeriodEnd: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : undefined,
           trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null, 
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: new Date().toISOString(),
         };
 
         console.log(`Webhook: Attempting to update Firestore for user ${userId} with data:`, JSON.stringify(userProfileUpdate));
@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
               currentPeriodEnd: new Date(subscriptionFromInvoice.current_period_end * 1000).toISOString(),
               subscriptionTier: newTier, 
               trialEndsAt: subscriptionFromInvoice.trial_end ? new Date(subscriptionFromInvoice.trial_end * 1000).toISOString() : null,
-              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              updatedAt: new Date().toISOString(),
             };
             console.log(`Webhook: Attempting to update Firestore for user ${userDoc.id} from invoice ${invoice.id} with data:`, JSON.stringify(userProfileUpdate));
             await userDoc.ref.set(userProfileUpdate, { merge: true });
@@ -207,7 +207,7 @@ export async function POST(req: NextRequest) {
             const userProfileUpdate: Partial<UserProfile> = { 
               subscriptionStatus: subscriptionDetails.status, 
               subscriptionTier: newTier,
-              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              updatedAt: new Date().toISOString(),
             };
             console.log(`Webhook: Attempting to update Firestore for user ${userDoc.id} from failed_invoice ${failedInvoice.id} with data:`, JSON.stringify(userProfileUpdate));
             await userDoc.ref.set(userProfileUpdate, { merge: true });
@@ -242,7 +242,7 @@ export async function POST(req: NextRequest) {
               subscriptionStatus: updatedSubscription.status,
               currentPeriodEnd: new Date(updatedSubscription.current_period_end * 1000).toISOString(),
               trialEndsAt: updatedSubscription.trial_end ? new Date(updatedSubscription.trial_end * 1000).toISOString() : null,
-              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              updatedAt: new Date().toISOString(),
             };
 
             if (updatedSubscription.status === 'active') {
@@ -284,7 +284,7 @@ export async function POST(req: NextRequest) {
               stripeSubscriptionId: null, 
               currentPeriodEnd: null, 
               trialEndsAt: null, 
-              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              updatedAt: new Date().toISOString(),
             };
              console.log(`Webhook: Attempting to update Firestore for user ${userDoc.id} from subscription.deleted ${deletedSubscription.id} with data:`, JSON.stringify(userProfileUpdate));
             await userDoc.ref.set(userProfileUpdate, { merge: true });

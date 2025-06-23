@@ -1,10 +1,57 @@
-
 "use client"; 
 
-import { TripPlannerClient } from '@/components/features/tripplanner/TripPlannerClient';
-// APIProvider is now in AppShell
+import dynamic from 'next/dynamic';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from 'lucide-react';
+
+const TripPlannerLoadingSkeleton = () => (
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="md:col-span-1">
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-8 w-3/4" />
+          <Skeleton className="h-4 w-1/2 mt-2" />
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-1/4" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-1/4" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <Skeleton className="h-10 w-full" />
+        </CardContent>
+      </Card>
+    </div>
+    <div className="md:col-span-2">
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-8 w-1/2" />
+        </CardHeader>
+        <CardContent className="p-0">
+          <Skeleton className="h-[400px] w-full rounded-b-lg" />
+        </CardContent>
+      </Card>
+    </div>
+  </div>
+);
+
+const TripPlannerClient = dynamic(
+  () => import('@/components/features/tripplanner/TripPlannerClient').then(mod => mod.TripPlannerClient),
+  {
+    ssr: false,
+    loading: () => <TripPlannerLoadingSkeleton />,
+  }
+);
+
 
 export default function TripPlannerPage() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
