@@ -1,3 +1,4 @@
+
 // src/types/auth.ts
 
 import type { CaravanDefaultChecklistSet } from './checklist';
@@ -59,10 +60,7 @@ export interface MockUserRegistryEntry {
   country?: string;
 }
 
-// Kept for use in useSubscription hook and legacy auth logic if any remains.
-export const MOCK_AUTH_SUBSCRIPTION_TIER_KEY = 'kamperhub_mock_subscription_tier';
-export const MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY = 'kamperhub_mock_stripe_customer_id';
-export const MOCK_AUTH_TRIAL_ENDS_AT_KEY = 'kamperhub_mock_trial_ends_at';
+// Obsolete keys from a previous mock auth system. Kept for reference during transition if needed.
 export const MOCK_AUTH_CITY_KEY = 'kamperhub_mock_city';
 export const MOCK_AUTH_STATE_KEY = 'kamperhub_mock_state';
 export const MOCK_AUTH_COUNTRY_KEY = 'kamperhub_mock_country';

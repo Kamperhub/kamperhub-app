@@ -3,9 +3,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { 
-  MOCK_AUTH_SUBSCRIPTION_TIER_KEY, 
-  MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY, 
-  MOCK_AUTH_TRIAL_ENDS_AT_KEY,
   type SubscriptionTier 
 } from '@/types/auth';
 
@@ -28,21 +25,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const [trialEndsAt, setTrialEndsAtState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    try {
-      const storedTier = localStorage.getItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY) as SubscriptionTier | null;
-      const storedCustomerId = localStorage.getItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
-      const storedTrialEndsAt = localStorage.getItem(MOCK_AUTH_TRIAL_ENDS_AT_KEY);
-      
-      setSubscriptionTierState(storedTier || DEFAULT_TIER);
-      setStripeCustomerIdState(storedCustomerId || null);
-      setTrialEndsAtState(storedTrialEndsAt || null);
-    } catch (error) {
-      console.error("Error reading subscription details from localStorage:", error);
-    }
-    setIsLoading(false);
-  }, []);
-
+  // When details are set via this function (e.g., after profile load), loading is complete.
   const setSubscriptionDetails = useCallback((tier: SubscriptionTier, customerId?: string | null, trialEnds?: string | null) => {
     setSubscriptionTierState(tier);
     if (customerId !== undefined) { 
@@ -51,22 +34,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     if (trialEnds !== undefined) {
         setTrialEndsAtState(trialEnds);
     }
-
-    try {
-      localStorage.setItem(MOCK_AUTH_SUBSCRIPTION_TIER_KEY, tier);
-      if (customerId) {
-        localStorage.setItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY, customerId);
-      } else {
-        localStorage.removeItem(MOCK_AUTH_STRIPE_CUSTOMER_ID_KEY);
-      }
-      if (trialEnds) {
-        localStorage.setItem(MOCK_AUTH_TRIAL_ENDS_AT_KEY, trialEnds);
-      } else {
-        localStorage.removeItem(MOCK_AUTH_TRIAL_ENDS_AT_KEY);
-      }
-    } catch (error) {
-      console.error("Error saving subscription details to localStorage:", error);
-    }
+    setIsLoading(false);
   }, []);
   
   const hasProAccess = 
