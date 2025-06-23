@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
-import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+import { initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from "firebase/app-check";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB-7todRM_IzeDlV959vKNVPPF0KZeOUmQ", // Updated API Key
@@ -17,14 +17,13 @@ const firebaseConfig = {
 const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 // Initialize App Check on the client
+let appCheck: AppCheck | undefined;
 if (typeof window !== 'undefined') {
   try {
     // This is a global variable, so we can check if it's already initialized.
     // This prevents errors on fast refreshes.
     if (!(window as any).appCheckInitialized) {
-      // IMPORTANT: Replace the key below with your own reCAPTCHA v3 site key from the Firebase console.
-      // Go to Project Settings > App Check, select your web app, and find the Site Key.
-      initializeAppCheck(app, {
+      appCheck = initializeAppCheck(app, {
         provider: new ReCaptchaV3Provider('6Leh_lsrAAAAADJmzMCpj9zIRghJmTuOjgM9c8H7'),
         isTokenAutoRefreshEnabled: true
       });
@@ -39,4 +38,4 @@ if (typeof window !== 'undefined') {
 const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
 
-export { app, auth, db };
+export { app, auth, db, appCheck };

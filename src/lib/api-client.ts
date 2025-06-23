@@ -1,7 +1,7 @@
-
 'use client';
 
-import { auth } from './firebase';
+import { auth, appCheck } from './firebase';
+import { getToken } from 'firebase/app-check';
 import type { StoredVehicle, VehicleFormData } from '@/types/vehicle';
 import type { StoredCaravan, CaravanFormData } from '@/types/caravan';
 import type { StoredWDH, WDHFormData } from '@/types/wdh';
@@ -11,20 +11,37 @@ import type { BookingEntry } from '@/types/booking';
 import type { UserProfile } from '@/types/auth';
 import type { FuelLogEntry, MaintenanceTask } from '@/types/service';
 
-async function getAuthToken(): Promise<string> {
-  const user = auth.currentUser;
-  if (!user) {
-    // This will be caught by react-query's error handling if a query is enabled without a user.
-    throw new Error('User not authenticated. Cannot make API call.');
-  }
-  return user.getIdToken(true);
-}
-
 // ---- Generic Fetcher ----
 async function apiFetch(url: string, options: RequestInit = {}) {
-  const token = await getAuthToken();
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('User not authenticated. Cannot make API call.');
+  }
+
+  // Get App Check token
+  let appCheckTokenResponse;
+  try {
+    if (appCheck) {
+      appCheckTokenResponse = await getToken(appCheck, /* forceRefresh= */ false);
+    } else {
+      console.warn("App Check not initialized. This is expected on the server. Proceeding without token.");
+    }
+  } catch (err) {
+      console.error("Failed to get App Check token, proceeding without it.", err);
+      // Let the request proceed without the token; server-side App Check enforcement will handle it.
+  }
+  
+  // Get Auth token
+  const authToken = await user.getIdToken(true);
+
   const headers = new Headers(options.headers || {});
-  headers.set('Authorization', `Bearer ${token}`);
+  headers.set('Authorization', `Bearer ${authToken}`);
+
+  // Add App Check token to header if available
+  if (appCheckTokenResponse) {
+    headers.set('X-Firebase-AppCheck', appCheckTokenResponse.token);
+  }
+  
   if (options.body) {
     headers.set('Content-Type', 'application/json');
   }
@@ -33,15 +50,17 @@ async function apiFetch(url: string, options: RequestInit = {}) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ error: `Request failed with status ${response.status}` }));
-    // Try to get more detailed error from server response
-    const errorMessage = errorData.error || errorData.details || `Request failed with status ${response.status}`;
-    throw new Error(errorMessage);
+    const errorMessage = errorData.error || errorData.message || `Request failed with status ${response.status}`;
+    // Include more details if available from the server error response
+    const errorDetails = errorData.details ? ` Details: ${JSON.stringify(errorData.details)}` : '';
+    throw new Error(`${errorMessage}${errorDetails}`);
   }
 
-  // Handle cases where response might be empty (e.g., DELETE 204 No Content)
   const contentType = response.headers.get("content-type");
   if (contentType && contentType.indexOf("application/json") !== -1) {
-    return response.json();
+    // Handle empty JSON response (e.g., from a DELETE)
+    const text = await response.text();
+    return text ? JSON.parse(text) : null;
   }
   return; 
 }
