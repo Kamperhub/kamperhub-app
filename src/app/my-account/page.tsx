@@ -70,9 +70,15 @@ export default function MyAccountPage() {
         console.log("No Firestore profile document found for user:", user.uid, ". It will be created on first save or if a trial was just initiated.");
         setUserProfile({ email: user.email, displayName: user.displayName });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching user profile from Firestore:", error);
-      toast({ title: "Error", description: "Could not load your profile details from the server.", variant: "destructive" });
+      const errorMessage = error.code ? `${error.code}: ${error.message}` : error.message;
+      toast({ 
+        title: "Error Loading Profile", 
+        description: `Details: ${errorMessage}`,
+        variant: "destructive",
+        duration: 9000
+      });
     } finally {
       setIsProfileLoading(false);
     }
@@ -472,6 +478,3 @@ export default function MyAccountPage() {
     </div>
   );
 }
-
-
-    
