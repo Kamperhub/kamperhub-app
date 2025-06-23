@@ -29,7 +29,7 @@ if (typeof window !== 'undefined') {
       // A standard reCAPTCHA v3 key will result in an `appCheck/recaptcha-error`.
       // Ensure the "reCAPTCHA Enterprise" API is enabled in your Google Cloud project.
       appCheck = initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider('6Leh_lsrAAAAADJmzMCpj9zIRghJmTuOjgM9c8H7'),
+        provider: new ReCaptchaV3Provider('6LcZh2orAAAAACZCrkNWXKNfNK9ha0IE0rJYXlNX'),
         isTokenAutoRefreshEnabled: true
       });
       (window as any).appCheckInitialized = true;
