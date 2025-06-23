@@ -11,7 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase'; 
 import { signInWithEmailAndPassword, sendPasswordResetEmail, type AuthError } from 'firebase/auth';
-import { MOCK_AUTH_LOGGED_IN_KEY } from '@/types/auth'; 
 import { LogInIcon, Mail, KeyRound, Send } from 'lucide-react'; 
 import {
   Dialog,
@@ -38,11 +37,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     setHasMounted(true);
-    if (typeof window !== 'undefined') {
-        const isLoggedInViaMock = localStorage.getItem(MOCK_AUTH_LOGGED_IN_KEY) === 'true';
-        if ((isLoggedInViaMock || auth.currentUser) && auth.currentUser) { 
-            router.push('/'); 
-        }
+    // Redirect if user is already logged in
+    if (auth.currentUser) {
+      router.push('/');
     }
   }, [router]);
 

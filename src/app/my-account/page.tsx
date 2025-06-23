@@ -11,11 +11,6 @@ import { onAuthStateChanged, type User as FirebaseUser, updateProfile, updateEma
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { format, parseISO, isFuture } from 'date-fns';
 
-import {
-  MOCK_AUTH_CITY_KEY,
-  MOCK_AUTH_STATE_KEY,
-  MOCK_AUTH_COUNTRY_KEY,
-} from '@/types/auth';
 import type { SubscriptionTier, UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, CalendarClock, UserCog } from 'lucide-react';
@@ -62,10 +57,6 @@ export default function MyAccountPage() {
           profileData.stripeCustomerId || null,
           profileData.trialEndsAt || null
         );
-
-        if (profileData.city) localStorage.setItem(MOCK_AUTH_CITY_KEY, profileData.city); else localStorage.removeItem(MOCK_AUTH_CITY_KEY);
-        if (profileData.state) localStorage.setItem(MOCK_AUTH_STATE_KEY, profileData.state); else localStorage.removeItem(MOCK_AUTH_STATE_KEY);
-        if (profileData.country) localStorage.setItem(MOCK_AUTH_COUNTRY_KEY, profileData.country); else localStorage.removeItem(MOCK_AUTH_COUNTRY_KEY);
       } else {
         console.log("No Firestore profile document found for user:", user.uid, ". It will be created on first save or if a trial was just initiated.");
         setUserProfile({ email: user.email, displayName: user.displayName });
@@ -97,9 +88,6 @@ export default function MyAccountPage() {
         setProfileState(null);
         setProfileCountry(null);
         setSubscriptionDetails('free', null, null); 
-        localStorage.removeItem(MOCK_AUTH_CITY_KEY);
-        localStorage.removeItem(MOCK_AUTH_STATE_KEY);
-        localStorage.removeItem(MOCK_AUTH_COUNTRY_KEY);
       }
       setIsAuthLoading(false);
     });
