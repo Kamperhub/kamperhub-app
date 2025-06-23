@@ -117,90 +117,82 @@ export default function MyAccountPage() {
     }
   };
 
-  const handleSaveProfile = async (data: EditProfileFormData): Promise<boolean> => {
+  const handleSaveProfile = async (data: EditProfileFormData) => {
     if (!firebaseUser) {
       toast({ title: "Error", description: "No active user found.", variant: "destructive" });
-      return false;
+      return;
     }
+
     setIsSavingProfile(true);
-    const successMessages: string[] = [];
-    const errorMessages: string[] = [];
-    let authUpdatesSuccessful = false;
-    let firestoreUpdateSuccessful = false;
-
-    const newDisplayName = `${data.firstName} ${data.lastName}`.trim();
-    if (newDisplayName && newDisplayName !== firebaseUser.displayName) {
-      try {
-        await updateProfile(firebaseUser, { displayName: newDisplayName });
-        setFirebaseUser(auth.currentUser);
-        successMessages.push("Display Name updated.");
-        authUpdatesSuccessful = true;
-      } catch (error: any) {
-        errorMessages.push(`Failed to update display name: ${error.message}`);
-      }
-    }
-
-    if (data.email.toLowerCase() !== (firebaseUser.email?.toLowerCase() || '')) {
-      try {
-        await updateEmail(firebaseUser, data.email);
-        setFirebaseUser(auth.currentUser); 
-        successMessages.push("Email updated. You may need to re-verify if changed.");
-        authUpdatesSuccessful = true;
-      } catch (error: any) {
-        const authError = error as AuthError;
-        let specificMessage = `Failed to update email: ${authError.message}`;
-        if (authError.code === 'auth/requires-recent-login') {
-          specificMessage = "Email update requires re-authentication. Please log out, log back in, then try again.";
-        } else if (authError.code === 'auth/email-already-in-use') {
-          specificMessage = "This email address is already in use by another account.";
-        }
-        errorMessages.push(specificMessage);
-      }
-    }
-
-    const userDocRef = doc(db, "users", firebaseUser.uid);
-    const firestoreProfileData: Partial<UserProfile> = { 
-      firstName: data.firstName,
-      lastName: data.lastName,
-      city: data.city,
-      state: data.state,
-      country: data.country,
-      email: data.email, 
-      displayName: newDisplayName, 
-      updatedAt: new Date().toISOString(),
-    };
 
     try {
-      await setDoc(userDocRef, firestoreProfileData, { merge: true });
-      firestoreUpdateSuccessful = true;
-      successMessages.push("Profile details saved to server.");
+      const authPromises = [];
+
+      // Check if display name needs updating in Firebase Auth
+      if (data.displayName !== firebaseUser.displayName) {
+        authPromises.push(updateProfile(firebaseUser, { displayName: data.displayName }));
+      }
+
+      // Check if email needs updating in Firebase Auth
+      if (data.email.toLowerCase() !== (firebaseUser.email?.toLowerCase() || '')) {
+        authPromises.push(updateEmail(firebaseUser, data.email));
+      }
+
+      // Update Firebase Auth profile and email if changed
+      if (authPromises.length > 0) {
+        await Promise.all(authPromises);
+      }
       
-      setUserProfile(prev => ({...prev, ...firestoreProfileData}));
-      setProfileCity(data.city);
-      setProfileState(data.state);
-      setProfileCountry(data.country);
-      localStorage.setItem(MOCK_AUTH_CITY_KEY, data.city);
-      localStorage.setItem(MOCK_AUTH_STATE_KEY, data.state);
-      localStorage.setItem(MOCK_AUTH_COUNTRY_KEY, data.country);
+      // Now update the Firestore document
+      const userDocRef = doc(db, "users", firebaseUser.uid);
+      const firestoreProfileData: Partial<UserProfile> = {
+        displayName: data.displayName,
+        email: data.email,
+        city: data.city,
+        state: data.state,
+        country: data.country,
+        updatedAt: new Date().toISOString(),
+      };
+      await setDoc(userDocRef, firestoreProfileData, { merge: true });
+
+      // Manually refresh local state to reflect changes immediately
+      await fetchUserProfile(firebaseUser);
+      // Also update the firebaseUser state directly for immediate UI feedback on displayName
+      setFirebaseUser(auth.currentUser);
+
+      toast({
+        title: "Profile Updated",
+        description: "Your account details have been successfully saved.",
+      });
+
+      setIsEditProfileOpen(false); // Close the dialog on success
 
     } catch (error: any) {
-      errorMessages.push(`Failed to save profile details to server: ${error.message}`);
+      let errorMessage = "An unexpected error occurred while saving your profile.";
+      if (error.code) {
+         switch (error.code) {
+          case 'auth/requires-recent-login':
+            errorMessage = "This change requires you to have logged in recently. Please log out and log back in to update your email or display name.";
+            break;
+          case 'auth/email-already-in-use':
+            errorMessage = "This email address is already in use by another account.";
+            break;
+          default:
+            errorMessage = error.message;
+            break;
+        }
+      }
+      toast({
+        title: "Update Failed",
+        description: errorMessage,
+        variant: "destructive",
+        duration: 7000,
+      });
+    } finally {
+      setIsSavingProfile(false);
     }
-
-    if (successMessages.length > 0) {
-      toast({ title: "Profile Update Successful", description: successMessages.join(' ') });
-    }
-    if (errorMessages.length > 0) {
-      toast({ title: "Profile Update Issues", description: errorMessages.join(' '), variant: "destructive", duration: 7000 });
-    }
-    
-    const overallSuccess = authUpdatesSuccessful || firestoreUpdateSuccessful;
-    if (overallSuccess && errorMessages.length === 0) { 
-        setIsEditProfileOpen(false);
-    }
-    setIsSavingProfile(false);
-    return overallSuccess && errorMessages.length === 0;
   };
+
 
   const handleSubscribeToPro = async () => {
     if (!firebaseUser || !firebaseUser.email) {
@@ -294,8 +286,7 @@ export default function MyAccountPage() {
   }
 
   const initialProfileDataForEdit: EditProfileFormData = {
-    firstName: userProfile.firstName || (firebaseUser?.displayName?.split(' ')[0] || ''),
-    lastName: userProfile.lastName || (firebaseUser?.displayName?.split(' ').slice(1).join(' ') || ''),
+    displayName: firebaseUser?.displayName || '',
     email: userProfile.email || firebaseUser?.email || '',
     city: profileCity || userProfile.city || '',
     state: profileState || userProfile.state || '',
@@ -346,14 +337,6 @@ export default function MyAccountPage() {
             <p className="font-body text-sm flex items-center">
                 <User className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
                 <strong>Display Name:</strong>&nbsp;{firebaseUser?.displayName || userProfile.displayName || '[Not Set]'}
-            </p>
-            <p className="font-body text-sm flex items-center">
-                <User className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>First Name:</strong>&nbsp;{userProfile.firstName || '[Not Set]'}
-            </p>
-            <p className="font-body text-sm flex items-center">
-                <User className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>Last Name:</strong>&nbsp;{userProfile.lastName || '[Not Set]'}
             </p>
             <p className="font-body text-sm flex items-center">
                 <Mail className="h-4 w-4 mr-2 text-primary/80 opacity-70" />

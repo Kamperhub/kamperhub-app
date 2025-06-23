@@ -9,12 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save, XCircle, Mail, User, MapPin, Building, Globe } from 'lucide-react';
-import type { MockUserRegistryEntry } from '@/types/auth';
+import type { UserProfile } from '@/types/auth';
 
 // Schema for the fields that can be edited
 export const editProfileSchema = z.object({
-  firstName: z.string().min(1, "First Name is required"),
-  lastName: z.string().min(1, "Last Name is required"),
+  displayName: z.string()
+    .min(3, "Display Name must be at least 3 characters long")
+    .regex(/^[a-zA-Z0-9_.-]+$/, "Display Name can only contain letters, numbers, underscores, hyphens, and periods."),
   email: z.string().email("Please enter a valid email address"),
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State / Region is required"),
@@ -24,8 +25,8 @@ export const editProfileSchema = z.object({
 export type EditProfileFormData = z.infer<typeof editProfileSchema>;
 
 interface EditProfileFormProps {
-  initialData: Partial<MockUserRegistryEntry>; // Username will not be editable
-  onSave: (data: EditProfileFormData) => Promise<boolean>; // Returns true if save was successful (e.g. email not taken)
+  initialData: Partial<EditProfileFormData>;
+  onSave: (data: EditProfileFormData) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
 }
@@ -34,8 +35,7 @@ export function EditProfileForm({ initialData, onSave, onCancel, isLoading }: Ed
   const { register, handleSubmit, formState: { errors } } = useForm<EditProfileFormData>({
     resolver: zodResolver(editProfileSchema),
     defaultValues: {
-      firstName: initialData.firstName || '',
-      lastName: initialData.lastName || '',
+      displayName: initialData.displayName || '',
       email: initialData.email || '',
       city: initialData.city || '',
       state: initialData.state || '',
@@ -49,36 +49,20 @@ export function EditProfileForm({ initialData, onSave, onCancel, isLoading }: Ed
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="editFirstName" className="font-body">First Name*</Label>
+      <div>
+          <Label htmlFor="editDisplayName" className="font-body">Display Name*</Label>
           <div className="relative">
             <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              id="editFirstName"
-              {...register("firstName")}
-              placeholder="e.g., Jane"
+              id="editDisplayName"
+              {...register("displayName")}
+              placeholder="e.g., CamperPro123"
               disabled={isLoading}
               className="font-body pl-10"
             />
           </div>
-          {errors.firstName && <p className="text-xs text-destructive font-body mt-1">{errors.firstName.message}</p>}
+          {errors.displayName && <p className="text-xs text-destructive font-body mt-1">{errors.displayName.message}</p>}
         </div>
-        <div>
-          <Label htmlFor="editLastName" className="font-body">Last Name*</Label>
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              id="editLastName"
-              {...register("lastName")}
-              placeholder="e.g., Doe"
-              disabled={isLoading}
-              className="font-body pl-10"
-            />
-          </div>
-          {errors.lastName && <p className="text-xs text-destructive font-body mt-1">{errors.lastName.message}</p>}
-        </div>
-      </div>
       <div>
         <Label htmlFor="editEmail" className="font-body">Email Address*</Label>
         <div className="relative">
