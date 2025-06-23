@@ -25,6 +25,9 @@ if (typeof window !== 'undefined') {
     // This is a global variable, so we can check if it's already initialized.
     // This prevents errors on fast refreshes.
     if (!(window as any).appCheckInitialized) {
+      // IMPORTANT: The key provided here MUST be a reCAPTCHA Enterprise Site Key.
+      // A standard reCAPTCHA v3 key will result in an `appCheck/recaptcha-error`.
+      // Ensure the "reCAPTCHA Enterprise" API is enabled in your Google Cloud project.
       appCheck = initializeAppCheck(app, {
         provider: new ReCaptchaV3Provider('6Leh_lsrAAAAADJmzMCpj9zIRghJmTuOjgM9c8H7'),
         isTokenAutoRefreshEnabled: true
