@@ -1,11 +1,9 @@
 
-import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
-import { getAnalytics, type Analytics } from 'firebase/analytics'; // Import getAnalytics
+import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 
-// Your web app's Firebase configuration (as provided by user)
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyB-7todRM_IzeDlV959vKNVPPF0KZeOUmQ", // Updated API Key
   authDomain: "kamperhub-s4hc2.firebaseapp.com",
@@ -17,36 +15,32 @@ const firebaseConfig = {
 };
 
 let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-let analytics: Analytics | undefined = undefined; // Define analytics variable
-
+// This pattern prevents re-initializing the app on every render in Next.js.
 if (getApps().length === 0) {
-  // Using hardcoded config, so no need to check for missing apiKey/projectId from env vars
+  console.log('[Firebase Client] Initializing a new Firebase app...');
   app = initializeApp(firebaseConfig);
-  console.log("[Firebase] Firebase app initialized with hardcoded config.");
 } else {
-  app = getApps()[0];
-  console.log("[Firebase] Firebase app re-used existing instance.");
+  console.log('[Firebase Client] Re-using existing Firebase app.');
+  app = getApp(); // Use getApp() for robustness in Next.js environments
 }
 
-auth = getAuth(app);
-// Initialize Firestore with the default database to match the Admin SDK
-db = getFirestore(app);
-console.log(`[Firebase] Firestore initialized with default database.`);
+const auth: Auth = getAuth(app);
+const db: Firestore = getFirestore(app);
 
-// Initialize Analytics only on the client side and if measurementId is present
+let analytics: Analytics | undefined = undefined;
+
+// Initialize Analytics only on the client side where it's supported
 if (typeof window !== 'undefined') {
-  if (firebaseConfig.measurementId) {
-    try {
+  isSupported().then((isAnalyticsSupported) => {
+    if (isAnalyticsSupported && firebaseConfig.measurementId) {
       analytics = getAnalytics(app);
-      console.log("[Firebase] Analytics initialized.");
-    } catch (e: any) {
-      console.error("[Firebase] Error initializing Analytics:", e.message);
+      console.log('[Firebase Client] Analytics initialized.');
+    } else {
+      console.log('[Firebase Client] Analytics not supported or measurementId is missing.');
     }
-  } else {
-    console.warn("[Firebase] Analytics not initialized: measurementId is missing or invalid in firebaseConfig.");
-  }
+  }).catch(e => {
+    console.error('[Firebase Client] Error checking for Analytics support:', e);
+  });
 }
 
 export { app, auth, db, analytics };
