@@ -3,7 +3,7 @@ import type { AiGeneratedArticle } from '@/types/learn';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
-// ScrollArea import is removed for this test
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -47,8 +47,7 @@ export function ArticleDisplayCard({ article }: ArticleDisplayCardProps) {
             </DialogHeader>
             <Separator className="mx-6 my-0 flex-shrink-0" />
             
-            {/* This div is now responsible for scrolling its content */}
-            <div className="flex-1 overflow-y-auto"> 
+            <ScrollArea className="flex-1">
               <div className="px-6 py-4 space-y-4 font-body text-foreground">
                 <p className="text-base leading-relaxed whitespace-pre-line">{article.introduction}</p>
                 {article.sections.map((section, index) => (
@@ -63,7 +62,7 @@ export function ArticleDisplayCard({ article }: ArticleDisplayCardProps) {
                   <p className="text-base leading-relaxed whitespace-pre-line">{article.conclusion}</p>
                 </div>
               </div>
-            </div>
+            </ScrollArea>
 
             <DialogFooter className="px-6 pb-6 pt-4 border-t flex-shrink-0">
                 <DialogClose asChild>

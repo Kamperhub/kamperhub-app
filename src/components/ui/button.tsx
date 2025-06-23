@@ -41,21 +41,13 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild: useSlot = false, ...props }, ref) => {
-    // Explicitly remove 'asChild' from props if it exists,
-    // as it's already handled by 'useSlot' for this component's logic.
-    // Any 'asChild' in 'props' would be one forwarded from a parent.
-    const finalProps: Record<string, any> = { ...props };
-    if ('asChild' in finalProps) {
-      delete finalProps.asChild;
-    }
-
-    const Comp = useSlot ? Slot : "button";
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button"
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        {...finalProps} // Spread the cleaned props
+        {...props}
       />
     )
   }
