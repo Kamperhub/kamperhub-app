@@ -7,13 +7,15 @@ import type { UserProfile, SubscriptionTier } from '@/types/auth'; // Import Use
 
 // Initialize Stripe with your secret key
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-if (!stripeSecretKey) {
+let stripe: Stripe;
+if (stripeSecretKey) {
+  stripe = new Stripe(stripeSecretKey, {
+    apiVersion: '2024-06-20', // Keep consistent or update to latest desired
+  });
+} else {
   console.error("Stripe secret key is not configured for webhook handler.");
-  // Consider throwing an error or returning a specific response if critical
 }
-const stripe = new Stripe(stripeSecretKey!, {
-  apiVersion: '2024-06-20', // Keep consistent or update to latest desired
-});
+
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -23,7 +25,7 @@ export async function POST(req: NextRequest) {
   console.log(`Stripe Webhook: adminFirestore instance is ${adminFirestore ? 'DEFINED' : 'UNDEFINED'}`);
 
 
-  if (!stripeSecretKey) {
+  if (!stripe) {
     console.error("Webhook Error: Stripe is not configured on the server (STRIPE_SECRET_KEY missing at runtime).");
     return NextResponse.json({ error: 'Stripe is not configured on the server.' }, { status: 500 });
   }
