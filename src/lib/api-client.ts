@@ -23,16 +23,14 @@ async function apiFetch(url: string, options: RequestInit = {}) {
   try {
     if (appCheck) {
       appCheckTokenResponse = await getToken(appCheck, /* forceRefresh= */ false);
-    } else {
-      console.warn("App Check not initialized. This is expected on the server. Proceeding without token.");
     }
   } catch (err: any) {
+    console.error("App Check getToken() failed:", err);
+    // Provide a more detailed, user-facing error.
     if (err.code === 'appCheck/recaptcha-error') {
-      console.error("App Check failed: A reCAPTCHA error occurred. This is often due to the website's domain (e.g., localhost) not being authorized for the reCAPTCHA Site Key in the Google Cloud Console. Please check your key's configuration.", err);
-    } else {
-      console.error("Failed to get App Check token, proceeding without it.", err);
+      throw new Error("App Check setup error: Could not verify client. Please ensure your domain (e.g., localhost) is authorized for your reCAPTCHA key in the Google Cloud Console, and that the 'reCAPTCHA Enterprise' API is enabled for your project. This is a configuration issue, not a code issue.");
     }
-    // Let the request proceed without the token; server-side App Check enforcement will handle it.
+    throw new Error("Could not get App Check token. Your client may be considered offline or unverified.");
   }
   
   // Get Auth token
