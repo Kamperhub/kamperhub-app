@@ -242,6 +242,7 @@ export function CaravanManager() {
                     onSave={handleSaveCaravan}
                     onCancel={() => { setIsFormOpen(false); setEditingCaravan(null); }}
                     isLoading={saveCaravanMutation.isPending}
+                    availableWdhs={allWdhs}
                   />
                 </ScrollArea>
               </DialogContent>

@@ -1,60 +1,32 @@
+import admin from 'firebase-admin';
 
-import admin, { type App as AdminApp, type ServiceAccount } from 'firebase-admin';
+// This check prevents re-initializing the app on every serverless function invocation.
+if (!admin.apps.length) {
+  const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
 
-let app: AdminApp | undefined = undefined;
-let firestore: admin.firestore.Firestore | undefined = undefined;
-
-// This function attempts to parse the service account JSON from the environment variable.
-function getServiceAccount(): ServiceAccount | undefined {
-  const serviceAccountJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-  if (!serviceAccountJson) {
-    console.log('[Firebase Admin] GOOGLE_APPLICATION_CREDENTIALS_JSON env var not found. Will attempt default initialization.');
-    return undefined;
-  }
-  try {
-    const serviceAccount = JSON.parse(serviceAccountJson);
-    console.log('[Firebase Admin] Successfully parsed service account from GOOGLE_APPLICATION_CREDENTIALS_JSON.');
-    return serviceAccount;
-  } catch (e: any) {
-    console.error('[Firebase Admin] CRITICAL: Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON.', {
-      message: e.message,
-      parseError: e,
-    });
-    return undefined;
-  }
-}
-
-try {
-  if (admin.apps.length > 0) {
-    app = admin.app();
-    console.log('[Firebase Admin] SDK re-used existing instance.');
-  } else {
-    const serviceAccount = getServiceAccount();
-    if (serviceAccount) {
-      // Initialize with explicit credentials if the env var is available and valid.
-      app = admin.initializeApp({
+  if (serviceAccountJsonString) {
+    try {
+      const serviceAccount = JSON.parse(serviceAccountJsonString);
+      admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
-      console.log('[Firebase Admin] SDK initialized successfully with explicit credentials from env var.');
-    } else {
-      // Fallback to default credentials (for managed environments like Cloud Run).
-      app = admin.initializeApp();
-      console.log('[Firebase Admin] SDK initialized successfully with default credentials (fallback).');
+      console.log('[Firebase Admin] SDK initialized with service account from environment variable.');
+    } catch (e) {
+      console.error('[Firebase Admin] Error parsing service account JSON or initializing app:', e);
+      // Fallback to default initialization in case of parsing error
+      admin.initializeApp();
+      console.log('[Firebase Admin] SDK initialized with default credentials as a fallback.');
     }
-  }
-
-  if (app) {
-    firestore = admin.firestore(app);
   } else {
-    console.error('[Firebase Admin] CRITICAL: Firebase Admin App was NOT initialized. Firestore client will be undefined.');
+    // Standard initialization method for Firebase-hosted environments
+    // This relies on Application Default Credentials.
+    admin.initializeApp();
+    console.log('[Firebase Admin] SDK initialized with default credentials (env var not found).');
   }
-
-} catch (initializationError: any) {
-  console.error('[Firebase Admin] CRITICAL ERROR during Firebase Admin SDK initialization:', {
-    message: initializationError.message,
-    stack: initializationError.stack,
-  });
-  // app and firestore will remain undefined
+} else {
+  console.log('[Firebase Admin] SDK already initialized.');
 }
 
-export { app as adminApp, firestore as adminFirestore, admin };
+const adminFirestore = admin.firestore();
+
+export { admin, adminFirestore };

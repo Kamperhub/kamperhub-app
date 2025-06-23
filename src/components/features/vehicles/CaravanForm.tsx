@@ -1,13 +1,12 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useForm, type SubmitHandler, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { CaravanFormData, StorageLocation, WaterTank } from '@/types/caravan';
 import type { StoredWDH } from '@/types/wdh';
-import { WDHS_STORAGE_KEY } from '@/types/wdh';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -72,10 +71,10 @@ interface CaravanFormProps {
   onSave: (data: CaravanFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
+  availableWdhs: StoredWDH[];
 }
 
-export function CaravanForm({ initialData, onSave, onCancel, isLoading }: CaravanFormProps) {
-  const [availableWdhs, setAvailableWdhs] = useState<StoredWDH[]>([]);
+export function CaravanForm({ initialData, onSave, onCancel, isLoading, availableWdhs }: CaravanFormProps) {
   
   const defaultFormValues: CaravanFormData = {
     make: '',
@@ -125,16 +124,6 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
     }
     return null;
   }, [watchedAtm, watchedTareMass]);
-
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedWdhs = localStorage.getItem(WDHS_STORAGE_KEY);
-      if (storedWdhs) {
-        setAvailableWdhs(JSON.parse(storedWdhs));
-      }
-    }
-  }, []);
   
   useEffect(() => {
     const currentDefaultValues = initialData 
@@ -534,4 +523,3 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
     </form>
   );
 }
-

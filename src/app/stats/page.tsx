@@ -1,16 +1,18 @@
-
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { LoggedTrip } from '@/types/tripplanner';
-import { TRIP_LOG_STORAGE_KEY } from '@/types/tripplanner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Home, Route as RouteIcon, CalendarDays, CheckCircle, Award, Trophy, TrendingUp, AlertCircle, AlertTriangle, BarChart3 } from 'lucide-react';
+import { Home, Route as RouteIcon, CalendarDays, CheckCircle, Award, Trophy, TrendingUp, AlertCircle, BarChart3, Loader2 } from 'lucide-react';
 import { parseISO, differenceInCalendarDays, isValid } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { fetchTrips } from '@/lib/api-client';
+import { auth } from '@/lib/firebase';
+import type { User as FirebaseUser } from 'firebase/auth';
 
 interface TripStats {
   totalTrips: number;
@@ -24,99 +26,72 @@ interface TripStats {
 }
 
 export default function StatsPage() {
-  const [stats, setStats] = useState<TripStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [hasMounted, setHasMounted] = useState(false);
+  const user = auth.currentUser;
 
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
+  const { data: loggedTrips = [], isLoading, error } = useQuery<LoggedTrip[]>({
+    queryKey: ['trips', user?.uid],
+    queryFn: fetchTrips,
+    enabled: !!user,
+  });
 
-  useEffect(() => {
-    if (hasMounted && typeof window !== 'undefined') {
-      setIsLoading(true);
-      setError(null);
-      setStats(null); 
-      try {
-        const storedTripsJson = localStorage.getItem(TRIP_LOG_STORAGE_KEY);
-        if (storedTripsJson) {
-          const loggedTrips: LoggedTrip[] = JSON.parse(storedTripsJson);
-          
-          if (loggedTrips.length === 0) {
-            setStats({
-              totalTrips: 0, totalKilometers: 0, totalDaysOnRoad: 0, completedTrips: 0,
-              averageDistancePerTrip: 0, averageDurationPerTrip: 0,
-              longestTripByDistance: null, longestTripByDuration: null,
-            });
-            setIsLoading(false); // Ensure loading is set to false here
-            return;
-          }
-
-          let totalKilometers = 0;
-          let totalDaysOnRoad = 0;
-          let completedTrips = 0;
-          let longestDist = 0;
-          let longestTripByDist: LoggedTrip | null = null;
-          let longestDur = 0;
-          let longestTripByDur: LoggedTrip | null = null;
-
-          loggedTrips.forEach(trip => {
-            totalKilometers += trip.routeDetails?.distanceValue / 1000 || 0;
-            if (trip.isCompleted) {
-              completedTrips++;
-            }
-
-            let durationDays = 0;
-            if (trip.plannedStartDate && trip.plannedEndDate) {
-              const startDate = parseISO(trip.plannedStartDate);
-              const endDate = parseISO(trip.plannedEndDate);
-              if (isValid(startDate) && isValid(endDate) && endDate >= startDate) {
-                durationDays = differenceInCalendarDays(endDate, startDate) + 1;
-                totalDaysOnRoad += durationDays;
-              }
-            } else if (trip.plannedStartDate) { 
-                durationDays = 1; 
-                totalDaysOnRoad += durationDays;
-            }
-
-            const currentDistance = trip.routeDetails?.distanceValue / 1000 || 0;
-            if (currentDistance > longestDist) {
-              longestDist = currentDistance;
-              longestTripByDist = trip;
-            }
-            if (durationDays > longestDur) {
-              longestDur = durationDays;
-              longestTripByDur = trip;
-            }
-          });
-
-          setStats({
-            totalTrips: loggedTrips.length,
-            totalKilometers: totalKilometers,
-            totalDaysOnRoad: totalDaysOnRoad,
-            completedTrips: completedTrips,
-            averageDistancePerTrip: loggedTrips.length > 0 ? totalKilometers / loggedTrips.length : 0,
-            averageDurationPerTrip: loggedTrips.length > 0 ? totalDaysOnRoad / loggedTrips.length : 0,
-            longestTripByDistance: longestTripByDist,
-            longestTripByDuration: longestTripByDur,
-          });
-
-        } else {
-          setStats({ 
-            totalTrips: 0, totalKilometers: 0, totalDaysOnRoad: 0, completedTrips: 0,
-            averageDistancePerTrip: 0, averageDurationPerTrip: 0,
-            longestTripByDistance: null, longestTripByDuration: null,
-          });
-        }
-      } catch (e: any) {
-        console.error("Error processing trip data for stats:", e);
-        setError(`Could not load or process trip statistics. ${e.message || ''}`);
-      } finally {
-        setIsLoading(false);
-      }
+  const stats: TripStats | null = useMemo(() => {
+    if (!loggedTrips || loggedTrips.length === 0) {
+      return {
+        totalTrips: 0, totalKilometers: 0, totalDaysOnRoad: 0, completedTrips: 0,
+        averageDistancePerTrip: 0, averageDurationPerTrip: 0,
+        longestTripByDistance: null, longestTripByDuration: null,
+      };
     }
-  }, [hasMounted]);
+
+    let totalKilometers = 0;
+    let totalDaysOnRoad = 0;
+    let completedTrips = 0;
+    let longestDist = 0;
+    let longestTripByDist: LoggedTrip | null = null;
+    let longestDur = 0;
+    let longestTripByDur: LoggedTrip | null = null;
+
+    loggedTrips.forEach(trip => {
+      totalKilometers += trip.routeDetails?.distanceValue / 1000 || 0;
+      if (trip.isCompleted) {
+        completedTrips++;
+      }
+
+      let durationDays = 0;
+      if (trip.plannedStartDate && trip.plannedEndDate) {
+        const startDate = parseISO(trip.plannedStartDate);
+        const endDate = parseISO(trip.plannedEndDate);
+        if (isValid(startDate) && isValid(endDate) && endDate >= startDate) {
+          durationDays = differenceInCalendarDays(endDate, startDate) + 1;
+          totalDaysOnRoad += durationDays;
+        }
+      } else if (trip.plannedStartDate) {
+        durationDays = 1;
+        totalDaysOnRoad += durationDays;
+      }
+
+      const currentDistance = trip.routeDetails?.distanceValue / 1000 || 0;
+      if (currentDistance > longestDist) {
+        longestDist = currentDistance;
+        longestTripByDist = trip;
+      }
+      if (durationDays > longestDur) {
+        longestDur = durationDays;
+        longestTripByDur = trip;
+      }
+    });
+
+    return {
+      totalTrips: loggedTrips.length,
+      totalKilometers: totalKilometers,
+      totalDaysOnRoad: totalDaysOnRoad,
+      completedTrips: completedTrips,
+      averageDistancePerTrip: loggedTrips.length > 0 ? totalKilometers / loggedTrips.length : 0,
+      averageDurationPerTrip: loggedTrips.length > 0 ? totalDaysOnRoad / loggedTrips.length : 0,
+      longestTripByDistance: longestTripByDist,
+      longestTripByDuration: longestTripByDur,
+    };
+  }, [loggedTrips]);
 
   const StatCard = ({ title, value, icon: Icon, unit = '', description }: { title: string, value: string | number, icon: React.ElementType, unit?: string, description?: string }) => (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -131,12 +106,16 @@ export default function StatsPage() {
     </Card>
   );
 
-  if (!hasMounted || isLoading) {
+  if (isLoading) {
     return (
       <div className="space-y-8">
         <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
           <BarChart3 className="mr-3 h-8 w-8" /> Travel Statistics
         </h1>
+        <div className="flex justify-center items-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-3 font-body text-lg">Loading trip stats from server...</p>
+        </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-[120px]" />)}
         </div>
@@ -154,28 +133,13 @@ export default function StatsPage() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error Loading Stats</AlertTitle>
-          <AlertDescription>{error} Please try refreshing the page. If the problem persists, your saved trip data might be corrupted.</AlertDescription>
+          <AlertDescription>{error.message}</AlertDescription>
         </Alert>
       </div>
     );
   }
 
-  if (!stats) { // Added this check
-    return (
-      <div className="space-y-8">
-        <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
-          <BarChart3 className="mr-3 h-8 w-8" /> Travel Statistics
-        </h1>
-        <Alert variant="default">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Loading Statistics</AlertTitle>
-          <AlertDescription>Statistics are currently being calculated. Please wait a moment...</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-  
-  if (stats.totalTrips === 0) {
+  if (!stats || stats.totalTrips === 0) {
     return (
       <div className="space-y-8 text-center">
         <h1 className="text-3xl font-headline mb-6 text-primary flex items-center justify-center">
@@ -251,25 +215,6 @@ export default function StatsPage() {
           </CardContent>
         </Card>
       }
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline text-xl text-primary flex items-center"><Trophy className="mr-2 h-6 w-6" />Leaderboard (Concept)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="font-body text-muted-foreground">
-            In a full application with user accounts and a backend, this section could display a leaderboard of users based on distance travelled, trips completed, or other metrics.
-            For now, keep exploring and logging your trips to build up your personal stats!
-          </p>
-          <Alert variant="default" className="mt-4 bg-accent/10 border-accent/30">
-            <AlertTriangle className="h-4 w-4 text-accent" />
-            <AlertTitle className="font-headline text-accent">Future Feature</AlertTitle>
-            <AlertDescription className="font-body text-accent/80">
-              Imagine competing with fellow KamperHub users or earning badges for your milestones!
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
     </div>
   );
 }

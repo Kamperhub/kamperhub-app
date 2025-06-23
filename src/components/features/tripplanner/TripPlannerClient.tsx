@@ -7,11 +7,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { usePathname } from 'next/navigation';
 import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip } from '@/types/tripplanner';
-import { RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner'; // Removed TRIP_LOG_STORAGE_KEY
+import { RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import type { StoredVehicle } from '@/types/vehicle';
-import { VEHICLES_STORAGE_KEY, ACTIVE_VEHICLE_ID_KEY } from '@/types/vehicle';
 import type { CaravanDefaultChecklistSet, ChecklistItem, ChecklistCategory, TripChecklistSet } from '@/types/checklist';
-import { initialChecklists as globalDefaultChecklistTemplate } from '@/types/checklist'; // Removed storage keys
+import { initialChecklists as globalDefaultChecklistTemplate } from '@/types/checklist';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,7 +36,7 @@ import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesA
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { auth } from '@/lib/firebase';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { createTrip, fetchUserPreferences } from '@/lib/api-client';
+import { createTrip, fetchUserPreferences, fetchVehicles } from '@/lib/api-client';
 import type { UserProfile } from '@/types/auth';
 
 
@@ -94,6 +93,12 @@ export function TripPlannerClient() {
     queryFn: fetchUserPreferences,
     enabled: !!user,
   });
+  
+  const { data: allVehicles = [] } = useQuery<StoredVehicle[]>({
+    queryKey: ['vehicles', user?.uid],
+    queryFn: fetchVehicles,
+    enabled: !!user,
+  });
 
   const [isSaveTripDialogOpen, setIsSaveTripDialogOpen] = useState(false);
   const [pendingTripName, setPendingTripName] = useState('');
@@ -145,26 +150,17 @@ export function TripPlannerClient() {
       }
 
       if (!recalledTripLoaded) {
-        try {
-          // This part still uses localStorage to get default fuel efficiency.
-          // This is acceptable for now as the main goal is migrating the *write* operations.
-          const activeVehicleId = localStorage.getItem(ACTIVE_VEHICLE_ID_KEY);
-          const storedVehiclesJson = localStorage.getItem(VEHICLES_STORAGE_KEY);
-          if (activeVehicleId && storedVehiclesJson) {
-            const storedVehicles: StoredVehicle[] = JSON.parse(storedVehiclesJson);
-            const activeVehicle = storedVehicles.find(v => v.id === activeVehicleId);
-            if (activeVehicle && typeof activeVehicle.fuelEfficiency === 'number') {
-              if (getValues('fuelEfficiency') === 10) { 
-                 setValue('fuelEfficiency', activeVehicle.fuelEfficiency, { shouldValidate: false });
-              }
+        if (userPrefs?.activeVehicleId && allVehicles.length > 0) {
+          const activeVehicle = allVehicles.find(v => v.id === userPrefs.activeVehicleId);
+          if (activeVehicle && typeof activeVehicle.fuelEfficiency === 'number') {
+            if (getValues('fuelEfficiency') === 10) { 
+               setValue('fuelEfficiency', activeVehicle.fuelEfficiency, { shouldValidate: false });
             }
           }
-        } catch (e) {
-          console.error("Error loading active vehicle data for Trip Planner:", e);
         }
       }
     }
-  }, [reset, setValue, toast, pathname, getValues]); 
+  }, [reset, setValue, toast, pathname, getValues, userPrefs, allVehicles]); 
 
 
   useEffect(() => {
