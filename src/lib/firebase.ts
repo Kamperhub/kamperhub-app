@@ -3,6 +3,8 @@ import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from "firebase/app-check";
 
+// This configuration is for the "Kamperhub" web app registration in the Firebase Console.
+// Any settings (like App Check) should be applied to that specific app.
 const firebaseConfig = {
   apiKey: "AIzaSyB-7todRM_IzeDlV959vKNVPPF0KZeOUmQ", // Updated API Key
   authDomain: "kamperhub-s4hc2.firebaseapp.com",
