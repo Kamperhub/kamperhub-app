@@ -25,7 +25,7 @@ if (typeof window !== 'undefined') {
       // IMPORTANT: Replace the key below with your own reCAPTCHA v3 site key from the Firebase console.
       // Go to Project Settings > App Check, select your web app, and find the Site Key.
       initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider('YOUR_RECAPTCHA_V3_PUBLIC_KEY_HERE'),
+        provider: new ReCaptchaV3Provider('6Leh_lsrAAAAADJmzMCpj9zIRghJmTuOjgM9c8H7'),
         isTokenAutoRefreshEnabled: true
       });
       (window as any).appCheckInitialized = true;
