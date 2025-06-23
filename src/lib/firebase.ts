@@ -16,31 +16,18 @@ const firebaseConfig = {
 
 let app: FirebaseApp;
 // This pattern prevents re-initializing the app on every render in Next.js.
-if (getApps().length === 0) {
+if (!getApps().length) {
   console.log('[Firebase Client] Initializing a new Firebase app...');
   app = initializeApp(firebaseConfig);
 } else {
   console.log('[Firebase Client] Re-using existing Firebase app.');
-  app = getApp(); // Use getApp() for robustness in Next.js environments
+  app = getApp();
 }
 
 const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
 
-let analytics: Analytics | undefined = undefined;
+// Analytics initialization has been removed to simplify the connection process
+// and help resolve the "client is offline" error.
 
-// Initialize Analytics only on the client side where it's supported
-if (typeof window !== 'undefined') {
-  isSupported().then((isAnalyticsSupported) => {
-    if (isAnalyticsSupported && firebaseConfig.measurementId) {
-      analytics = getAnalytics(app);
-      console.log('[Firebase Client] Analytics initialized.');
-    } else {
-      console.log('[Firebase Client] Analytics not supported or measurementId is missing.');
-    }
-  }).catch(e => {
-    console.error('[Firebase Client] Error checking for Analytics support:', e);
-  });
-}
-
-export { app, auth, db, analytics };
+export { app, auth, db };
