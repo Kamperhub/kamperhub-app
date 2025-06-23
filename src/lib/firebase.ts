@@ -21,6 +21,14 @@ const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseCon
 // Initialize App Check on the client
 let appCheck: AppCheck | undefined;
 if (typeof window !== 'undefined') {
+  // For local development, you can use a debug token to bypass App Check.
+  // This is useful if you are having trouble with reCAPTCHA Enterprise setup.
+  // Make sure to remove this before deploying to production if you want real enforcement.
+  if (process.env.NODE_ENV === 'development') {
+    (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    console.log('[Firebase Client] App Check DEBUG TOKEN is enabled for local development.');
+  }
+
   try {
     // This is a global variable, so we can check if it's already initialized.
     // This prevents errors on fast refreshes.
