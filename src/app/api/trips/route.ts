@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { admin, adminFirestore } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { z, ZodError } from 'zod';
-import { budgetCategorySchema } from '@/types/expense';
+import { budgetCategorySchema, expenseSchema } from '@/types/expense';
 
 // Helper for user verification
 async function verifyUser(req: NextRequest): Promise<{ uid: string; error?: NextResponse }> {
@@ -92,6 +92,7 @@ const createTripSchema = z.object({
 const updateTripSchema = createTripSchema.extend({
   id: z.string().min(1, "Trip ID is required for updates"),
   timestamp: z.string().datetime(), // Keep timestamp for updates
+  expenses: z.array(expenseSchema).optional(),
 });
 
 
