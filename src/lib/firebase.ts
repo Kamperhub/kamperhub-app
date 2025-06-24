@@ -22,30 +22,24 @@ const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseCon
 // Initialize App Check on the client
 let appCheck: AppCheck | undefined;
 if (typeof window !== 'undefined') {
-  // IMPORTANT: App Check is only initialized in production.
-  // This is to prevent reCAPTCHA errors during local development if the Google Cloud project
-  // is not fully configured (i.e., reCAPTCHA Enterprise API not enabled or billing not linked).
-  if (process.env.NODE_ENV === 'production') {
+  // This check prevents re-initializing the app on every serverless function invocation,
+  // which can happen in development with fast refresh.
+  if (!(window as any).appCheckInitialized) {
+    (window as any).appCheckInitialized = true; // Set flag immediately
+
     try {
-      // This is a global variable, so we can check if it's already initialized.
-      // This prevents errors on fast refreshes.
-      if (!(window as any).appCheckInitialized) {
-        // IMPORTANT: This uses the ReCaptchaEnterpriseProvider.
-        // The key provided here MUST be a reCAPTCHA Enterprise Site Key.
-        // Ensure the "reCAPTCHA Enterprise" API is enabled in your Google Cloud project,
-        // and a billing account is linked to the project.
-        appCheck = initializeAppCheck(app, {
-          provider: new ReCaptchaEnterpriseProvider('6LcZh2orAAAAACZCrkNWXKNfNK9ha0IE0rJYXlNX'),
-          isTokenAutoRefreshEnabled: true
-        });
-        (window as any).appCheckInitialized = true;
-        console.log('[Firebase Client] App Check Initialized with ReCaptchaEnterpriseProvider for Production.');
-      }
+      // IMPORTANT: This uses the ReCaptchaEnterpriseProvider.
+      // The key provided here MUST be a reCAPTCHA Enterprise Site Key.
+      // Ensure the "reCAPTCHA Enterprise" API is enabled in your Google Cloud project,
+      // and a billing account is linked to the project.
+      appCheck = initializeAppCheck(app, {
+        provider: new ReCaptchaEnterpriseProvider('6LcZh2orAAAAACZCrkNWXKNfNK9ha0IE0rJYXlNX'),
+        isTokenAutoRefreshEnabled: true
+      });
+      console.log('[Firebase Client] App Check Initialized with ReCaptchaEnterpriseProvider.');
     } catch (error) {
-      console.error("[Firebase Client] CRITICAL: Error initializing App Check in production:", error);
+      console.error("[Firebase Client] CRITICAL: Error initializing App Check:", error);
     }
-  } else {
-    console.log("[Firebase Client] App Check is disabled for local development.");
   }
 }
 
