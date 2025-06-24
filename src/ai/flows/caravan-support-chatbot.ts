@@ -152,24 +152,29 @@ const findUserTripTool = ai.defineTool(
     }).nullable(),
   },
   async ({ userId, tripName }) => {
-    if (!adminFirestore) return null;
-    const tripsRef = adminFirestore.collection('users').doc(userId).collection('trips');
-    const snapshot = await tripsRef.get();
-    if (snapshot.empty) return null;
+    try {
+      if (!adminFirestore) return null;
+      const tripsRef = adminFirestore.collection('users').doc(userId).collection('trips');
+      const snapshot = await tripsRef.get();
+      if (snapshot.empty) return null;
 
-    const trips = snapshot.docs.map(doc => doc.data() as LoggedTrip);
-    
-    // Find a trip where the name contains the search term (case-insensitive)
-    const foundTrip = trips.find(trip => trip.name.toLowerCase().includes(tripName.toLowerCase()));
+      const trips = snapshot.docs.map(doc => doc.data() as LoggedTrip);
+      
+      const foundTrip = trips.find(trip => trip.name.toLowerCase().includes(tripName.toLowerCase()));
 
-    if (foundTrip) {
-      return {
-        tripId: foundTrip.id,
-        tripName: foundTrip.name,
-        budgetCategories: foundTrip.budget?.map(cat => cat.name) || [],
-      };
+      if (foundTrip) {
+        return {
+          tripId: foundTrip.id,
+          tripName: foundTrip.name,
+          budgetCategories: foundTrip.budget?.map(cat => cat.name) || [],
+        };
+      }
+      return null;
+    } catch (e: any) {
+        console.error('Critical error in findUserTripTool:', e);
+        // Returning null is safer for the LLM than throwing an error.
+        return null; 
     }
-    return null;
   }
 );
 
@@ -319,3 +324,5 @@ const caravanSupportChatbotFlow = ai.defineFlow(
     }
   }
 );
+
+    
