@@ -308,6 +308,28 @@ export function TripPlannerClient() {
       packDown: createChecklistCopyForTrip(sourceChecklistSet.packDown, tempTripId, 'pk'),
     };
     
+    let finalBudget = [...tripBudget];
+    if (fuelEstimate?.estimatedCost) {
+      const fuelCostValue = parseFloat(fuelEstimate.estimatedCost.replace('$', ''));
+      if (!isNaN(fuelCostValue) && fuelCostValue > 0) {
+        const fuelCategoryName = "Fuel";
+        const existingFuelCategoryIndex = finalBudget.findIndex(cat => cat.name.toLowerCase() === fuelCategoryName.toLowerCase());
+
+        if (existingFuelCategoryIndex !== -1) {
+          finalBudget[existingFuelCategoryIndex] = {
+            ...finalBudget[existingFuelCategoryIndex],
+            budgetedAmount: fuelCostValue
+          };
+        } else {
+          finalBudget.push({
+            id: `fuel_${Date.now()}`,
+            name: fuelCategoryName,
+            budgetedAmount: fuelCostValue
+          });
+        }
+      }
+    }
+    
     const currentFormData = getValues();
     const tripData: Omit<LoggedTrip, 'id' | 'timestamp'> = {
       name: pendingTripName.trim(),
@@ -321,7 +343,7 @@ export function TripPlannerClient() {
       plannedEndDate: currentFormData.dateRange?.to?.toISOString() || null,
       notes: pendingTripNotes.trim() || undefined,
       checklists: newTripChecklistSet,
-      budget: tripBudget,
+      budget: finalBudget,
       expenses: tripExpenses,
     };
     
