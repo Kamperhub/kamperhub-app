@@ -137,6 +137,38 @@ const findYoutubeLink = ai.defineTool(
   }
 );
 
+const listUserTripsTool = ai.defineTool(
+  {
+    name: 'listUserTrips',
+    description: "Lists all of the user's available trips.",
+    inputSchema: z.object({
+      userId: z.string().describe("The user's unique ID."),
+    }),
+    outputSchema: z.array(z.string()).describe("A list of trip names.").nullable(),
+  },
+  async ({ userId }) => {
+    try {
+      if (!adminFirestore) {
+        console.error('listUserTripsTool: Firestore is not initialized.');
+        return null;
+      }
+      const tripsRef = adminFirestore.collection('users').doc(userId).collection('trips');
+      const snapshot = await tripsRef.get();
+      if (snapshot.empty) return null;
+
+      const tripNames = snapshot.docs
+        .map(doc => doc.data()?.name)
+        .filter((name): name is string => typeof name === 'string');
+      
+      return tripNames.length > 0 ? tripNames : null;
+    } catch (e: any) {
+        console.error('Critical error in listUserTripsTool:', e);
+        return null;
+    }
+  }
+);
+
+
 const findUserTripTool = ai.defineTool(
   {
     name: 'findUserTrip',
@@ -153,12 +185,23 @@ const findUserTripTool = ai.defineTool(
   },
   async ({ userId, tripName }) => {
     try {
-      if (!adminFirestore) return null;
+      if (!adminFirestore) {
+        console.error('findUserTripTool: Firestore is not initialized.');
+        return null;
+      }
       const tripsRef = adminFirestore.collection('users').doc(userId).collection('trips');
       const snapshot = await tripsRef.get();
-      if (snapshot.empty) return null;
+      if (snapshot.empty) {
+        return null;
+      }
 
-      const trips = snapshot.docs.map(doc => doc.data() as LoggedTrip);
+      const trips: LoggedTrip[] = [];
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data && typeof data.name === 'string' && typeof data.id === 'string') {
+          trips.push(data as LoggedTrip);
+        }
+      });
       
       const foundTrip = trips.find(trip => trip.name.toLowerCase().includes(tripName.toLowerCase()));
 
@@ -172,7 +215,6 @@ const findUserTripTool = ai.defineTool(
       return null;
     } catch (e: any) {
         console.error('Critical error in findUserTripTool:', e);
-        // Returning null is safer for the LLM than throwing an error.
         return null; 
     }
   }
@@ -248,28 +290,30 @@ const prompt = ai.definePrompt({
   name: 'caravanSupportChatbotPrompt',
   input: {schema: CaravanSupportChatbotFlowInputSchema },
   output: {schema: CaravanSupportChatbotOutputSchema},
-  tools: [getFaqAnswer, getArticleInfoTool, findYoutubeLink, findUserTripTool, addExpenseToTripTool],
+  tools: [getFaqAnswer, getArticleInfoTool, findYoutubeLink, listUserTripsTool, findUserTripTool, addExpenseToTripTool],
   prompt: `You are a friendly and helpful caravan support chatbot for KamperHub. Your goal is to provide useful answers and perform actions for the user.
 
 USER ID: {{{userId}}}
 
-**Primary Task: Answering Questions**
-When a user asks a question, follow this hierarchy:
-1.  **Prioritize Internal Knowledge:** Use 'getFaqAnswer'. If found, use this as the core of your response.
-2.  **If No FAQ, Check Articles:** Use 'getArticleInfoTool'. If found, base your answer on the provided summary and set 'relatedArticleTitle'.
-3.  **Last Resort - General Knowledge:** If internal tools fail, answer using your general caravanning knowledge.
-4.  **Optional YouTube Link:** If a video would be helpful, use 'findYoutubeLink'.
+**Response Hierarchy:**
+1.  **Action Intent:** First, check if the user wants to perform an action (e.g., "add expense"). If so, proceed to the "Performing Actions" task below.
+2.  **Trip Listing Intent:** If the user asks a question like "what trips do I have?" or "what trips can I add expenses to?", use the 'listUserTripsTool'. If it returns a list of names, present them clearly to the user. If it returns null, inform the user they have no trips logged.
+3.  **FAQ Check:** If it's a general question, use 'getFaqAnswer' first.
+4.  **Article Check:** If no FAQ is found, use 'getArticleInfoTool'.
+5.  **General Knowledge:** If no internal tools provide an answer, use your general caravanning knowledge.
+6.  **YouTube Link:** As a final step, if a video would be helpful, use 'findYoutubeLink'.
 
-**Secondary Task: Performing Actions (like adding expenses)**
-If the user asks you to perform an action, like adding an expense:
+**Performing Actions (e.g., Adding Expenses):**
 1.  **Identify Intent:** Recognize the user wants to add an expense.
-2.  **Find Trip:** If the user mentions a trip name (e.g., "Fraser Island trip"), you MUST use the 'findUserTripTool' with the user's ID and the trip name to get the trip's unique ID. If they don't mention a trip name, you must ask them for it.
+2.  **Find Trip:** If the user mentions a trip name (e.g., "Fraser Island trip"), you MUST use the 'findUserTripTool' with the user's ID and the trip name to get the trip's unique ID.
+    - If the tool returns null, it means no matching trip was found. You MUST inform the user that you couldn't find that trip and ask them to try a different name or check their trip log. Do not proceed.
+    - If the user doesn't mention a trip name, you must ask them for it.
 3.  **Gather Details:** Once you have the trip ID, you need the expense details: amount, description, and category. If any of these are missing from the user's request, ask for them. When asking for a category, you can suggest the available categories returned by the 'findUserTripTool'.
 4.  **Get Date:** Always assume today's date for the expense unless the user specifies otherwise. Format it as an ISO 8601 string.
 5.  **Add Expense:** Use the 'addExpenseToTripTool' with all the gathered details (userId, tripId, amount, categoryName, description, expenseDate).
 6.  **Confirm:** Relay the success or error message from the tool back to the user in a conversational way. For the final answer, do not suggest YouTube links or related articles.
 
-Strictly follow these hierarchies. Do not use general knowledge if tools can provide an answer or perform an action. For action-based requests, focus only on completing the action.
+Strictly follow these hierarchies. For action-based requests, focus only on completing the action.
 
 User's Question: {{{question}}}
 `,
