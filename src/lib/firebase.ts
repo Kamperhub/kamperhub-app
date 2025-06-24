@@ -22,11 +22,10 @@ const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseCon
 let appCheck: AppCheck | undefined;
 
 if (typeof window !== 'undefined') {
-  // In development, setting this to true will generate a debug token in the console.
-  // This token needs to be added to the Firebase Console -> App Check -> Your App -> Manage debug tokens.
+  // Use the provided debug token for local development.
   if (process.env.NODE_ENV === 'development') {
-    (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    console.log('[Firebase Client] App Check debug mode is enabled. Look for the debug token in the console.');
+    (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = 'CF1E2CEF-6BAB-45E6-9CE8-4676FE922C4E';
+    console.log('[Firebase Client] App Check debug token has been set.');
   }
 
   // Initialize App Check. In dev mode, it will use the debug provider automatically if the flag is set.
