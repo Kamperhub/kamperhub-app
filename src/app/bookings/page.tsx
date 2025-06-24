@@ -4,6 +4,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { BookingEntry } from '@/types/booking';
+import type { LoggedTrip } from '@/types/tripplanner';
 import { sampleAffiliateLinks } from '@/types/booking';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -13,7 +14,7 @@ import { BookingForm } from '@/components/features/bookings/BookingForm';
 import { BookingList } from '@/components/features/bookings/BookingList';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { fetchBookings, createBooking, updateBooking, deleteBooking } from '@/lib/api-client';
+import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchTrips } from '@/lib/api-client';
 import { auth } from '@/lib/firebase';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -31,11 +32,18 @@ export default function BookingsPage() {
     queryFn: fetchBookings,
     enabled: !!user,
   });
+  
+  const { data: trips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery<LoggedTrip[]>({
+    queryKey: ['trips', user?.uid],
+    queryFn: fetchTrips,
+    enabled: !!user,
+  });
 
   const createBookingMutation = useMutation({
     mutationFn: (newBookingData: Omit<BookingEntry, 'id' | 'timestamp'>) => createBooking(newBookingData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings', user?.uid] });
+      queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] }); // Invalidate trips to refetch updated budget
       toast({ title: "Booking Added" });
       setIsFormOpen(false);
     },
@@ -48,6 +56,7 @@ export default function BookingsPage() {
     mutationFn: (bookingData: BookingEntry) => updateBooking(bookingData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings', user?.uid] });
+      queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] }); // Invalidate trips to refetch updated budget
       toast({ title: "Booking Updated" });
       setIsFormOpen(false);
       setEditingBooking(null);
@@ -61,6 +70,7 @@ export default function BookingsPage() {
     mutationFn: (bookingId: string) => deleteBooking(bookingId),
     onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['bookings', user?.uid] });
+        queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] }); // Invalidate trips to refetch updated budget
         toast({ title: "Booking Deleted" });
     },
     onError: (error: Error) => {
@@ -95,6 +105,8 @@ export default function BookingsPage() {
   };
   
   const isMutationLoading = createBookingMutation.isPending || updateBookingMutation.isPending;
+  const isLoading = isLoadingBookings || isLoadingTrips;
+  const queryError = bookingsError || tripsError;
 
   return (
     <div className="space-y-8">
@@ -125,20 +137,21 @@ export default function BookingsPage() {
               onSave={handleSaveBooking}
               onCancel={() => { setIsFormOpen(false); setEditingBooking(null); }}
               isLoading={isMutationLoading}
+              trips={trips}
             />
           </DialogContent>
         </Dialog>
       </div>
       
-      {bookingsError && (
+      {queryError && (
         <Alert variant="destructive">
             <Info className="h-4 w-4" />
-            <AlertTitle>Error Loading Bookings</AlertTitle>
-            <AlertDescription>{bookingsError.message}</AlertDescription>
+            <AlertTitle>Error Loading Data</AlertTitle>
+            <AlertDescription>{queryError.message}</AlertDescription>
         </Alert>
       )}
 
-      {isLoadingBookings ? (
+      {isLoading ? (
         <div className="space-y-4">
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
@@ -146,6 +159,7 @@ export default function BookingsPage() {
       ) : (
         <BookingList
             bookings={bookings}
+            trips={trips}
             onEdit={handleEditBooking}
             onDelete={handleDeleteBooking}
         />

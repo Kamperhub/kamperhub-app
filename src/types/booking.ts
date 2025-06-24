@@ -13,6 +13,8 @@ export interface BookingEntry {
   checkOutDate: string; // Store as ISO string or YYYY-MM-DD
   notes?: string;
   timestamp: string; // ISO string for when the log was created/updated
+  assignedTripId?: string | null;
+  budgetedCost?: number | null;
 }
 
 export interface AffiliateLink {

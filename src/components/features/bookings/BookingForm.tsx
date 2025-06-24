@@ -5,13 +5,15 @@ import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { BookingEntry } from '@/types/booking';
+import type { LoggedTrip } from '@/types/tripplanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar as CalendarIcon, Save, XCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Save, XCircle, DollarSign, Route } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
 // Removed import for GooglePlacesAutocompleteInput as it's no longer used here
@@ -25,6 +27,8 @@ const bookingSchema = z.object({
   checkInDate: z.string().refine(val => isValid(parseISO(val)), { message: "Check-in date is required" }),
   checkOutDate: z.string().refine(val => isValid(parseISO(val)), { message: "Check-out date is required" }),
   notes: z.string().optional(),
+  budgetedCost: z.coerce.number().min(0, "Budgeted cost must be non-negative").optional().nullable(),
+  assignedTripId: z.string().nullable().optional(),
 }).refine(data => {
     const checkIn = parseISO(data.checkInDate);
     const checkOut = parseISO(data.checkOutDate);
@@ -41,9 +45,10 @@ interface BookingFormProps {
   onSave: (data: BookingFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
+  trips: LoggedTrip[];
 }
 
-export function BookingForm({ initialData, onSave, onCancel, isLoading }: BookingFormProps) {
+export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }: BookingFormProps) {
   const { control, register, handleSubmit, formState: { errors }, reset, watch } = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: initialData ? {
@@ -59,6 +64,8 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
       checkInDate: '',
       checkOutDate: '',
       notes: '',
+      budgetedCost: null,
+      assignedTripId: null,
     },
   });
 
@@ -147,6 +154,31 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading }: Bookin
         </div>
       </div>
       
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="budgetedCost" className="font-body flex items-center"><DollarSign className="mr-1 h-4 w-4 text-muted-foreground" />Budgeted Cost (Optional)</Label>
+            <Input id="budgetedCost" type="number" step="0.01" {...register('budgetedCost')} placeholder="e.g., 250.00" className="font-body"/>
+            {errors.budgetedCost && <p className="text-sm text-destructive font-body mt-1">{errors.budgetedCost.message}</p>}
+          </div>
+          <div>
+            <Label htmlFor="assignedTripId" className="font-body flex items-center"><Route className="mr-1 h-4 w-4 text-muted-foreground" />Assign to Trip (Optional)</Label>
+            <Controller
+                name="assignedTripId"
+                control={control}
+                render={({ field }) => (
+                    <Select onValueChange={v => field.onChange(v === 'none' ? null : v)} value={field.value || 'none'}>
+                        <SelectTrigger className="font-body"><SelectValue placeholder="Select a trip..."/></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">-- No Trip --</SelectItem>
+                            {trips.map(trip => <SelectItem key={trip.id} value={trip.id}>{trip.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                )}
+            />
+            {errors.assignedTripId && <p className="text-sm text-destructive font-body mt-1">{errors.assignedTripId.message}</p>}
+          </div>
+      </div>
+
       <div>
         <Label htmlFor="locationAddress" className="font-body">Location / Address</Label>
         <Input 
