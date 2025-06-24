@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { admin, adminFirestore } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { z, ZodError } from 'zod';
-import { budgetCategorySchema, expenseSchema } from '@/types/expense';
 
 // Helper for user verification
 async function verifyUser(req: NextRequest): Promise<{ uid: string; error?: NextResponse }> {
@@ -28,6 +27,21 @@ async function verifyUser(req: NextRequest): Promise<{ uid: string; error?: Next
 }
 
 // Zod schemas for validation
+const budgetCategorySchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, "Category name is required"),
+  budgetedAmount: z.coerce.number().min(0, "Budgeted amount must be non-negative"),
+});
+
+const expenseSchema = z.object({
+  id: z.string(),
+  categoryId: z.string(),
+  description: z.string().min(1, "Description is required"),
+  amount: z.coerce.number().positive("Amount must be a positive number"),
+  date: z.string().datetime({ message: "Expense date must be a valid ISO date string" }),
+  timestamp: z.string().datetime(),
+});
+
 const latLngSchema = z.object({
   lat: z.number(),
   lng: z.number(),
@@ -91,7 +105,7 @@ const createTripSchema = z.object({
 
 const updateTripSchema = createTripSchema.extend({
   id: z.string().min(1, "Trip ID is required for updates"),
-  timestamp: z.string().datetime(), // Keep timestamp for updates
+  timestamp: z.string().datetime(),
   expenses: z.array(expenseSchema).optional(),
 });
 
