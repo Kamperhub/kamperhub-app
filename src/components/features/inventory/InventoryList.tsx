@@ -155,6 +155,7 @@ export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPre
   const isTowballOverWdhMax = wdhMaxCapacity > 0 && estimatedTowballDownload > wdhMaxCapacity;
   const isTowballUnderWdhMin = wdhMinCapacity !== null && wdhMinCapacity > 0 && estimatedTowballDownload < wdhMinCapacity;
 
+
   const handleAddItem = () => {
     if (!activeCaravan) {
       toast({ title: "No Active Caravan", description: "Please select an active caravan.", variant: "destructive" });
@@ -251,6 +252,17 @@ export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPre
         <CardTitle className="font-headline">Inventory Weight Tracker</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {activeWdh && (
+            <Alert variant="default" className="mb-6 bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+                <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+                <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">How Your WDH Affects Weights</AlertTitle>
+                <AlertDescription className="font-body text-blue-700 dark:text-blue-300">
+                    A Weight Distribution Hitch (WDH) is a crucial tool that redistributes some of the towball weight from your vehicle's rear axle to its front axle and the caravan's axles. This improves handling, braking, and overall towing safety.
+                    <br />
+                    <strong>Note:</strong> This app checks if your estimated towball mass is within your WDH's capacity, but it <strong>does not</strong> simulate the complex physics of weight redistribution on individual axle loads. Always verify your setup at a weighbridge.
+                </AlertDescription>
+            </Alert>
+        )}
         {isFormDisabled && (
             <Alert variant="default" className="bg-muted border-border">
                 <AlertTriangle className="h-4 w-4 text-foreground" />
@@ -283,7 +295,25 @@ export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPre
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Card><CardHeader><CardTitle>Caravan Compliance</CardTitle></CardHeader><CardContent><Alert variant={getAlertStylingVariant(currentCaravanMass, atmLimit)}><AlertTitle>ATM: {currentCaravanMass.toFixed(1)}kg / {atmLimit > 0 ? atmLimit.toFixed(0) : 'N/A'}kg</AlertTitle><AlertDescription>Remaining: {remainingPayloadATM.toFixed(1)} kg</AlertDescription></Alert></CardContent></Card>
             {activeVehicle && (<Card><CardHeader><CardTitle>Vehicle Compliance</CardTitle></CardHeader><CardContent><Alert variant={isOverMaxTowCapacity ? 'destructive' : 'default'}><AlertTitle>Max Tow: {currentCaravanMass.toFixed(1)}kg / {vehicleMaxTowCapacity.toFixed(0)}kg</AlertTitle><AlertDescription>{isOverMaxTowCapacity ? 'OVER LIMIT!' : 'OK'}</AlertDescription></Alert></CardContent></Card>)}
-            {activeWdh && (<Card><CardHeader><CardTitle>WDH Compatibility</CardTitle></CardHeader><CardContent><Alert variant={isTowballOverWdhMax ? 'destructive' : 'default'}><AlertTitle>WDH Max: {estimatedTowballDownload.toFixed(1)}kg / {wdhMaxCapacity}kg</AlertTitle><AlertDescription>{isTowballOverWdhMax ? 'OVER LIMIT!' : 'OK'}</AlertDescription></Alert></CardContent></Card>)}
+            {activeWdh && (
+              <Card>
+                <CardHeader><CardTitle>WDH Compatibility</CardTitle></CardHeader>
+                <CardContent>
+                    <Alert variant={isTowballOverWdhMax || isTowballUnderWdhMin ? 'destructive' : 'default'}>
+                        <AlertTitle>
+                            Est. Towball: {estimatedTowballDownload.toFixed(1)}kg
+                        </AlertTitle>
+                        <AlertDescription>
+                            WDH Range: {wdhMinCapacity ?? '0'}kg - {wdhMaxCapacity}kg
+                            <br/>
+                            {isTowballOverWdhMax && 'Status: OVER WDH max capacity!'}
+                            {isTowballUnderWdhMin && 'Status: UNDER WDH min capacity!'}
+                            {!isTowballOverWdhMax && !isTowballUnderWdhMin && 'Status: OK'}
+                        </AlertDescription>
+                    </Alert>
+                </CardContent>
+              </Card>
+            )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 my-6">
             <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={150}><PieChart><Pie data={atmChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={60} innerRadius={40} dataKey="value" stroke="hsl(var(--background))">{atmChart.data.map((_, i) => (<Cell key={`cell-atm-${i}`} fill={atmChart.colors[i % atmChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="ATM" value={currentCaravanMass} limit={atmLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
