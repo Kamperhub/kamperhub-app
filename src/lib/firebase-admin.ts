@@ -2,19 +2,11 @@
 import admin from 'firebase-admin';
 
 // This check prevents re-initializing the app on every serverless function invocation.
+// This is the simplest and most standard way to initialize.
+// It relies on Application Default Credentials being set up in the environment.
 if (!admin.apps.length) {
-  const serviceAccountJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-  if (serviceAccountJson) {
-    console.log("[Firebase Admin] Initializing Admin SDK with service account from environment variable.");
-    const serviceAccount = JSON.parse(serviceAccountJson);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-  } else {
-    console.log("[Firebase Admin] Initializing Admin SDK with Application Default Credentials (no service account variable found).");
-    // Fallback to default credentials if the env var is not set.
-    admin.initializeApp();
-  }
+  console.log("[Firebase Admin] Initializing Admin SDK with Application Default Credentials.");
+  admin.initializeApp();
 }
 
 const adminFirestore = admin.firestore();

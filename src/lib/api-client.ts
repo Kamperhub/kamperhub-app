@@ -25,7 +25,6 @@ async function apiFetch(url: string, options: RequestInit = {}) {
       appCheckTokenResponse = await getToken(appCheck, /* forceRefresh= */ false);
     } catch (err: any) {
       console.error("App Check getToken() failed:", err);
-      // Now that setup is confirmed, throw a clear error if token generation fails.
       throw new Error("App Check failed: Could not get verification token. This can happen if your domain is not whitelisted in the Firebase console or if reCAPTCHA Enterprise setup is incomplete (API not enabled or no billing account).");
     }
   }
@@ -36,7 +35,6 @@ async function apiFetch(url: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers || {});
   headers.set('Authorization', `Bearer ${authToken}`);
 
-  // Add App Check token to header if available
   if (appCheckTokenResponse) {
     headers.set('X-Firebase-AppCheck', appCheckTokenResponse.token);
   }
@@ -48,16 +46,31 @@ async function apiFetch(url: string, options: RequestInit = {}) {
   const response = await fetch(url, { ...options, headers });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ error: `Request failed with status ${response.status}` }));
-    const errorMessage = errorData.error || errorData.message || `Request failed with status ${response.status}`;
-    // Include more details if available from the server error response
-    const errorDetails = errorData.details ? ` Details: ${JSON.stringify(errorData.details)}` : '';
-    throw new Error(`${errorMessage}${errorDetails}`);
+    // Enhanced error handling for better diagnostics
+    let errorInfo = `Request failed with status ${response.status} (${response.statusText})`;
+    try {
+      const errorData = await response.json();
+      const errorMessage = errorData.error || errorData.message || 'No specific error message in JSON response.';
+      const errorDetails = errorData.details ? ` Details: ${JSON.stringify(errorData.details, null, 2)}` : '';
+      errorInfo = `${errorMessage}${errorDetails}`;
+    } catch (e) {
+      // If the response is not JSON, it might be an HTML error page from Next.js or plain text.
+      const textError = await response.text().catch(() => '');
+      if (textError) {
+        // We'll avoid logging the full HTML page, but provide a hint.
+        if (textError.toLowerCase().includes('<html>')) {
+           errorInfo += `\n\nServer returned an HTML error page. This usually indicates a crash in the API route handler. Please check the server logs for the full error details.`;
+        } else {
+           errorInfo += `\n\nServer Response: ${textError}`;
+        }
+      }
+    }
+    console.error("API Fetch Error Details:", errorInfo);
+    throw new Error(errorInfo);
   }
 
   const contentType = response.headers.get("content-type");
   if (contentType && contentType.indexOf("application/json") !== -1) {
-    // Handle empty JSON response (e.g., from a DELETE)
     const text = await response.text();
     return text ? JSON.parse(text) : null;
   }
