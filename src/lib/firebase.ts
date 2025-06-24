@@ -19,9 +19,9 @@ const firebaseConfig = {
 // Initialize Firebase
 const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize App Check on the client
+// Initialize App Check on the client, but ONLY in production
 let appCheck: AppCheck | undefined;
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
   // This check prevents re-initializing the app on every serverless function invocation,
   // which can happen in development with fast refresh.
   if (!(window as any).appCheckInitialized) {
@@ -36,11 +36,13 @@ if (typeof window !== 'undefined') {
         provider: new ReCaptchaEnterpriseProvider('6LcZh2orAAAAACZCrkNWXKNfNK9ha0IE0rJYXlNX'),
         isTokenAutoRefreshEnabled: true
       });
-      console.log('[Firebase Client] App Check Initialized with ReCaptchaEnterpriseProvider.');
+      console.log('[Firebase Client] App Check Initialized with ReCaptchaEnterpriseProvider for production.');
     } catch (error) {
       console.error("[Firebase Client] CRITICAL: Error initializing App Check:", error);
     }
   }
+} else if (typeof window !== 'undefined') {
+  console.log('[Firebase Client] App Check skipped for localhost development.');
 }
 
 const auth: Auth = getAuth(app);
