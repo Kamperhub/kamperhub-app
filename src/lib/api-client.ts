@@ -44,22 +44,32 @@ async function apiFetch(url: string, options: RequestInit = {}) {
   const response = await fetch(url, { ...options, headers });
 
   if (!response.ok) {
-    let errorInfo = `Request failed with status ${response.status} (${response.statusText})`;
+    // Improved error handling to provide more specific feedback.
+    let errorInfo = `Request to ${url} failed with status ${response.status}.`;
+    
     try {
-      const errorData = await response.json();
-      const errorMessage = errorData.error || errorData.message || 'No specific error message in JSON response.';
-      const errorDetails = errorData.details ? ` Details: ${JSON.stringify(errorData.details, null, 2)}` : '';
-      errorInfo = `${errorMessage}${errorDetails}`;
-    } catch (e) {
-      const textError = await response.text().catch(() => '');
-      if (textError) {
-        if (textError.toLowerCase().includes('<html>')) {
-           errorInfo += `\n\nServer returned an HTML error page. This usually indicates a crash in the API route handler. Please check the server logs for the full error details.`;
+      const errorText = await response.text();
+      // Try to parse as JSON first
+      try {
+        const errorData = JSON.parse(errorText);
+        const errorMessage = errorData.error || errorData.message || 'No specific error message provided in the JSON response.';
+        const errorDetails = errorData.details ? ` Details: ${JSON.stringify(errorData.details, null, 2)}` : '';
+        errorInfo = `${errorMessage}${errorDetails}`;
+      } catch (jsonError) {
+        // If parsing as JSON fails, it's likely HTML or plain text.
+        if (errorText.toLowerCase().includes('<html')) {
+           errorInfo = `Server returned an HTML error page, which usually indicates a critical backend crash. Status: ${response.status}. Please check the server-side logs for the full error stack trace.`;
+        } else if (errorText) {
+           errorInfo = `Server returned a non-JSON response. Status: ${response.status}. Response body: ${errorText.substring(0, 500)}`;
         } else {
-           errorInfo += `\n\nServer Response: ${textError}`;
+           errorInfo = `Request failed with status ${response.status} and an empty response body. This often indicates a server-side problem.`;
         }
       }
+    } catch (e) {
+      // This catch block is for if response.text() itself fails, which is rare.
+      errorInfo = `Request failed with status ${response.status}. Could not read response body.`;
     }
+
     console.error("API Fetch Error Details:", errorInfo);
     throw new Error(errorInfo);
   }
