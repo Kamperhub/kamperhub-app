@@ -21,7 +21,8 @@ const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseCon
 
 // Initialize App Check on the client, but ONLY in production
 let appCheck: AppCheck | undefined;
-if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+// Using NODE_ENV is a more reliable way to distinguish between production and development.
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
   // This check prevents re-initializing the app on every serverless function invocation,
   // which can happen in development with fast refresh.
   if (!(window as any).appCheckInitialized) {
@@ -42,7 +43,7 @@ if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
     }
   }
 } else if (typeof window !== 'undefined') {
-  console.log('[Firebase Client] App Check skipped for localhost development.');
+  console.log('[Firebase Client] App Check skipped for non-production environment.');
 }
 
 const auth: Auth = getAuth(app);
