@@ -5,7 +5,6 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from "firebase/app-check";
 
 // This configuration is for the "Kamperhub" web app registration in the Firebase Console.
-// Any settings (like App Check) should be applied to that specific app.
 const firebaseConfig = {
   apiKey: "AIzaSyB-7todRM_IzeDlV959vKNVPPF0KZeOUmQ", // Updated API Key
   authDomain: "kamperhub-s4hc2.firebaseapp.com",
@@ -19,33 +18,33 @@ const firebaseConfig = {
 // Initialize Firebase
 const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize App Check on the client, but ONLY when explicitly enabled.
+// Initialize App Check on the client
 let appCheck: AppCheck | undefined;
 
-// This condition now uses a specific environment variable for more control.
-// App Check will only be initialized if NEXT_PUBLIC_ENABLE_APP_CHECK is set to 'true'.
-if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_ENABLE_APP_CHECK === 'true') {
-  // This check prevents re-initializing the app on every serverless function invocation,
-  // which can happen in development with fast refresh.
+if (typeof window !== 'undefined') {
+  // Using a debug token is the recommended way to test App Check locally without
+  // encountering reCAPTCHA errors. This token is only used in development.
+  if (process.env.NODE_ENV === 'development') {
+    (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = "DC0219-7521-4905-A5CB-6970EDC500BB";
+    console.log('[Firebase Client] App Check debug token has been set for local development.');
+  }
+
+  // This check prevents re-initializing App Check on every hot-reload in development.
   if (!(window as any).appCheckInitialized) {
-    (window as any).appCheckInitialized = true; // Set flag immediately
+    (window as any).appCheckInitialized = true;
 
     try {
-      // IMPORTANT: This uses the ReCaptchaEnterpriseProvider.
-      // The key provided here MUST be a reCAPTCHA Enterprise SiteKey.
-      // Ensure the "reCAPTCHA Enterprise" API is enabled in your Google Cloud project,
-      // and a billing account is linked to the project.
+      // Initialize App Check with the reCAPTCHA Enterprise provider.
+      // In development, the debug token will be used automatically if set.
       appCheck = initializeAppCheck(app, {
         provider: new ReCaptchaEnterpriseProvider('6LcZh2orAAAAACZCrkNWXKNfNK9ha0IE0rJYXlNX'),
         isTokenAutoRefreshEnabled: true
       });
-      console.log('[Firebase Client] App Check Initialized with ReCaptchaEnterpriseProvider.');
+      console.log('[Firebase Client] App Check Initialized.');
     } catch (error) {
       console.error("[Firebase Client] CRITICAL: Error initializing App Check:", error);
     }
   }
-} else if (typeof window !== 'undefined') {
-  console.log('[Firebase Client] App Check is disabled. To enable, set NEXT_PUBLIC_ENABLE_APP_CHECK=true in your environment.');
 }
 
 const auth: Auth = getAuth(app);
