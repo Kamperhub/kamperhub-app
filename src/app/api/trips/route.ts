@@ -27,6 +27,7 @@ async function verifyUser(req: NextRequest): Promise<{ uid: string; error?: Next
 }
 
 // Zod schemas for validation
+// Define component schemas BEFORE they are used in the main schemas.
 const budgetCategorySchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Category name is required"),
@@ -85,6 +86,7 @@ const occupantSchema = z.object({
     weight: z.coerce.number().min(0, "Occupant weight must be non-negative"),
 });
 
+// Now define the main schemas that use the components above.
 const createTripSchema = z.object({
   name: z.string().min(1, "Trip name is required"),
   startLocationDisplay: z.string().min(1, "Start location is required"),
