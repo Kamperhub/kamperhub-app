@@ -27,6 +27,13 @@ const waterTankSchema = z.object({
   distanceFromAxleCenterMm: z.coerce.number().optional().nullable(),
 });
 
+const caravanDiagramSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, "Diagram name is required"),
+  url: z.string().url("Must be a valid URL"),
+  notes: z.string().optional().nullable(),
+});
+
 // Zod schema for creating a new caravan
 const createCaravanSchema = z.object({
   make: z.string().min(1, "Make is required"),
@@ -45,6 +52,7 @@ const createCaravanSchema = z.object({
   interAxleSpacing: z.coerce.number().optional().nullable(),
   storageLocations: z.array(storageLocationSchema).optional(),
   waterTanks: z.array(waterTankSchema).optional(),
+  diagrams: z.array(caravanDiagramSchema).optional(),
 });
 
 // Zod schema for updating an existing caravan (must include ID)
@@ -102,6 +110,7 @@ export async function POST(req: NextRequest) {
       ...parsedData,
       storageLocations: parsedData.storageLocations || [],
       waterTanks: parsedData.waterTanks || [],
+      diagrams: parsedData.diagrams || [],
     };
     
     await newCaravanRef.set(newCaravan);

@@ -20,6 +20,13 @@ export interface WaterTank {
   distanceFromAxleCenterMm?: number | null;
 }
 
+export interface CaravanDiagram {
+  id: string;
+  name: string;
+  url: string;
+  notes?: string;
+}
+
 export interface CaravanFormData {
   make: string;
   model: string;
@@ -37,6 +44,7 @@ export interface CaravanFormData {
   interAxleSpacing?: number | null;
   storageLocations?: StorageLocation[];
   waterTanks?: WaterTank[];
+  diagrams?: CaravanDiagram[];
 }
 
 export interface StoredCaravan extends CaravanFormData {

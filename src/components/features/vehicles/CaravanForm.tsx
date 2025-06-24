@@ -5,15 +5,16 @@ import React, { useEffect, useMemo } from 'react';
 import { useForm, type SubmitHandler, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { CaravanFormData, StorageLocation, WaterTank } from '@/types/caravan';
+import type { CaravanFormData, StorageLocation, WaterTank, CaravanDiagram } from '@/types/caravan';
 import type { StoredWDH } from '@/types/wdh';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, XCircle, PlusCircle, Trash2, Droplet, Info } from 'lucide-react';
+import { Save, XCircle, PlusCircle, Trash2, Droplet, Info, FileText } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
 
 const storageLocationSchema = z.object({
   id: z.string(),
@@ -36,6 +37,13 @@ const waterTankSchema = z.object({
   distanceFromAxleCenterMm: z.coerce.number().optional().nullable(),
 });
 
+const caravanDiagramSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, "Diagram name is required"),
+  url: z.string().url("Must be a valid URL"),
+  notes: z.string().optional().nullable(),
+});
+
 const caravanSchema = z.object({
   make: z.string().min(1, "Make is required"),
   model: z.string().min(1, "Model is required"),
@@ -53,6 +61,7 @@ const caravanSchema = z.object({
   interAxleSpacing: z.coerce.number().min(1, "Spacing must be positive (mm)").optional().nullable(),
   storageLocations: z.array(storageLocationSchema).optional(),
   waterTanks: z.array(waterTankSchema).optional(),
+  diagrams: z.array(caravanDiagramSchema).optional(),
 }).refine(data => {
     if (data.bodyLength && data.overallLength && data.bodyLength > data.overallLength) {
         return false;
@@ -93,12 +102,13 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading, availabl
     interAxleSpacing: null,
     storageLocations: [],
     waterTanks: [],
+    diagrams: [],
   };
   
   const { control, register, handleSubmit, formState: { errors }, reset, watch } = useForm<CaravanFormData>({
     resolver: zodResolver(caravanSchema),
     defaultValues: initialData 
-      ? { ...defaultFormValues, ...initialData, storageLocations: initialData.storageLocations || [], waterTanks: initialData.waterTanks || [] } 
+      ? { ...defaultFormValues, ...initialData, storageLocations: initialData.storageLocations || [], waterTanks: initialData.waterTanks || [], diagrams: initialData.diagrams || [] } 
       : defaultFormValues,
   });
 
@@ -110,6 +120,11 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading, availabl
   const { fields: waterTankFields, append: appendWaterTank, remove: removeWaterTank } = useFieldArray({
     control,
     name: "waterTanks",
+  });
+  
+  const { fields: diagramFields, append: appendDiagram, remove: removeDiagram } = useFieldArray({
+    control,
+    name: "diagrams",
   });
 
   const numberOfAxles = watch("numberOfAxles");
@@ -127,7 +142,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading, availabl
   
   useEffect(() => {
     const currentDefaultValues = initialData 
-    ? { ...defaultFormValues, ...initialData, storageLocations: initialData.storageLocations || [], waterTanks: initialData.waterTanks || [], associatedWdhId: initialData.associatedWdhId || null } 
+    ? { ...defaultFormValues, ...initialData, storageLocations: initialData.storageLocations || [], waterTanks: initialData.waterTanks || [], diagrams: initialData.diagrams || [], associatedWdhId: initialData.associatedWdhId || null } 
     : defaultFormValues;
     reset(currentDefaultValues);
   }, [initialData, reset]);
@@ -151,6 +166,10 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading, availabl
         ...tank,
         capacityLiters: Number(tank.capacityLiters),
         distanceFromAxleCenterMm: tank.distanceFromAxleCenterMm ? Number(tank.distanceFromAxleCenterMm) : null,
+      })) || [],
+      diagrams: data.diagrams?.map(diag => ({
+        ...diag,
+        notes: diag.notes || undefined,
       })) || [],
     };
     onSave(processedData);
@@ -509,6 +528,49 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading, availabl
         )}
       </div>
 
+      {/* Associated Diagrams */}
+      <Separator className="my-6" />
+      <h3 className="text-lg font-medium font-headline text-primary">Associated Diagrams</h3>
+      <div className="space-y-4">
+        {diagramFields.map((field, index) => (
+          <div key={field.id} className="p-4 border rounded-md space-y-3 bg-muted/30">
+            <div className="flex justify-between items-center">
+              <Label className="font-body font-medium">Diagram {index + 1}</Label>
+              <Button type="button" variant="ghost" onClick={() => removeDiagram(index)} className="text-destructive hover:bg-destructive/10 p-2">
+                <Trash2 className="h-4 w-4 mr-1" /> Remove
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <Label htmlFor={`diagrams.${index}.name`} className="text-xs font-body">Diagram Name*</Label>
+                <Input {...register(`diagrams.${index}.name`)} placeholder="e.g., Floor Plan, Wiring Schematic" className="font-body bg-background" />
+                {errors.diagrams?.[index]?.name && <p className="text-sm text-destructive mt-1">{errors.diagrams[index]?.name?.message}</p>}
+              </div>
+              <div>
+                <Label htmlFor={`diagrams.${index}.url`} className="text-xs font-body">Image/Document URL*</Label>
+                <Input {...register(`diagrams.${index}.url`)} placeholder="https://example.com/diagram.jpg" className="font-body bg-background" />
+                {errors.diagrams?.[index]?.url && <p className="text-sm text-destructive mt-1">{errors.diagrams[index]?.url?.message}</p>}
+              </div>
+              <div>
+                <Label htmlFor={`diagrams.${index}.notes`} className="text-xs font-body">Notes (Optional)</Label>
+                <Textarea {...register(`diagrams.${index}.notes`)} placeholder="e.g., Highlights the 12V fuse box location." className="font-body bg-background" />
+                {errors.diagrams?.[index]?.notes && <p className="text-sm text-destructive mt-1">{errors.diagrams[index]?.notes?.message}</p>}
+              </div>
+            </div>
+          </div>
+        ))}
+        <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => appendDiagram({ id: Date.now().toString(), name: '', url: '', notes: '' } as CaravanDiagram)}
+            className="font-body"
+        >
+          <FileText className="mr-2 h-4 w-4" /> Add Diagram
+        </Button>
+        {errors.diagrams && typeof errors.diagrams === 'object' && !Array.isArray(errors.diagrams) && (errors.diagrams as any).message && (
+            <p className="text-sm text-destructive font-body mt-1">{(errors.diagrams as any).message}</p>
+        )}
+      </div>
 
       <Separator className="my-6"/>
 

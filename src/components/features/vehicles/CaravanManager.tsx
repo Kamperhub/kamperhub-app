@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { CaravanForm } from './CaravanForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Link2 as LinkIcon, Ruler, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Droplet, Weight, Axe, Loader2 } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, Link2 as LinkIcon, Ruler, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Droplet, Weight, Axe, Loader2, FileText } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -29,6 +29,7 @@ import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import type { UserProfile } from '@/types/auth';
 import type { StoredWDH } from '@/types/wdh';
 import { useSubscription } from '@/hooks/useSubscription';
+import Link from 'next/link';
 
 export function CaravanManager() {
   const { toast } = useToast();
@@ -286,43 +287,54 @@ export function CaravanManager() {
                   </div>
                 </div>
 
-                {(caravan.storageLocations && caravan.storageLocations.length > 0) || (caravan.waterTanks && caravan.waterTanks.length > 0) ? (
-                  <CardFooter className="p-0 pt-3 mt-3 border-t flex flex-col items-start space-y-3">
-                    {caravan.storageLocations && caravan.storageLocations.length > 0 && (
-                      <div className="w-full">
-                        <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center"><PackagePlus className="w-4 h-4 mr-2 text-primary"/>Storage Locations:</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
-                          {caravan.storageLocations.map(loc => (
-                            <div key={loc.id} className="p-3 border rounded-lg bg-card shadow-sm">
-                              <h5 className="font-semibold font-body text-base flex items-center mb-1 text-primary"><MapPin className="w-4 h-4 mr-2 text-accent" /> {loc.name}</h5>
+                <CardFooter className="p-0 pt-3 mt-3 border-t flex flex-col items-start space-y-3">
+                  {(caravan.storageLocations && caravan.storageLocations.length > 0) && (
+                    <div className="w-full">
+                      <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center"><PackagePlus className="w-4 h-4 mr-2 text-primary"/>Storage Locations:</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+                        {caravan.storageLocations.map(loc => (
+                          <div key={loc.id} className="p-3 border rounded-lg bg-card shadow-sm">
+                            <h5 className="font-semibold font-body text-base flex items-center mb-1 text-primary"><MapPin className="w-4 h-4 mr-2 text-accent" /> {loc.name}</h5>
+                            <div className="space-y-0.5 text-xs font-body text-muted-foreground">
+                              <p><strong className="text-foreground/80">Position:</strong> {formatPositionText(loc)}</p>
+                              <p><strong className="text-foreground/80">Max Capacity:</strong> {formatDimension(loc.maxWeightCapacityKg, 'kg')}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {(caravan.waterTanks && caravan.waterTanks.length > 0) && (
+                    <div className="w-full">
+                      <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center"><Droplet className="w-4 h-4 mr-2 text-primary"/>Water Tanks:</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+                        {caravan.waterTanks.map(tank => (
+                          <div key={tank.id} className="p-3 border rounded-lg bg-card shadow-sm">
+                              <h5 className="font-semibold font-body text-base flex items-center mb-1 text-primary"><Droplet className="w-4 h-4 mr-2 text-accent" /> {tank.name}</h5>
                               <div className="space-y-0.5 text-xs font-body text-muted-foreground">
-                                <p><strong className="text-foreground/80">Position:</strong> {formatPositionText(loc)}</p>
-                                <p><strong className="text-foreground/80">Max Capacity:</strong> {formatDimension(loc.maxWeightCapacityKg, 'kg')}</p>
+                                  <p><strong className="text-foreground/80">Type:</strong> {tank.type.charAt(0).toUpperCase() + tank.type.slice(1)}</p>
+                                  <p><strong className="text-foreground/80">Capacity:</strong> {tank.capacityLiters}L</p>
+                                  <p><strong className="text-foreground/80">Position:</strong> {formatPositionText(tank)}</p>
                               </div>
-                            </div>
-                          ))}
-                        </div>
+                          </div>
+                        ))}
                       </div>
-                    )}
-                    {caravan.waterTanks && caravan.waterTanks.length > 0 && (
+                    </div>
+                  )}
+                   {(caravan.diagrams && caravan.diagrams.length > 0) && (
                       <div className="w-full">
-                        <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center"><Droplet className="w-4 h-4 mr-2 text-primary"/>Water Tanks:</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
-                          {caravan.waterTanks.map(tank => (
-                            <div key={tank.id} className="p-3 border rounded-lg bg-card shadow-sm">
-                                <h5 className="font-semibold font-body text-base flex items-center mb-1 text-primary"><Droplet className="w-4 h-4 mr-2 text-accent" /> {tank.name}</h5>
-                                <div className="space-y-0.5 text-xs font-body text-muted-foreground">
-                                    <p><strong className="text-foreground/80">Type:</strong> {tank.type.charAt(0).toUpperCase() + tank.type.slice(1)}</p>
-                                    <p><strong className="text-foreground/80">Capacity:</strong> {tank.capacityLiters}L</p>
-                                    <p><strong className="text-foreground/80">Position:</strong> {formatPositionText(tank)}</p>
-                                </div>
-                            </div>
+                        <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center"><FileText className="w-4 h-4 mr-2 text-primary"/>Associated Diagrams:</h4>
+                        <ul className="list-disc pl-5 space-y-1">
+                          {caravan.diagrams.map(diag => (
+                            <li key={diag.id}>
+                              <Link href={diag.url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent hover:underline font-body">{diag.name}</Link>
+                              {diag.notes && <p className="text-xs text-muted-foreground pl-1">{diag.notes}</p>}
+                            </li>
                           ))}
-                        </div>
+                        </ul>
                       </div>
                     )}
-                  </CardFooter>
-                ) : null}
+                </CardFooter>
               </Card>
             )
           })}
