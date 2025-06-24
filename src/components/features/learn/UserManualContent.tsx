@@ -14,10 +14,7 @@ export function UserManualContent() {
   const importantNoteContent = (
     <>
       <p>
-        KamperHub uses Firebase Authentication for user accounts and Firebase Firestore for storing your core profile and subscription details. This means your login credentials, name, email, location, and subscription status are securely stored in the cloud and synced across your sessions.
-      </p>
-      <p className="mt-2">
-        However, most other application data you generate and save — such as your:
+        KamperHub securely saves your application data to your user account on the server using Firebase Firestore. This includes your:
       </p>
       <ul className="list-disc pl-5 my-2 space-y-1">
         <li>Vehicle, Caravan, and WDH details</li>
@@ -28,16 +25,12 @@ export function UserManualContent() {
         <li>Customized dashboard layout</li>
       </ul>
       <p>
-        is currently stored <strong>locally in your web browser's storage</strong>. This means:
+        This server-side storage means:
       </p>
       <ul className="list-disc pl-5 my-2 space-y-1">
-        <li>This specific data is private to the browser you are using on your current device.</li>
-        <li>Clearing your browser's cache or site data for KamperHub will <strong>permanently delete all this locally stored application data.</strong> Your user account and subscription will remain, but your vehicles, trips, etc., will be lost.</li>
-        <li>This data is not automatically synced across different devices or browsers.</li>
+        <li><strong>Your data is safe and backed up.</strong> It won't be lost if you clear your browser's cache or use a different computer.</li>
+        <li><strong>Your data is synced across devices.</strong> You can log in on your phone or laptop and access the same information.</li>
       </ul>
-      <p>
-        For a future version, we aim to migrate more of this application data to cloud storage for better persistence and multi-device access.
-      </p>
     </>
   );
 
@@ -47,7 +40,7 @@ export function UserManualContent() {
       icon: LayoutDashboard,
       content: (
         <>
-          <p>The Dashboard is your home screen, providing quick access to all of KamperHub's features. Each card represents a core section of the app. You can drag and drop these cards to customize the layout to your preference (on desktop). This layout is saved locally in your browser.</p>
+          <p>The Dashboard is your home screen, providing quick access to all of KamperHub's features. Each card represents a core section of the app. You can drag and drop these cards to customize the layout to your preference (on desktop). This layout is saved to your account and will sync across devices.</p>
         </>
       )
     },
@@ -120,7 +113,7 @@ export function UserManualContent() {
       icon: ListChecks,
       content: (
         <>
-          <p>KamperHub offers a flexible checklist system to ensure you don't miss crucial steps for different phases of your journey.</p>
+          <p>KamperHub offers a flexible checklist system to ensure you don't miss crucial steps for different phases of your journey. All checklist data is saved to your account and available across devices.</p>
           <ul className="list-disc pl-5 space-y-2">
             <li>
               <strong>Two Types of Checklists:</strong>
@@ -130,7 +123,6 @@ export function UserManualContent() {
               </ol>
             </li>
             <li><strong>Using Checklists:</strong> You can add, delete, reorder, and mark items as completed. The completion status is saved for each specific trip's checklist or caravan default.</li>
-            <li><strong>Data Storage:</strong> All checklist data is stored locally in your browser.</li>
           </ul>
         </>
       )
