@@ -22,23 +22,20 @@ const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseCon
 let appCheck: AppCheck | undefined;
 
 if (typeof window !== 'undefined') {
-  // In development, setting this to true will generate a debug token in the console.
-  if (process.env.NODE_ENV === 'development') {
-    // @ts-ignore
-    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    console.log('[Firebase Client] App Check DEBUG MODE ENABLED. Look for the debug token in the console and add it to your Firebase project settings.');
-  }
-  
-  try {
-    // The debug provider will be used automatically in development due to the flag above.
-    // The reCAPTCHA provider will be used in production.
-    appCheck = initializeAppCheck(app, {
-      provider: new ReCaptchaEnterpriseProvider('6LcZh2orAAAAACZCrkNWXKNfNK9ha0IE0rJYXlNX'),
-      isTokenAutoRefreshEnabled: true
-    });
-    console.log('[Firebase Client] App Check Initialized successfully.');
-  } catch (error) {
-    console.error("[Firebase Client] CRITICAL: Error initializing App Check:", error);
+  // Only initialize App Check in production.
+  // In development, App Check will be bypassed.
+  if (process.env.NODE_ENV === 'production') {
+      try {
+        appCheck = initializeAppCheck(app, {
+          provider: new ReCaptchaEnterpriseProvider('6LcZh2orAAAAACZCrkNWXKNfNK9ha0IE0rJYXlNX'),
+          isTokenAutoRefreshEnabled: true
+        });
+        console.log('[Firebase Client] App Check Initialized for PRODUCTION.');
+      } catch (error) {
+        console.error("[Firebase Client] CRITICAL: Error initializing App Check:", error);
+      }
+  } else {
+    console.log('[Firebase Client] App Check is DISABLED for local development.');
   }
 }
 

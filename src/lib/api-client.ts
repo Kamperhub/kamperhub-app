@@ -1,3 +1,4 @@
+
 'use client';
 
 import { auth, appCheck } from './firebase';
@@ -18,25 +19,22 @@ async function apiFetch(url: string, options: RequestInit = {}) {
     throw new Error('User not authenticated. Cannot make API call.');
   }
 
-  // Get App Check token
-  let appCheckTokenResponse;
-  if (appCheck) {
-    try {
-      appCheckTokenResponse = await getToken(appCheck, /* forceRefresh= */ false);
-    } catch (err: any) {
-      console.error("App Check getToken() failed:", err);
-      throw new Error("App Check failed: Could not get verification token. This can happen if your domain is not whitelisted in the Firebase console or if reCAPTCHA Enterprise setup is incomplete (API not enabled or no billing account).");
-    }
-  }
-  
-  // Get Auth token
-  const authToken = await user.getIdToken(true);
-
   const headers = new Headers(options.headers || {});
+
+  // Get Auth token and add to headers
+  const authToken = await user.getIdToken(true);
   headers.set('Authorization', `Bearer ${authToken}`);
 
-  if (appCheckTokenResponse) {
-    headers.set('X-Firebase-AppCheck', appCheckTokenResponse.token);
+  // Only get and add App Check token if App Check is initialized (i.e., in production)
+  if (appCheck) {
+    try {
+      const appCheckTokenResponse = await getToken(appCheck, /* forceRefresh= */ false);
+      headers.set('X-Firebase-AppCheck', appCheckTokenResponse.token);
+    } catch (err: any) {
+      console.error("App Check getToken() failed:", err);
+      // This error is now more specific to production environments
+      throw new Error("App Check failed: Could not get verification token. Ensure your domain is whitelisted in Firebase and reCAPTCHA Enterprise is correctly configured.");
+    }
   }
   
   if (options.body) {
@@ -46,7 +44,6 @@ async function apiFetch(url: string, options: RequestInit = {}) {
   const response = await fetch(url, { ...options, headers });
 
   if (!response.ok) {
-    // Enhanced error handling for better diagnostics
     let errorInfo = `Request failed with status ${response.status} (${response.statusText})`;
     try {
       const errorData = await response.json();
@@ -54,10 +51,8 @@ async function apiFetch(url: string, options: RequestInit = {}) {
       const errorDetails = errorData.details ? ` Details: ${JSON.stringify(errorData.details, null, 2)}` : '';
       errorInfo = `${errorMessage}${errorDetails}`;
     } catch (e) {
-      // If the response is not JSON, it might be an HTML error page from Next.js or plain text.
       const textError = await response.text().catch(() => '');
       if (textError) {
-        // We'll avoid logging the full HTML page, but provide a hint.
         if (textError.toLowerCase().includes('<html>')) {
            errorInfo += `\n\nServer returned an HTML error page. This usually indicates a crash in the API route handler. Please check the server logs for the full error details.`;
         } else {
