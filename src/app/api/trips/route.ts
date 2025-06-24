@@ -102,7 +102,7 @@ const createTripSchema = z.object({
   isCompleted: z.boolean().optional().default(false),
   checklists: tripChecklistSetSchema.optional(),
   budget: z.array(budgetCategorySchema).optional(),
-  occupants: z.array(occupantSchema).optional(),
+  occupants: z.array(occupantSchema).min(1, "At least one occupant (e.g., the driver) is required."),
 });
 
 const updateTripSchema = createTripSchema.extend({

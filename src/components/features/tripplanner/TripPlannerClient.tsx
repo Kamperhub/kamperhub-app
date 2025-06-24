@@ -306,6 +306,14 @@ export function TripPlannerClient() {
       toast({ title: "Error", description: "Route details are missing.", variant: "destructive" });
       return;
     }
+    if (tripOccupants.length === 0) {
+      toast({
+        title: "Occupant Required",
+        description: "Please add at least one occupant (e.g., the driver) before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const tempTripId = Date.now().toString();
     const sourceChecklistSet = userPrefs?.activeCaravanId && userPrefs.caravanDefaultChecklists?.[userPrefs.activeCaravanId]
