@@ -1,4 +1,3 @@
-
 import type { AiGeneratedArticle } from '@/types/learn';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,7 +46,7 @@ export function ArticleDisplayCard({ article }: ArticleDisplayCardProps) {
             </DialogHeader>
             <Separator className="mx-6 my-0 flex-shrink-0" />
             
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 min-h-0">
               <div className="px-6 py-4 space-y-4 font-body text-foreground">
                 <p className="text-base leading-relaxed whitespace-pre-line">{article.introduction}</p>
                 {article.sections.map((section, index) => (
