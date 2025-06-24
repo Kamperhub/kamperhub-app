@@ -1,4 +1,3 @@
-
 // src/components/features/learn/UserManualContent.tsx
 import {
   Accordion,
@@ -51,7 +50,7 @@ export function UserManualContent() {
       content: importantNoteContent
     },
     {
-      title: "2. Vehicle, Caravan, Storage & WDH Data (/vehicles)",
+      title: "2. Vehicle, Caravan, Storage & WDH Data",
       icon: Settings2,
       content: (
         <>
@@ -89,13 +88,13 @@ export function UserManualContent() {
       )
     },
     {
-      title: "3. Inventory & Weight Management (/inventory)",
+      title: "3. Inventory & Weight Management",
       icon: Backpack,
       content: (
          <>
           <p>This powerful tool helps you track items loaded into your active caravan and vehicle, manage their weights, and monitor compliance with various weight limits (ATM, GTM, Towball Mass, GVM, GCM).</p>
           <ul className="list-disc pl-5 space-y-1">
-            <li><strong>Active Selections:</strong> This page relies heavily on the "Active" caravan, "Active" tow vehicle, and "Active" WDH set in the <code>/vehicles</code> section. Ensure these are correctly selected for accurate calculations and relevant storage locations.</li>
+            <li><strong>Active Selections:</strong> This page relies heavily on the "Active" caravan, "Active" tow vehicle, and "Active" WDH set in the "Vehicle, Caravan, Storage & WDH Data" section. Ensure these are correctly selected for accurate calculations and relevant storage locations.</li>
             <li><strong>Adding Items:</strong> Input item name, weight (per item), quantity, and assign it to a predefined storage location from your active caravan or vehicle. Items assigned to the caravan contribute to its payload, while items in the vehicle contribute to its GVM.</li>
             <li><strong>Water Tank Levels:</strong> Adjust the fill percentage for each water tank defined for your active caravan. The weight of the water (1kg per liter) is automatically calculated and added to your caravan's total mass.</li>
             <li><strong>Weight Summary & Compliance:</strong>
@@ -110,7 +109,7 @@ export function UserManualContent() {
       )
     },
     {
-      title: "4. Checklists (/checklists)",
+      title: "4. Checklists",
       icon: ListChecks,
       content: (
         <>
@@ -129,7 +128,7 @@ export function UserManualContent() {
       )
     },
     {
-      title: "5. Trip & Expense Planner (/trip-expense-planner)",
+      title: "5. Trip & Expense Planner",
       icon: RouteIcon,
       content: (
         <>
@@ -163,7 +162,7 @@ export function UserManualContent() {
       )
     },
     {
-      title: "6. Trip Log (/triplog)",
+      title: "6. Trip Log",
       icon: History,
       content: (
         <>
@@ -184,7 +183,7 @@ export function UserManualContent() {
       )
     },
     {
-      title: "7. Bookings (/bookings)",
+      title: "7. Bookings",
       icon: BedDouble,
       content: (
         <>
@@ -199,7 +198,7 @@ export function UserManualContent() {
       )
     },
     {
-      title: "8. Support & Learn (/learn)",
+      title: "8. Support & Learn",
       icon: BookOpen,
       content: (
         <>
@@ -215,7 +214,7 @@ export function UserManualContent() {
       )
     },
     {
-      title: "9. My Account (/my-account) & Subscriptions",
+      title: "9. My Account & Subscriptions",
       icon: UserCircle,
       content: (
          <>
