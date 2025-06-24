@@ -93,7 +93,7 @@ export function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-200px)] max-h-[700px] bg-card shadow-lg rounded-lg border">
+    <div className="flex flex-col h-[calc(100vh-350px)] max-h-[500px] bg-card shadow-lg rounded-lg border">
       <ScrollArea className="flex-grow p-4 space-y-4" ref={scrollAreaRef}>
         {messages.map(msg => (
           <div key={msg.id} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
