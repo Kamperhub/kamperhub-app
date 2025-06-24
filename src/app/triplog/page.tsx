@@ -61,8 +61,8 @@ export default function TripLogPage() {
   const handleRecallTrip = useCallback((trip: LoggedTrip) => {
     try {
       localStorage.setItem(RECALLED_TRIP_DATA_KEY, JSON.stringify(trip));
-      toast({ title: "Trip Recalled", description: `"${trip.name}" is ready in the Trip Planner.` });
-      router.push('/tripplanner');
+      toast({ title: "Trip Recalled", description: `"${trip.name}" is ready in the Trip & Expense Planner.` });
+      router.push('/trip-expense-planner');
     } catch (error: any) {
       console.error("Error recalling trip to localStorage:", error);
       toast({

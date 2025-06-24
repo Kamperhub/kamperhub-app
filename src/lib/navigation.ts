@@ -41,11 +41,11 @@ export const navItems: NavItem[] = [
     keywords: 'support guide manual'
   },
   {
-    href: '/tripplanner',
-    label: 'Trip Planner',
+    href: '/trip-expense-planner',
+    label: 'Trip & Expense Planner',
     icon: Route,
-    description: "Plan your routes with detailed maps, estimate travel times, calculate fuel costs, and save your itineraries.",
-    keywords: 'route map'
+    description: "Plan routes, set budgets, and track expenses for your trips. Your all-in-one travel command center.",
+    keywords: 'route map budget expense'
   },
   {
     href: '/checklists',
@@ -101,4 +101,3 @@ export const dashboardDetailItems: NavItem[] = [
     keywords: 'user achievement'
   }
 ];
-

@@ -153,7 +153,7 @@ export default function StatsPage() {
                 <p className="text-sm text-muted-foreground font-body mb-4">
                     It looks like you haven't logged any trips. <br/>Start planning your adventures to see your stats here!
                 </p>
-                <Link href="/tripplanner" passHref>
+                <Link href="/trip-expense-planner" passHref>
                     <Button className="font-body bg-accent text-accent-foreground hover:bg-accent/90">
                         <RouteIcon className="mr-2 h-4 w-4" /> Plan Your First Trip
                     </Button>

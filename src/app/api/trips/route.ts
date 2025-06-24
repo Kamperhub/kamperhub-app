@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { admin, adminFirestore } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { z, ZodError } from 'zod';
+import { budgetCategorySchema } from '@/types/expense';
 
 // Helper for user verification
 async function verifyUser(req: NextRequest): Promise<{ uid: string; error?: NextResponse }> {
@@ -79,6 +80,7 @@ const createTripSchema = z.object({
   notes: z.string().optional(),
   isCompleted: z.boolean().optional().default(false),
   checklists: tripChecklistSetSchema.optional(), // Add checklists to schema
+  budget: z.array(budgetCategorySchema).optional(), // Add budget schema
 });
 
 const updateTripSchema = createTripSchema.extend({
@@ -116,6 +118,8 @@ export async function POST(req: NextRequest) {
       id: newTripRef.id,
       timestamp: new Date().toISOString(),
       ...parsedData,
+      expenses: [], // Initialize with an empty expenses array
+      budget: parsedData.budget || [], // Initialize with an empty budget array if not provided
     };
     
     await newTripRef.set(newTrip);

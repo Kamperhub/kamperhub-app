@@ -1,6 +1,7 @@
 
 import type { DateRange } from 'react-day-picker';
 import type { TripChecklistSet } from '@/types/checklist';
+import type { BudgetCategory, Expense } from '@/types/expense';
 
 export interface TripPlannerFormValues {
   startLocation: string;
@@ -49,6 +50,10 @@ export interface LoggedTrip {
   notes?: string; // Optional notes field
   isCompleted?: boolean; // New field for completion status
   checklists?: TripChecklistSet; // A trip can have its own checklist set
+  
+  // New fields for expense tracking
+  budget?: BudgetCategory[];
+  expenses?: Expense[];
 }
 
 // Key for localStorage
