@@ -13,6 +13,7 @@ import type { CaravanDefaultChecklistSet, ChecklistItem, ChecklistCategory, Trip
 import { initialChecklists as globalDefaultChecklistTemplate } from '@/types/checklist';
 import type { BudgetCategory, Expense } from '@/types/expense';
 import { BudgetTab } from './BudgetTab';
+import { ExpenseTab } from './ExpenseTab';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -265,9 +266,16 @@ export function TripPlannerClient() {
   const handleBudgetUpdate = useCallback((newBudget: BudgetCategory[]) => {
     setTripBudget(newBudget);
     if(activeTrip) {
-      updateTripMutation.mutate({ ...activeTrip, budget: newBudget });
+      updateTripMutation.mutate({ ...activeTrip, budget: newBudget, expenses: tripExpenses });
     }
-  }, [activeTrip, updateTripMutation]);
+  }, [activeTrip, tripExpenses, updateTripMutation]);
+
+  const handleExpensesUpdate = useCallback((newExpenses: Expense[]) => {
+    setTripExpenses(newExpenses);
+    if(activeTrip) {
+      updateTripMutation.mutate({ ...activeTrip, budget: tripBudget, expenses: newExpenses });
+    }
+  }, [activeTrip, tripBudget, updateTripMutation]);
 
   const handleOpenSaveTripDialog = useCallback(() => {
     if (!routeDetails) {
@@ -420,15 +428,13 @@ export function TripPlannerClient() {
         </TabsContent>
 
         <TabsContent value="expenses">
-          <Card>
-            <CardHeader>
-              <CardTitle>Expense Tracking</CardTitle>
-              <CardDescription>Log your spending as you go and compare it against your budget.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground font-body">The expense ledger and tracking visualizations will be implemented here soon.</p>
-            </CardContent>
-          </Card>
+           <ExpenseTab
+            expenses={tripExpenses}
+            budget={tripBudget}
+            onExpensesUpdate={handleExpensesUpdate}
+            isTripLoaded={!!routeDetails}
+            isLoading={updateTripMutation.isPending}
+          />
         </TabsContent>
       </Tabs>
 
