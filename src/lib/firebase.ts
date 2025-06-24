@@ -22,20 +22,21 @@ const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseCon
 let appCheck: AppCheck | undefined;
 
 if (typeof window !== 'undefined') {
-  // Using a debug token is the recommended way to test App Check locally without
-  // encountering reCAPTCHA errors. This token is only used in development.
-  if (process.env.NODE_ENV === 'development') {
-    (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = "DC0219-7521-4905-A5CB-6970EDC500BB";
-    console.log('[Firebase Client] App Check debug token has been set for local development.');
-  }
-
   // This check prevents re-initializing App Check on every hot-reload in development.
   if (!(window as any).appCheckInitialized) {
     (window as any).appCheckInitialized = true;
 
+    // The following line is for DEVELOPMENT ONLY. It enables App Check debug mode,
+    // which will print a debug token to the console. You must then add this token
+    // to your Firebase project settings under App Check > Apps > Manage debug tokens.
+    if (process.env.NODE_ENV === 'development') {
+        (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+        console.log('[Firebase Client] App Check debug flag set. Find token in console and add to Firebase settings.');
+    }
+
     try {
       // Initialize App Check with the reCAPTCHA Enterprise provider.
-      // In development, the debug token will be used automatically if set.
+      // In development, the debug token will be used automatically if the flag above is set.
       appCheck = initializeAppCheck(app, {
         provider: new ReCaptchaEnterpriseProvider('6LcZh2orAAAAACZCrkNWXKNfNK9ha0IE0rJYXlNX'),
         isTokenAutoRefreshEnabled: true
