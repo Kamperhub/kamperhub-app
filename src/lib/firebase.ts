@@ -21,23 +21,25 @@ const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseCon
 // Initialize App Check on the client
 let appCheck: AppCheck | undefined;
 
-// Only initialize App Check if the environment variable is explicitly set to 'true'.
-// This ensures it is OFF by default in local development environments.
-if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_ENABLE_APP_CHECK === 'true') {
-  console.log('[Firebase Client] App Check is ENABLED.');
+if (typeof window !== 'undefined') {
+  // In development, setting this to true will generate a debug token in the console.
+  if (process.env.NODE_ENV === 'development') {
+    // @ts-ignore
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    console.log('[Firebase Client] App Check DEBUG MODE ENABLED. Look for the debug token in the console and add it to your Firebase project settings.');
+  }
   
   try {
+    // The debug provider will be used automatically in development due to the flag above.
+    // The reCAPTCHA provider will be used in production.
     appCheck = initializeAppCheck(app, {
       provider: new ReCaptchaEnterpriseProvider('6LcZh2orAAAAACZCrkNWXKNfNK9ha0IE0rJYXlNX'),
       isTokenAutoRefreshEnabled: true
     });
-    console.log('[Firebase Client] App Check Initialized successfully with reCAPTCHA Enterprise provider.');
+    console.log('[Firebase Client] App Check Initialized successfully.');
   } catch (error) {
     console.error("[Firebase Client] CRITICAL: Error initializing App Check:", error);
   }
-} else if (typeof window !== 'undefined') {
-    // This block is for logging, to make it clear why App Check is not running.
-    console.log('[Firebase Client] App Check is DISABLED. To enable for production, set NEXT_PUBLIC_ENABLE_APP_CHECK=true in your environment variables.');
 }
 
 const auth: Auth = getAuth(app);
