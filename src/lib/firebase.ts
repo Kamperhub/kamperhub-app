@@ -19,10 +19,12 @@ const firebaseConfig = {
 // Initialize Firebase
 const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize App Check on the client, but ONLY in production
+// Initialize App Check on the client, but ONLY when explicitly enabled.
 let appCheck: AppCheck | undefined;
-// Using NODE_ENV is a more reliable way to distinguish between production and development.
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+
+// This condition now uses a specific environment variable for more control.
+// App Check will only be initialized if NEXT_PUBLIC_ENABLE_APP_CHECK is set to 'true'.
+if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_ENABLE_APP_CHECK === 'true') {
   // This check prevents re-initializing the app on every serverless function invocation,
   // which can happen in development with fast refresh.
   if (!(window as any).appCheckInitialized) {
@@ -30,20 +32,20 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
 
     try {
       // IMPORTANT: This uses the ReCaptchaEnterpriseProvider.
-      // The key provided here MUST be a reCAPTCHA Enterprise Site Key.
+      // The key provided here MUST be a reCAPTCHA Enterprise SiteKey.
       // Ensure the "reCAPTCHA Enterprise" API is enabled in your Google Cloud project,
       // and a billing account is linked to the project.
       appCheck = initializeAppCheck(app, {
         provider: new ReCaptchaEnterpriseProvider('6LcZh2orAAAAACZCrkNWXKNfNK9ha0IE0rJYXlNX'),
         isTokenAutoRefreshEnabled: true
       });
-      console.log('[Firebase Client] App Check Initialized with ReCaptchaEnterpriseProvider for production.');
+      console.log('[Firebase Client] App Check Initialized with ReCaptchaEnterpriseProvider.');
     } catch (error) {
       console.error("[Firebase Client] CRITICAL: Error initializing App Check:", error);
     }
   }
 } else if (typeof window !== 'undefined') {
-  console.log('[Firebase Client] App Check skipped for non-production environment.');
+  console.log('[Firebase Client] App Check is disabled. To enable, set NEXT_PUBLIC_ENABLE_APP_CHECK=true in your environment.');
 }
 
 const auth: Auth = getAuth(app);
