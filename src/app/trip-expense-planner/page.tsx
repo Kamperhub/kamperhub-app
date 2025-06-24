@@ -68,38 +68,7 @@ export default function TripExpensePlannerPage() {
       </div>
       
       {apiKey ? (
-         <Tabs defaultValue="itinerary" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="itinerary" className="font-body"><Map className="mr-2 h-4 w-4"/>Itinerary</TabsTrigger>
-            <TabsTrigger value="budget" className="font-body"><Edit className="mr-2 h-4 w-4"/>Budget</TabsTrigger>
-            <TabsTrigger value="expenses" className="font-body"><DollarSign className="mr-2 h-4 w-4"/>Expenses</TabsTrigger>
-          </TabsList>
-          <TabsContent value="itinerary" className="mt-6">
-            <TripPlannerClient />
-          </TabsContent>
-          <TabsContent value="budget">
-            <Card>
-              <CardHeader>
-                <CardTitle>Budget Setup</CardTitle>
-                <CardDescription>Define categories and allocate funds for your trip.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground font-body">Budgeting tools and category management will be implemented here soon.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="expenses">
-             <Card>
-              <CardHeader>
-                <CardTitle>Expense Tracking</CardTitle>
-                <CardDescription>Log your spending as you go and compare it against your budget.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground font-body">The expense ledger and tracking visualizations will be implemented here soon.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        <TripPlannerClient />
       ) : (
         <Alert variant="destructive" className="mt-6">
           <AlertTriangle className="h-4 w-4" />

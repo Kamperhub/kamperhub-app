@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,6 +11,8 @@ import { RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import type { StoredVehicle } from '@/types/vehicle';
 import type { CaravanDefaultChecklistSet, ChecklistItem, ChecklistCategory, TripChecklistSet } from '@/types/checklist';
 import { initialChecklists as globalDefaultChecklistTemplate } from '@/types/checklist';
+import type { BudgetCategory, Expense } from '@/types/expense';
+import { BudgetTab } from './BudgetTab';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,9 +20,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
-import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote } from 'lucide-react';
+import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from "date-fns";
@@ -36,7 +39,7 @@ import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesA
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { auth } from '@/lib/firebase';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { createTrip, fetchUserPreferences, fetchVehicles } from '@/lib/api-client';
+import { createTrip, updateTrip, fetchUserPreferences, fetchVehicles } from '@/lib/api-client';
 import type { UserProfile } from '@/types/auth';
 
 
@@ -59,7 +62,6 @@ const tripPlannerSchema = z.object({
   path: ["dateRange"],
 });
 
-// Helper to create deep copies of checklist items with new unique IDs
 const createChecklistCopyForTrip = (items: readonly ChecklistItem[], tripId: string, categoryPrefix: string): ChecklistItem[] => {
   return items.map(item => ({ ...item, id: `trip${tripId.substring(0,4)}_${categoryPrefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}` }));
 };
@@ -80,13 +82,16 @@ export function TripPlannerClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [fuelEstimate, setFuelEstimate] = useState<FuelEstimate | null>(null);
-  const [currentTripNotes, setCurrentTripNotes] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
   const { toast } = useToast();
   const pathname = usePathname();
   const queryClient = useQueryClient();
   const user = auth.currentUser;
+
+  const [activeTrip, setActiveTrip] = useState<LoggedTrip | null>(null);
+  const [tripBudget, setTripBudget] = useState<BudgetCategory[]>([]);
+  const [tripExpenses, setTripExpenses] = useState<Expense[]>([]);
 
   const { data: userPrefs } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
@@ -119,6 +124,16 @@ export function TripPlannerClient() {
                            !!window.google.maps?.DirectionsService &&
                            !!window.google.maps?.places?.PlacesService;
 
+  const clearPlanner = useCallback((resetForm = true) => {
+    if(resetForm) reset();
+    setRouteDetails(null);
+    setFuelEstimate(null);
+    setDirectionsResponse(null);
+    setPointsOfInterest([]);
+    setActiveTrip(null);
+    setTripBudget([]);
+    setTripExpenses([]);
+  }, [reset]);
 
   useEffect(() => {
     let recalledTripLoaded = false;
@@ -127,6 +142,10 @@ export function TripPlannerClient() {
         const recalledTripJson = localStorage.getItem(RECALLED_TRIP_DATA_KEY);
         if (recalledTripJson) {
           const recalledTrip: LoggedTrip = JSON.parse(recalledTripJson);
+          setActiveTrip(recalledTrip);
+          setTripBudget(recalledTrip.budget || []);
+          setTripExpenses(recalledTrip.expenses || []);
+          
           reset({
             startLocation: recalledTrip.startLocationDisplay,
             endLocation: recalledTrip.endLocationDisplay,
@@ -139,7 +158,6 @@ export function TripPlannerClient() {
           });
           setRouteDetails(recalledTrip.routeDetails);
           setFuelEstimate(recalledTrip.fuelEstimate);
-          setCurrentTripNotes(recalledTrip.notes || '');
           localStorage.removeItem(RECALLED_TRIP_DATA_KEY);
           toast({ title: "Trip Recalled", description: `"${recalledTrip.name}" loaded into planner.` });
           recalledTripLoaded = true;
@@ -177,222 +195,89 @@ export function TripPlannerClient() {
 
   useEffect(() => {
     if (!map) return;
-
-    if (polylineRef.current) {
-      polylineRef.current.setMap(null);
-      polylineRef.current = null;
-    }
-
-    if (directionsResponse && directionsResponse.routes && directionsResponse.routes.length > 0 && window.google && window.google.maps) {
+    if (polylineRef.current) polylineRef.current.setMap(null);
+    if (directionsResponse?.routes?.length) {
       const route = directionsResponse.routes[0];
-
-      if (route.overview_path && route.overview_path.length > 0) {
-        const newPolyline = new window.google.maps.Polyline({
-          path: route.overview_path,
-          strokeColor: 'hsl(var(--primary))',
-          strokeOpacity: 0.8,
-          strokeWeight: 6,
-        });
+      if (route.overview_path) {
+        const newPolyline = new window.google.maps.Polyline({ path: route.overview_path, strokeColor: 'hsl(var(--primary))', strokeOpacity: 0.8, strokeWeight: 6 });
         newPolyline.setMap(map);
         polylineRef.current = newPolyline;
       }
-
-      if (route.bounds) {
-        map.fitBounds(route.bounds);
-        const currentZoom = map.getZoom();
-        if (currentZoom && route.legs.reduce((acc, leg) => acc + (leg.distance?.value || 0), 0) > 50000 && currentZoom > 12) {
-          map.setZoom(12);
-        } else if (currentZoom && currentZoom > 15) {
-          map.setZoom(15);
-        }
-      }
-    } else if (routeDetails?.startLocation && routeDetails.endLocation && window.google && window.google.maps) {
-      const bounds = new window.google.maps.LatLngBounds();
-      if(routeDetails.startLocation) bounds.extend(routeDetails.startLocation);
-      if(routeDetails.endLocation) bounds.extend(routeDetails.endLocation);
-      map.fitBounds(bounds);
-      const currentZoom = map.getZoom();
-       if (currentZoom && currentZoom > 15) {
-         map.setZoom(15);
-      } else if (currentZoom && currentZoom < 3 ) {
-         map.setZoom(3);
-      } else if (currentZoom) {
-         map.setZoom(Math.max(2, currentZoom -1)); 
-      }
-
-    } else if (routeDetails?.startLocation) {
-        map.setCenter(routeDetails.startLocation);
-        map.setZoom(12);
-    } else if (routeDetails?.endLocation) {
-        map.setCenter(routeDetails.endLocation);
-        map.setZoom(12);
+      if (route.bounds) map.fitBounds(route.bounds);
     }
-
-    return () => {
-      if (polylineRef.current) {
-        polylineRef.current.setMap(null);
-      }
-    };
-  }, [map, directionsResponse, routeDetails]);
+    return () => { if (polylineRef.current) polylineRef.current.setMap(null); };
+  }, [map, directionsResponse]);
 
 
   const onSubmit: SubmitHandler<TripPlannerFormValues> = async (data) => {
     if (!directionsServiceRef.current) {
-      setError("Map services (Directions) are not ready. Please try again shortly.");
+      setError("Map services are not ready.");
       return;
     }
 
     setIsLoading(true);
+    clearPlanner(false);
     setError(null);
-    setRouteDetails(null);
-    setFuelEstimate(null);
-    setDirectionsResponse(null);
-    setPointsOfInterest([]); 
-
+    
     try {
-      const results = await directionsServiceRef.current.route({
-        origin: data.startLocation,
-        destination: data.endLocation,
-        travelMode: window.google.maps.TravelMode.DRIVING,
-      });
+      const results = await directionsServiceRef.current.route({ origin: data.startLocation, destination: data.endLocation, travelMode: window.google.maps.TravelMode.DRIVING });
+      if (results.routes?.length) {
+        const leg = results.routes[0].legs[0];
+        const distanceValue = leg?.distance?.value || 0;
+        setRouteDetails({
+          distance: leg?.distance?.text || 'N/A',
+          duration: leg?.duration?.text || 'N/A',
+          distanceValue,
+          startAddress: leg?.start_address, endAddress: leg?.end_address,
+          startLocation: leg?.start_location?.toJSON(), endLocation: leg?.end_location?.toJSON()
+        });
+        setDirectionsResponse(results);
 
-      if (results.routes && results.routes.length > 0) {
-        const route = results.routes[0];
-        if (route.legs && route.legs.length > 0) {
-          const leg = route.legs[0];
-          const distanceValue = leg.distance?.value || 0;
-          const currentRouteDetails: RouteDetails = {
-            distance: leg.distance?.text || 'N/A',
-            duration: leg.duration?.text || 'N/A',
-            distanceValue: distanceValue,
-            startAddress: leg.start_address,
-            endAddress: leg.end_address,
-            startLocation: leg.start_location?.toJSON(),
-            endLocation: leg.end_location?.toJSON()
-          };
-          setRouteDetails(currentRouteDetails);
-          setDirectionsResponse(results);
-
-          if (distanceValue > 0 && data.fuelEfficiency > 0) {
-            const distanceKm = distanceValue / 1000;
-            const fuelNeededLitres = (distanceKm / 100) * data.fuelEfficiency;
-            const cost = fuelNeededLitres * data.fuelPrice;
-            setFuelEstimate({
-              fuelNeeded: `${fuelNeededLitres.toFixed(1)} L`,
-              estimatedCost: `$${cost.toFixed(2)}`,
-            });
-          }
-        } else {
-           setError("Could not find a valid leg for the route.");
+        if (distanceValue > 0 && data.fuelEfficiency > 0) {
+          const fuelNeeded = (distanceValue / 1000 / 100) * data.fuelEfficiency;
+          setFuelEstimate({ fuelNeeded: `${fuelNeeded.toFixed(1)} L`, estimatedCost: `$${(fuelNeeded * data.fuelPrice).toFixed(2)}` });
         }
-      } else {
-        setError("No routes found. Please check your locations.");
-      }
-    } catch (e: any) {
-      console.error("Directions request failed:", e);
-      const mapsStatus = typeof google !== 'undefined' && google.maps && google.maps.DirectionsStatus;
-      if (mapsStatus && e.code === mapsStatus.ZERO_RESULTS) {
-        setError("No routes found for the specified locations. Please try different addresses.");
-      } else if (mapsStatus && e.code === mapsStatus.NOT_FOUND) {
-        setError("One or both locations could not be geocoded. Please check the addresses.");
-      } else if (e.message && e.message.includes("Legacy API")) {
-        setError("Error: You’re calling a legacy API, which is not enabled for your project. Please enable Places API (New) or Routes API in your Google Cloud Console.");
-      }
-      else {
-        setError(`Error calculating route: ${e.message || 'Unknown error'}`);
-      }
-    } finally {
-      setIsLoading(false);
-    }
+      } else { setError("No routes found."); }
+    } catch (e: any) { setError(`Error calculating route: ${e.message || 'Unknown error'}`); } 
+    finally { setIsLoading(false); }
   };
 
-  const handleNavigateWithGoogleMaps = () => {
-    if (!routeDetails) {
-      toast({ title: "Cannot Navigate", description: "Route details are incomplete.", variant: "destructive" });
-      return;
-    }
-
-    let originQuery: string;
-    let destinationQuery: string;
-
-    if (routeDetails.startLocation && routeDetails.endLocation) {
-      originQuery = `${routeDetails.startLocation.lat},${routeDetails.startLocation.lng}`;
-      destinationQuery = `${routeDetails.endLocation.lat},${routeDetails.endLocation.lng}`;
-    } else if (routeDetails.startAddress && routeDetails.endAddress) { 
-      originQuery = encodeURIComponent(routeDetails.startAddress);
-      destinationQuery = encodeURIComponent(routeDetails.endAddress);
-    } else {
-      toast({ title: "Cannot Navigate", description: "Origin or destination data is missing for navigation.", variant: "destructive" });
-      return;
-    }
-
-    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${originQuery}&destination=${destinationQuery}&travelmode=driving`;
-    window.open(googleMapsUrl, '_blank');
-    toast({ title: "Opening Google Maps", description: "Check the new tab for navigation." });
-  };
-
-  const handleFindPOIs = useCallback(() => {
-    if (!map || !placesServiceRef.current) {
-        toast({ title: "Map Not Ready", description: "Places service is not available yet.", variant: "destructive"});
-        return;
-    }
-    const center = map.getCenter();
-    if (!center) {
-        toast({ title: "Map Center Not Found", description: "Could not get map center.", variant: "destructive"});
-        return;
-    }
-
-    setIsSearchingPOIs(true);
-    setPointsOfInterest([]); 
-
-    const request: google.maps.places.PlaceSearchRequest = {
-        location: center,
-        radius: 5000, 
-        type: 'tourist_attraction', 
-    };
-
-    placesServiceRef.current.nearbySearch(request, (results, status) => {
-        setIsSearchingPOIs(false);
-        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-            setPointsOfInterest(results);
-            if (results.length === 0) {
-                toast({ title: "No Attractions Found", description: "No attractions found in the current map area. Try zooming in on the map to see attractions."});
-            } else {
-                 toast({ title: "Attractions Found", description: `${results.length} attractions loaded on the map.`});
-            }
-        } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-            toast({ title: "No Attractions Found", description: "No attractions found in the current map area. Try zooming in on the map to see attractions."});
-        } else {
-            toast({ title: "Error Finding Attractions", description: `Could not fetch attractions: ${status}`, variant: "destructive"});
-            console.error("Places API error:", status);
-        }
-    });
-  }, [map, toast]);
-
-  const handleOpenSaveTripDialog = useCallback(() => {
-    if (!routeDetails) {
-      toast({ title: "Cannot Save", description: "No trip details to save. Please plan a trip first.", variant: "destructive" });
-      return;
-    }
-    setPendingTripName(`Trip to ${getValues("endLocation") || 'Destination'}`);
-    setPendingTripNotes(currentTripNotes || '');
-    setIsSaveTripDialogOpen(true);
-  }, [routeDetails, getValues, currentTripNotes, toast]);
-  
   const createTripMutation = useMutation({
     mutationFn: createTrip,
     onSuccess: (savedTrip) => {
       queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
-      toast({
-        title: "Trip Saved!",
-        description: `"${savedTrip.name}" has been added to your Trip Log and a checklist has been created.`,
-      });
+      toast({ title: "Trip Saved!", description: `"${savedTrip.name}" has been added to your Trip Log.` });
       setIsSaveTripDialogOpen(false);
+      clearPlanner();
     },
-    onError: (error: Error) => {
-      toast({ title: "Save Failed", description: error.message, variant: "destructive" });
-    },
+    onError: (error: Error) => toast({ title: "Save Failed", description: error.message, variant: "destructive" }),
   });
+  
+  const updateTripMutation = useMutation({
+    mutationFn: updateTrip,
+    onSuccess: (updatedTrip) => {
+      queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
+      toast({ title: "Trip Updated!", description: `"${updatedTrip.trip.name}" has been updated.` });
+    },
+    onError: (error: Error) => toast({ title: "Update Failed", description: error.message, variant: "destructive" }),
+  });
+  
+  const handleBudgetUpdate = useCallback((newBudget: BudgetCategory[]) => {
+    setTripBudget(newBudget);
+    if(activeTrip) {
+      updateTripMutation.mutate({ ...activeTrip, budget: newBudget });
+    }
+  }, [activeTrip, updateTripMutation]);
+
+  const handleOpenSaveTripDialog = useCallback(() => {
+    if (!routeDetails) {
+      toast({ title: "Cannot Save", description: "No trip details to save. Plan a trip first.", variant: "destructive" });
+      return;
+    }
+    setPendingTripName(activeTrip?.name || `Trip to ${getValues("endLocation") || 'Destination'}`);
+    setPendingTripNotes(activeTrip?.notes || '');
+    setIsSaveTripDialogOpen(true);
+  }, [routeDetails, getValues, activeTrip, toast]);
   
   const handleConfirmSaveTrip = useCallback(() => {
     if (!pendingTripName.trim()) {
@@ -400,23 +285,15 @@ export function TripPlannerClient() {
       return;
     }
     if (!routeDetails) {
-        toast({ title: "Error", description: "Route details are missing.", variant: "destructive" });
-        return;
+      toast({ title: "Error", description: "Route details are missing.", variant: "destructive" });
+      return;
     }
 
-    const tempTripId = Date.now().toString(); // Temporary ID for checklist generation
-    let sourceChecklistSet: CaravanDefaultChecklistSet | Readonly<Record<ChecklistCategory, readonly ChecklistItem[]>> = globalDefaultChecklistTemplate;
-    const activeCaravanId = userPrefs?.activeCaravanId;
+    const tempTripId = Date.now().toString();
+    const sourceChecklistSet = userPrefs?.activeCaravanId && userPrefs.caravanDefaultChecklists?.[userPrefs.activeCaravanId]
+      ? userPrefs.caravanDefaultChecklists[userPrefs.activeCaravanId]
+      : globalDefaultChecklistTemplate;
 
-    if (activeCaravanId && userPrefs?.caravanDefaultChecklists?.[activeCaravanId]) {
-      sourceChecklistSet = userPrefs.caravanDefaultChecklists[activeCaravanId];
-      toast({ title: "Checklist Source", description: "Used default checklist from active caravan.", duration: 2000 });
-    } else if (activeCaravanId) {
-       toast({ title: "Checklist Source", description: "Active caravan has no default checklist. Used global template.", duration: 2000 });
-    } else {
-       toast({ title: "Checklist Source", description: "No active caravan. Used global checklist template.", duration: 2000 });
-    }
-    
     const newTripChecklistSet: TripChecklistSet = {
       preDeparture: createChecklistCopyForTrip(sourceChecklistSet.preDeparture, tempTripId, 'pd'),
       campsiteSetup: createChecklistCopyForTrip(sourceChecklistSet.campsiteSetup, tempTripId, 'cs'),
@@ -424,7 +301,7 @@ export function TripPlannerClient() {
     };
     
     const currentFormData = getValues();
-    const newLoggedTripForApi: Omit<LoggedTrip, 'id' | 'timestamp'> = {
+    const tripData: Omit<LoggedTrip, 'id' | 'timestamp'> = {
       name: pendingTripName.trim(),
       startLocationDisplay: currentFormData.startLocation,
       endLocationDisplay: currentFormData.endLocation,
@@ -432,335 +309,151 @@ export function TripPlannerClient() {
       fuelPrice: currentFormData.fuelPrice,
       routeDetails: routeDetails,
       fuelEstimate: fuelEstimate,
-      plannedStartDate: currentFormData.dateRange?.from ? currentFormData.dateRange.from.toISOString() : null,
-      plannedEndDate: currentFormData.dateRange?.to ? currentFormData.dateRange.to.toISOString() : null,
+      plannedStartDate: currentFormData.dateRange?.from?.toISOString() || null,
+      plannedEndDate: currentFormData.dateRange?.to?.toISOString() || null,
       notes: pendingTripNotes.trim() || undefined,
       checklists: newTripChecklistSet,
+      budget: tripBudget,
+      expenses: tripExpenses,
     };
     
-    setCurrentTripNotes(pendingTripNotes.trim() || undefined);
-    createTripMutation.mutate(newLoggedTripForApi);
-
-  }, [routeDetails, getValues, fuelEstimate, toast, pendingTripName, pendingTripNotes, userPrefs, createTripMutation]);
+    if (activeTrip) {
+        updateTripMutation.mutate({ ...activeTrip, ...tripData });
+        setIsSaveTripDialogOpen(false);
+    } else {
+        createTripMutation.mutate(tripData);
+    }
+  }, [routeDetails, getValues, fuelEstimate, toast, pendingTripName, pendingTripNotes, userPrefs, createTripMutation, updateTripMutation, activeTrip, tripBudget, tripExpenses]);
 
 
   const mapHeight = "400px"; 
-  const defaultMapCenter = { lat: -33.8688, lng: 151.2093 }; 
-  const defaultMapZoom = 6;
-
 
   return (
     <>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <Card className="md:col-span-1">
-        <CardHeader>
-          <CardTitle className="font-headline flex items-center"><RouteIcon className="mr-2 h-6 w-6 text-primary" /> Plan Your Trip</CardTitle>
-          <CardDescription className="font-body">Enter your trip details below.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <GooglePlacesAutocompleteInput
-              control={control}
-              name="startLocation"
-              label="Start Location"
-              placeholder="e.g., Sydney, NSW"
-              errors={errors}
-              setValue={setValue}
-              isApiReady={isGoogleApiReady}
-            />
-            <GooglePlacesAutocompleteInput
-              control={control}
-              name="endLocation"
-              label="End Location"
-              placeholder="e.g., Melbourne, VIC"
-              errors={errors}
-              setValue={setValue}
-              isApiReady={isGoogleApiReady}
-            />
-
-            <div>
-              <Label htmlFor="dateRange" className="font-body">Planned Date Range</Label>
-              <Controller
-                name="dateRange"
-                control={control}
-                render={({ field }) => (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        id="dateRange"
-                        variant={"outline"}
-                        className={cn(
-                          "w-full justify-start text-left font-normal font-body",
-                          !field.value?.from && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarDays className="mr-2 h-4 w-4" />
-                        {field.value?.from ? (
-                          field.value.to ? (
-                            <>
-                              {format(field.value.from, "LLL dd, yyyy")} - {format(field.value.to, "LLL dd, yyyy")}
-                            </>
-                          ) : (
-                            format(field.value.from, "LLL dd, yyyy")
-                          )
-                        ) : (
-                          <span>Pick a date range</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={field.value?.from}
-                        selected={field.value as DateRange | undefined}
-                        onSelect={field.onChange}
-                        numberOfMonths={2}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                )}
-              />
-              {errors.dateRange && (
-                <p className="text-sm text-destructive font-body mt-1">
-                  {errors.dateRange.message || (errors.dateRange as any)?.to?.message || (errors.dateRange as any)?.from?.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="fuelEfficiency" className="font-body">Vehicle Fuel Efficiency (L/100km)</Label>
-              <Controller
-                name="fuelEfficiency"
-                control={control}
-                render={({ field }) => (
-                   <Input id="fuelEfficiency" type="number" step="0.1" {...field} value={field.value ?? ''} className="font-body" />
-                )}
-              />
-              {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
-            </div>
-            <div>
-              <Label htmlFor="fuelPrice" className="font-body">Fuel Price (per liter)</Label>               <Controller
-                name="fuelPrice"
-                control={control}
-                render={({ field }) => (
-                  <Input id="fuelPrice" type="number" step="0.01" {...field} value={field.value ?? ''} className="font-body" />
-                )}
-              />
-              {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
-            </div>
-             <div>
-              <Label htmlFor="currentTripNotes" className="font-body">Trip Notes (optional)</Label>
-              <Textarea
-                id="currentTripNotes"
-                value={currentTripNotes || ''}
-                onChange={(e) => setCurrentTripNotes(e.target.value)}
-                placeholder="e.g., Remember to book ferry tickets, stop at the Big Pineapple..."
-                className="font-body"
-                rows={3}
-              />
-            </div>
-            <Button type="submit" disabled={isLoading || !isGoogleApiReady} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body">
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isLoading ? 'Calculating...' : 'Plan Trip'}
-            </Button>
-            {!map && <p className="text-sm text-muted-foreground text-center font-body mt-2">Map services loading...</p>}
-            {map && !isGoogleApiReady && <p className="text-sm text-muted-foreground text-center font-body mt-2">API services (Places/Directions) loading...</p>}
-          </form>
-        </CardContent>
-      </Card>
-
-      <div className="md:col-span-2 space-y-6">
-        <div className="relative"> 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="font-headline flex items-center"><MapPin className="mr-2 h-6 w-6 text-primary" /> Route Map</CardTitle>
-                {routeDetails && ( 
-                    <Button
-                        onClick={handleFindPOIs}
-                        variant="outline"
-                        size="sm"
-                        className="font-body"
-                        disabled={isSearchingPOIs || !isGoogleApiReady}
-                    >
-                        {isSearchingPOIs ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                        {isSearchingPOIs ? 'Searching...' : 'Nearby Attractions'}
-                    </Button>
-                )}
-              </CardHeader>
-              <CardContent className="p-0">
-                <div style={{ height: mapHeight }} className="bg-muted rounded-b-lg overflow-hidden relative">
-                    <Map
-                      defaultCenter={defaultMapCenter}
-                      defaultZoom={defaultMapZoom}
-                      gestureHandling={'greedy'}
-                      disableDefaultUI={true}
-                      mapId={'DEMO_MAP_ID'} 
-                      className="h-full w-full" 
-                    >
-                      {routeDetails?.startLocation && (
-                        <AdvancedMarker position={routeDetails.startLocation} title={`Start: ${routeDetails.startAddress || ''}`}>
-                          <Pin
-                            background={'hsl(var(--primary))'}
-                            borderColor={'hsl(var(--primary))'}
-                            glyphColor={'hsl(var(--primary-foreground))'}
-                          />
-                        </AdvancedMarker>
-                      )}
-                      {routeDetails?.endLocation && (
-                        <AdvancedMarker position={routeDetails.endLocation} title={`End: ${routeDetails.endAddress || ''}`}>
-                          <Pin
-                            background={'hsl(var(--accent))'}
-                            borderColor={'hsl(var(--accent))'}
-                            glyphColor={'hsl(var(--accent-foreground))'}
-                          />
-                        </AdvancedMarker>
-                      )}
-                      {pointsOfInterest.map(poi => (
-                        poi.geometry?.location && (
-                            <AdvancedMarker
-                                key={poi.place_id}
-                                position={poi.geometry.location}
-                                title={poi.name ?? undefined}
-                            >
-                                <Pin background={'#FFBF00'} borderColor={'#B8860B'} glyphColor={'#000000'} />
-                            </AdvancedMarker>
-                        )
-                      ))}
-                    </Map>
-                    {(!map || (map && !isGoogleApiReady)) && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm rounded-b-lg">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                            <p className="ml-2 font-body">{(map && !isGoogleApiReady) ? "Loading API Services..." : "Initializing Map..."}</p>
-                        </div>
-                    )}
-                  </div>
-              </CardContent>
-            </Card>
+      <Tabs defaultValue="itinerary" className="w-full">
+        <div className="flex justify-between items-center mb-6">
+          <TabsList className="grid w-full grid-cols-3 max-w-lg">
+            <TabsTrigger value="itinerary" className="font-body"><MapPin className="mr-2 h-4 w-4"/>Itinerary</TabsTrigger>
+            <TabsTrigger value="budget" className="font-body"><Edit className="mr-2 h-4 w-4"/>Budget</TabsTrigger>
+            <TabsTrigger value="expenses" className="font-body"><DollarSign className="mr-2 h-4 w-4"/>Expenses</TabsTrigger>
+          </TabsList>
+          <Button
+              onClick={handleOpenSaveTripDialog}
+              variant="default"
+              size="sm"
+              className="font-body bg-primary hover:bg-primary/90 text-primary-foreground hidden md:flex"
+              disabled={!routeDetails || createTripMutation.isPending || updateTripMutation.isPending}
+          >
+              {(createTripMutation.isPending || updateTripMutation.isPending) ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+              {activeTrip ? 'Update Trip' : 'Save Trip'}
+          </Button>
         </div>
 
-        {error && (
-          <Alert variant="destructive">
-            <AlertTitle className="font-headline">Error</AlertTitle>
-            <AlertDescription className="font-body">{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {isLoading && !routeDetails && ( 
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-headline">Trip Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-              <Skeleton className="h-4 w-2/3" />
-            </CardContent>
-          </Card>
-        )}
-        
-        {routeDetails && (
-           <div className="p-4 border bg-card rounded-lg shadow-sm flex flex-col sm:flex-row items-stretch gap-3">
-            <div className="flex-grow mb-4 sm:mb-0">
-              <Card className="w-full h-full flex flex-col">
-                <CardHeader className="pb-2 pt-4 px-4">
-                  <CardTitle className="font-headline text-xl flex items-center"><Fuel className="mr-2 h-5 w-5 text-primary" /> Trip Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-1 px-4 pb-4 flex-grow">
+        <TabsContent value="itinerary" className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="md:col-span-1">
+              <CardHeader>
+                <CardTitle className="font-headline flex items-center"><RouteIcon className="mr-2 h-6 w-6 text-primary" /> Plan Route</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                  <GooglePlacesAutocompleteInput control={control} name="startLocation" label="Start Location" placeholder="e.g., Sydney, NSW" errors={errors} setValue={setValue} isApiReady={isGoogleApiReady} />
+                  <GooglePlacesAutocompleteInput control={control} name="endLocation" label="End Location" placeholder="e.g., Melbourne, VIC" errors={errors} setValue={setValue} isApiReady={isGoogleApiReady} />
+                  <div>
+                    <Label htmlFor="dateRange" className="font-body">Planned Date Range</Label>
+                    <Controller name="dateRange" control={control} render={({ field }) => (
+                        <Popover><PopoverTrigger asChild>
+                            <Button id="dateRange" variant={"outline"} className={cn("w-full justify-start text-left font-normal font-body", !field.value?.from && "text-muted-foreground")}>
+                              <CalendarDays className="mr-2 h-4 w-4" />
+                              {field.value?.from ? (field.value.to ? `${format(field.value.from, "LLL dd, yyyy")} - ${format(field.value.to, "LLL dd, yyyy")}` : format(field.value.from, "LLL dd, yyyy")) : <span>Pick a date range</span>}
+                            </Button>
+                        </PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={field.value?.from} selected={field.value as DateRange | undefined} onSelect={field.onChange} numberOfMonths={2} /></PopoverContent></Popover>
+                    )} />
+                  </div>
+                  <div>
+                    <Label htmlFor="fuelEfficiency" className="font-body">Fuel Efficiency (L/100km)</Label>
+                    <Controller name="fuelEfficiency" control={control} render={({ field }) => (<Input id="fuelEfficiency" type="number" step="0.1" {...field} value={field.value ?? ''} className="font-body" />)} />
+                    {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="fuelPrice" className="font-body">Fuel Price ($/L)</Label>
+                    <Controller name="fuelPrice" control={control} render={({ field }) => (<Input id="fuelPrice" type="number" step="0.01" {...field} value={field.value ?? ''} className="font-body" />)} />
+                    {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
+                  </div>
+                  <Button type="submit" disabled={isLoading || !isGoogleApiReady} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body">
+                    {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Calculating...</> : 'Plan Route'}
+                  </Button>
+                  {!isGoogleApiReady && <p className="text-xs text-muted-foreground text-center font-body mt-1">Map services loading...</p>}
+                </form>
+              </CardContent>
+            </Card>
+            <div className="md:col-span-2 space-y-6">
+              <Card><CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="font-headline flex items-center"><MapPin className="mr-2 h-6 w-6 text-primary" /> Route Map</CardTitle>
+              </CardHeader><CardContent className="p-0"><div style={{ height: mapHeight }} className="bg-muted rounded-b-lg overflow-hidden relative">
+                <Map defaultCenter={{ lat: -25.2744, lng: 133.7751 }} defaultZoom={4} gestureHandling={'greedy'} disableDefaultUI={true} mapId={'DEMO_MAP_ID'} className="h-full w-full">
+                  {routeDetails?.startLocation && <AdvancedMarker position={routeDetails.startLocation} title={`Start: ${routeDetails.startAddress || ''}`}><Pin background={'hsl(var(--primary))'} borderColor={'hsl(var(--primary))'} glyphColor={'hsl(var(--primary-foreground))'} /></AdvancedMarker>}
+                  {routeDetails?.endLocation && <AdvancedMarker position={routeDetails.endLocation} title={`End: ${routeDetails.endAddress || ''}`}><Pin background={'hsl(var(--accent))'} borderColor={'hsl(var(--accent))'} glyphColor={'hsl(var(--accent-foreground))'} /></AdvancedMarker>}
+                </Map>
+              </div></CardContent></Card>
+              {error && <Alert variant="destructive"><AlertTitle className="font-headline">Error</AlertTitle><AlertDescription className="font-body">{error}</AlertDescription></Alert>}
+              {isLoading && !routeDetails && <Card><CardHeader><CardTitle className="font-headline">Trip Summary</CardTitle></CardHeader><CardContent className="space-y-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-4 w-1/2" /><Skeleton className="h-4 w-2/3" /></CardContent></Card>}
+              {routeDetails && <Card><CardHeader><CardTitle className="font-headline">Trip Summary</CardTitle></CardHeader><CardContent className="space-y-2">
                   <div className="font-body text-sm"><strong>Distance:</strong> {routeDetails.distance}</div>
                   <div className="font-body text-sm"><strong>Est. Duration:</strong> {routeDetails.duration}</div>
-                  {routeDetails.startAddress && <div className="font-body text-xs text-muted-foreground"><strong>From:</strong> {routeDetails.startAddress}</div>}
-                  {routeDetails.endAddress && <div className="font-body text-xs text-muted-foreground"><strong>To:</strong> {routeDetails.endAddress}</div>}
-                  {fuelEstimate && (
-                    <>
-                      <div className="font-body text-sm"><strong>Est. Fuel Needed:</strong> {fuelEstimate.fuelNeeded}</div>
-                      <div className="font-body text-sm"><strong>Est. Fuel Cost:</strong> {fuelEstimate.estimatedCost}</div>
-                    </>
-                  )}
-                  {getValues("dateRange")?.from && (
-                    <div className="font-body text-sm"><strong>Planned Start:</strong> {format(getValues("dateRange")!.from!, "PPP")}</div>
-                  )}
-                  {getValues("dateRange")?.to && (
-                    <div className="font-body text-sm"><strong>Planned End:</strong> {format(getValues("dateRange")!.to!, "PPP")}</div>
-                  )}
-                  {currentTripNotes !== undefined && ( 
-                    <div className="font-body mt-1 pt-1 border-t">
-                      <strong className="text-sm flex items-center"><StickyNote className="mr-2 h-4 w-4 text-primary" />Notes:</strong>
-                      <p className="text-xs text-muted-foreground whitespace-pre-wrap pl-6">{currentTripNotes || <i>No notes.</i>}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-             <div className="flex flex-col sm:flex-col gap-2 self-stretch justify-start items-stretch">
-              <Button
-                onClick={handleNavigateWithGoogleMaps}
-                variant="outline"
-                size="sm"
-                className="font-body w-full"
-                disabled={!routeDetails}
-              >
-                <Navigation className="mr-2 h-4 w-4" /> Navigate
-              </Button>
-              <Button
-                onClick={handleOpenSaveTripDialog}
-                variant="default"
-                size="sm"
-                className="font-body w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                disabled={!routeDetails || createTripMutation.isPending}
-              >
-                {createTripMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                Save Trip
-              </Button>
+                  {fuelEstimate && <>
+                    <div className="font-body text-sm"><strong>Est. Fuel Needed:</strong> {fuelEstimate.fuelNeeded}</div>
+                    <div className="font-body text-sm"><strong>Est. Fuel Cost:</strong> {fuelEstimate.estimatedCost}</div>
+                  </>}
+              </CardContent></Card>}
             </div>
           </div>
-        )}
-      </div>
-    </div>
+        </TabsContent>
 
-    <Dialog open={isSaveTripDialogOpen} onOpenChange={setIsSaveTripDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="font-headline">Save Trip</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="tripName" className="text-right font-body">
-                Name
-              </Label>
-              <Input
-                id="tripName"
-                value={pendingTripName}
-                onChange={(e) => setPendingTripName(e.target.value)}
-                className="col-span-3 font-body"
-                placeholder="e.g., Coastal Adventure QLD"
-              />
+        <TabsContent value="budget">
+          <BudgetTab
+            budget={tripBudget}
+            onBudgetUpdate={handleBudgetUpdate}
+            isTripLoaded={!!routeDetails}
+            isLoading={updateTripMutation.isPending}
+          />
+        </TabsContent>
+
+        <TabsContent value="expenses">
+          <Card>
+            <CardHeader>
+              <CardTitle>Expense Tracking</CardTitle>
+              <CardDescription>Log your spending as you go and compare it against your budget.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground font-body">The expense ledger and tracking visualizations will be implemented here soon.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={isSaveTripDialogOpen} onOpenChange={setIsSaveTripDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader><DialogTitle className="font-headline">{activeTrip ? 'Update' : 'Save'} Trip</DialogTitle></DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="tripName" className="text-right font-body">Name</Label>
+                <Input id="tripName" value={pendingTripName} onChange={(e) => setPendingTripName(e.target.value)} className="col-span-3 font-body" placeholder="e.g., Coastal Adventure QLD" />
+              </div>
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label htmlFor="tripNotes" className="text-right font-body mt-2">Notes</Label>
+                <Textarea id="tripNotes" value={pendingTripNotes} onChange={(e) => setPendingTripNotes(e.target.value)} className="col-span-3 font-body" placeholder="Any specific details for this trip..." rows={4} />
+              </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="tripNotes" className="text-right font-body">
-                Notes
-              </Label>
-              <Textarea
-                id="tripNotes"
-                value={pendingTripNotes}
-                onChange={(e) => setPendingTripNotes(e.target.value)}
-                className="col-span-3 font-body"
-                placeholder="Any specific details for this trip..."
-                rows={4}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setIsSaveTripDialogOpen(false)} className="font-body" disabled={createTripMutation.isPending}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={handleConfirmSaveTrip} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body" disabled={createTripMutation.isPending}>
-              {createTripMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-              Save Trip
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsSaveTripDialogOpen(false)} className="font-body" disabled={createTripMutation.isPending || updateTripMutation.isPending}>Cancel</Button>
+              <Button type="button" onClick={handleConfirmSaveTrip} className="bg-primary hover:bg-primary/90 text-primary-foreground font-body" disabled={createTripMutation.isPending || updateTripMutation.isPending}>
+                {(createTripMutation.isPending || updateTripMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                {activeTrip ? 'Update Trip' : 'Save Trip'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
     </>
   );
 }
