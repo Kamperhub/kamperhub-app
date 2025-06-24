@@ -8,13 +8,14 @@ import type { StoredCaravan } from '@/types/caravan';
 import type { StoredVehicle } from '@/types/vehicle';
 import type { StoredWDH } from '@/types/wdh';
 import type { UserProfile } from '@/types/auth';
+import type { Occupant } from '@/types/tripplanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, Settings2, Link2 as Link2Icon, StickyNote, PackageSearch, Droplet, Archive, Info, PackagePlus } from 'lucide-react';
+import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, Settings2, Link2 as Link2Icon, StickyNote, PackageSearch, Droplet, Archive, Info, PackagePlus, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label as RechartsLabel } from 'recharts';
@@ -29,6 +30,7 @@ interface InventoryListClientProps {
   activeVehicle: StoredVehicle | null;
   activeWdh: StoredWDH | null;
   userPreferences: Partial<UserProfile> | null;
+  occupants?: Occupant[];
 }
 
 const defaultCaravanSpecs: CaravanWeightData = {
@@ -62,7 +64,7 @@ const DonutChartCustomLabel = ({ viewBox, value, limit, unit, name }: { viewBox?
 };
 
 
-export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPreferences }: InventoryListClientProps) {
+export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPreferences, occupants = [] }: InventoryListClientProps) {
   const queryClient = useQueryClient();
   const user = auth.currentUser;
   const { toast } = useToast();
@@ -141,6 +143,7 @@ export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPre
   }, [items]);
 
   const totalInventoryWeight = totalCaravanInventoryWeight + totalVehicleInventoryWeight + unassignedWeight;
+  const totalOccupantWeight = useMemo(() => (occupants || []).reduce((sum, occ) => sum + occ.weight, 0), [occupants]);
 
   const caravanSpecs = activeCaravan ? {
     tareMass: activeCaravan.tareMass, atm: activeCaravan.atm, gtm: activeCaravan.gtm,
@@ -149,25 +152,21 @@ export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPre
 
   const { tareMass, atm: atmLimit, gtm: gtmLimit, maxTowballDownload: caravanMaxTowballDownloadLimit } = caravanSpecs;
   
-  // Caravan payload includes items in caravan, unassigned items, and water.
   const caravanPayload = totalCaravanInventoryWeight + unassignedWeight + totalWaterWeight;
 
   const currentCaravanMass = tareMass + caravanPayload;
   const remainingPayloadATM = atmLimit > 0 ? atmLimit - currentCaravanMass : 0;
   
-  // TBM is estimated based on caravan's payload only.
   const estimatedTowballDownload = caravanPayload * 0.1;
   
   const currentLoadOnAxles = currentCaravanMass - estimatedTowballDownload;
   const remainingPayloadGTM = gtmLimit > 0 ? gtmLimit - currentLoadOnAxles : 0;
 
-  // Vehicle checks
   const vehicleKerbWeight = activeVehicle?.kerbWeight ?? 0;
   const vehicleGVM = activeVehicle?.gvm ?? 0;
   const vehicleGCM = activeVehicle?.gcm ?? 0;
 
-  // Vehicle payload is items in vehicle + towball download. We'll ignore passenger weight for now.
-  const vehicleAddedPayload = totalVehicleInventoryWeight + estimatedTowballDownload;
+  const vehicleAddedPayload = totalVehicleInventoryWeight + estimatedTowballDownload + totalOccupantWeight;
   const currentVehicleMass = vehicleKerbWeight + vehicleAddedPayload;
 
   const vehicleMaxTowCapacity = activeVehicle?.maxTowCapacity ?? 0;
@@ -176,7 +175,7 @@ export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPre
   const isOverMaxTowCapacity = vehicleMaxTowCapacity > 0 && currentCaravanMass > vehicleMaxTowCapacity;
   const isOverVehicleMaxTowball = vehicleMaxTowballMass > 0 && estimatedTowballDownload > vehicleMaxTowballMass;
   
-  const currentGCM = currentCaravanMass + (activeVehicle?.gvm || 0); // Simplified GCM check for now.
+  const currentGCM = currentCaravanMass + (activeVehicle?.gvm || 0);
   const isGCMOverLimit = vehicleGCM > 0 && activeVehicle?.gvm && currentGCM > vehicleGCM;
 
   const wdhMaxCapacity = activeWdh?.maxCapacityKg ?? 0;
@@ -302,14 +301,14 @@ export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPre
           <Card><CardHeader><CardTitle className="font-headline flex items-center"><Droplet className="mr-2 h-5 w-5 text-primary" />Water Tank Status</CardTitle></CardHeader>
             <CardContent className="pt-4 space-y-4">{activeCaravan.waterTanks.map(tank => (<div key={tank.id}><div className="flex justify-between items-center"><Label htmlFor={`water-${tank.id}`}>{tank.name} ({tank.capacityLiters}L - {tank.type})</Label><span className="text-sm">{(waterTankLevels[tank.id] || 0)}% ({((tank.capacityLiters * (waterTankLevels[tank.id] || 0)) / 100).toFixed(1)} kg)</span></div><div className="flex items-center gap-2"><Input id={`water-${tank.id}`} type="number" min="0" max="100" value={waterTankLevels[tank.id] || 0} onChange={(e) => handleUpdateWaterTankLevel(tank.id, parseInt(e.target.value, 10))} className="h-8 w-20" disabled={preferencesMutation.isPending}/><Slider value={[waterTankLevels[tank.id] || 0]} onValueChange={(v) => handleUpdateWaterTankLevel(tank.id, v[0])} max={100} step={5} disabled={preferencesMutation.isPending}/></div></div>))}
             </CardContent><CardFooter><p>Total Water Weight: {totalWaterWeight.toFixed(1)} kg</p></CardFooter></Card>)}
-
+        
         <div className="space-y-4 pt-4">
           <h3 className="text-xl font-headline">Weight Summary &amp; Compliance</h3>
           <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
               <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
               <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">About these calculations</AlertTitle>
               <AlertDescription className="font-body text-blue-700 dark:text-blue-300 text-xs">
-                  All calculations are estimates based on your inputs. For GVM, this tool only accounts for added inventory and towball mass against the vehicle's kerb weight; it does not include passenger or accessory weights. Always verify your actual weights at a certified weighbridge for full legal compliance and safety.
+                  All calculations are estimates based on your inputs. For GVM, this tool accounts for added inventory, selected trip occupants, and towball mass against the vehicle's kerb weight; it does not include other accessories. Always verify your actual weights at a certified weighbridge for full legal compliance and safety.
               </AlertDescription>
           </Alert>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -320,7 +319,7 @@ export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPre
                 <CardContent>
                   <Alert variant={getAlertStylingVariant(currentVehicleMass, vehicleGVM)}>
                     <AlertTitle>{currentVehicleMass.toFixed(1)}kg / {vehicleGVM.toFixed(0)}kg</AlertTitle>
-                    <AlertDescription>Kerb: {vehicleKerbWeight}kg, Added: {vehicleAddedPayload.toFixed(1)}kg</AlertDescription>
+                    <AlertDescription>Kerb: {vehicleKerbWeight}kg, Added: {vehicleAddedPayload.toFixed(1)}kg (incl. occupants)</AlertDescription>
                   </Alert>
                 </CardContent>
               </Card>

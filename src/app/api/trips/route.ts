@@ -65,6 +65,11 @@ const tripChecklistSetSchema = z.object({
   packDown: z.array(checklistItemSchema),
 });
 
+const occupantSchema = z.object({
+    id: z.string(),
+    description: z.string().min(1, "Occupant description is required"),
+    weight: z.coerce.number().min(0, "Occupant weight must be non-negative"),
+});
 
 const createTripSchema = z.object({
   name: z.string().min(1, "Trip name is required"),
@@ -79,8 +84,9 @@ const createTripSchema = z.object({
   plannedEndDate: z.string().datetime().nullable().optional(),
   notes: z.string().optional(),
   isCompleted: z.boolean().optional().default(false),
-  checklists: tripChecklistSetSchema.optional(), // Add checklists to schema
-  budget: z.array(budgetCategorySchema).optional(), // Add budget schema
+  checklists: tripChecklistSetSchema.optional(),
+  budget: z.array(budgetCategorySchema).optional(),
+  occupants: z.array(occupantSchema).optional(),
 });
 
 const updateTripSchema = createTripSchema.extend({
@@ -120,6 +126,7 @@ export async function POST(req: NextRequest) {
       ...parsedData,
       expenses: [], // Initialize with an empty expenses array
       budget: parsedData.budget || [], // Initialize with an empty budget array if not provided
+      occupants: parsedData.occupants || [], // Initialize with an empty occupants array if not provided
     };
     
     await newTripRef.set(newTrip);

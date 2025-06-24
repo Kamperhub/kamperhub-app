@@ -34,6 +34,12 @@ export interface Waypoint {
   // Potentially other details like a user-defined name for the waypoint could be added
 }
 
+export interface Occupant {
+  id: string;
+  description: string;
+  weight: number;
+}
+
 export interface LoggedTrip {
   id: string;
   name: string;
@@ -54,6 +60,9 @@ export interface LoggedTrip {
   // New fields for expense tracking
   budget?: BudgetCategory[];
   expenses?: Expense[];
+  
+  // New field for occupants
+  occupants?: Occupant[];
 }
 
 // Key for localStorage

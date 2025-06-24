@@ -1,20 +1,23 @@
 
 "use client"; 
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { StoredCaravan } from '@/types/caravan'; 
 import type { StoredVehicle } from '@/types/vehicle';
 import type { StoredWDH } from '@/types/wdh';
 import type { UserProfile } from '@/types/auth';
+import type { LoggedTrip } from '@/types/tripplanner';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { Settings, Loader2, Car, Home as HomeIcon, Link2 as Link2Icon, Backpack } from 'lucide-react';
+import { Settings, Loader2, Car, HomeIcon, Link2 as Link2Icon, Backpack, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { fetchUserPreferences, fetchCaravans, fetchVehicles, fetchWdhs } from '@/lib/api-client';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { fetchUserPreferences, fetchCaravans, fetchVehicles, fetchWdhs, fetchTrips } from '@/lib/api-client';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 
@@ -70,6 +73,14 @@ export default function InventoryPage() {
     queryFn: fetchWdhs,
     enabled: !!user,
   });
+  
+  const { data: allTrips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery<LoggedTrip[]>({
+    queryKey: ['trips', user?.uid],
+    queryFn: fetchTrips,
+    enabled: !!user,
+  });
+
+  const [selectedTripId, setSelectedTripId] = useState<string>('none');
 
   const activeCaravanId = userPrefs?.activeCaravanId;
   const activeVehicleId = userPrefs?.activeVehicleId;
@@ -79,8 +90,10 @@ export default function InventoryPage() {
   const activeVehicle = activeVehicleId ? allVehicles.find(v => v.id === activeVehicleId) : null;
   const activeWdh = activeWdhId ? allWdhs.find(w => w.id === activeWdhId) : null;
   
-  const isLoading = isLoadingPrefs || isLoadingCaravans || isLoadingVehicles || isLoadingWdhs;
-  const queryError = prefsError || caravansError || vehiclesError || wdhsError;
+  const selectedTrip = useMemo(() => allTrips.find(trip => trip.id === selectedTripId), [allTrips, selectedTripId]);
+  
+  const isLoading = isLoadingPrefs || isLoadingCaravans || isLoadingVehicles || isLoadingWdhs || isLoadingTrips;
+  const queryError = prefsError || caravansError || vehiclesError || wdhsError || tripsError;
 
   const getDescriptiveText = () => {
     let text = "Track your caravan's load, manage items, and stay compliant with weight limits. Calculations consider active caravan, tow vehicle, and WDH specifications if selected. Water tank levels also contribute to the total weight.";
@@ -179,12 +192,34 @@ export default function InventoryPage() {
             <AlertTitle className="font-headline font-bold text-foreground">Active WDH: {activeWdh.name} ({activeWdh.type}, Max: {activeWdh.maxCapacityKg}kg)</AlertTitle>
          </Alert>
       )}
+
+      <Card className="bg-muted/30">
+          <CardHeader>
+              <CardTitle className="font-headline flex items-center"><Users className="mr-2 h-5 w-5"/>Occupant Weight</CardTitle>
+              <CardDescription>Select a trip to include occupant weights in the GVM calculation.</CardDescription>
+          </CardHeader>
+          <CardContent>
+               <div className="max-w-sm">
+                    <Label htmlFor="trip-occupants-select">Include Occupants from Trip</Label>
+                    <Select value={selectedTripId} onValueChange={setSelectedTripId}>
+                        <SelectTrigger id="trip-occupants-select">
+                            <SelectValue placeholder="Select a trip..."/>
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">None (No Occupant Weight)</SelectItem>
+                            {allTrips.map(trip => <SelectItem key={trip.id} value={trip.id}>{trip.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+               </div>
+          </CardContent>
+      </Card>
       
       <InventoryListClient 
         activeCaravan={activeCaravan}
         activeVehicle={activeVehicle}
         activeWdh={activeWdh}
         userPreferences={userPrefs}
+        occupants={selectedTrip?.occupants}
       />
     </div>
   );

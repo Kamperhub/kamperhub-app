@@ -6,7 +6,7 @@ import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { usePathname } from 'next/navigation';
-import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip } from '@/types/tripplanner';
+import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip, Occupant } from '@/types/tripplanner';
 import { RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import type { StoredVehicle } from '@/types/vehicle';
 import type { CaravanDefaultChecklistSet, ChecklistItem, ChecklistCategory, TripChecklistSet } from '@/types/checklist';
@@ -24,7 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
-import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign } from 'lucide-react';
+import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Trash2, PlusCircle, Users } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from "date-fns";
@@ -93,6 +93,7 @@ export function TripPlannerClient() {
   const [activeTrip, setActiveTrip] = useState<LoggedTrip | null>(null);
   const [tripBudget, setTripBudget] = useState<BudgetCategory[]>([]);
   const [tripExpenses, setTripExpenses] = useState<Expense[]>([]);
+  const [tripOccupants, setTripOccupants] = useState<Occupant[]>([]);
 
   const { data: userPrefs } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
@@ -134,6 +135,7 @@ export function TripPlannerClient() {
     setActiveTrip(null);
     setTripBudget([]);
     setTripExpenses([]);
+    setTripOccupants([]);
   }, [reset]);
 
   useEffect(() => {
@@ -146,6 +148,7 @@ export function TripPlannerClient() {
           setActiveTrip(recalledTrip);
           setTripBudget(recalledTrip.budget || []);
           setTripExpenses(recalledTrip.expenses || []);
+          setTripOccupants(recalledTrip.occupants || []);
           
           reset({
             startLocation: recalledTrip.startLocationDisplay,
@@ -266,16 +269,23 @@ export function TripPlannerClient() {
   const handleBudgetUpdate = useCallback((newBudget: BudgetCategory[]) => {
     setTripBudget(newBudget);
     if(activeTrip) {
-      updateTripMutation.mutate({ ...activeTrip, budget: newBudget, expenses: tripExpenses });
+      updateTripMutation.mutate({ ...activeTrip, budget: newBudget, expenses: tripExpenses, occupants: tripOccupants });
     }
-  }, [activeTrip, tripExpenses, updateTripMutation]);
+  }, [activeTrip, tripExpenses, tripOccupants, updateTripMutation]);
 
   const handleExpensesUpdate = useCallback((newExpenses: Expense[]) => {
     setTripExpenses(newExpenses);
     if(activeTrip) {
-      updateTripMutation.mutate({ ...activeTrip, budget: tripBudget, expenses: newExpenses });
+      updateTripMutation.mutate({ ...activeTrip, budget: tripBudget, expenses: newExpenses, occupants: tripOccupants });
     }
-  }, [activeTrip, tripBudget, updateTripMutation]);
+  }, [activeTrip, tripBudget, tripOccupants, updateTripMutation]);
+
+  const handleOccupantsUpdate = useCallback((newOccupants: Occupant[]) => {
+    setTripOccupants(newOccupants);
+    if(activeTrip) {
+        updateTripMutation.mutate({ ...activeTrip, budget: tripBudget, expenses: tripExpenses, occupants: newOccupants });
+    }
+  }, [activeTrip, tripBudget, tripExpenses, updateTripMutation]);
 
   const handleOpenSaveTripDialog = useCallback(() => {
     if (!routeDetails) {
@@ -345,6 +355,7 @@ export function TripPlannerClient() {
       checklists: newTripChecklistSet,
       budget: finalBudget,
       expenses: tripExpenses,
+      occupants: tripOccupants,
     };
     
     if (activeTrip) {
@@ -353,7 +364,7 @@ export function TripPlannerClient() {
     } else {
         createTripMutation.mutate(tripData);
     }
-  }, [routeDetails, getValues, fuelEstimate, toast, pendingTripName, pendingTripNotes, userPrefs, createTripMutation, updateTripMutation, activeTrip, tripBudget, tripExpenses]);
+  }, [routeDetails, getValues, fuelEstimate, toast, pendingTripName, pendingTripNotes, userPrefs, createTripMutation, updateTripMutation, activeTrip, tripBudget, tripExpenses, tripOccupants]);
 
 
   const mapHeight = "400px"; 
@@ -381,42 +392,53 @@ export function TripPlannerClient() {
 
         <TabsContent value="itinerary" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="md:col-span-1">
-              <CardHeader>
-                <CardTitle className="font-headline flex items-center"><RouteIcon className="mr-2 h-6 w-6 text-primary" /> Plan Route</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                  <GooglePlacesAutocompleteInput control={control} name="startLocation" label="Start Location" placeholder="e.g., Sydney, NSW" errors={errors} setValue={setValue} isApiReady={isGoogleApiReady} />
-                  <GooglePlacesAutocompleteInput control={control} name="endLocation" label="End Location" placeholder="e.g., Melbourne, VIC" errors={errors} setValue={setValue} isApiReady={isGoogleApiReady} />
-                  <div>
-                    <Label htmlFor="dateRange" className="font-body">Planned Date Range</Label>
-                    <Controller name="dateRange" control={control} render={({ field }) => (
-                        <Popover><PopoverTrigger asChild>
-                            <Button id="dateRange" variant={"outline"} className={cn("w-full justify-start text-left font-normal font-body", !field.value?.from && "text-muted-foreground")}>
-                              <CalendarDays className="mr-2 h-4 w-4" />
-                              {field.value?.from ? (field.value.to ? `${format(field.value.from, "LLL dd, yyyy")} - ${format(field.value.to, "LLL dd, yyyy")}` : format(field.value.from, "LLL dd, yyyy")) : <span>Pick a date range</span>}
-                            </Button>
-                        </PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={field.value?.from} selected={field.value as DateRange | undefined} onSelect={field.onChange} numberOfMonths={2} /></PopoverContent></Popover>
-                    )} />
-                  </div>
-                  <div>
-                    <Label htmlFor="fuelEfficiency" className="font-body">Fuel Efficiency (L/100km)</Label>
-                    <Controller name="fuelEfficiency" control={control} render={({ field }) => (<Input id="fuelEfficiency" type="number" step="0.1" {...field} value={field.value ?? ''} className="font-body" />)} />
-                    {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="fuelPrice" className="font-body">Fuel Price ($/L)</Label>
-                    <Controller name="fuelPrice" control={control} render={({ field }) => (<Input id="fuelPrice" type="number" step="0.01" {...field} value={field.value ?? ''} className="font-body" />)} />
-                    {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
-                  </div>
-                  <Button type="submit" disabled={isLoading || !isGoogleApiReady} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body">
-                    {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Calculating...</> : 'Plan Route'}
-                  </Button>
-                  {!isGoogleApiReady && <p className="text-xs text-muted-foreground text-center font-body mt-1">Map services loading...</p>}
-                </form>
-              </CardContent>
-            </Card>
+            <div className="md:col-span-1 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-headline flex items-center"><RouteIcon className="mr-2 h-6 w-6 text-primary" /> Plan Route</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <GooglePlacesAutocompleteInput control={control} name="startLocation" label="Start Location" placeholder="e.g., Sydney, NSW" errors={errors} setValue={setValue} isApiReady={isGoogleApiReady} />
+                    <GooglePlacesAutocompleteInput control={control} name="endLocation" label="End Location" placeholder="e.g., Melbourne, VIC" errors={errors} setValue={setValue} isApiReady={isGoogleApiReady} />
+                    <div>
+                      <Label htmlFor="dateRange" className="font-body">Planned Date Range</Label>
+                      <Controller name="dateRange" control={control} render={({ field }) => (
+                          <Popover><PopoverTrigger asChild>
+                              <Button id="dateRange" variant={"outline"} className={cn("w-full justify-start text-left font-normal font-body", !field.value?.from && "text-muted-foreground")}>
+                                <CalendarDays className="mr-2 h-4 w-4" />
+                                {field.value?.from ? (field.value.to ? `${format(field.value.from, "LLL dd, yyyy")} - ${format(field.value.to, "LLL dd, yyyy")}` : format(field.value.from, "LLL dd, yyyy")) : <span>Pick a date range</span>}
+                              </Button>
+                          </PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={field.value?.from} selected={field.value as DateRange | undefined} onSelect={field.onChange} numberOfMonths={2} /></PopoverContent></Popover>
+                      )} />
+                    </div>
+                    <div>
+                      <Label htmlFor="fuelEfficiency" className="font-body">Fuel Efficiency (L/100km)</Label>
+                      <Controller name="fuelEfficiency" control={control} render={({ field }) => (<Input id="fuelEfficiency" type="number" step="0.1" {...field} value={field.value ?? ''} className="font-body" />)} />
+                      {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
+                    </div>
+                    <div>
+                      <Label htmlFor="fuelPrice" className="font-body">Fuel Price ($/L)</Label>
+                      <Controller name="fuelPrice" control={control} render={({ field }) => (<Input id="fuelPrice" type="number" step="0.01" {...field} value={field.value ?? ''} className="font-body" />)} />
+                      {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
+                    </div>
+                    <Button type="submit" disabled={isLoading || !isGoogleApiReady} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body">
+                      {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Calculating...</> : 'Plan Route'}
+                    </Button>
+                    {!isGoogleApiReady && <p className="text-xs text-muted-foreground text-center font-body mt-1">Map services loading...</p>}
+                  </form>
+                </CardContent>
+              </Card>
+               <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center"><Users className="mr-2 h-6 w-6 text-primary" /> Vehicle Occupants</CardTitle>
+                    <CardDescription>Add driver, passengers, and even pets to account for their weight.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <OccupantManager occupants={tripOccupants} onUpdate={handleOccupantsUpdate} disabled={!routeDetails && !activeTrip} />
+                </CardContent>
+              </Card>
+            </div>
             <div className="md:col-span-2 space-y-6">
               <Card><CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="font-headline flex items-center"><MapPin className="mr-2 h-6 w-6 text-primary" /> Route Map</CardTitle>
@@ -444,7 +466,7 @@ export function TripPlannerClient() {
           <BudgetTab
             budget={tripBudget}
             onBudgetUpdate={handleBudgetUpdate}
-            isTripLoaded={!!routeDetails}
+            isTripLoaded={!!routeDetails || !!activeTrip}
             isLoading={updateTripMutation.isPending}
           />
         </TabsContent>
@@ -454,7 +476,7 @@ export function TripPlannerClient() {
             expenses={tripExpenses}
             budget={tripBudget}
             onExpensesUpdate={handleExpensesUpdate}
-            isTripLoaded={!!routeDetails}
+            isTripLoaded={!!routeDetails || !!activeTrip}
             isLoading={updateTripMutation.isPending}
           />
         </TabsContent>
@@ -484,4 +506,65 @@ export function TripPlannerClient() {
         </Dialog>
     </>
   );
+}
+
+// Occupant Manager Component
+function OccupantManager({ occupants, onUpdate, disabled }: { occupants: Occupant[], onUpdate: (newOccupants: Occupant[]) => void, disabled?: boolean }) {
+    const [description, setDescription] = useState('');
+    const [weight, setWeight] = useState('');
+    const { toast } = useToast();
+
+    const handleAddOccupant = (e: React.FormEvent) => {
+        e.preventDefault();
+        const weightValue = parseFloat(weight);
+        if (!description.trim() || isNaN(weightValue) || weightValue <= 0) {
+            toast({ title: "Invalid Input", description: "Please provide a valid description and positive weight.", variant: "destructive" });
+            return;
+        }
+        const newOccupant: Occupant = {
+            id: Date.now().toString(),
+            description: description.trim(),
+            weight: weightValue,
+        };
+        onUpdate([...occupants, newOccupant]);
+        setDescription('');
+        setWeight('');
+    };
+
+    const handleDeleteOccupant = (id: string) => {
+        onUpdate(occupants.filter(occ => occ.id !== id));
+    };
+
+    const totalWeight = useMemo(() => occupants.reduce((sum, occ) => sum + occ.weight, 0), [occupants]);
+
+    return (
+        <div className="space-y-4">
+            <form onSubmit={handleAddOccupant} className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                    <div>
+                        <Label htmlFor="occ-desc" className="text-xs">Description</Label>
+                        <Input id="occ-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g., Driver, Passenger" disabled={disabled} />
+                    </div>
+                    <div>
+                        <Label htmlFor="occ-weight" className="text-xs">Weight (kg)</Label>
+                        <Input id="occ-weight" type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="e.g., 75" disabled={disabled} />
+                    </div>
+                </div>
+                <Button type="submit" size="sm" className="w-full" disabled={disabled}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Occupant
+                </Button>
+            </form>
+            <div className="space-y-2">
+                {occupants.map(occ => (
+                    <div key={occ.id} className="flex items-center justify-between bg-muted/50 p-2 rounded-md">
+                        <span className="text-sm">{occ.description} - {occ.weight}kg</span>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDeleteOccupant(occ.id)} disabled={disabled}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                    </div>
+                ))}
+            </div>
+            {totalWeight > 0 && <p className="text-sm font-semibold text-right">Total Occupant Weight: {totalWeight.toFixed(1)} kg</p>}
+        </div>
+    )
 }
