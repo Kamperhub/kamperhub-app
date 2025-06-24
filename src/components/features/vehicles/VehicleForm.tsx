@@ -376,4 +376,3 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
     </form>
   );
 }
-

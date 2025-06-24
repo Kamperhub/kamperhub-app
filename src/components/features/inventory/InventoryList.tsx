@@ -118,8 +118,6 @@ export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPre
     if (!activeCaravan || !userPreferences?.caravanWaterLevels) return {};
     return userPreferences.caravanWaterLevels[activeCaravan.id] || {};
   }, [activeCaravan, userPreferences?.caravanWaterLevels]);
-
-  const totalInventoryWeight = useMemo(() => items.reduce((sum, item) => sum + (item.weight * item.quantity), 0), [items]);
   
   const totalWaterWeight = useMemo(() => {
     return (activeCaravan?.waterTanks || []).reduce((sum, tank) => {
@@ -127,6 +125,22 @@ export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPre
       return sum + (tank.capacityLiters * (levelPercentage / 100));
     }, 0);
   }, [activeCaravan?.waterTanks, waterTankLevels]);
+  
+  const { totalCaravanInventoryWeight, totalVehicleInventoryWeight, unassignedWeight } = useMemo(() => {
+    return items.reduce((acc, item) => {
+      const itemTotalWeight = item.weight * item.quantity;
+      if (item.locationId?.startsWith('cv-')) {
+        acc.totalCaravanInventoryWeight += itemTotalWeight;
+      } else if (item.locationId?.startsWith('veh-')) {
+        acc.totalVehicleInventoryWeight += itemTotalWeight;
+      } else {
+        acc.unassignedWeight += itemTotalWeight;
+      }
+      return acc;
+    }, { totalCaravanInventoryWeight: 0, totalVehicleInventoryWeight: 0, unassignedWeight: 0 });
+  }, [items]);
+
+  const totalInventoryWeight = totalCaravanInventoryWeight + totalVehicleInventoryWeight + unassignedWeight;
 
   const caravanSpecs = activeCaravan ? {
     tareMass: activeCaravan.tareMass, atm: activeCaravan.atm, gtm: activeCaravan.gtm,
@@ -135,26 +149,40 @@ export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPre
 
   const { tareMass, atm: atmLimit, gtm: gtmLimit, maxTowballDownload: caravanMaxTowballDownloadLimit } = caravanSpecs;
   
-  const currentCaravanMass = tareMass + totalInventoryWeight + totalWaterWeight;
+  // Caravan payload includes items in caravan, unassigned items, and water.
+  const caravanPayload = totalCaravanInventoryWeight + unassignedWeight + totalWaterWeight;
+
+  const currentCaravanMass = tareMass + caravanPayload;
   const remainingPayloadATM = atmLimit > 0 ? atmLimit - currentCaravanMass : 0;
-  const estimatedTowballDownload = (totalInventoryWeight + totalWaterWeight) * 0.1;
+  
+  // TBM is estimated based on caravan's payload only.
+  const estimatedTowballDownload = caravanPayload * 0.1;
+  
   const currentLoadOnAxles = currentCaravanMass - estimatedTowballDownload;
   const remainingPayloadGTM = gtmLimit > 0 ? gtmLimit - currentLoadOnAxles : 0;
 
-  const vehicleMaxTowCapacity = activeVehicle?.maxTowCapacity ?? 0;
-  const vehicleMaxTowballMass = activeVehicle?.maxTowballMass ?? 0;
+  // Vehicle checks
+  const vehicleKerbWeight = activeVehicle?.kerbWeight ?? 0;
   const vehicleGVM = activeVehicle?.gvm ?? 0;
   const vehicleGCM = activeVehicle?.gcm ?? 0;
+
+  // Vehicle payload is items in vehicle + towball download. We'll ignore passenger weight for now.
+  const vehicleAddedPayload = totalVehicleInventoryWeight + estimatedTowballDownload;
+  const currentVehicleMass = vehicleKerbWeight + vehicleAddedPayload;
+
+  const vehicleMaxTowCapacity = activeVehicle?.maxTowCapacity ?? 0;
+  const vehicleMaxTowballMass = activeVehicle?.maxTowballMass ?? 0;
+  
   const isOverMaxTowCapacity = vehicleMaxTowCapacity > 0 && currentCaravanMass > vehicleMaxTowCapacity;
   const isOverVehicleMaxTowball = vehicleMaxTowballMass > 0 && estimatedTowballDownload > vehicleMaxTowballMass;
-  const potentialGCM = currentCaravanMass + vehicleGVM;
-  const isPotentialGCMOverLimit = vehicleGCM > 0 && vehicleGVM > 0 && potentialGCM > vehicleGCM;
+  
+  const currentGCM = currentCaravanMass + (activeVehicle?.gvm || 0); // Simplified GCM check for now.
+  const isGCMOverLimit = vehicleGCM > 0 && activeVehicle?.gvm && currentGCM > vehicleGCM;
 
   const wdhMaxCapacity = activeWdh?.maxCapacityKg ?? 0;
   const wdhMinCapacity = activeWdh?.minCapacityKg ?? null;
   const isTowballOverWdhMax = wdhMaxCapacity > 0 && estimatedTowballDownload > wdhMaxCapacity;
   const isTowballUnderWdhMin = wdhMinCapacity !== null && wdhMinCapacity > 0 && estimatedTowballDownload < wdhMinCapacity;
-
 
   const handleAddItem = () => {
     if (!activeCaravan) {
@@ -240,10 +268,6 @@ export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPre
     return weightsMap;
   }, [items, capacityTrackedLocations]);
 
-  const totalAvailablePayloadForInventory = useMemo(() => (atmLimit > 0 && tareMass > 0 && atmLimit >= tareMass) ? atmLimit - tareMass - totalWaterWeight : 0, [atmLimit, tareMass, totalWaterWeight]);
-  
-  const totalCaravanStorageCapacity = useMemo(() => (activeCaravan?.storageLocations || []).filter(loc => typeof loc.maxWeightCapacityKg === 'number' && loc.maxWeightCapacityKg > 0).reduce((sum, loc) => sum + (loc.maxWeightCapacityKg || 0), 0), [activeCaravan?.storageLocations]);
-
   const isFormDisabled = !activeCaravan;
 
   return (
@@ -252,17 +276,6 @@ export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPre
         <CardTitle className="font-headline">Inventory Weight Tracker</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {activeWdh && (
-            <Alert variant="default" className="mb-6 bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
-                <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
-                <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">How Your WDH Affects Weights</AlertTitle>
-                <AlertDescription className="font-body text-blue-700 dark:text-blue-300">
-                    A Weight Distribution Hitch (WDH) is a crucial tool that redistributes some of the towball weight from your vehicle's rear axle to its front axle and the caravan's axles. This improves handling, braking, and overall towing safety.
-                    <br />
-                    <strong>Note:</strong> This app checks if your estimated towball mass is within your WDH's capacity, but it <strong>does not</strong> simulate the complex physics of weight redistribution on individual axle loads. Always verify your setup at a weighbridge.
-                </AlertDescription>
-            </Alert>
-        )}
         {isFormDisabled && (
             <Alert variant="default" className="bg-muted border-border">
                 <AlertTriangle className="h-4 w-4 text-foreground" />
@@ -282,7 +295,7 @@ export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPre
         {items.length > 0 && (
           <Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Qty</TableHead><TableHead>Total Wt.</TableHead><TableHead>Location</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
             <TableBody>{items.map(item => (<TableRow key={item.id}><TableCell>{item.name}</TableCell><TableCell>{item.quantity}</TableCell><TableCell>{(item.weight * item.quantity).toFixed(1)}kg</TableCell><TableCell>{getLocationNameById(item.locationId)}</TableCell><TableCell><Button variant="ghost" size="icon" onClick={() => handleEditItem(item)}><Edit3 className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell></TableRow>))}</TableBody>
-             <TableCaption>Total Inventory Weight: {totalInventoryWeight.toFixed(1)} kg</TableCaption>
+             <TableCaption>Total Inventory Weight (Caravan & Vehicle): {totalInventoryWeight.toFixed(1)} kg</TableCaption>
           </Table>)}
         
         {activeCaravan?.waterTanks && activeCaravan.waterTanks.length > 0 && (
@@ -292,9 +305,27 @@ export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPre
 
         <div className="space-y-4 pt-4">
           <h3 className="text-xl font-headline">Weight Summary &amp; Compliance</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Card><CardHeader><CardTitle>Caravan Compliance</CardTitle></CardHeader><CardContent><Alert variant={getAlertStylingVariant(currentCaravanMass, atmLimit)}><AlertTitle>ATM: {currentCaravanMass.toFixed(1)}kg / {atmLimit > 0 ? atmLimit.toFixed(0) : 'N/A'}kg</AlertTitle><AlertDescription>Remaining: {remainingPayloadATM.toFixed(1)} kg</AlertDescription></Alert></CardContent></Card>
-            {activeVehicle && (<Card><CardHeader><CardTitle>Vehicle Compliance</CardTitle></CardHeader><CardContent><Alert variant={isOverMaxTowCapacity ? 'destructive' : 'default'}><AlertTitle>Max Tow: {currentCaravanMass.toFixed(1)}kg / {vehicleMaxTowCapacity.toFixed(0)}kg</AlertTitle><AlertDescription>{isOverMaxTowCapacity ? 'OVER LIMIT!' : 'OK'}</AlertDescription></Alert></CardContent></Card>)}
+          <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+              <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+              <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">About these calculations</AlertTitle>
+              <AlertDescription className="font-body text-blue-700 dark:text-blue-300 text-xs">
+                  All calculations are estimates based on your inputs. For GVM, this tool only accounts for added inventory and towball mass against the vehicle's kerb weight; it does not include passenger or accessory weights. Always verify your actual weights at a certified weighbridge for full legal compliance and safety.
+              </AlertDescription>
+          </Alert>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card><CardHeader><CardTitle>Caravan ATM</CardTitle></CardHeader><CardContent><Alert variant={getAlertStylingVariant(currentCaravanMass, atmLimit)}><AlertTitle>{currentCaravanMass.toFixed(1)}kg / {atmLimit > 0 ? atmLimit.toFixed(0) : 'N/A'}kg</AlertTitle><AlertDescription>Remaining: {remainingPayloadATM.toFixed(1)} kg</AlertDescription></Alert></CardContent></Card>
+            {activeVehicle && vehicleGVM > 0 && (
+              <Card>
+                <CardHeader><CardTitle>Vehicle GVM</CardTitle></CardHeader>
+                <CardContent>
+                  <Alert variant={getAlertStylingVariant(currentVehicleMass, vehicleGVM)}>
+                    <AlertTitle>{currentVehicleMass.toFixed(1)}kg / {vehicleGVM.toFixed(0)}kg</AlertTitle>
+                    <AlertDescription>Kerb: {vehicleKerbWeight}kg, Added: {vehicleAddedPayload.toFixed(1)}kg</AlertDescription>
+                  </Alert>
+                </CardContent>
+              </Card>
+            )}
+            {activeVehicle && (<Card><CardHeader><CardTitle>Vehicle Towing</CardTitle></CardHeader><CardContent><Alert variant={isOverMaxTowCapacity ? 'destructive' : 'default'}><AlertTitle>Towed Mass: {currentCaravanMass.toFixed(1)}kg / {vehicleMaxTowCapacity.toFixed(0)}kg</AlertTitle><AlertDescription>{isOverMaxTowCapacity ? 'OVER LIMIT!' : 'OK'}</AlertDescription></Alert></CardContent></Card>)}
             {activeWdh && (
               <Card>
                 <CardHeader><CardTitle>WDH Compatibility</CardTitle></CardHeader>
