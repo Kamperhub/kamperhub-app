@@ -22,29 +22,24 @@ const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseCon
 let appCheck: AppCheck | undefined;
 
 if (typeof window !== 'undefined') {
-  // This check prevents re-initializing App Check on every hot-reload in development.
-  if (!(window as any).appCheckInitialized) {
-    (window as any).appCheckInitialized = true;
+  // Set the debug token flag in development. This MUST be done before initializeAppCheck.
+  // This flag allows you to get a debug token from the console.
+  if (process.env.NODE_ENV === 'development') {
+      (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+      console.log('[Firebase Client] App Check debug token flag is set. Find the debug token in the console and register it in your Firebase project settings.');
+  }
 
-    // The following line is for DEVELOPMENT ONLY. It enables App Check debug mode,
-    // which will print a debug token to the console. You must then add this token
-    // to your Firebase project settings under App Check > Apps > Manage debug tokens.
-    if (process.env.NODE_ENV === 'development') {
-        (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-        console.log('[Firebase Client] App Check debug flag set. Find token in console and add to Firebase settings.');
-    }
-
-    try {
-      // Initialize App Check with the reCAPTCHA Enterprise provider.
-      // In development, the debug token will be used automatically if the flag above is set.
-      appCheck = initializeAppCheck(app, {
-        provider: new ReCaptchaEnterpriseProvider('6LcZh2orAAAAACZCrkNWXKNfNK9ha0IE0rJYXlNX'),
-        isTokenAutoRefreshEnabled: true
-      });
-      console.log('[Firebase Client] App Check Initialized.');
-    } catch (error) {
-      console.error("[Firebase Client] CRITICAL: Error initializing App Check:", error);
-    }
+  try {
+    // Initialize App Check with the reCAPTCHA Enterprise provider.
+    // In development, if the debug flag is set, this will use the debug provider instead,
+    // allowing the app to work locally once the token is registered.
+    appCheck = initializeAppCheck(app, {
+      provider: new ReCaptchaEnterpriseProvider('6LcZh2orAAAAACZCrkNWXKNfNK9ha0IE0rJYXlNX'),
+      isTokenAutoRefreshEnabled: true
+    });
+    console.log('[Firebase Client] App Check Initialized successfully.');
+  } catch (error) {
+    console.error("[Firebase Client] CRITICAL: Error initializing App Check:", error);
   }
 }
 
