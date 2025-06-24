@@ -1,4 +1,5 @@
 
+
 import { z } from 'zod';
 
 // Schema for a single budget category within a trip
@@ -13,7 +14,7 @@ export type BudgetCategory = z.infer<typeof budgetCategorySchema>;
 // Schema for a single expense entry linked to a trip and a category
 export const expenseSchema = z.object({
   id: z.string(),
-  tripId: z.string(),
+  // tripId is implicitly known from the document it's embedded in
   categoryId: z.string(),
   description: z.string().min(1, "Description is required"),
   amount: z.coerce.number().positive("Amount must be a positive number"),

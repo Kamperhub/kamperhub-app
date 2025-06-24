@@ -13,6 +13,8 @@ import Link from 'next/link';
 import { YouTubeEmbed } from '@/components/features/learn/YouTubeEmbed';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Added Card components
+import { auth } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 
 export function ChatInterface() {
@@ -20,6 +22,8 @@ export function ChatInterface() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const user = auth.currentUser;
+  const { toast } = useToast();
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -29,6 +33,15 @@ export function ChatInterface() {
 
   const handleSendMessage = async () => {
     if (!input.trim()) return;
+
+    if (!user) {
+      toast({
+        title: "Not Logged In",
+        description: "You must be logged in to use the chatbot.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -43,7 +56,7 @@ export function ChatInterface() {
 
     try {
       const chatbotInput: CaravanSupportChatbotInput = { question: currentInput };
-      const response: CaravanSupportChatbotOutput = await caravanSupportChatbot(chatbotInput);
+      const response: CaravanSupportChatbotOutput = await caravanSupportChatbot(chatbotInput, user.uid);
       
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -161,7 +174,7 @@ export function ChatInterface() {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about caravanning..."
+          placeholder="Ask about caravanning or add an expense..."
           className="flex-grow font-body"
           onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSendMessage()}
           disabled={isLoading}
@@ -174,4 +187,3 @@ export function ChatInterface() {
     </div>
   );
 }
-

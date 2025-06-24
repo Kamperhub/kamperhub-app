@@ -10,8 +10,12 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 import { staticCaravanningArticles, type AiGeneratedArticle } from '@/types/learn';
+import { adminFirestore } from '@/lib/firebase-admin';
+import type { LoggedTrip } from '@/types/tripplanner';
+import type { Expense } from '@/types/expense';
+
 
 const CaravanSupportChatbotInputSchema = z.object({
   question: z.string().describe('The question asked by the user about caravanning.'),
@@ -133,26 +137,134 @@ const findYoutubeLink = ai.defineTool(
   }
 );
 
-export async function caravanSupportChatbot(input: CaravanSupportChatbotInput): Promise<CaravanSupportChatbotOutput> {
-  return caravanSupportChatbotFlow(input);
+const findUserTripTool = ai.defineTool(
+  {
+    name: 'findUserTrip',
+    description: "Finds a user's trip by its name to get its ID and budget categories. Use this before trying to add an expense.",
+    inputSchema: z.object({
+      userId: z.string().describe("The user's unique ID."),
+      tripName: z.string().describe('A partial or full name of the trip to search for.'),
+    }),
+    outputSchema: z.object({
+      tripId: z.string(),
+      tripName: z.string(),
+      budgetCategories: z.array(z.string()),
+    }).nullable(),
+  },
+  async ({ userId, tripName }) => {
+    if (!adminFirestore) return null;
+    const tripsRef = adminFirestore.collection('users').doc(userId).collection('trips');
+    const snapshot = await tripsRef.get();
+    if (snapshot.empty) return null;
+
+    const trips = snapshot.docs.map(doc => doc.data() as LoggedTrip);
+    
+    // Find a trip where the name contains the search term (case-insensitive)
+    const foundTrip = trips.find(trip => trip.name.toLowerCase().includes(tripName.toLowerCase()));
+
+    if (foundTrip) {
+      return {
+        tripId: foundTrip.id,
+        tripName: foundTrip.name,
+        budgetCategories: foundTrip.budget?.map(cat => cat.name) || [],
+      };
+    }
+    return null;
+  }
+);
+
+const addExpenseToTripTool = ai.defineTool(
+  {
+    name: 'addExpenseToTrip',
+    description: 'Adds an expense record to a specific trip for a user.',
+    inputSchema: z.object({
+      userId: z.string().describe("The user's unique ID."),
+      tripId: z.string().describe("The unique ID of the trip, obtained from findUserTrip."),
+      amount: z.number().describe("The monetary value of the expense."),
+      categoryName: z.string().describe("The name of the budget category for this expense."),
+      description: z.string().describe("A brief description of the expense (e.g., 'Diesel fill-up', 'Groceries at Coles')."),
+      expenseDate: z.string().datetime().describe("The date of the expense in ISO 8601 format."),
+    }),
+    outputSchema: z.string().describe("A confirmation message indicating success or failure."),
+  },
+  async ({ userId, tripId, amount, categoryName, description, expenseDate }) => {
+    if (!adminFirestore) return "Error: Database service is not available.";
+    
+    const tripRef = adminFirestore.collection('users').doc(userId).collection('trips').doc(tripId);
+    
+    try {
+      const doc = await tripRef.get();
+      if (!doc.exists) {
+        return `Error: Trip with ID ${tripId} not found.`;
+      }
+      const trip = doc.data() as LoggedTrip;
+
+      const budgetCategory = trip.budget?.find(cat => cat.name.toLowerCase() === categoryName.toLowerCase());
+      if (!budgetCategory) {
+        const availableCategories = trip.budget?.map(c => c.name).join(', ') || 'none';
+        return `Error: Budget category "${categoryName}" not found. Please choose from: ${availableCategories}.`;
+      }
+
+      const newExpense: Omit<Expense, 'tripId'> = {
+        id: Date.now().toString(),
+        categoryId: budgetCategory.id,
+        amount,
+        description,
+        date: expenseDate,
+        timestamp: new Date().toISOString(),
+      };
+
+      const updatedExpenses = [...(trip.expenses || []), newExpense];
+      
+      await tripRef.update({ expenses: updatedExpenses });
+
+      return `Successfully added expense "${description}" for $${amount.toFixed(2)} to the trip "${trip.name}".`;
+
+    } catch (e: any) {
+      console.error("Error adding expense to trip:", e);
+      return `An unexpected error occurred while adding the expense: ${e.message}`;
+    }
+  }
+);
+
+
+export async function caravanSupportChatbot(
+  input: CaravanSupportChatbotInput,
+  userId: string,
+): Promise<CaravanSupportChatbotOutput> {
+  return caravanSupportChatbotFlow({ ...input, userId });
 }
+
+const CaravanSupportChatbotFlowInputSchema = CaravanSupportChatbotInputSchema.extend({
+  userId: z.string(),
+});
 
 const prompt = ai.definePrompt({
   name: 'caravanSupportChatbotPrompt',
-  input: {schema: CaravanSupportChatbotInputSchema},
+  input: {schema: CaravanSupportChatbotFlowInputSchema },
   output: {schema: CaravanSupportChatbotOutputSchema},
-  tools: [getFaqAnswer, getArticleInfoTool, findYoutubeLink],
-  prompt: `You are a friendly and helpful caravan support chatbot for KamperHub. Your primary goal is to provide accurate and useful answers to user questions about caravanning, prioritizing information from KamperHub's own knowledge base.
+  tools: [getFaqAnswer, getArticleInfoTool, findYoutubeLink, findUserTripTool, addExpenseToTripTool],
+  prompt: `You are a friendly and helpful caravan support chatbot for KamperHub. Your goal is to provide useful answers and perform actions for the user.
 
-When a user asks a question:
-1.  **Prioritize Internal Knowledge:** First, use the 'getFaqAnswer' tool with relevant keywords from the user's question.
-2.  **If FAQ Answer Found:** If 'getFaqAnswer' returns an answer, use this as the core of your response. You can rephrase it conversationally but ensure the factual content comes from the tool. Set 'relatedArticleTitle' to null.
-3.  **If No FAQ Answer, Check Articles:** If 'getFaqAnswer' does *not* return an answer, then use the 'getArticleInfoTool' with keywords from the user's question to search our published articles.
-4.  **If Article Found:** If 'getArticleInfoTool' returns an article (title, summary, topic), base your answer on the provided 'summary'. Set the 'relatedArticleTitle' output field to the article's 'title'. You can also mention that more details are available in the article "[Article Title]" in our Support Center.
-5.  **Last Resort - General Knowledge:** ONLY if BOTH 'getFaqAnswer' AND 'getArticleInfoTool' provide no specific, relevant answer or information for the user's question, then you may answer the question using your general knowledge about caravanning. In this case, set 'relatedArticleTitle' to null.
-6.  **Optional YouTube Link:** Regardless of how the answer was sourced (FAQ, Article, or General Knowledge), if you believe a YouTube video would be genuinely helpful to the user, use the 'findYoutubeLink' tool with a relevant search query and include the link in the 'youtubeLink' output field. Otherwise, set 'youtubeLink' to null.
+USER ID: {{{userId}}}
 
-Strictly follow this order of operations. Do not use general knowledge if internal tools can provide an answer.
+**Primary Task: Answering Questions**
+When a user asks a question, follow this hierarchy:
+1.  **Prioritize Internal Knowledge:** Use 'getFaqAnswer'. If found, use this as the core of your response.
+2.  **If No FAQ, Check Articles:** Use 'getArticleInfoTool'. If found, base your answer on the provided summary and set 'relatedArticleTitle'.
+3.  **Last Resort - General Knowledge:** If internal tools fail, answer using your general caravanning knowledge.
+4.  **Optional YouTube Link:** If a video would be helpful, use 'findYoutubeLink'.
+
+**Secondary Task: Performing Actions (like adding expenses)**
+If the user asks you to perform an action, like adding an expense:
+1.  **Identify Intent:** Recognize the user wants to add an expense.
+2.  **Find Trip:** If the user mentions a trip name (e.g., "Fraser Island trip"), you MUST use the 'findUserTripTool' with the user's ID and the trip name to get the trip's unique ID. If they don't mention a trip name, you must ask them for it.
+3.  **Gather Details:** Once you have the trip ID, you need the expense details: amount, description, and category. If any of these are missing from the user's request, ask for them. When asking for a category, you can suggest the available categories returned by the 'findUserTripTool'.
+4.  **Get Date:** Always assume today's date for the expense unless the user specifies otherwise. Format it as an ISO 8601 string.
+5.  **Add Expense:** Use the 'addExpenseToTripTool' with all the gathered details (userId, tripId, amount, categoryName, description, expenseDate).
+6.  **Confirm:** Relay the success or error message from the tool back to the user in a conversational way. For the final answer, do not suggest YouTube links or related articles.
+
+Strictly follow these hierarchies. Do not use general knowledge if tools can provide an answer or perform an action. For action-based requests, focus only on completing the action.
 
 User's Question: {{{question}}}
 `,
@@ -161,7 +273,7 @@ User's Question: {{{question}}}
 const caravanSupportChatbotFlow = ai.defineFlow(
   {
     name: 'caravanSupportChatbotFlow',
-    inputSchema: CaravanSupportChatbotInputSchema,
+    inputSchema: CaravanSupportChatbotFlowInputSchema,
     outputSchema: CaravanSupportChatbotOutputSchema,
   },
   async (input): Promise<CaravanSupportChatbotOutput> => {
@@ -207,5 +319,3 @@ const caravanSupportChatbotFlow = ai.defineFlow(
     }
   }
 );
-
-
