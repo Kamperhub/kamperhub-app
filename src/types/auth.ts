@@ -60,10 +60,4 @@ export interface MockUserRegistryEntry {
   country?: string;
 }
 
-// Obsolete keys from a previous mock auth system. Kept for reference during transition if needed.
-export const MOCK_AUTH_CITY_KEY = 'kamperhub_mock_city';
-export const MOCK_AUTH_STATE_KEY = 'kamperhub_mock_state';
-export const MOCK_AUTH_COUNTRY_KEY = 'kamperhub_mock_country';
-export const MOCK_AUTH_LOGGED_IN_KEY = 'kamperhub_mock_is_logged_in';
-
 export type SubscriptionTier = 'free' | 'pro' | 'trialing' | 'trial_expired';

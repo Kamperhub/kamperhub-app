@@ -168,11 +168,6 @@ const caravanSupportChatbotFlow = ai.defineFlow(
     try {
       const {output, usage} = await prompt(input); // Include usage for detailed logging
       
-      // Log the raw output from the model for easier debugging
-      console.log('CaravanSupportChatbotFlow: Raw AI model output:', JSON.stringify(output, null, 2));
-      console.log('CaravanSupportChatbotFlow: AI model usage:', JSON.stringify(usage, null, 2));
-
-
       if (!output) {
         console.warn('CaravanSupportChatbotFlow: AI model returned null output. This might be due to schema mismatch or other non-fatal errors from the model.');
         return { 
@@ -182,9 +177,6 @@ const caravanSupportChatbotFlow = ai.defineFlow(
         };
       }
       
-      // Validate output against schema more explicitly if needed, though Genkit usually handles this.
-      // For now, assume output structure is mostly correct if not null.
-      
       return {
         answer: output.answer || "I'm not sure how to respond to that. Can you try asking differently?", // Fallback if answer is empty
         youtubeLink: output.youtubeLink || null,
@@ -192,15 +184,6 @@ const caravanSupportChatbotFlow = ai.defineFlow(
       };
     } catch (error: any) {
       console.error("Error in caravanSupportChatbotFlow calling prompt:", error);
-      console.error("Prompt Error Details:", {
-        message: error.message,
-        stack: error.stack,
-        cause: error.cause, // Might contain more specific info from underlying API
-        name: error.name,
-      });
-      if (error.cause && typeof error.cause === 'object') {
-        console.error("Prompt Error Cause Object:", JSON.stringify(error.cause, Object.getOwnPropertyNames(error.cause)));
-      }
 
       let answer = "An unexpected error occurred while communicating with the AI assistant. Please try again later.";
       if (error.message) {
@@ -224,4 +207,5 @@ const caravanSupportChatbotFlow = ai.defineFlow(
     }
   }
 );
+
 

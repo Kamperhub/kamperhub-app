@@ -33,12 +33,12 @@ This document tracks the development priorities, future features, and completed 
 *   Created secure API endpoints for all CRUD (Create, Read, Update, Delete) operations for Vehicles, Caravans, WDHs, Inventory, Trips, Bookings, and User Preferences.
 
 #### **Phase 2: Frontend Refactoring (Complete)**
-*   Refactored all relevant pages and components (`/vehicles`, `/inventory`, `/tripplanner`, `/triplog`, `/checklists`, `/bookings`, `/`) to use `react-query` for server state management.
+*   Refactored all relevant pages and components (`/vehicles`, `/inventory`, `/trip-expense-planner`, `/triplog`, `/checklists`, `/bookings`, `/`) to use `react-query` for server state management.
 *   All UI components now fetch and mutate data via the new API endpoints instead of directly accessing `localStorage`.
 
 #### **Phase 3: One-Time Data Migration (Complete & Obsolete)**
-*   A one-time migration path was established to move existing user data.
-*   The `/api/migrate-local-storage` endpoint is now obsolete and can be removed.
+*   A one-time migration path was established to move existing user data from localStorage.
+*   The `/api/migrate-local-storage` endpoint, used for this one-time migration, is now obsolete and has been removed.
 
 ---
 
@@ -91,3 +91,4 @@ This section tracks potential new features and enhancements for future considera
 
 *   **Travel Journaling & Photo Gallery per Trip:**
     *   Within the Trip Log, allow users to add daily journal entries and upload/link a few photos for each trip to capture memories.
+

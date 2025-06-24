@@ -30,7 +30,6 @@ export async function POST(req: NextRequest) {
     const { userId } = await req.json();
 
     if (!userId) {
-      console.error('Create Customer Portal Session: userId missing in request body.');
       return NextResponse.json({ error: 'User ID is required.' }, { status: 400 });
     }
 
@@ -51,8 +50,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Stripe customer ID not found for this user.' }, { status: 400 });
     }
     
-    console.log(`Create Customer Portal Session: Found Stripe Customer ID ${stripeCustomerId} for user ${userId}`);
-
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const returnUrl = `${appUrl}/my-account`; // Where Stripe redirects after portal session
 
@@ -66,7 +63,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Could not create Stripe portal session (URL null).' }, { status: 500 });
     }
 
-    console.log('Create Customer Portal Session: Stripe Portal Session URL:', portalSession.url);
     return NextResponse.json({ url: portalSession.url });
 
   } catch (error: any) {
