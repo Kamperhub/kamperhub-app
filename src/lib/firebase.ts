@@ -5,31 +5,26 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from "firebase/app-check";
 import { getAnalytics, type Analytics } from "firebase/analytics";
 
-// This configuration is now loaded from environment variables.
-// See the FIREBASE_SETUP_CHECKLIST.md for instructions on how to set these up in your .env.local file.
+// Using the hardcoded configuration for the active project.
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "YOUR_API_KEY_NEEDS_TO_BE_PLACED_HERE", // IMPORTANT: Please replace this with your actual API key
+  authDomain: "kamperhub-s4hc2.firebaseapp.com",
+  projectId: "kamperhub-s4hc2",
+  storageBucket: "kamperhub-s4hc2.appspot.com",
+  messagingSenderId: "74707729193",
+  appId: "1:74707729193:web:4b1d8eebec8ba295431538",
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// Simple check to ensure all required config values are present.
-const areFirebaseVarsPresent =
-  firebaseConfig.apiKey &&
-  firebaseConfig.authDomain &&
-  firebaseConfig.projectId;
 
 // Initialize Firebase
 let app: FirebaseApp;
-if (areFirebaseVarsPresent && firebaseConfig.apiKey !== 'your-api-key') {
+// A simple check to ensure the API key placeholder has been replaced.
+if (firebaseConfig.apiKey && firebaseConfig.apiKey !== 'YOUR_API_KEY_NEEDS_TO_BE_PLACED_HERE') {
   app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 } else {
-  console.error("Firebase environment variables are not set. Please check your .env.local file. App functionality will be limited.");
-  // Create a dummy app object to avoid crashing the server if vars are missing
+  console.error("Firebase API Key is missing in src/lib/firebase.ts. App functionality will be limited.");
+  // Create a dummy app object to avoid crashing the server if the key is missing
   app = {} as FirebaseApp; 
 }
 
@@ -38,7 +33,7 @@ if (areFirebaseVarsPresent && firebaseConfig.apiKey !== 'your-api-key') {
 let appCheck: AppCheck | undefined;
 let analytics: Analytics | undefined;
 
-if (typeof window !== 'undefined' && areFirebaseVarsPresent && firebaseConfig.apiKey !== 'your-api-key') {
+if (typeof window !== 'undefined' && app.options?.apiKey) {
   analytics = getAnalytics(app);
 
   // Use the provided debug token for local development.
@@ -59,12 +54,11 @@ if (typeof window !== 'undefined' && areFirebaseVarsPresent && firebaseConfig.ap
         console.error("[Firebase Client] CRITICAL: Error initializing App Check:", error);
       }
   } else {
-    console.warn("[Firebase Client] NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY is not set. App Check will not be initialized.");
+    console.warn("[Firebase Client] NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY is not set in .env.local. App Check will not be initialized.");
   }
-
 }
 
-const auth: Auth = areFirebaseVarsPresent && firebaseConfig.apiKey !== 'your-api-key' ? getAuth(app) : {} as Auth;
-const db: Firestore = areFirebaseVarsPresent && firebaseConfig.apiKey !== 'your-api-key' ? getFirestore(app) : {} as Firestore;
+const auth: Auth = app.options?.apiKey ? getAuth(app) : {} as Auth;
+const db: Firestore = app.options?.apiKey ? getFirestore(app) : {} as Firestore;
 
 export { app, auth, db, appCheck, analytics };
