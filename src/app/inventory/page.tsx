@@ -14,7 +14,7 @@ import Link from 'next/link';
 import { Settings, Loader2, Car, HomeIcon, Link2 as Link2Icon, Backpack, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fetchUserPreferences, fetchCaravans, fetchVehicles, fetchWdhs, fetchTrips } from '@/lib/api-client';
