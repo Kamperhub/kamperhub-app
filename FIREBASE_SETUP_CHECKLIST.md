@@ -1,3 +1,4 @@
+
 # Firebase & Backend Setup Checklist
 
 This guide provides a step-by-step checklist to ensure your Firebase project and environment variables are configured correctly.
