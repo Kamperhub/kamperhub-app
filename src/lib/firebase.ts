@@ -5,26 +5,24 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from "firebase/app-check";
 import { getAnalytics, type Analytics } from "firebase/analytics";
 
-// This configuration is now loaded from environment variables.
-// Make sure you have a .env.local file with the correct values.
+// This configuration object connects the app to your specific Firebase project.
+// Make sure to replace "YOUR_API_KEY" with your actual Firebase Web API Key.
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  apiKey: "YOUR_API_KEY", // Important: Replace this with your actual API key!
+  authDomain: "kamperhub-s4hc2.firebaseapp.com",
+  projectId: "kamperhub-s4hc2",
+  storageBucket: "kamperhub-s4hc2.appspot.com",
+  messagingSenderId: "74707729193",
+  appId: "1:74707729193:web:b06f6dce5757fd1d431538",
+  measurementId: "G-XXXXXXXXXX" // Optional: Add your Measurement ID for Google Analytics
 };
 
 // Initialize Firebase
 let app: FirebaseApp;
-// A simple check to ensure the necessary keys are present before initializing.
-if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
   app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 } else {
-  console.error("Firebase configuration is missing or incomplete. Please check your .env.local file and the FIREBASE_SETUP_CHECKLIST.md");
-  // Create a dummy app object to avoid crashing the server if keys are missing
+  console.error("Firebase configuration is missing or incomplete. Please add your API Key to src/lib/firebase.ts");
   app = {} as FirebaseApp;
 }
 

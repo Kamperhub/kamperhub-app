@@ -7,88 +7,55 @@ This guide provides a step-by-step checklist to ensure your Firebase project and
 
 ---
 
-### Step 1: Create a `.env.local` File
+### Step 1: Configure the Server-Side Key
 
-The most important step is to create a `.env.local` file in the root directory of your project. This file will hold all your secret keys and is safely ignored by Git. If it doesn't exist, create it now.
+The server needs a special key to securely access Firebase services like Firestore.
 
-The structure of your `.env.local` file should look like this:
+1.  **Create `.env.local`**: If it doesn't already exist, create a file named `.env.local` in the main folder of your project.
 
-```
-# Firebase Admin SDK (for server-side functions)
-GOOGLE_APPLICATION_CREDENTIALS_JSON='PASTE_YOUR_SERVICE_ACCOUNT_JSON_HERE'
+2.  **Generate Private Key**: Go to the [Firebase Console](https://console.firebase.google.com/), click the gear icon next to "Project Overview," and go to **Project settings > Service accounts**. Click "Generate new private key." A JSON file will download.
 
-# Firebase Client SDK (for browser-side functions)
-NEXT_PUBLIC_FIREBASE_API_KEY="your-api-key"
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project-id.firebaseapp.com"
-NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-project-id.appspot.com"
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="your-messaging-sender-id"
-NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"
-NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="your-measurement-id"
+3.  **Add to `.env.local`**: Open the downloaded JSON file with a text editor. Copy the **entire JSON content**. Paste it into your `.env.local` file like this:
 
-# Firebase App Check & reCAPTCHA
-NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY="your-recaptcha-enterprise-site-key"
-NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN="your-app-check-debug-token"
-
-# Google Maps API Key
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="your-google-maps-api-key"
-
-# Stripe API Keys (for subscriptions)
-STRIPE_SECRET_KEY="sk_test_..."
-STRIPE_WEBHOOK_SECRET="whsec_..."
-
-# App URL (for redirects)
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-```
-
-The next steps will guide you on where to find the values for these placeholders.
-
----
-
-### Step 2: Configure Firebase Web App Keys (Client-Side)
-
-1.  **Create Project**: Go to the [Firebase Console](https://console.firebase.google.com/) and create a new project if you haven't already.
-2.  **Create Web App**: Inside your project, create a new "Web App" (</>).
-3.  **Get Config**: During the setup, Firebase will provide a `firebaseConfig` object with your project's keys.
-4.  **Update `.env.local`**: Copy each value from the `firebaseConfig` object and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_...` variable in your `.env.local` file.
-
----
-
-### Step 3: Configure Firebase Admin SDK Key (Server-Side)
-
-This step is critical and a common source of server crashes.
-
-1.  **Generate Key**: In the Firebase Console, click the gear icon next to "Project Overview" and go to **Project settings > Service accounts**.
-2.  **Generate New Private Key**: Click the button to generate a new key. A JSON file will be downloaded. **Treat this file like a password.**
-3.  **Update `.env.local`**: Open the downloaded JSON file with a text editor. Copy the **entire JSON content**.
-4.  Paste this content into the `GOOGLE_APPLICATION_CREDENTIALS_JSON` variable in your `.env.local` file, enclosed in single quotes.
+    ```
+    GOOGLE_APPLICATION_CREDENTIALS_JSON='PASTE_YOUR_ENTIRE_SERVICE_ACCOUNT_JSON_HERE'
+    ```
 
 > **Warning:** Never commit your `.env.local` file to Git. It provides administrative access to your entire Firebase project.
 
 ---
 
-### Step 4: Configure Other API Keys & Secrets
+### Step 2: Configure the Client-Side Key
 
-Fill in the remaining placeholders in your `.env.local` file:
+The app in the browser needs its own API key to connect.
 
-1.  **Google Maps API Key**:
-    *   In the [Google Cloud Console](https://console.cloud.google.com/), go to **APIs & Services > Credentials** for your project.
-    *   Create a new API Key. **Restrict this key** to your website's domain to prevent unauthorized use.
-    *   Ensure the **Maps JavaScript API**, **Places API**, and **Directions API** are enabled for your project.
-    *   Paste the key into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable.
+1.  **Find Your API Key**: In the [Firebase Console](https://console.firebase.google.com/), go to **Project settings > General**. Your Web API Key is listed under "Your apps" in the "Firebase SDK snippet" section.
 
-2.  **reCAPTCHA Enterprise Key (for App Check)**:
-    *   In the Google Cloud Console, find **reCAPTCHA Enterprise** and create a site key for your domain.
-    *   Paste this key into `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY`.
+2.  **Edit the Code**: Open the file `src/lib/firebase.ts`.
 
-3.  **Stripe API Keys**:
-    *   In your [Stripe Dashboard](https://dashboard.stripe.com/), go to the Developers section to find your keys.
-    *   Add your **Secret Key** to `STRIPE_SECRET_KEY` and your **Webhook Signing Secret** to `STRIPE_WEBHOOK_SECRET`.
+3.  **Add Your Key**: On line 11, replace the placeholder `"YOUR_API_KEY"` with the actual API Key you just found. The line should look like this:
+
+    ```javascript
+    apiKey: "aiZasY..._your_actual_key_...w5iA", // Example
+    ```
 
 ---
 
-### Step 5: Final Setup
+### Step 3: Configure App Check & reCAPTCHA (Optional but Recommended)
+
+For enhanced security, App Check verifies that requests to your backend services come from your actual app.
+
+1.  **Find reCAPTCHA Key**: In the [Google Cloud Console](https://console.cloud.google.com/), find **reCAPTCHA Enterprise** and create a site key for your domain.
+
+2.  **Add to `.env.local`**: Add the key to your `.env.local` file:
+    ```
+    NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY="your-recaptcha-enterprise-site-key"
+    ```
+
+---
+
+### Step 4: Final Setup
 
 1.  **Enable Auth Method**: In the Firebase Console, go to **Build > Authentication > Sign-in method** and enable **Email/Password**.
 2.  **Create Firestore Database**: Go to **Build > Firestore Database** and create a database in **production mode**.
-3.  **Restart Server**: Once your `.env.local` file is complete, stop your development server (`Ctrl+C`) and restart it (`npm run dev`) for all changes to take effect.
+3.  **Restart Server**: Once your files are updated, stop your development server (`Ctrl+C`) and restart it (`npm run dev`) for all changes to take effect.
