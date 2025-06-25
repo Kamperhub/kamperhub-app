@@ -6,6 +6,7 @@ let firebaseAdminInitError: Error | null = null;
 
 if (!admin.apps.length) {
   const serviceAccountJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  
   if (serviceAccountJson) {
     try {
       console.log("[Firebase Admin] Initializing Admin SDK with service account credentials from env var.");
@@ -15,15 +16,12 @@ if (!admin.apps.length) {
       });
       adminFirestore = admin.firestore();
     } catch (e: any) {
-      console.error("[Firebase Admin] CRITICAL: Firebase Admin SDK initialization failed with provided credentials.", e);
-      firebaseAdminInitError = e;
+      console.error("[Firebase Admin] CRITICAL: Firebase Admin SDK initialization failed. The provided GOOGLE_APPLICATION_CREDENTIALS_JSON is not valid JSON.", e);
+      firebaseAdminInitError = new Error("Firebase Admin SDK failed: The provided GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable contains invalid JSON. Please re-copy the contents of your service account key file.");
     }
   } else {
-    // This is a more defensive approach for local development.
-    // Instead of calling initializeApp() and letting it potentially crash,
-    // we explicitly set the error state.
-    const errorMessage = "Firebase Admin SDK not initialized. The GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is not set. Server-side database operations will fail.";
-    console.warn(`[Firebase Admin] WARNING: ${errorMessage}`);
+    const errorMessage = "Firebase Admin SDK not initialized. The GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is not set. Please follow Step 4 in FIREBASE_SETUP_CHECKLIST.md to configure your local credentials in a .env.local file.";
+    console.error(`[Firebase Admin] CRITICAL: ${errorMessage}`);
     firebaseAdminInitError = new Error(errorMessage);
   }
 } else {
