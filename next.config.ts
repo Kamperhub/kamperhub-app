@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   experimental: {
     allowedDevOrigins: [
       'https://3000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev',
+      'https://3001-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev',
     ],
   },
   typescript: {
