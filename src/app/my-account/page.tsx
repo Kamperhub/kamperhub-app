@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,107 +13,70 @@ import { format, parseISO, isFuture } from 'date-fns';
 
 import type { SubscriptionTier, UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, CalendarClock, UserCog, WifiOff } from 'lucide-react';
+import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, CalendarClock, UserCog } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { EditProfileForm, type EditProfileFormData } from '@/components/features/account/EditProfileForm';
 
-const ADMIN_EMAIL = 'info@kamperhub.com'; // Define admin email
+const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export default function MyAccountPage() {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<Partial<UserProfile>>({});
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [authTimeoutError, setAuthTimeoutError] = useState(false);
-  const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
   const [isRedirectingToPortal, setIsRedirectingToPortal] = useState(false);
   
   const { subscriptionTier, stripeCustomerId, trialEndsAt, setSubscriptionDetails, hasProAccess } = useSubscription();
-  const [profileCity, setProfileCity] = useState<string | null>(null);
-  const [profileState, setProfileState] = useState<string | null>(null);
-  const [profileCountry, setProfileCountry] = useState<string | null>(null);
   
   const router = useRouter();
   const { toast } = useToast();
 
-  const fetchUserProfile = useCallback(async (user: FirebaseUser) => {
-    setIsProfileLoading(true);
-    try {
-      const userDocRef = doc(db, "users", user.uid);
-      const docSnap = await getDoc(userDocRef);
-
-      if (docSnap.exists()) {
-        const profileData = docSnap.data() as UserProfile;
-        setUserProfile(profileData);
-        setProfileCity(profileData.city || null);
-        setProfileState(profileData.state || null);
-        setProfileCountry(profileData.country || null);
-        setSubscriptionDetails(
-          profileData.subscriptionTier || 'free', 
-          profileData.stripeCustomerId || null,
-          profileData.trialEndsAt || null
-        );
-      } else {
-        console.log("No Firestore profile document found for user:", user.uid, ". It will be created on first save or if a trial was just initiated.");
-        setUserProfile({ email: user.email, displayName: user.displayName });
-      }
-    } catch (error: any) {
-      console.error("Error fetching user profile from Firestore:", error);
-      const errorMessage = error.code ? `${error.code}: ${error.message}` : error.message;
-      toast({ 
-        title: "Error Loading Profile", 
-        description: `Details: ${errorMessage}`,
-        variant: "destructive",
-        duration: 9000
-      });
-    } finally {
-      setIsProfileLoading(false);
-    }
-  }, [toast, setSubscriptionDetails]);
-
   useEffect(() => {
-    setIsAuthLoading(true);
-    setAuthTimeoutError(false);
-
-    const authTimer = setTimeout(() => {
-        // Use a function for the state update to check the latest value
-        // without including it in the dependency array.
-        setIsAuthLoading(currentIsLoading => {
-            if (currentIsLoading) {
-                console.error("Authentication timed out. This can be caused by network issues or browser extensions blocking Firebase.");
-                setAuthTimeoutError(true);
-                return false; // Set loading to false to show the error
-            }
-            return currentIsLoading; // No change if not loading
-        });
-    }, 8000); // 8-second timeout
-
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      clearTimeout(authTimer);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setFirebaseUser(user);
-        fetchUserProfile(user);
+        try {
+          const userDocRef = doc(db, "users", user.uid);
+          const docSnap = await getDoc(userDocRef);
+
+          if (docSnap.exists()) {
+            const profileData = docSnap.data() as UserProfile;
+            setUserProfile(profileData);
+            setSubscriptionDetails(
+              profileData.subscriptionTier || 'free', 
+              profileData.stripeCustomerId || null,
+              profileData.trialEndsAt || null
+            );
+          } else {
+            console.warn("No Firestore profile document found for user:", user.uid);
+            setUserProfile({ email: user.email, displayName: user.displayName });
+            setSubscriptionDetails('free', null, null); 
+          }
+        } catch (error: any) {
+          console.error("Error fetching user profile from Firestore:", error);
+          toast({ 
+            title: "Error Loading Profile", 
+            description: `Could not load your profile data. Please try refreshing.`,
+            variant: "destructive",
+          });
+        }
       } else {
         setFirebaseUser(null);
         setUserProfile({});
-        setProfileCity(null);
-        setProfileState(null);
-        setProfileCountry(null);
         setSubscriptionDetails('free', null, null); 
+        router.push('/login');
       }
-      setIsAuthLoading(false);
+      setIsLoading(false);
     });
 
-    return () => {
-        unsubscribe();
-        clearTimeout(authTimer);
-    };
-  }, [fetchUserProfile, setSubscriptionDetails]);
+    return () => unsubscribe();
+  }, [router, toast, setSubscriptionDetails]);
+
 
   const handleLogout = async () => {
     try {
@@ -136,15 +99,12 @@ export default function MyAccountPage() {
 
     try {
       const authPromises = [];
-
       if (data.displayName !== firebaseUser.displayName) {
         authPromises.push(updateProfile(firebaseUser, { displayName: data.displayName }));
       }
-
       if (data.email.toLowerCase() !== (firebaseUser.email?.toLowerCase() || '')) {
         authPromises.push(updateEmail(firebaseUser, data.email));
       }
-
       if (authPromises.length > 0) {
         await Promise.all(authPromises);
       }
@@ -160,14 +120,16 @@ export default function MyAccountPage() {
       };
       await setDoc(userDocRef, firestoreProfileData, { merge: true });
 
-      await fetchUserProfile(firebaseUser);
+      const updatedUserDoc = await getDoc(userDocRef);
+      if(updatedUserDoc.exists()){
+          setUserProfile(updatedUserDoc.data());
+      }
       setFirebaseUser(auth.currentUser);
 
       toast({
         title: "Profile Updated",
         description: "Your account details have been successfully saved.",
       });
-
       setIsEditProfileOpen(false);
 
     } catch (error: any) {
@@ -263,44 +225,8 @@ export default function MyAccountPage() {
     }
   };
   
-  if (authTimeoutError) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Alert variant="destructive" className="max-w-md">
-          <WifiOff className="h-4 w-4" />
-          <AlertTitle className="font-headline">Authentication Timed Out</AlertTitle>
-          <AlertDescription className="font-body mt-2 space-y-2">
-            <p>We couldn't connect to the authentication server. This can be caused by:</p>
-            <ul className="list-disc pl-5 text-xs">
-              <li>An unstable network connection.</li>
-              <li>Browser extensions (like ad-blockers) interfering with Google's services.</li>
-              <li>A temporary Firebase service outage.</li>
-            </ul>
-            <p>Please check your connection, try disabling extensions for this site, and then refresh the page.</p>
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  if (isAuthLoading || (!firebaseUser && !isAuthLoading)) {
-    return (
-      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
-        <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
-        <p className="text-lg font-semibold text-primary font-body">
-          {isAuthLoading ? "Authenticating..." : "Please log in."}
-        </p>
-         {!isAuthLoading && !firebaseUser && (
-            <Link href="/login" passHref className="mt-4">
-                <Button>Go to Login</Button>
-            </Link>
-         )}
-      </div>
-    );
-  }
-  
-  if (isProfileLoading) {
-      return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-10 w-10 animate-spin text-primary mr-3" />
         <p className="font-body text-muted-foreground text-lg">Loading account details...</p>
@@ -308,12 +234,20 @@ export default function MyAccountPage() {
     );
   }
 
+  if (!firebaseUser) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
+        <p>Redirecting to login...</p>
+      </div>
+    );
+  }
+
   const initialProfileDataForEdit: EditProfileFormData = {
-    displayName: firebaseUser?.displayName || '',
+    displayName: firebaseUser?.displayName || userProfile.displayName || '',
     email: userProfile.email || firebaseUser?.email || '',
-    city: profileCity || userProfile.city || '',
-    state: profileState || userProfile.state || '',
-    country: profileCountry || userProfile.country || '',
+    city: userProfile.city || '',
+    state: userProfile.state || '',
+    country: userProfile.country || '',
   };
   
   const displayUserName = firebaseUser?.displayName || userProfile.displayName || 'User';
@@ -367,15 +301,15 @@ export default function MyAccountPage() {
             </p>
             <p className="font-body text-sm flex items-center">
                 <MapPin className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>City:</strong>&nbsp;{profileCity || userProfile.city || '[Not Provided]'}
+                <strong>City:</strong>&nbsp;{userProfile.city || '[Not Provided]'}
             </p>
             <p className="font-body text-sm flex items-center">
                 <Building className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>State / Region:</strong>&nbsp;{profileState || userProfile.state || '[Not Provided]'}
+                <strong>State / Region:</strong>&nbsp;{userProfile.state || '[Not Provided]'}
             </p>
              <p className="font-body text-sm flex items-center">
                 <Globe className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>Country:</strong>&nbsp;{profileCountry || userProfile.country || '[Not Provided]'}
+                <strong>Country:</strong>&nbsp;{userProfile.country || '[Not Provided]'}
             </p>
           </div>
 
@@ -410,7 +344,6 @@ export default function MyAccountPage() {
               </Alert>
             )}
             
-            {/* Manage Subscription Button - visible if stripeCustomerId exists */}
             {stripeCustomerId && (
               <div className="mt-3">
                 <p className="font-body text-sm text-muted-foreground">
@@ -428,9 +361,8 @@ export default function MyAccountPage() {
               </div>
             )}
             
-            {/* Subscribe to Pro Button - show if not currently 'pro' */}
             {subscriptionTier !== 'pro' && ( 
-              <div className="mt-4"> {/* Added mt-4 for spacing if both buttons show */}
+              <div className="mt-4">
                 <Alert variant="default" className="mb-3">
                   <Info className="h-4 w-4" />
                   <AlertTitle className="font-headline">Stripe Checkout & Security Tip</AlertTitle>
