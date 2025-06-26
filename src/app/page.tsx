@@ -10,16 +10,17 @@ import { Button } from '@/components/ui/button';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Home as HomeIcon, Loader2, LayoutDashboard } from 'lucide-react';
+import { GripVertical, Home as HomeIcon, Loader2, LayoutDashboard, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
+import { auth, firebaseInitializationError } from '@/lib/firebase';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { fetchUserPreferences, updateUserPreferences } from '@/lib/api-client';
 import type { UserProfile } from '@/types/auth';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface SortableNavItemProps {
   id: string;
@@ -96,6 +97,23 @@ const DashboardSkeleton = ({ loadingText }: { loadingText: string }) => (
     </div>
 );
 
+const FirebaseErrorState = ({ error }: { error: string }) => (
+    <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-4">
+        <Alert variant="destructive" className="max-w-2xl">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle className="font-headline text-lg">Firebase Configuration Error</AlertTitle>
+            <AlertDescription className="font-body space-y-2 mt-2">
+                <p>{error}</p>
+                <p>
+                    Please go to the <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="font-semibold underline">Firebase Console</a>, 
+                    find your Web API Key, and paste it into the file: 
+                    <code className="bg-muted text-destructive-foreground px-1 py-0.5 rounded-sm mx-1 font-mono text-sm">src/lib/firebase.ts</code>
+                </p>
+            </AlertDescription>
+        </Alert>
+    </div>
+);
+
 
 export default function DashboardPage() {
   const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>([]);
@@ -133,6 +151,11 @@ export default function DashboardPage() {
     handleResize();
     window.addEventListener('resize', handleResize);
 
+    if (firebaseInitializationError) {
+        setIsAuthLoading(false);
+        return;
+    }
+
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setFirebaseUser(user);
       setIsAuthLoading(false);
@@ -140,12 +163,12 @@ export default function DashboardPage() {
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      unsubscribeAuth();
+      if (unsubscribeAuth) unsubscribeAuth();
     };
   }, []);
 
   useEffect(() => {
-    if (hasMounted && !isAuthLoading && !firebaseUser) {
+    if (hasMounted && !isAuthLoading && !firebaseUser && !firebaseInitializationError) {
       router.push('/login');
     }
   }, [hasMounted, isAuthLoading, firebaseUser, router]);
@@ -201,6 +224,9 @@ export default function DashboardPage() {
     }
   }, [orderedNavItems, updateUserPrefsMutation]); 
 
+  if (firebaseInitializationError) {
+      return <FirebaseErrorState error={firebaseInitializationError} />;
+  }
 
   if (!hasMounted || isAuthLoading || (!isAuthLoading && !firebaseUser)) {
     return <DashboardSkeleton loadingText={isAuthLoading ? 'Authenticating...' : 'Redirecting...'} />;
