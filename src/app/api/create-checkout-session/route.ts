@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   
   if (!proPriceId) {
     console.error('Create Checkout Session: Stripe Pro Price ID is not configured because STRIPE_PRO_PRICE_ID is missing.');
-    return NextResponse.json({ error: 'Stripe configuration error on server. Pro Price ID missing.' }, { status: 500 });
+    return NextResponse.json({ error: 'Subscription system is not configured. The STRIPE_PRO_PRICE_ID is missing on the server. Please check the setup checklist.' }, { status: 503 });
   }
 
   try {
