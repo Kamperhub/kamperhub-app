@@ -1,6 +1,8 @@
 
 import { NextResponse } from 'next/server';
-import { admin, firebaseAdminInitError } from '@/lib/firebase-admin';
+
+// Note: We are deliberately NOT importing from firebase-admin here to make this endpoint
+// as resilient as possible. If firebase-admin fails to initialize, this endpoint should still work.
 
 export async function GET() {
   const envVars = {
@@ -28,10 +30,25 @@ export async function GET() {
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? 'Set' : 'Not Set',
   };
 
-  // Check the status of the Firebase Admin SDK initialization
-  const adminSDKStatus = firebaseAdminInitError 
-    ? `Error: ${firebaseAdminInitError.message}` 
-    : (admin.apps.length > 0 ? "Initialized successfully" : "Not Initialized");
+  // Safely check the admin credentials without trying to initialize the whole SDK
+  let adminSDKStatus = 'Not Checked';
+  const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+
+  if (serviceAccountJsonString) {
+    try {
+      const parsedJson = JSON.parse(serviceAccountJsonString);
+      if (parsedJson.project_id && parsedJson.private_key && parsedJson.client_email) {
+        adminSDKStatus = 'Set and appears to be valid JSON with key fields present.';
+      } else {
+        adminSDKStatus = 'Set, but the JSON is missing required fields like project_id, private_key, or client_email.';
+      }
+    } catch (e: any) {
+      adminSDKStatus = `Error: The GOOGLE_APPLICATION_CREDENTIALS_JSON is set, but it is NOT valid JSON. This is the most common cause of server errors. Please ensure it is copied correctly and on a single line. Parser error: ${e.message}`;
+    }
+  } else {
+    adminSDKStatus = 'Not Set: The GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is missing.';
+  }
+
 
   return NextResponse.json({
     message: "This endpoint checks the status of environment variables on the server. 'Set' means the variable is present. 'Not Set' means it is missing. If a NEXT_PUBLIC_ variable is 'Not Set' here, it will also be missing on the client.",
