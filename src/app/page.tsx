@@ -104,11 +104,7 @@ const FirebaseErrorState = ({ error }: { error: string }) => (
             <AlertTitle className="font-headline text-lg">Firebase Configuration Error</AlertTitle>
             <AlertDescription className="font-body space-y-2 mt-2">
                 <p>{error}</p>
-                <p>
-                    Please go to the <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="font-semibold underline">Firebase Console</a>, 
-                    find your Web API Key, and paste it into the file: 
-                    <code className="bg-muted text-destructive-foreground px-1 py-0.5 rounded-sm mx-1 font-mono text-sm">src/lib/firebase.ts</code>
-                </p>
+                <p>Please follow the setup instructions in <code className="bg-muted text-destructive-foreground px-1 py-0.5 rounded-sm mx-1 font-mono text-sm">FIREBASE_SETUP_CHECKLIST.md</code> to configure your <code className="bg-muted text-destructive-foreground px-1 py-0.5 rounded-sm mx-1 font-mono text-sm">.env.local</code> file.</p>
             </AlertDescription>
         </Alert>
     </div>
@@ -234,6 +230,24 @@ export default function DashboardPage() {
   
   if (isLoadingLayout) {
      return <DashboardSkeleton loadingText="Loading your personalized dashboard..." />;
+  }
+
+  if (prefsError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-4">
+        <Alert variant="destructive" className="max-w-2xl">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle className="font-headline text-lg">Error Loading Dashboard Data</AlertTitle>
+            <AlertDescription className="font-body space-y-2 mt-2">
+                <p>We couldn't load your personalized dashboard settings. This often happens if the server-side configuration is not set up correctly.</p>
+                <p className="font-mono bg-muted text-destructive-foreground/80 p-2 rounded-md text-xs text-left">
+                  <strong>Error details:</strong> {prefsError.message}
+                </p>
+                <p>Please check the <a href="/api/debug/env" target="_blank" rel="noopener noreferrer" className="font-semibold underline">environment variable status</a> and ensure your <code className="bg-muted text-destructive-foreground px-1 py-0.5 rounded-sm mx-1 font-mono text-sm">GOOGLE_APPLICATION_CREDENTIALS_JSON</code> in `.env.local` is correct and on a single line.</p>
+            </AlertDescription>
+        </Alert>
+      </div>
+    );
   }
 
   return (
