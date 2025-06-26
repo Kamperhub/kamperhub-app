@@ -7,13 +7,13 @@ import { caravanSupportChatbot, type CaravanSupportChatbotInput, type CaravanSup
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'; // Removed AvatarImage as it's not used
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Send, User, Bot, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { YouTubeEmbed } from '@/components/features/learn/YouTubeEmbed';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Added Card components
-import { auth } from '@/lib/firebase';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -22,7 +22,7 @@ export function ChatInterface() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const user = auth.currentUser;
+  const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {

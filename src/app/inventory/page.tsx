@@ -1,7 +1,7 @@
 
 "use client"; 
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { StoredCaravan } from '@/types/caravan'; 
 import type { StoredVehicle } from '@/types/vehicle';
@@ -18,8 +18,7 @@ import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fetchUserPreferences, fetchCaravans, fetchVehicles, fetchWdhs, fetchTrips } from '@/lib/api-client';
-import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import { useAuth } from '@/hooks/useAuth';
 
 const InventoryListClient = dynamic(
   () => import('@/components/features/inventory/InventoryList').then(mod => mod.InventoryList),
@@ -41,14 +40,7 @@ const InventoryListClient = dynamic(
 );
 
 export default function InventoryPage() {
-  const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
-  
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-        setUser(currentUser);
-    });
-    return () => unsubscribe();
-  }, []);
+  const { user, isAuthLoading } = useAuth();
 
   const { data: userPrefs, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
@@ -92,7 +84,7 @@ export default function InventoryPage() {
   
   const selectedTrip = useMemo(() => allTrips.find(trip => trip.id === selectedTripId), [allTrips, selectedTripId]);
   
-  const isLoading = isLoadingPrefs || isLoadingCaravans || isLoadingVehicles || isLoadingWdhs || isLoadingTrips;
+  const isLoading = isAuthLoading || isLoadingPrefs || isLoadingCaravans || isLoadingVehicles || isLoadingWdhs || isLoadingTrips;
   const queryError = prefsError || caravansError || vehiclesError || wdhsError || tripsError;
 
   const getDescriptiveText = () => {

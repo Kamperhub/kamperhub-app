@@ -18,6 +18,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { UserProfile } from '@/types/auth';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useAuth } from '@/hooks/useAuth';
 
 const signupSchema = z.object({
   firstName: z.string().min(1, "First Name is required"),
@@ -66,33 +67,30 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const [hasMounted, setHasMounted] = useState(false);
+  const { user: firebaseUser, isAuthLoading } = useAuth();
 
   useEffect(() => {
-    setHasMounted(true);
-    if (typeof window !== 'undefined') {
-        if (auth.currentUser) { 
-            router.push('/'); 
-        }
+    if (!isAuthLoading && firebaseUser) {
+      router.push('/');
     }
-  }, [router]);
+  }, [firebaseUser, isAuthLoading, router]);
 
   const handleSignup: SubmitHandler<SignupFormData> = async (data) => {
     setIsLoading(true);
     const { email, password, username, firstName, lastName, city, state, country } = data;
-    let firebaseUser: FirebaseUser | null = null;
+    let newFirebaseUser: FirebaseUser | null = null;
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      firebaseUser = userCredential.user;
-      await updateProfile(firebaseUser, { displayName: username });
+      newFirebaseUser = userCredential.user;
+      await updateProfile(newFirebaseUser, { displayName: username });
 
       const trialEndDate = new Date();
       trialEndDate.setDate(trialEndDate.getDate() + 7);
 
       const userProfileData: UserProfile = {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email, 
+        uid: newFirebaseUser.uid,
+        email: newFirebaseUser.email, 
         displayName: username, 
         firstName: firstName,
         lastName: lastName,
@@ -105,7 +103,7 @@ export default function SignupPage() {
         createdAt: new Date().toISOString(),
       };
 
-      await setDoc(doc(db, "users", firebaseUser.uid), userProfileData);
+      await setDoc(doc(db, "users", newFirebaseUser.uid), userProfileData);
       
       toast({
         title: 'Account Created & Trial Started!',
@@ -138,9 +136,10 @@ export default function SignupPage() {
     }
   };
 
-  if (!hasMounted) {
+  if (isAuthLoading || firebaseUser) {
     return (
         <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
             <p className="font-body text-muted-foreground">Loading...</p>
         </div>
     );
@@ -329,4 +328,3 @@ export default function SignupPage() {
     </div>
   );
 }
-

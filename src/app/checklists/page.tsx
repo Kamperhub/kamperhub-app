@@ -18,8 +18,7 @@ import { Loader2, Info, ListChecks, Home, Route, PlusCircle } from 'lucide-react
 import { Label } from '@/components/ui/label';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { auth } from '@/lib/firebase';
-import type { User as FirebaseUser } from 'firebase/auth';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   fetchTrips, 
   updateTrip, 
@@ -42,11 +41,7 @@ export default function ChecklistsPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
-  const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(setUser);
-    return () => unsubscribe();
-  }, []);
+  const { user, isAuthLoading } = useAuth();
 
   const [managementMode, setManagementMode] = useState<ManagementMode>('trip');
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
@@ -56,22 +51,22 @@ export default function ChecklistsPage() {
   const { data: loggedTrips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery<LoggedTrip[]>({
     queryKey: ['trips', user?.uid],
     queryFn: fetchTrips,
-    enabled: !!user,
+    enabled: !!user && !isAuthLoading,
   });
 
   const { data: storedCaravans = [], isLoading: isLoadingCaravans, error: caravansError } = useQuery<StoredCaravan[]>({
     queryKey: ['caravans', user?.uid],
     queryFn: fetchCaravans,
-    enabled: !!user,
+    enabled: !!user && !isAuthLoading,
   });
 
   const { data: userPrefs = {}, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
     queryFn: fetchUserPreferences,
-    enabled: !!user,
+    enabled: !!user && !isAuthLoading,
   });
 
-  const isLoading = isLoadingTrips || isLoadingCaravans || isLoadingPrefs;
+  const isLoading = isAuthLoading || isLoadingTrips || isLoadingCaravans || isLoadingPrefs;
   const queryError = tripsError || caravansError || prefsError;
 
   // --- Derived State from Queries ---
@@ -338,5 +333,3 @@ export default function ChecklistsPage() {
     </div>
   );
 }
-
-    

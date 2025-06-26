@@ -11,7 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase'; 
 import { signInWithEmailAndPassword, sendPasswordResetEmail, type AuthError } from 'firebase/auth';
-import { LogInIcon, Mail, KeyRound, Send } from 'lucide-react'; 
+import { LogInIcon, Mail, KeyRound, Loader2 } from 'lucide-react'; 
+import { useAuth } from '@/hooks/useAuth';
 import {
   Dialog,
   DialogContent,
@@ -26,22 +27,20 @@ import {
 export default function LoginPage() {
   const [email, setEmail] = useState(''); 
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const [hasMounted, setHasMounted] = useState(false);
+  const { user: firebaseUser, isAuthLoading } = useAuth();
 
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   useEffect(() => {
-    setHasMounted(true);
-    // Redirect if user is already logged in
-    if (auth.currentUser) {
+    if (!isAuthLoading && firebaseUser) {
       router.push('/');
     }
-  }, [router]);
+  }, [firebaseUser, isAuthLoading, router]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -56,15 +55,15 @@ export default function LoginPage() {
       return;
     }
 
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, password);
-      const firebaseUser = userCredential.user;
+      const user = userCredential.user;
 
       toast({
         title: 'Login Successful!',
-        description: `Welcome back, ${firebaseUser.displayName || firebaseUser.email}!`,
+        description: `Welcome back, ${user.displayName || user.email}!`,
       });
 
       router.push('/'); 
@@ -97,7 +96,7 @@ export default function LoginPage() {
       toast({ title: 'Login Failed', description: toastMessage, variant: 'destructive' });
       console.error("Firebase Login Error:", error); 
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -121,10 +120,6 @@ export default function LoginPage() {
       let toastMessage = 'Failed to send password reset email. Please try again.';
       if (authError.code === 'auth/invalid-email') {
         toastMessage = 'The email address is not valid.';
-      } else if (authError.code === 'auth/user-not-found') {
-        // We typically don't reveal if a user exists for security. The generic message above is better.
-        // But for debugging or if you choose to be more specific:
-        // toastMessage = 'No user found with this email address.';
       }
       toast({ title: 'Password Reset Error', description: toastMessage, variant: 'destructive' });
       console.error("Firebase Password Reset Error:", error);
@@ -133,10 +128,10 @@ export default function LoginPage() {
     }
   };
 
-
-  if (!hasMounted) {
+  if (isAuthLoading || firebaseUser) {
     return (
         <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
             <p className="font-body text-muted-foreground">Loading...</p>
         </div>
     );
@@ -165,7 +160,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your.email@example.com" 
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                   className="font-body pl-10"
                   autoComplete="email"
                 />
@@ -225,14 +220,14 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Your password"
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                   className="font-body pl-10"
                   autoComplete="current-password"
                 />
               </div>
             </div>
-            <Button type="submit" className="w-full font-body bg-primary text-primary-foreground hover:bg-primary/90" disabled={isLoading}>
-              {isLoading ? 'Logging In...' : 'Log In'}
+            <Button type="submit" className="w-full font-body bg-primary text-primary-foreground hover:bg-primary/90" disabled={isSubmitting}>
+              {isSubmitting ? 'Logging In...' : 'Log In'}
             </Button>
           </form>
           <p className="text-sm text-center text-muted-foreground mt-6 font-body">

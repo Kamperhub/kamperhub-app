@@ -15,14 +15,14 @@ import { BookingList } from '@/components/features/bookings/BookingList';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchTrips } from '@/lib/api-client';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function BookingsPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const user = auth.currentUser;
+  const { user, isAuthLoading } = useAuth();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<BookingEntry | null>(null);
@@ -30,13 +30,13 @@ export default function BookingsPage() {
   const { data: bookings = [], isLoading: isLoadingBookings, error: bookingsError } = useQuery<BookingEntry[]>({
     queryKey: ['bookings', user?.uid],
     queryFn: fetchBookings,
-    enabled: !!user,
+    enabled: !!user && !isAuthLoading,
   });
   
   const { data: trips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery<LoggedTrip[]>({
     queryKey: ['trips', user?.uid],
     queryFn: fetchTrips,
-    enabled: !!user,
+    enabled: !!user && !isAuthLoading,
   });
 
   const createBookingMutation = useMutation({
@@ -105,7 +105,7 @@ export default function BookingsPage() {
   };
   
   const isMutationLoading = createBookingMutation.isPending || updateBookingMutation.isPending;
-  const isLoading = isLoadingBookings || isLoadingTrips;
+  const isLoading = isAuthLoading || isLoadingBookings || isLoadingTrips;
   const queryError = bookingsError || tripsError;
 
   return (

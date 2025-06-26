@@ -12,19 +12,19 @@ import { History, Info, Loader2 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { format, parseISO, addDays } from 'date-fns';
 import { fetchTrips, deleteTrip, updateTrip } from '@/lib/api-client';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/hooks/useAuth';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TripLogPage() {
   const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const user = auth.currentUser;
+  const { user, isAuthLoading } = useAuth();
 
   const { data: loggedTrips = [], isLoading, error } = useQuery<LoggedTrip[]>({
     queryKey: ['trips', user?.uid],
     queryFn: fetchTrips,
-    enabled: !!user,
+    enabled: !!user && !isAuthLoading,
   });
 
   const deleteTripMutation = useMutation({
@@ -124,7 +124,7 @@ export default function TripLogPage() {
         </p>
       </div>
 
-      {isLoading && (
+      {(isLoading || isAuthLoading) && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
         </div>
@@ -138,13 +138,13 @@ export default function TripLogPage() {
         </Alert>
       )}
 
-      {!isLoading && !error && sortedTrips.length === 0 && (
+      {!(isLoading || isAuthLoading) && !error && sortedTrips.length === 0 && (
         <p className="text-center text-muted-foreground font-body py-10">
           You haven't saved any trips yet. Plan a trip and save it to see it here!
         </p>
       )}
 
-      {!isLoading && !error && sortedTrips.length > 0 && (
+      {!(isLoading || isAuthLoading) && !error && sortedTrips.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {sortedTrips.map(trip => (
             <TripLogItem

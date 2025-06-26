@@ -15,12 +15,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
-import { auth } from '@/lib/firebase';
-import type { User as FirebaseUser } from 'firebase/auth';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { UserCog, ShieldAlert, CalendarIcon, AlertTriangle, Loader2, Send, Mail } from 'lucide-react';
 import type { SubscriptionTier } from '@/types/auth';
+import { useAuth } from '@/hooks/useAuth';
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
@@ -37,8 +36,7 @@ const updateSubscriptionFormSchema = z.object({
 type UpdateSubscriptionFormData = z.infer<typeof updateSubscriptionFormSchema>;
 
 export default function AdminPage() {
-  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const { user: currentUser, isAuthLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -55,17 +53,10 @@ export default function AdminPage() {
   });
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(user => {
-      setCurrentUser(user);
-      setIsAuthLoading(false);
-      if (user && user.email !== ADMIN_EMAIL) {
-        // Non-admin user, handled in render
-      } else if (!user) {
-        router.push('/login');
-      }
-    });
-    return () => unsubscribe();
-  }, [router]);
+    if (!isAuthLoading && !currentUser) {
+      router.push('/login');
+    }
+  }, [currentUser, isAuthLoading, router]);
 
   const onSubmit: SubmitHandler<UpdateSubscriptionFormData> = async (data) => {
     if (!currentUser || currentUser.email !== ADMIN_EMAIL) {
@@ -295,5 +286,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
