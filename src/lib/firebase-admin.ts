@@ -17,7 +17,7 @@ if (!admin.apps.length) {
       adminFirestore = admin.firestore();
     } catch (e: any) {
       console.error("[Firebase Admin] CRITICAL: Firebase Admin SDK initialization failed. The provided GOOGLE_APPLICATION_CREDENTIALS_JSON is not valid JSON.", e);
-      firebaseAdminInitError = new Error("Firebase Admin SDK failed: The provided GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable contains invalid JSON. Please re-copy the contents of your service account key file.");
+      firebaseAdminInitError = new Error("Firebase Admin SDK failed: The provided GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable contains invalid JSON. Please re-copy the contents of your service account key file, ensuring it is all on a single line within the quotes.");
     }
   } else {
     const errorMessage = "Firebase Admin SDK not initialized. The GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is not set. Please follow Step 4 in FIREBASE_SETUP_CHECKLIST.md to configure your local credentials in a .env.local file.";
