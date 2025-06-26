@@ -58,6 +58,10 @@ export async function GET(req: NextRequest) {
       details: firebaseAdminInitError.message
     }, { status: 503 });
   }
+   if (!adminFirestore || !admin.auth) {
+    console.error('API Error: Admin SDK not properly initialized. Firestore or Auth service is unavailable.');
+    return NextResponse.json({ error: 'Server configuration error: Admin services are not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
 
@@ -79,6 +83,10 @@ export async function POST(req: NextRequest) {
       error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
       details: firebaseAdminInitError.message
     }, { status: 503 });
+  }
+   if (!adminFirestore || !admin.auth) {
+    console.error('API Error: Admin SDK not properly initialized. Firestore or Auth service is unavailable.');
+    return NextResponse.json({ error: 'Server configuration error: Admin services are not available.' }, { status: 503 });
   }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
@@ -115,6 +123,10 @@ export async function PUT(req: NextRequest) {
       details: firebaseAdminInitError.message
     }, { status: 503 });
   }
+   if (!adminFirestore || !admin.auth) {
+    console.error('API Error: Admin SDK not properly initialized. Firestore or Auth service is unavailable.');
+    return NextResponse.json({ error: 'Server configuration error: Admin services are not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
   
@@ -143,6 +155,10 @@ export async function DELETE(req: NextRequest) {
       error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
       details: firebaseAdminInitError.message
     }, { status: 503 });
+  }
+   if (!adminFirestore || !admin.auth) {
+    console.error('API Error: Admin SDK not properly initialized. Firestore or Auth service is unavailable.');
+    return NextResponse.json({ error: 'Server configuration error: Admin services are not available.' }, { status: 503 });
   }
   const { uid, error } = await verifyUser(req);
   if (error) return error;

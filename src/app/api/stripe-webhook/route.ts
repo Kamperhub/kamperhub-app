@@ -27,6 +27,10 @@ export async function POST(req: NextRequest) {
       details: firebaseAdminInitError.message
     }, { status: 503 });
   }
+   if (!adminFirestore) {
+    console.error('API Error: Admin SDK not properly initialized. Firestore service is unavailable.');
+    return NextResponse.json({ error: 'Server configuration error: Firestore service is not available.' }, { status: 503 });
+  }
   if (!stripe) {
     console.error("Webhook Error: Stripe is not configured on the server (STRIPE_SECRET_KEY missing at runtime).");
     return NextResponse.json({ error: 'Stripe is not configured on the server.' }, { status: 500 });
