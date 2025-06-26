@@ -64,14 +64,12 @@ export default function MyAccountPage() {
             description: `Could not load your profile data. Please try refreshing.`,
             variant: "destructive",
           });
+        } finally {
+          setIsLoading(false);
         }
       } else {
-        setFirebaseUser(null);
-        setUserProfile({});
-        setSubscriptionDetails('free', null, null); 
         router.push('/login');
       }
-      setIsLoading(false);
     });
 
     return () => unsubscribe();
@@ -229,12 +227,14 @@ export default function MyAccountPage() {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-10 w-10 animate-spin text-primary mr-3" />
-        <p className="font-body text-muted-foreground text-lg">Loading account details...</p>
+        <p className="font-body text-muted-foreground text-lg">Authenticating...</p>
       </div>
     );
   }
 
   if (!firebaseUser) {
+    // This case should ideally not be reached due to the redirect in useEffect,
+    // but it's good practice as a fallback.
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
         <p>Redirecting to login...</p>
