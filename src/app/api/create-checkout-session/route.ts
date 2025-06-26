@@ -14,11 +14,17 @@ if (stripeSecretKey) {
 }
 
 const TRIAL_PERIOD_DAYS = 7; // Centralized trial period definition
+const proPriceId = process.env.STRIPE_PRO_PRICE_ID;
 
 export async function POST(req: NextRequest) {
   if (!stripeSecretKey || !stripe) {
     console.error('Create Checkout Session: Stripe is not configured because STRIPE_SECRET_KEY is missing at runtime.');
     return NextResponse.json({ error: 'Stripe configuration error on server. Secret key missing.' }, { status: 500 });
+  }
+  
+  if (!proPriceId) {
+    console.error('Create Checkout Session: Stripe Pro Price ID is not configured because STRIPE_PRO_PRICE_ID is missing.');
+    return NextResponse.json({ error: 'Stripe configuration error on server. Pro Price ID missing.' }, { status: 500 });
   }
 
   try {
@@ -29,7 +35,6 @@ export async function POST(req: NextRequest) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const proPriceId = 'price_1RY5kuFHAncsAftmG1YtLyp9';
 
     const checkoutSessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',

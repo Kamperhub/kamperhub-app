@@ -36,6 +36,7 @@ All your secret keys will live in a special file that is NOT committed to versio
     # Stripe Configuration (for subscriptions)
     STRIPE_SECRET_KEY="sk_test_..."
     STRIPE_WEBHOOK_SECRET="whsec_..."
+    STRIPE_PRO_PRICE_ID="price_..."
     ```
 
 ---
@@ -64,6 +65,7 @@ Now, find your keys in the Firebase and Stripe dashboards and paste them into th
     *   Go to your [Stripe Developer Dashboard](https://dashboard.stripe.com/test/apikeys).
     *   Copy your "Secret key" and paste it as `STRIPE_SECRET_KEY`.
     *   Go to the "Webhooks" tab, find your webhook endpoint, and copy the "Signing secret". Paste it as `STRIPE_WEBHOOK_SECRET`.
+    *   Go to the "Products" tab, click on your "Pro Plan" product, and copy the "API ID" for the price. Paste it as `STRIPE_PRO_PRICE_ID`.
 
 ---
 
