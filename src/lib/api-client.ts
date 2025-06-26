@@ -28,22 +28,20 @@ async function apiFetch(url: string, options: RequestInit = {}) {
   // Only get and add App Check token if App Check is initialized
   if (appCheck) {
     try {
-      const appCheckTokenResponse = await getToken(appCheck, /* forceRefresh= */ false);
+      // Create a promise that rejects in 5 seconds
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('App Check token retrieval timed out after 5 seconds.')), 5000)
+      );
+      // Race the getToken promise against the timeout
+      const appCheckTokenResponse = await Promise.race([
+        getToken(appCheck, /* forceRefresh= */ false),
+        timeoutPromise
+      ]);
       headers.set('X-Firebase-AppCheck', appCheckTokenResponse.token);
     } catch (err: any) {
-      console.warn("App Check getToken() failed. This is often expected in local development.", err);
-      // Construct a more helpful error message for the developer
-      const errorMessage = `App Check verification failed. This is expected during local development if the debug token is not set. 
-      Please follow these steps:
-      1. Open your browser's developer console.
-      2. Look for a message that starts with 'App Check debug token:'.
-      3. Copy the long string of characters (the token).
-      4. Create or open the \`.env.local\` file in your project's root directory.
-      5. Add this line: \`NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN=your_copied_token_here\`
-      6. Replace 'your_copied_token_here' with the token you copied.
-      7. Restart your development server.`;
-      
-      throw new Error(errorMessage);
+      // This is now a non-fatal error. The app will proceed without the token.
+      // This prevents the entire app from hanging if App Check is misconfigured or network is slow.
+      console.warn("App Check getToken() failed or timed out. This is often expected in local development. Proceeding without App Check token.", err);
     }
   }
   
