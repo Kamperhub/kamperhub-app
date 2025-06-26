@@ -81,36 +81,39 @@ export default function MyAccountPage() {
     setAuthTimeoutError(false);
 
     const authTimer = setTimeout(() => {
-      if (isAuthLoading) {
-        console.error("Authentication timed out. This can be caused by network issues or browser extensions blocking Firebase.");
-        setAuthTimeoutError(true);
-        setIsAuthLoading(false);
-      }
+        // Use a function for the state update to check the latest value
+        // without including it in the dependency array.
+        setIsAuthLoading(currentIsLoading => {
+            if (currentIsLoading) {
+                console.error("Authentication timed out. This can be caused by network issues or browser extensions blocking Firebase.");
+                setAuthTimeoutError(true);
+                return false; // Set loading to false to show the error
+            }
+            return currentIsLoading; // No change if not loading
+        });
     }, 8000); // 8-second timeout
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       clearTimeout(authTimer);
-      if (!authTimeoutError) {
-          if (user) {
-            setFirebaseUser(user);
-            fetchUserProfile(user);
-          } else {
-            setFirebaseUser(null);
-            setUserProfile({});
-            setProfileCity(null);
-            setProfileState(null);
-            setProfileCountry(null);
-            setSubscriptionDetails('free', null, null); 
-          }
-          setIsAuthLoading(false);
+      if (user) {
+        setFirebaseUser(user);
+        fetchUserProfile(user);
+      } else {
+        setFirebaseUser(null);
+        setUserProfile({});
+        setProfileCity(null);
+        setProfileState(null);
+        setProfileCountry(null);
+        setSubscriptionDetails('free', null, null); 
       }
+      setIsAuthLoading(false);
     });
 
     return () => {
         unsubscribe();
         clearTimeout(authTimer);
     };
-  }, [fetchUserProfile, setSubscriptionDetails, isAuthLoading, authTimeoutError]);
+  }, [fetchUserProfile, setSubscriptionDetails]);
 
   const handleLogout = async () => {
     try {
