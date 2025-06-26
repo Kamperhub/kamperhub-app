@@ -6,10 +6,9 @@ import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from "
 import { getAnalytics, type Analytics } from "firebase/analytics";
 
 // This configuration object connects the app to your specific Firebase project.
-// Make sure to replace "YOUR_API_KEY" with your actual Firebase Web API Key.
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// You MUST replace "YOUR_API_KEY" with your actual Firebase Web API Key.
 const firebaseConfig = {
-  apiKey: "AIzaSyDislaqwT2blN_zaj6rF4qJj8rs6eGiCJE",
+  apiKey: "YOUR_API_KEY", // Replace this with your actual Web API Key from Firebase Console
   authDomain: "kamperhub-s4hc2.firebaseapp.com",
   projectId: "kamperhub-s4hc2",
   storageBucket: "kamperhub-s4hc2.firebasestorage.app",
@@ -20,7 +19,8 @@ const firebaseConfig = {
 
 // Initialize Firebase
 let app: FirebaseApp;
-if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "AIzaSyDislaqwT2blN_zaj6rF4qJj8rs6eGiCJE") {
+// This check prevents initialization if the API key hasn't been replaced.
+if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
   app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 } else {
   console.error("Firebase configuration is missing or incomplete. Please add your API Key to src/lib/firebase.ts");

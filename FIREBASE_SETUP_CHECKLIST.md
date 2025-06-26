@@ -7,9 +7,27 @@ This guide provides a step-by-step checklist to ensure your Firebase project and
 
 ---
 
-### Step 1: Configure the Server-Side Key
+### Step 1: Add Your Web API Key
 
-The server needs a special key to securely access Firebase services like Firestore.
+The application needs your unique Web API Key to connect to your Firebase project.
+
+1.  **Find Your API Key**: In the [Firebase Console](https://console.firebase.google.com/), go to **Project settings > General**. Under "Your apps," find your web app and look for the `apiKey` in the "Firebase SDK snippet" section.
+
+2.  **Edit the Code**: Open the file `src/lib/firebase.ts`.
+
+3.  **Add Your Key**: On line 11, replace the placeholder `"YOUR_API_KEY"` with the actual API Key you just found. The line should look like this:
+
+    ```javascript
+    apiKey: "aiZasY..._your_actual_key_...w5iA", // This is just an example
+    ```
+
+> **This is the most critical step to make the app work.**
+
+---
+
+### Step 2: Configure the Server-Side Key
+
+The server needs a special key to securely access Firebase services like Firestore and Auth.
 
 1.  **Create `.env.local`**: If it doesn't already exist, create a file named `.env.local` in the main folder of your project.
 
@@ -22,22 +40,6 @@ The server needs a special key to securely access Firebase services like Firesto
     ```
 
 > **Warning:** Never commit your `.env.local` file to Git. It provides administrative access to your entire Firebase project.
-
----
-
-### Step 2: Configure the Client-Side Key
-
-The app in the browser needs its own API key to connect.
-
-1.  **Find Your API Key**: In the [Firebase Console](https://console.firebase.google.com/), go to **Project settings > General**. Your Web API Key is listed under "Your apps" in the "Firebase SDK snippet" section.
-
-2.  **Edit the Code**: Open the file `src/lib/firebase.ts`.
-
-3.  **Add Your Key**: On line 11, replace the placeholder `"YOUR_API_KEY"` with the actual API Key you just found. The line should look like this:
-
-    ```javascript
-    apiKey: "aiZasY..._your_actual_key_...w5iA", // Example
-    ```
 
 ---
 
