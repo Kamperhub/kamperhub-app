@@ -7,13 +7,8 @@ import { getAnalytics, type Analytics } from "firebase/analytics";
 
 // --- Firebase Configuration ---
 // This app is configured to use environment variables.
-// Create a .env.local file in the root of your project and add the following:
-// NEXT_PUBLIC_FIREBASE_API_KEY=...
-// NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
-// NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
-// etc.
-//
-// Refer to the updated FIREBASE_SETUP_CHECKLIST.md for the full list and instructions.
+// Create a .env.local file in the root of your project and add your Firebase project's configuration values there.
+// Refer to FIREBASE_SETUP_CHECKLIST.md for the full list and instructions.
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
