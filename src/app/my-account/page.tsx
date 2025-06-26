@@ -13,7 +13,7 @@ import { format, parseISO, isFuture } from 'date-fns';
 
 import type { SubscriptionTier, UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, CalendarClock, UserCog } from 'lucide-react';
+import { UserCircle, LogOut, ShieldAlert, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, CalendarClock, UserCog, WifiOff } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,7 @@ export default function MyAccountPage() {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<Partial<UserProfile>>({});
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [authTimeoutError, setAuthTimeoutError] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -77,22 +78,39 @@ export default function MyAccountPage() {
 
   useEffect(() => {
     setIsAuthLoading(true);
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setFirebaseUser(user);
-        fetchUserProfile(user);
-      } else {
-        setFirebaseUser(null);
-        setUserProfile({});
-        setProfileCity(null);
-        setProfileState(null);
-        setProfileCountry(null);
-        setSubscriptionDetails('free', null, null); 
+    setAuthTimeoutError(false);
+
+    const authTimer = setTimeout(() => {
+      if (isAuthLoading) {
+        console.error("Authentication timed out. This can be caused by network issues or browser extensions blocking Firebase.");
+        setAuthTimeoutError(true);
+        setIsAuthLoading(false);
       }
-      setIsAuthLoading(false);
+    }, 8000); // 8-second timeout
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      clearTimeout(authTimer);
+      if (!authTimeoutError) {
+          if (user) {
+            setFirebaseUser(user);
+            fetchUserProfile(user);
+          } else {
+            setFirebaseUser(null);
+            setUserProfile({});
+            setProfileCity(null);
+            setProfileState(null);
+            setProfileCountry(null);
+            setSubscriptionDetails('free', null, null); 
+          }
+          setIsAuthLoading(false);
+      }
     });
-    return () => unsubscribe();
-  }, [fetchUserProfile, setSubscriptionDetails]);
+
+    return () => {
+        unsubscribe();
+        clearTimeout(authTimer);
+    };
+  }, [fetchUserProfile, setSubscriptionDetails]); // Dependencies are stable and correct
 
   const handleLogout = async () => {
     try {
@@ -116,22 +134,18 @@ export default function MyAccountPage() {
     try {
       const authPromises = [];
 
-      // Check if display name needs updating in Firebase Auth
       if (data.displayName !== firebaseUser.displayName) {
         authPromises.push(updateProfile(firebaseUser, { displayName: data.displayName }));
       }
 
-      // Check if email needs updating in Firebase Auth
       if (data.email.toLowerCase() !== (firebaseUser.email?.toLowerCase() || '')) {
         authPromises.push(updateEmail(firebaseUser, data.email));
       }
 
-      // Update Firebase Auth profile and email if changed
       if (authPromises.length > 0) {
         await Promise.all(authPromises);
       }
       
-      // Now update the Firestore document
       const userDocRef = doc(db, "users", firebaseUser.uid);
       const firestoreProfileData: Partial<UserProfile> = {
         displayName: data.displayName,
@@ -143,9 +157,7 @@ export default function MyAccountPage() {
       };
       await setDoc(userDocRef, firestoreProfileData, { merge: true });
 
-      // Manually refresh local state to reflect changes immediately
       await fetchUserProfile(firebaseUser);
-      // Also update the firebaseUser state directly for immediate UI feedback on displayName
       setFirebaseUser(auth.currentUser);
 
       toast({
@@ -153,7 +165,7 @@ export default function MyAccountPage() {
         description: "Your account details have been successfully saved.",
       });
 
-      setIsEditProfileOpen(false); // Close the dialog on success
+      setIsEditProfileOpen(false);
 
     } catch (error: any) {
       let errorMessage = "An unexpected error occurred while saving your profile.";
@@ -247,6 +259,26 @@ export default function MyAccountPage() {
       setIsRedirectingToPortal(false);
     }
   };
+  
+  if (authTimeoutError) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Alert variant="destructive" className="max-w-md">
+          <WifiOff className="h-4 w-4" />
+          <AlertTitle className="font-headline">Authentication Timed Out</AlertTitle>
+          <AlertDescription className="font-body mt-2 space-y-2">
+            <p>We couldn't connect to the authentication server. This can be caused by:</p>
+            <ul className="list-disc pl-5 text-xs">
+              <li>An unstable network connection.</li>
+              <li>Browser extensions (like ad-blockers) interfering with Google's services.</li>
+              <li>A temporary Firebase service outage.</li>
+            </ul>
+            <p>Please check your connection, try disabling extensions for this site, and then refresh the page.</p>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   if (isAuthLoading || (!firebaseUser && !isAuthLoading)) {
     return (
@@ -449,3 +481,5 @@ export default function MyAccountPage() {
     </div>
   );
 }
+
+    
