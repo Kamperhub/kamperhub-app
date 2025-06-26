@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -40,32 +41,34 @@ function SortableNavItem({ id, item, isMobile }: SortableNavItemProps) {
 
   return (
     <div ref={setNodeRef} style={style} className="touch-manipulation h-full">
-      <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
-        <CardHeader className="pb-3 flex-row items-start justify-between space-y-0">
-            <div className="space-y-1">
-                <CardTitle className="font-headline text-xl text-primary flex items-center">
-                    <item.icon className="w-6 h-6 mr-3 text-primary" />
-                    {item.label}
-                </CardTitle>
-                <CardDescription className="font-body text-sm text-muted-foreground line-clamp-3">
-                    {item.description}
-                </CardDescription>
+      <Link href={item.href} className="block h-full no-underline group">
+        <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <CardHeader className="pb-3 flex-row items-start justify-between space-y-0">
+              <div className="space-y-1">
+                  <CardTitle className="font-headline text-xl text-primary flex items-center">
+                      <item.icon className="w-6 h-6 mr-3 text-primary" />
+                      {item.label}
+                  </CardTitle>
+                  <CardDescription className="font-body text-sm text-muted-foreground line-clamp-3">
+                      {item.description}
+                  </CardDescription>
+              </div>
+              {!isMobile && (
+                  <div {...attributes} {...listeners} className="cursor-grab p-2 text-muted-foreground hover:text-foreground">
+                      <GripVertical className="h-5 w-5" />
+                  </div>
+              )}
+          </CardHeader>
+          <CardContent className="flex-grow flex flex-col justify-between pt-0">
+            <div
+              className="h-32 w-full bg-muted/30 rounded-md flex items-center justify-center my-2 overflow-hidden"
+              data-ai-hint={item.keywords}
+            >
+              <item.icon className="w-16 h-16 text-accent opacity-50" />
             </div>
-            {!isMobile && (
-                <div {...attributes} {...listeners} className="cursor-grab p-2 text-muted-foreground hover:text-foreground">
-                    <GripVertical className="h-5 w-5" />
-                </div>
-            )}
-        </CardHeader>
-        <CardContent className="flex-grow flex flex-col justify-between pt-0">
-          <div
-            className="h-32 w-full bg-muted/30 rounded-md flex items-center justify-center my-2 overflow-hidden"
-            data-ai-hint={item.keywords}
-          >
-            <item.icon className="w-16 h-16 text-accent opacity-50" />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </Link>
     </div>
   );
 }
@@ -250,9 +253,7 @@ export default function DashboardPage() {
         <SortableContext items={orderedNavItems.map(item => item.href)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {orderedNavItems.map((item) => (
-              <Link key={item.href} href={item.href} className="block h-full no-underline group">
-                <SortableNavItem id={item.href} item={item} isMobile={isMobileView} />
-              </Link>
+              <SortableNavItem key={item.href} id={item.href} item={item} isMobile={isMobileView} />
             ))}
           </div>
         </SortableContext>
