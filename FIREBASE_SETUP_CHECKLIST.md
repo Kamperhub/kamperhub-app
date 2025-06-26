@@ -43,16 +43,29 @@ The server needs a special key to securely access Firebase services like Firesto
 
 ---
 
-### Step 3: Configure App Check & reCAPTCHA (Optional but Recommended)
+### Step 3: Configure App Check for Security
 
-For enhanced security, App Check verifies that requests to your backend services come from your actual app.
+For enhanced security, App Check verifies that requests to your backend come from your actual app. **This is required for the app to function.**
 
 1.  **Find reCAPTCHA Key**: In the [Google Cloud Console](https://console.cloud.google.com/), find **reCAPTCHA Enterprise** and create a site key for your domain.
 
-2.  **Add to `.env.local`**: Add the key to your `.env.local` file:
+2.  **Add reCAPTCHA Key to `.env.local`**: Add the key to your `.env.local` file:
     ```
     NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY="your-recaptcha-enterprise-site-key"
     ```
+
+3.  **Add App Check Debug Token (for Local Development)**: When you first run the app locally, a message will appear in your browser's developer console like: `App Check debug token: [some_long_token]...`.
+    
+    Copy this token and add it to your `.env.local` file. This tells Firebase to trust requests from your local machine.
+    ```
+    NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN="your-app-check-debug-token"
+    ```
+    For example, based on the token you provided, the line would be:
+    ```
+    NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN="5FCAB872-DBB6-4C1E-9394-398F686E37E7"
+    ```
+
+> **This is a critical step for local development to work correctly.**
 
 ---
 
