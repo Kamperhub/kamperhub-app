@@ -1,76 +1,73 @@
+
 # Firebase & Backend Setup Checklist
 
 > [!CAUTION]
-> **This guide has been updated to simplify setup and resolve configuration errors.** The primary and recommended way to configure your app's frontend is now by directly editing the `src/lib/firebase.ts` file. This is more reliable in the development environment. Using a `.env.local` file is now a secondary, advanced option.
+> **This guide has been updated to use industry-standard environment variables.** This is the most secure and flexible way to manage your app's secret keys.
 
 ---
 
-### Step 1: **IMPORTANT** - Configure Your Firebase Client API Keys
+### Step 1: Create Your Local Environment File
 
-This is the most critical step to make the frontend of your application work.
+All your secret keys will live in a special file that is NOT committed to version control.
 
-1.  **Open the file:** `src/lib/firebase.ts` in your editor.
-2.  **Find the `firebaseConfig` object** near the top of the file. It will look like this:
-    ```javascript
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY_HERE",
-      authDomain: "your-project.firebaseapp.com",
-      // ... and so on
-    };
-    ```
-3.  **Go to the Firebase Console**: Open your project at [https://console.firebase.google.com/](https://console.firebase.google.com/).
-4.  Navigate to **Project settings** (click the gear icon ⚙️ next to "Project Overview").
-5.  In the **General** tab, under the "Your apps" section, find your web app.
-6.  Look for the "Firebase SDK snippet" and select the **Config** option.
-7.  **Copy the entire config object** from the Firebase Console and **paste it directly into `src/lib/firebase.ts`**, replacing the placeholder object.
-
-Your code should look like this after pasting (with your actual project values):
-```javascript
-const firebaseConfig = {
-  apiKey: "AIzax...x",
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "your-sender-id",
-  appId: "your-app-id"
-};
-```
-
----
-
-### Step 2: Configure Server-Side and Security Keys (in `.env.local`)
-
-For server-side actions (like AI features) and security (App Check), you still need to use a local environment file.
-
-1.  **Create Your Local Environment File**: In the main folder of your project (the same level as `package.json`), create a new file named exactly:
+1.  In the main folder of your project (the same level as `package.json`), create a new file named **exactly**:
     `.env.local`
 
-2.  **Add Your Server-Side Key**:
-    *   **Generate Private Key**: Go to the [Firebase Console](https://console.firebase.google.com/), click the gear icon ⚙️ > **Project settings > Service accounts**. Click "Generate new private key". A JSON file will download.
-    *   **Add to `.env.local`**: Open the downloaded JSON file. Copy the **entire JSON content**. Paste it into your `.env.local` file like this (it must be on one line and surrounded by single quotes):
-        ```env
-        # Firebase Server-Side Admin Configuration
-        GOOGLE_APPLICATION_CREDENTIALS_JSON='PASTE_YOUR_ENTIRE_SERVICE_ACCOUNT_JSON_HERE'
-        ```
+2.  Copy and paste the following block of text into your newly created `.env.local` file. You will fill in the placeholder values in the next steps.
 
-3.  **Add Your App Check & reCAPTCHA Keys**:
-    *   **Find reCAPTCHA Key**: In the [Google Cloud Console](https://console.cloud.google.com/), find **reCAPTCHA Enterprise** and create a site key for your domain.
-    *   **Add reCAPTCHA Key to `.env.local`**:
-        ```env
-        # App Check Configuration
-        NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY="your-recaptcha-enterprise-site-key"
-        ```
-    *   **Add App Check Debug Token (for Local Development)**: When you first run the app locally, a message may appear in your browser's developer console like: `App Check debug token: [some_long_token]...`. Copy this token and add it to your `.env.local` file:
-        ```env
-        # App Check Debug Token
-        NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN="your-app-check-debug-token"
-        ```
+    ```env
+    # Firebase Client-Side Configuration (for the browser)
+    NEXT_PUBLIC_FIREBASE_API_KEY="YOUR_API_KEY_HERE"
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com"
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-project.appspot.com"
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="your-sender-id"
+    NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"
+    NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="your-measurement-id"
 
-> **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
+    # App Check Configuration
+    NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY="your-recaptcha-enterprise-site-key"
+    NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN="your-app-check-debug-token-if-needed"
+
+    # Firebase Server-Side Admin Configuration (for backend functions)
+    # This MUST be a single line of JSON wrapped in single quotes.
+    GOOGLE_APPLICATION_CREDENTIALS_JSON='PASTE_YOUR_ENTIRE_SERVICE_ACCOUNT_JSON_HERE'
+
+    # Stripe Configuration (for subscriptions)
+    STRIPE_SECRET_KEY="sk_test_..."
+    STRIPE_WEBHOOK_SECRET="whsec_..."
+    ```
 
 ---
 
-### Step 3: **VERY IMPORTANT** - Restart Your Server
+### Step 2: Populate Your Environment File
+
+Now, find your keys in the Firebase and Stripe dashboards and paste them into the `.env.local` file, replacing the placeholders.
+
+1.  **Firebase Client Keys (`NEXT_PUBLIC_FIREBASE_*`)**
+    *   Go to the [Firebase Console](https://console.firebase.google.com/).
+    *   Navigate to **Project settings** (click the gear icon ⚙️).
+    *   In the **General** tab, under "Your apps", find your web app.
+    *   Look for the "Firebase SDK snippet" and select the **Config** option.
+    *   Copy each value (`apiKey`, `authDomain`, `projectId`, etc.) and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file.
+
+2.  **App Check Keys (`NEXT_PUBLIC_RECAPTCHA_*`)**
+    *   Go to the [Google Cloud Console](https://console.cloud.google.com/), find **reCAPTCHA Enterprise** and create a site key. Paste it as the `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY`.
+    *   When you first run the app, check the browser's developer console for an "App Check debug token" message. If it appears, copy that token and paste it as the `NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN`.
+
+3.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
+    *   Go to **Project settings > Service accounts** in the Firebase Console.
+    *   Click "Generate new private key". A JSON file will download.
+    *   Open the downloaded file, copy the **entire JSON content**, and paste it inside the single quotes for `GOOGLE_APPLICATION_CREDENTIALS_JSON`. **It must all be on one line.**
+
+4.  **Stripe Keys**
+    *   Go to your [Stripe Developer Dashboard](https://dashboard.stripe.com/test/apikeys).
+    *   Copy your "Secret key" and paste it as `STRIPE_SECRET_KEY`.
+    *   Go to the "Webhooks" tab, find your webhook endpoint, and copy the "Signing secret". Paste it as `STRIPE_WEBHOOK_SECRET`.
+
+---
+
+### Step 3: **CRITICAL** - Restart Your Server
 
 After **ANY** change to your `.env.local` file, you **MUST** restart your development server. The server only reads this file when it first starts.
 
@@ -78,4 +75,15 @@ After **ANY** change to your `.env.local` file, you **MUST** restart your develo
 2.  Press `Ctrl + C` to stop it.
 3.  Run `npm run dev` again to restart it.
 
-This step is required for your changes to be applied.
+---
+
+### Step 4: Verify Your Setup (Troubleshooting)
+
+If you are still having issues, you can use the built-in diagnostic tool.
+
+1.  After restarting your server, go to the following URL in your browser:
+    `[YOUR_APP_URL]/api/debug/env`
+2.  This will show a JSON response indicating the status ("Set" or "Not Set") of each required environment variable.
+3.  If a variable shows as "Not Set", please double-check its name in `.env.local` and ensure you have restarted the server.
+
+> **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.

@@ -6,38 +6,24 @@ import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from "
 import { getAnalytics, type Analytics } from "firebase/analytics";
 
 // --- Firebase Configuration ---
-// This is the primary method for configuring Firebase.
-// It directly uses your project's configuration keys. This is a simpler and more reliable
-// setup for the development environment than using environment variables, which can sometimes
-// fail to load correctly.
+// This app is configured to use environment variables.
+// Create a .env.local file in the root of your project and add the following:
+// NEXT_PUBLIC_FIREBASE_API_KEY=...
+// NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+// NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+// etc.
 //
-// HOW TO CONFIGURE:
-// 1. Go to your Firebase project settings in the Firebase Console.
-// 2. Find your web app's "Firebase SDK snippet" and select the "Config" option.
-// 3. Copy the configuration object and paste it here, replacing the placeholder values.
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY_HERE", // <-- PASTE YOUR KEY HERE
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "your-sender-id",
-  appId: "your-app-id",
-  measurementId: "your-measurement-id" // Optional
-};
+// Refer to the updated FIREBASE_SETUP_CHECKLIST.md for the full list and instructions.
 
-// This secondary block attempts to read from environment variables if the placeholders above aren't changed.
-// This is for advanced users who prefer using a .env.local file.
-if (firebaseConfig.apiKey === 'YOUR_API_KEY_HERE') {
-  Object.assign(firebaseConfig, {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-  });
-}
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+};
 
 
 // Initialize Firebase
@@ -48,9 +34,9 @@ let appCheck: AppCheck | undefined;
 let analytics: Analytics | undefined;
 export let firebaseInitializationError: string | null = null;
 
-// Validate that the configuration has been updated
-if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes('YOUR_API_KEY')) {
-  firebaseInitializationError = "Firebase configuration is missing or incomplete. Please add your API Key to the `firebaseConfig` object in `src/lib/firebase.ts`.";
+// Validate that the configuration has been loaded from environment variables
+if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+  firebaseInitializationError = "Firebase configuration is missing. Please ensure all NEXT_PUBLIC_FIREBASE_* variables are set in your .env.local file and that you have restarted the development server.";
   console.error(`[Firebase Client] ${firebaseInitializationError}`);
   // Assign empty objects to prevent downstream hard errors, the UI will show the config error.
   app = {} as FirebaseApp;
@@ -77,11 +63,11 @@ if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes('YOUR_API_KEY')) {
           // It allows App Check to work without a real reCAPTCHA challenge.
           if (process.env.NODE_ENV === 'development') {
              // The .env.local file should contain: NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN=...
-             (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN || true;
+             (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN;
              if (process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN) {
                 console.log('[Firebase Client] App Check using debug token from .env.local.');
              } else {
-                console.warn('[Firebase Client] App Check debug mode is enabled. If you see App Check errors, you may need to add a debug token to your .env.local file. Check the browser console for the token.');
+                console.warn('[Firebase Client] App Check debug mode may be enabled. If you see App Check errors, ensure NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN is set in .env.local and that you have restarted your server. Check the browser console for the required token if one is logged there.');
              }
           }
 
