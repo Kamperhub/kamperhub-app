@@ -1,31 +1,34 @@
 
-import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from "firebase/app-check";
 import { getAnalytics, type Analytics } from "firebase/analytics";
 
 // This configuration object connects the app to your specific Firebase project.
-// You MUST replace "YOUR_API_KEY" with your actual Firebase Web API Key.
+// It pulls the values from your environment variables (like .env.local).
+// Ensure these environment variables are correctly set in your .env.local file.
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY", // Replace this with your actual Web API Key from Firebase Console
-  authDomain: "kamperhub-s4hc2.firebaseapp.com",
-  projectId: "kamperhub-s4hc2",
-  storageBucket: "kamperhub-s4hc2.firebasestorage.app",
-  messagingSenderId: "74707729193",
-  appId: "1:74707729193:web:b06f6dce5757fd1d431538",
-  measurementId: "G-V1CTQMC6BD"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
 let app: FirebaseApp;
-// This check prevents initialization if the API key hasn't been replaced.
-if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
-  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+// Now, your Firebase initialization logic will look for a valid API key
+// that comes from your .env.local file, not a placeholder.
+if (firebaseConfig.apiKey) {
+  app = getApps().length ? getApp() : initializeApp(firebaseConfig as FirebaseOptions);
 } else {
-  console.error("Firebase configuration is missing or incomplete. Please add your API Key to src/lib/firebase.ts");
+  console.error("Firebase configuration is missing or incomplete. Please ensure your .env.local has the correct NEXT_PUBLIC_FIREBASE_* variables set and your development server is restarted.");
   app = {} as FirebaseApp;
 }
+
 
 // Initialize client-side services
 let appCheck: AppCheck | undefined;
