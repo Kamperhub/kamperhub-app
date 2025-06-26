@@ -41,6 +41,9 @@ async function verifyUser(req: NextRequest): Promise<{ uid: string; error?: Next
 
 // GET the inventory for a specific caravan
 export async function GET(req: NextRequest, { params }: { params: { caravanId: string } }) {
+  if (!adminFirestore) {
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
 
@@ -70,6 +73,9 @@ export async function GET(req: NextRequest, { params }: { params: { caravanId: s
 
 // PUT (create/replace) the inventory for a specific caravan
 export async function PUT(req: NextRequest, { params }: { params: { caravanId: string } }) {
+  if (!adminFirestore) {
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
 

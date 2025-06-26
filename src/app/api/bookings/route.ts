@@ -53,6 +53,9 @@ const updateBookingSchema = createBookingSchema.extend({
 
 // GET all bookings for the authenticated user
 export async function GET(req: NextRequest) {
+  if (!adminFirestore) {
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
 
@@ -68,6 +71,9 @@ export async function GET(req: NextRequest) {
 
 // POST a new booking for the authenticated user
 export async function POST(req: NextRequest) {
+  if (!adminFirestore) {
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
 
@@ -125,6 +131,9 @@ export async function POST(req: NextRequest) {
 
 // PUT (update) an existing booking for the authenticated user
 export async function PUT(req: NextRequest) {
+  if (!adminFirestore) {
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
   
@@ -195,6 +204,9 @@ export async function PUT(req: NextRequest) {
 
 // DELETE a booking for the authenticated user
 export async function DELETE(req: NextRequest) {
+  if (!adminFirestore) {
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
 

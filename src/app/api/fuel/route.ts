@@ -23,6 +23,9 @@ const updateFuelLogSchema = fuelLogSchema.omit({ timestamp: true });
 
 // GET all fuel logs for a specific vehicle
 export async function GET(req: NextRequest) {
+  if (!adminFirestore) {
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
 
@@ -49,6 +52,9 @@ export async function GET(req: NextRequest) {
 
 // POST a new fuel log
 export async function POST(req: NextRequest) {
+  if (!adminFirestore) {
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
 
@@ -79,6 +85,9 @@ export async function POST(req: NextRequest) {
 
 // PUT (update) an existing fuel log
 export async function PUT(req: NextRequest) {
+  if (!adminFirestore) {
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
   
@@ -103,6 +112,9 @@ export async function PUT(req: NextRequest) {
 
 // DELETE a fuel log
 export async function DELETE(req: NextRequest) {
+  if (!adminFirestore) {
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
 

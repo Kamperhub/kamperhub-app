@@ -50,6 +50,9 @@ async function verifyUser(req: NextRequest): Promise<{ uid: string; error?: Next
 
 // GET all vehicles for the authenticated user
 export async function GET(req: NextRequest) {
+  if (!adminFirestore) {
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
 
@@ -65,6 +68,9 @@ export async function GET(req: NextRequest) {
 
 // POST a new vehicle for the authenticated user
 export async function POST(req: NextRequest) {
+  if (!adminFirestore) {
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
 
@@ -93,6 +99,9 @@ export async function POST(req: NextRequest) {
 
 // PUT (update) an existing vehicle for the authenticated user
 export async function PUT(req: NextRequest) {
+  if (!adminFirestore) {
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
   
@@ -115,6 +124,9 @@ export async function PUT(req: NextRequest) {
 
 // DELETE a vehicle for the authenticated user
 export async function DELETE(req: NextRequest) {
+  if (!adminFirestore) {
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
 

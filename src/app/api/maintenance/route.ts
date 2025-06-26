@@ -23,6 +23,9 @@ const updateMaintenanceTaskSchema = maintenanceTaskSchema.omit({ timestamp: true
 
 // GET all maintenance tasks for a user, optionally filtered by assetId
 export async function GET(req: NextRequest) {
+  if (!adminFirestore) {
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
 
@@ -48,6 +51,9 @@ export async function GET(req: NextRequest) {
 
 // POST a new maintenance task
 export async function POST(req: NextRequest) {
+  if (!adminFirestore) {
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
 
@@ -77,6 +83,9 @@ export async function POST(req: NextRequest) {
 
 // PUT (update) an existing maintenance task
 export async function PUT(req: NextRequest) {
+  if (!adminFirestore) {
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
   
@@ -100,6 +109,9 @@ export async function PUT(req: NextRequest) {
 
 // DELETE a maintenance task
 export async function DELETE(req: NextRequest) {
+  if (!adminFirestore) {
+    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
 
