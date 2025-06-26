@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { StoredVehicle, VehicleFormData, VehicleStorageLocation } from '@/types/vehicle';
 import { Button } from '@/components/ui/button';
@@ -23,8 +23,7 @@ import {
   fetchUserPreferences,
   updateUserPreferences
 } from '@/lib/api-client';
-import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import { useAuth } from '@/hooks/useAuth';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
 
@@ -32,9 +31,7 @@ export function VehicleManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
-  
-  const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const { user, isAuthLoading } = useAuth();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<StoredVehicle | null>(null);
@@ -44,14 +41,6 @@ export function VehicleManager() {
     vehicleName: null,
     confirmationText: '',
   });
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-        setUser(currentUser);
-        setIsAuthLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
 
   const { data: vehicles = [], isLoading: isLoadingVehicles, error: vehiclesError } = useQuery<StoredVehicle[]>({
     queryKey: ['vehicles', user?.uid],
@@ -66,7 +55,7 @@ export function VehicleManager() {
   });
   
   const activeVehicleId = userPrefs?.activeVehicleId;
-  const isLoadingData = isLoadingVehicles || isLoadingPrefs;
+  const isLoadingData = isAuthLoading || isLoadingVehicles || isLoadingPrefs;
   const queryError = vehiclesError || prefsError;
 
   const saveVehicleMutation = useMutation({
@@ -184,16 +173,12 @@ export function VehicleManager() {
     </Card>
   );
 
-  if (isAuthLoading) {
+  if (isLoadingData) {
     return loadingSkeleton;
   }
   
-  if (!user) {
-    return null; // Don't render anything if logged out, prevents flicker on redirect
-  }
-
-  if (isLoadingData) {
-    return loadingSkeleton;
+  if (!user && !isAuthLoading) {
+    return null; // Don't render anything if logged out
   }
 
   if (queryError) {

@@ -5,6 +5,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Toaster } from "@/components/ui/toaster";
 import { SubscriptionProvider } from '@/hooks/useSubscription';
 import { QueryProvider } from '@/components/layout/QueryProvider';
+import { AuthProvider } from '@/hooks/useAuth';
 
 export const metadata: Metadata = {
   title: 'KamperHub',
@@ -29,11 +30,13 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <QueryProvider>
-          <SubscriptionProvider>
-            <AppShell>
-              {children}
-            </AppShell>
-          </SubscriptionProvider>
+          <AuthProvider>
+            <SubscriptionProvider>
+              <AppShell>
+                {children}
+              </AppShell>
+            </SubscriptionProvider>
+          </AuthProvider>
         </QueryProvider>
         <Toaster />
       </body>

@@ -15,12 +15,12 @@ import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { auth, firebaseInitializationError } from '@/lib/firebase';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import { firebaseInitializationError } from '@/lib/firebase';
 import { fetchUserPreferences, updateUserPreferences } from '@/lib/api-client';
 import type { UserProfile } from '@/types/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from '@/hooks/useAuth';
 
 interface SortableNavItemProps {
   id: string;
@@ -113,11 +113,9 @@ const FirebaseErrorState = ({ error }: { error: string }) => (
 
 export default function DashboardPage() {
   const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>([]);
-  const [hasMounted, setHasMounted] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
 
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const { user: firebaseUser, isAuthLoading } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -138,36 +136,18 @@ export default function DashboardPage() {
     }
   });
 
-
   useEffect(() => {
-    setHasMounted(true);
-    const handleResize = () => {
-      setIsMobileView(window.innerWidth < 768);
-    };
-    handleResize();
+    const handleResize = () => setIsMobileView(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
-
-    if (firebaseInitializationError) {
-        setIsAuthLoading(false);
-        return;
-    }
-
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      setFirebaseUser(user);
-      setIsAuthLoading(false);
-    });
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (unsubscribeAuth) unsubscribeAuth();
-    };
+    handleResize(); // Set initial state
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
-    if (hasMounted && !isAuthLoading && !firebaseUser && !firebaseInitializationError) {
+    if (!isAuthLoading && !firebaseUser && !firebaseInitializationError) {
       router.push('/login');
     }
-  }, [hasMounted, isAuthLoading, firebaseUser, router]);
+  }, [isAuthLoading, firebaseUser, router]);
 
   useEffect(() => {
     if (userPrefs) {
@@ -223,13 +203,11 @@ export default function DashboardPage() {
   if (firebaseInitializationError) {
       return <FirebaseErrorState error={firebaseInitializationError} />;
   }
-
-  if (!hasMounted || isAuthLoading || (!isAuthLoading && !firebaseUser)) {
-    return <DashboardSkeleton loadingText={isAuthLoading ? 'Authenticating...' : 'Redirecting...'} />;
-  }
   
-  if (isLoadingLayout) {
-     return <DashboardSkeleton loadingText="Loading your personalized dashboard..." />;
+  const isLoading = isAuthLoading || isLoadingLayout;
+
+  if (isLoading) {
+     return <DashboardSkeleton loadingText={isAuthLoading ? 'Authenticating...' : 'Loading your personalized dashboard...'} />;
   }
 
   if (prefsError) {

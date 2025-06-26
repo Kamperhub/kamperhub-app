@@ -7,11 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase';
-import { onAuthStateChanged, type User as FirebaseUser, updateProfile, updateEmail, type AuthError } from 'firebase/auth';
+import { updateProfile, updateEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { format, parseISO, isFuture } from 'date-fns';
 
-import type { SubscriptionTier, UserProfile } from '@/types/auth';
+import type { UserProfile } from '@/types/auth';
+import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, CalendarClock, UserCog } from 'lucide-react';
 import Link from 'next/link';
@@ -23,9 +24,9 @@ import { EditProfileForm, type EditProfileFormData } from '@/components/features
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export default function MyAccountPage() {
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const { user: firebaseUser, isAuthLoading } = useAuth();
   const [userProfile, setUserProfile] = useState<Partial<UserProfile>>({});
-  const [isLoading, setIsLoading] = useState(true); // Single loading state
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
@@ -37,12 +38,17 @@ export default function MyAccountPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // This is the single source of truth for auth state changes.
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setFirebaseUser(user);
+    if (!isAuthLoading && !firebaseUser) {
+      router.push('/login');
+    }
+  }, [isAuthLoading, firebaseUser, router]);
+
+  useEffect(() => {
+    if (firebaseUser) {
+      const fetchProfile = async () => {
+        setIsProfileLoading(true);
         try {
-          const userDocRef = doc(db, "users", user.uid);
+          const userDocRef = doc(db, "users", firebaseUser.uid);
           const docSnap = await getDoc(userDocRef);
 
           if (docSnap.exists()) {
@@ -54,8 +60,8 @@ export default function MyAccountPage() {
               profileData.trialEndsAt || null
             );
           } else {
-            console.warn("No Firestore profile document found for user:", user.uid);
-            setUserProfile({ email: user.email, displayName: user.displayName });
+            console.warn("No Firestore profile document found for user:", firebaseUser.uid);
+            setUserProfile({ email: firebaseUser.email, displayName: firebaseUser.displayName });
             setSubscriptionDetails('free', null, null); 
           }
         } catch (error: any) {
@@ -66,18 +72,12 @@ export default function MyAccountPage() {
             variant: "destructive",
           });
         } finally {
-          // Only stop loading once auth is checked AND profile is fetched.
-          setIsLoading(false); 
+          setIsProfileLoading(false);
         }
-      } else {
-        // No user is logged in.
-        router.push('/login');
-      }
-    });
-
-    return () => unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only once on mount
+      };
+      fetchProfile();
+    }
+  }, [firebaseUser, setSubscriptionDetails, toast]);
 
 
   const handleLogout = async () => {
@@ -126,8 +126,11 @@ export default function MyAccountPage() {
       if(updatedUserDoc.exists()){
           setUserProfile(updatedUserDoc.data());
       }
-      setFirebaseUser(auth.currentUser);
-
+      // Re-sync local firebaseUser object after profile update
+      if (auth.currentUser) {
+        await auth.currentUser.reload();
+      }
+      
       toast({
         title: "Profile Updated",
         description: "Your account details have been successfully saved.",
@@ -227,11 +230,13 @@ export default function MyAccountPage() {
     }
   };
   
+  const isLoading = isAuthLoading || isProfileLoading;
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-10 w-10 animate-spin text-primary mr-3" />
-        <p className="font-body text-muted-foreground text-lg">Authenticating...</p>
+        <p className="font-body text-muted-foreground text-lg">Loading Account Details...</p>
       </div>
     );
   }
@@ -256,7 +261,7 @@ export default function MyAccountPage() {
   
   const displayUserName = firebaseUser?.displayName || userProfile.displayName || 'User';
   const isTrialActive = subscriptionTier === 'trialing' && trialEndsAt && isFuture(parseISO(trialEndsAt));
-  const hasTrialExpired = subscriptionTier === 'trialing' && trialEndsAt && !isFuture(parseISO(trialEndsAt));
+  const hasTrialExpired = subscriptionTier === 'trial_expired' || (subscriptionTier === 'trialing' && trialEndsAt && !isFuture(parseISO(trialEndsAt)));
   const isAdminUser = firebaseUser?.email === ADMIN_EMAIL;
 
   return (

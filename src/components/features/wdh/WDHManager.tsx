@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { StoredWDH, WDHFormData } from '@/types/wdh';
 import { Button } from '@/components/ui/button';
@@ -22,8 +22,7 @@ import {
   fetchUserPreferences,
   updateUserPreferences
 } from '@/lib/api-client';
-import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import { useAuth } from '@/hooks/useAuth';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
 
@@ -31,9 +30,7 @@ export function WDHManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
-
-  const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const { user, isAuthLoading } = useAuth();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingWdh, setEditingWdh] = useState<StoredWDH | null>(null);
@@ -43,14 +40,6 @@ export function WDHManager() {
     wdhName: null,
     confirmationText: '',
   });
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-        setUser(currentUser);
-        setIsAuthLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
 
   const { data: wdhs = [], isLoading: isLoadingWdhs, error: wdhsError } = useQuery<StoredWDH[]>({
     queryKey: ['wdhs', user?.uid],
@@ -65,7 +54,7 @@ export function WDHManager() {
   });
 
   const activeWdhId = userPrefs?.activeWdhId;
-  const isLoadingData = isLoadingWdhs || isLoadingPrefs;
+  const isLoadingData = isAuthLoading || isLoadingWdhs || isLoadingPrefs;
   const queryError = wdhsError || prefsError;
 
   const saveWdhMutation = useMutation({
@@ -158,16 +147,12 @@ export function WDHManager() {
       </Card>
   );
 
-  if (isAuthLoading) {
+  if (isLoadingData) {
     return loadingSkeleton;
   }
   
-  if (!user) {
+  if (!user && !isAuthLoading) {
     return null; // Don't render anything if logged out
-  }
-
-  if (isLoadingData) {
-    return loadingSkeleton;
   }
 
   if (queryError) {

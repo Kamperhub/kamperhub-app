@@ -1,36 +1,20 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, UserCircle, LogIn, LogOut, MessageSquare } from 'lucide-react'; // Added MessageSquare
+import { Home, UserCircle, LogIn, LogOut, MessageSquare, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 export function Header() {
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user: firebaseUser, isAuthLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setFirebaseUser(user);
-        setIsLoggedIn(true);
-      } else {
-        setFirebaseUser(null);
-        setIsLoggedIn(false);
-      }
-      setIsLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
 
   const handleLogout = async () => {
     try {
@@ -49,21 +33,6 @@ export function Header() {
       });
     }
   };
-
-  if (isLoading) {
-    return (
-      <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between h-[68px]">
-          <div className="h-[40px] w-[160px] bg-primary/50 rounded animate-pulse"></div>
-          <div className="flex items-center gap-3">
-             <div className="h-7 w-7 bg-primary/50 rounded-full animate-pulse"></div>
-             <div className="h-7 w-7 bg-primary/50 rounded-full animate-pulse"></div>
-             <div className="h-7 w-20 bg-primary/50 rounded animate-pulse"></div>
-          </div>
-        </div>
-      </header>
-    );
-  }
 
   return (
     <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-40">
@@ -93,7 +62,9 @@ export function Header() {
             </Button>
           </Link>
 
-          {isLoggedIn && firebaseUser ? (
+          {isAuthLoading ? (
+            <Loader2 className="h-6 w-6 animate-spin" />
+          ) : firebaseUser ? (
             <>
               <Link href="/my-account" passHref>
                 <Button variant="ghost" className="p-0 sm:px-3 sm:py-2 hover:bg-primary/80 flex items-center">

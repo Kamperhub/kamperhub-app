@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { StoredCaravan, CaravanFormData, StorageLocation, WaterTank } from '@/types/caravan';
 import { Button } from '@/components/ui/button';
@@ -24,8 +24,7 @@ import {
   fetchUserPreferences,
   updateUserPreferences
 } from '@/lib/api-client';
-import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import { useAuth } from '@/hooks/useAuth';
 import type { UserProfile } from '@/types/auth';
 import type { StoredWDH } from '@/types/wdh';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -35,9 +34,7 @@ export function CaravanManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
-
-  const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const { user, isAuthLoading } = useAuth();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCaravan, setEditingCaravan] = useState<StoredCaravan | null>(null);
@@ -47,14 +44,6 @@ export function CaravanManager() {
     caravanName: null,
     confirmationText: '',
   });
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-        setUser(currentUser);
-        setIsAuthLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
 
   const { data: caravans = [], isLoading: isLoadingCaravans, error: caravansError } = useQuery<StoredCaravan[]>({
     queryKey: ['caravans', user?.uid],
@@ -75,7 +64,7 @@ export function CaravanManager() {
   });
 
   const activeCaravanId = userPrefs?.activeCaravanId;
-  const isLoadingData = isLoadingCaravans || isLoadingPrefs;
+  const isLoadingData = isAuthLoading || isLoadingCaravans || isLoadingPrefs;
   const queryError = caravansError || prefsError;
 
   const saveCaravanMutation = useMutation({
@@ -101,7 +90,6 @@ export function CaravanManager() {
     mutationFn: deleteCaravan,
     onSuccess: (_, caravanId) => {
       queryClient.invalidateQueries({ queryKey: ['caravans', user?.uid] });
-      // TODO: Invalidate inventory and water levels for this caravanId
       if (activeCaravanId === caravanId) {
         queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
       }
@@ -196,18 +184,14 @@ export function CaravanManager() {
     </Card>
   );
 
-  if (isAuthLoading) {
-    return loadingSkeleton;
-  }
-  
-  if (!user) {
-    return null; // Don't render anything if logged out
-  }
-  
   if (isLoadingData) {
     return loadingSkeleton;
   }
-
+  
+  if (!user && !isAuthLoading) {
+    return null; // Don't render anything if logged out
+  }
+  
   if (queryError) {
     return (
         <Card>
