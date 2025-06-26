@@ -8,13 +8,13 @@ import { getAnalytics, type Analytics } from "firebase/analytics";
 // This configuration object connects the app to your specific Firebase project.
 // It should be filled with your project's specific details.
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY", // This is unique to your project
+  apiKey: "AIzaSyDislaqwT2blN_zaj6rF4qJj8rs6eGiCJE", // This is unique to your project
   authDomain: "kamperhub-s4hc2.firebaseapp.com",
   projectId: "kamperhub-s4hc2",
   storageBucket: "kamperhub-s4hc2.appspot.com",
   messagingSenderId: "74707729193",
   appId: "1:74707729193:web:b06f6dce5757fd1d431538",
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+  measurementId:"G-V1CTQMC6BD"
 };
 
 

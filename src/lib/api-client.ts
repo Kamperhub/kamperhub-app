@@ -1,3 +1,4 @@
+
 'use client';
 
 import { auth, appCheck } from './firebase';
@@ -24,19 +25,15 @@ async function apiFetch(url: string, options: RequestInit = {}) {
   const authToken = await user.getIdToken(true);
   headers.set('Authorization', `Bearer ${authToken}`);
 
-  // Only get and add App Check token if App Check is initialized (i.e., in production)
+  // Only get and add App Check token if App Check is initialized
   if (appCheck) {
     try {
       const appCheckTokenResponse = await getToken(appCheck, /* forceRefresh= */ false);
       headers.set('X-Firebase-AppCheck', appCheckTokenResponse.token);
     } catch (err: any) {
-      console.error("App Check getToken() failed:", err);
-      let errorMessage = "App Check failed: Could not get verification token. ";
-      if (process.env.NODE_ENV === 'development') {
-        errorMessage += "In a development environment, this usually means the App Check debug token is missing or invalid. Please set NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN in your .env.local file. You can find instructions for generating a debug token in the Firebase documentation by searching for 'App Check debug provider'.";
-      } else {
-        errorMessage += "In a production environment, ensure your domain is whitelisted in Firebase and that your reCAPTCHA Enterprise key is correctly configured and linked.";
-      }
+      console.error("App Check getToken() failed. This is often expected in local development.", err);
+      const errorMessage = "App Check verification failed (403 Forbidden). This is expected during local development if the debug token is not configured. Please follow these steps:\n\n1. Open your browser's developer console.\n2. Look for a message that starts with 'App Check debug token:'.\n3. Copy the long string of characters (the token).\n4. Create or open the `.env.local` file in your project's root directory.\n5. Add this line: `NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN=your_copied_token_here`\n6. Replace 'your_copied_token_here' with the token you copied.\n7. Restart your development server.";
+      
       throw new Error(errorMessage);
     }
   }
@@ -71,7 +68,7 @@ async function apiFetch(url: string, options: RequestInit = {}) {
       }
     } catch (e) {
       // This catch block is for if response.text() itself fails, which is rare.
-      errorInfo = `Request failed with status ${response.status}. Could not read response body.`;
+      errorInfo = `Request failed with status ${response.status}. Could not read a response body.`;
     }
 
     console.error("API Fetch Error Details:", errorInfo);
