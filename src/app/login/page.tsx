@@ -30,17 +30,17 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const { user: firebaseUser, isAuthLoading } = useAuth();
+  const { user, isAuthLoading } = useAuth();
 
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   useEffect(() => {
-    if (!isAuthLoading && firebaseUser) {
+    if (!isAuthLoading && user) {
       router.push('/');
     }
-  }, [firebaseUser, isAuthLoading, router]);
+  }, [user, isAuthLoading, router]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -59,11 +59,11 @@ export default function LoginPage() {
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, password);
-      const user = userCredential.user;
+      const loggedInUser = userCredential.user;
 
       toast({
         title: 'Login Successful!',
-        description: `Welcome back, ${user.displayName || user.email}!`,
+        description: `Welcome back, ${loggedInUser.displayName || loggedInUser.email}!`,
       });
 
       router.push('/'); 
@@ -128,7 +128,7 @@ export default function LoginPage() {
     }
   };
 
-  if (isAuthLoading || firebaseUser) {
+  if (isAuthLoading || user) {
     return (
         <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
             <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />

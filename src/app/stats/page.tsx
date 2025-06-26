@@ -12,8 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { fetchTrips } from '@/lib/api-client';
-import { auth } from '@/lib/firebase';
-import type { User as FirebaseUser } from 'firebase/auth';
+import { useAuth } from '@/hooks/useAuth';
 
 interface TripStats {
   totalTrips: number;
@@ -27,13 +26,15 @@ interface TripStats {
 }
 
 export default function StatsPage() {
-  const user = auth.currentUser;
+  const { user, isAuthLoading } = useAuth();
 
-  const { data: loggedTrips = [], isLoading, error } = useQuery<LoggedTrip[]>({
+  const { data: loggedTrips = [], isLoading: isLoadingTrips, error } = useQuery<LoggedTrip[]>({
     queryKey: ['trips', user?.uid],
     queryFn: fetchTrips,
     enabled: !!user,
   });
+
+  const isLoading = isAuthLoading || isLoadingTrips;
 
   const stats: TripStats | null = useMemo(() => {
     if (!loggedTrips || loggedTrips.length === 0) {

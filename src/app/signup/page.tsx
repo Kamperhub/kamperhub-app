@@ -67,13 +67,13 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const { user: firebaseUser, isAuthLoading } = useAuth();
+  const { user, isAuthLoading } = useAuth();
 
   useEffect(() => {
-    if (!isAuthLoading && firebaseUser) {
+    if (!isAuthLoading && user) {
       router.push('/');
     }
-  }, [firebaseUser, isAuthLoading, router]);
+  }, [user, isAuthLoading, router]);
 
   const handleSignup: SubmitHandler<SignupFormData> = async (data) => {
     setIsLoading(true);
@@ -136,7 +136,7 @@ export default function SignupPage() {
     }
   };
 
-  if (isAuthLoading || firebaseUser) {
+  if (isAuthLoading || user) {
     return (
         <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
             <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />

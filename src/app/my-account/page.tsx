@@ -24,11 +24,11 @@ import { EditProfileForm, type EditProfileFormData } from '@/components/features
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export default function MyAccountPage() {
-  const { user: firebaseUser, isAuthLoading } = useAuth();
+  const { user, isAuthLoading } = useAuth();
   const { setSubscriptionDetails, hasProAccess, subscriptionTier, stripeCustomerId, trialEndsAt } = useSubscription();
 
   const [userProfile, setUserProfile] = useState<Partial<UserProfile>>({});
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [isLoadingPrefs, setIsLoadingPrefs] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
@@ -38,15 +38,15 @@ export default function MyAccountPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!isAuthLoading && !firebaseUser) {
+    if (!isAuthLoading && !user) {
       router.push('/login');
     }
-  }, [isAuthLoading, firebaseUser, router]);
+  }, [isAuthLoading, user, router]);
 
   useEffect(() => {
-    if (firebaseUser) {
-      setIsProfileLoading(true);
-      const userDocRef = doc(db, "users", firebaseUser.uid);
+    if (user) {
+      setIsLoadingPrefs(true);
+      const userDocRef = doc(db, "users", user.uid);
       getDoc(userDocRef).then(docSnap => {
         if (docSnap.exists()) {
           const profileData = docSnap.data() as UserProfile;
@@ -57,8 +57,8 @@ export default function MyAccountPage() {
             profileData.trialEndsAt || null
           );
         } else {
-          console.warn("No Firestore profile document found for user:", firebaseUser.uid);
-          setUserProfile({ email: firebaseUser.email, displayName: firebaseUser.displayName });
+          console.warn("No Firestore profile document found for user:", user.uid);
+          setUserProfile({ email: user.email, displayName: user.displayName });
           setSubscriptionDetails('free', null, null); 
         }
       }).catch(error => {
@@ -69,12 +69,12 @@ export default function MyAccountPage() {
           variant: "destructive",
         });
       }).finally(() => {
-        setIsProfileLoading(false);
+        setIsLoadingPrefs(false);
       });
     } else if (!isAuthLoading) {
-        setIsProfileLoading(false);
+        setIsLoadingPrefs(false);
     }
-  }, [firebaseUser, isAuthLoading, setSubscriptionDetails, toast]);
+  }, [user, isAuthLoading, setSubscriptionDetails, toast]);
 
 
   const handleLogout = async () => {
@@ -89,7 +89,7 @@ export default function MyAccountPage() {
   };
 
   const handleSaveProfile = async (data: EditProfileFormData) => {
-    if (!firebaseUser) {
+    if (!user) {
       toast({ title: "Error", description: "No active user found.", variant: "destructive" });
       return;
     }
@@ -98,17 +98,17 @@ export default function MyAccountPage() {
 
     try {
       const authPromises = [];
-      if (data.displayName !== firebaseUser.displayName) {
-        authPromises.push(updateProfile(firebaseUser, { displayName: data.displayName }));
+      if (data.displayName !== user.displayName) {
+        authPromises.push(updateProfile(user, { displayName: data.displayName }));
       }
-      if (data.email.toLowerCase() !== (firebaseUser.email?.toLowerCase() || '')) {
-        authPromises.push(updateEmail(firebaseUser, data.email));
+      if (data.email.toLowerCase() !== (user.email?.toLowerCase() || '')) {
+        authPromises.push(updateEmail(user, data.email));
       }
       if (authPromises.length > 0) {
         await Promise.all(authPromises);
       }
       
-      const userDocRef = doc(db, "users", firebaseUser.uid);
+      const userDocRef = doc(db, "users", user.uid);
       const firestoreProfileData: Partial<UserProfile> = {
         displayName: data.displayName,
         email: data.email,
@@ -160,7 +160,7 @@ export default function MyAccountPage() {
   };
 
   const handleSubscribeToPro = async () => {
-    if (!firebaseUser || !firebaseUser.email) {
+    if (!user || !user.email) {
       toast({ title: "Error", description: "You must be logged in to subscribe.", variant: "destructive" });
       return;
     }
@@ -170,8 +170,8 @@ export default function MyAccountPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          email: firebaseUser.email, 
-          userId: firebaseUser.uid,
+          email: user.email, 
+          userId: user.uid,
           startTrial: false 
         }),
       });
@@ -189,7 +189,7 @@ export default function MyAccountPage() {
   };
 
   const handleManageSubscription = async () => {
-    if (!firebaseUser) {
+    if (!user) {
       toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
       return;
     }
@@ -202,7 +202,7 @@ export default function MyAccountPage() {
       const response = await fetch('/api/create-customer-portal-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: firebaseUser.uid }), 
+        body: JSON.stringify({ userId: user.uid }), 
       });
       const sessionData = await response.json();
       if (response.ok && sessionData.url) {
@@ -217,7 +217,7 @@ export default function MyAccountPage() {
     }
   };
   
-  const isLoading = isAuthLoading || isProfileLoading;
+  const isLoading = isAuthLoading || isLoadingPrefs;
 
   if (isLoading) {
     return (
@@ -228,7 +228,7 @@ export default function MyAccountPage() {
     );
   }
 
-  if (!firebaseUser) {
+  if (!user) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
         <p>Redirecting to login...</p>
@@ -237,17 +237,17 @@ export default function MyAccountPage() {
   }
 
   const initialProfileDataForEdit: EditProfileFormData = {
-    displayName: firebaseUser?.displayName || userProfile.displayName || '',
-    email: userProfile.email || firebaseUser?.email || '',
+    displayName: user?.displayName || userProfile.displayName || '',
+    email: userProfile.email || user?.email || '',
     city: userProfile.city || '',
     state: userProfile.state || '',
     country: userProfile.country || '',
   };
   
-  const displayUserName = firebaseUser?.displayName || userProfile.displayName || 'User';
+  const displayUserName = user?.displayName || userProfile.displayName || 'User';
   const isTrialActive = subscriptionTier === 'trialing' && trialEndsAt && isFuture(parseISO(trialEndsAt));
   const hasTrialExpired = subscriptionTier === 'trial_expired' || (subscriptionTier === 'trialing' && trialEndsAt && !isFuture(parseISO(trialEndsAt)));
-  const isAdminUser = firebaseUser?.email === ADMIN_EMAIL;
+  const isAdminUser = user?.email === ADMIN_EMAIL;
 
   return (
     <div className="space-y-8">
@@ -287,11 +287,11 @@ export default function MyAccountPage() {
             
             <p className="font-body text-sm flex items-center">
                 <User className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>Display Name:</strong>&nbsp;{firebaseUser?.displayName || userProfile.displayName || '[Not Set]'}
+                <strong>Display Name:</strong>&nbsp;{user?.displayName || userProfile.displayName || '[Not Set]'}
             </p>
             <p className="font-body text-sm flex items-center">
                 <Mail className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>Email:</strong>&nbsp;{firebaseUser?.email || userProfile.email || '[Not Set]'}
+                <strong>Email:</strong>&nbsp;{user?.email || userProfile.email || '[Not Set]'}
             </p>
             <p className="font-body text-sm flex items-center">
                 <MapPin className="h-4 w-4 mr-2 text-primary/80 opacity-70" />

@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 
 export function Header() {
-  const { user: firebaseUser, isAuthLoading } = useAuth();
+  const { user, isAuthLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -64,12 +64,12 @@ export function Header() {
 
           {isAuthLoading ? (
             <Loader2 className="h-6 w-6 animate-spin" />
-          ) : firebaseUser ? (
+          ) : user ? (
             <>
               <Link href="/my-account" passHref>
                 <Button variant="ghost" className="p-0 sm:px-3 sm:py-2 hover:bg-primary/80 flex items-center">
                   <UserCircle className="h-6 w-6 sm:mr-2" />
-                  <span className="hidden sm:inline font-body text-sm">{firebaseUser.displayName || firebaseUser.email}</span>
+                  <span className="hidden sm:inline font-body text-sm">{user.displayName || user.email}</span>
                 </Button>
               </Link>
               <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Log Out" className="p-0 hover:bg-primary/80">

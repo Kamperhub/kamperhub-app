@@ -4,7 +4,6 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { auth, firebaseInitializationError } from '@/lib/firebase';
-import { Loader2 } from 'lucide-react';
 
 interface AuthContextType {
   user: FirebaseUser | null;

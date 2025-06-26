@@ -31,8 +31,17 @@ async function apiFetch(url: string, options: RequestInit = {}) {
       const appCheckTokenResponse = await getToken(appCheck, /* forceRefresh= */ false);
       headers.set('X-Firebase-AppCheck', appCheckTokenResponse.token);
     } catch (err: any) {
-      console.error("App Check getToken() failed. This is often expected in local development.", err);
-      const errorMessage = "App Check verification failed (403 Forbidden). This is expected during local development if the debug token is not configured. Please follow these steps:\n\n1. Open your browser's developer console.\n2. Look for a message that starts with 'App Check debug token:'.\n3. Copy the long string of characters (the token).\n4. Create or open the `.env.local` file in your project's root directory.\n5. Add this line: `NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN=your_copied_token_here`\n6. Replace 'your_copied_token_here' with the token you copied.\n7. Restart your development server.";
+      console.warn("App Check getToken() failed. This is often expected in local development.", err);
+      // Construct a more helpful error message for the developer
+      const errorMessage = `App Check verification failed. This is expected during local development if the debug token is not set. 
+      Please follow these steps:
+      1. Open your browser's developer console.
+      2. Look for a message that starts with 'App Check debug token:'.
+      3. Copy the long string of characters (the token).
+      4. Create or open the \`.env.local\` file in your project's root directory.
+      5. Add this line: \`NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN=your_copied_token_here\`
+      6. Replace 'your_copied_token_here' with the token you copied.
+      7. Restart your development server.`;
       
       throw new Error(errorMessage);
     }

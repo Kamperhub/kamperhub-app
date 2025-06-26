@@ -114,21 +114,21 @@ export default function DashboardPage() {
   const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>([]);
   const [isMobileView, setIsMobileView] = useState(false);
 
-  const { user: firebaseUser, isAuthLoading } = useAuth();
+  const { user, isAuthLoading } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const { data: userPrefs, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
-    queryKey: ['userPreferences', firebaseUser?.uid],
+    queryKey: ['userPreferences', user?.uid],
     queryFn: fetchUserPreferences,
-    enabled: !!firebaseUser && !isAuthLoading,
+    enabled: !!user && !isAuthLoading,
   });
 
   const updateUserPrefsMutation = useMutation({
     mutationFn: updateUserPreferences,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userPreferences', firebaseUser?.uid] });
+      queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
     },
     onError: (error: Error) => {
       toast({ title: "Could Not Save Layout", description: error.message, variant: "destructive" });
@@ -143,10 +143,10 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthLoading && !firebaseUser && !firebaseInitializationError) {
+    if (!isAuthLoading && !user && !firebaseInitializationError) {
       router.push('/login');
     }
-  }, [isAuthLoading, firebaseUser, router]);
+  }, [isAuthLoading, user, router]);
 
   useEffect(() => {
     if (userPrefs) {
