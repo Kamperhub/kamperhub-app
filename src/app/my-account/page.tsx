@@ -110,7 +110,7 @@ export default function MyAccountPage() {
         unsubscribe();
         clearTimeout(authTimer);
     };
-  }, [fetchUserProfile, setSubscriptionDetails]); // Dependencies are stable and correct
+  }, [fetchUserProfile, setSubscriptionDetails, isAuthLoading, authTimeoutError]);
 
   const handleLogout = async () => {
     try {
@@ -481,5 +481,3 @@ export default function MyAccountPage() {
     </div>
   );
 }
-
-    
