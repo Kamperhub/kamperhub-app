@@ -90,6 +90,12 @@ For enhanced security, App Check verifies that requests to your backend come fro
 
 ---
 
-### Step 5: Restart Your Server
+### Step 5: **VERY IMPORTANT** - Restart Your Server
 
-After creating or modifying your `.env.local` file, you **MUST** stop your development server (`Ctrl+C` in the terminal) and restart it (`npm run dev`) for the changes to take effect.
+After **ANY** change to your `.env.local` file (adding Firebase keys, the service account, or the App Check token), you **MUST** restart your development server. The server only reads this file when it first starts.
+
+1.  Go to your terminal where the server is running.
+2.  Press `Ctrl + C` to stop it.
+3.  Run `npm run dev` again to restart it.
+
+This step is required for your changes to be applied.
