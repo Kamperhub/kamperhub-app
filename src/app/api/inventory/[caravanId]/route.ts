@@ -1,7 +1,7 @@
 
 // src/app/api/inventory/[caravanId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { admin, adminFirestore } from '@/lib/firebase-admin';
+import { admin, adminFirestore, firebaseAdminInitError } from '@/lib/firebase-admin';
 import type { InventoryItem } from '@/types/inventory';
 import { z, ZodError } from 'zod';
 
@@ -41,8 +41,12 @@ async function verifyUser(req: NextRequest): Promise<{ uid: string; error?: Next
 
 // GET the inventory for a specific caravan
 export async function GET(req: NextRequest, { params }: { params: { caravanId: string } }) {
-  if (!adminFirestore) {
-    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  if (firebaseAdminInitError) {
+    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
+    return NextResponse.json({ 
+      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
+      details: firebaseAdminInitError.message
+    }, { status: 503 });
   }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
@@ -73,8 +77,12 @@ export async function GET(req: NextRequest, { params }: { params: { caravanId: s
 
 // PUT (create/replace) the inventory for a specific caravan
 export async function PUT(req: NextRequest, { params }: { params: { caravanId: string } }) {
-  if (!adminFirestore) {
-    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  if (firebaseAdminInitError) {
+    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
+    return NextResponse.json({ 
+      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
+      details: firebaseAdminInitError.message
+    }, { status: 503 });
   }
   const { uid, error } = await verifyUser(req);
   if (error) return error;

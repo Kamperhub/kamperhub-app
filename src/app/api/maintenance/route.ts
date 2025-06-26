@@ -1,6 +1,7 @@
+
 // src/app/api/maintenance/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { admin, adminFirestore } from '@/lib/firebase-admin';
+import { admin, adminFirestore, firebaseAdminInitError } from '@/lib/firebase-admin';
 import { z, ZodError } from 'zod';
 import { maintenanceTaskSchema } from '@/types/service';
 
@@ -23,8 +24,12 @@ const updateMaintenanceTaskSchema = maintenanceTaskSchema.omit({ timestamp: true
 
 // GET all maintenance tasks for a user, optionally filtered by assetId
 export async function GET(req: NextRequest) {
-  if (!adminFirestore) {
-    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  if (firebaseAdminInitError) {
+    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
+    return NextResponse.json({ 
+      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
+      details: firebaseAdminInitError.message
+    }, { status: 503 });
   }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
@@ -51,8 +56,12 @@ export async function GET(req: NextRequest) {
 
 // POST a new maintenance task
 export async function POST(req: NextRequest) {
-  if (!adminFirestore) {
-    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  if (firebaseAdminInitError) {
+    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
+    return NextResponse.json({ 
+      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
+      details: firebaseAdminInitError.message
+    }, { status: 503 });
   }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
@@ -83,8 +92,12 @@ export async function POST(req: NextRequest) {
 
 // PUT (update) an existing maintenance task
 export async function PUT(req: NextRequest) {
-  if (!adminFirestore) {
-    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  if (firebaseAdminInitError) {
+    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
+    return NextResponse.json({ 
+      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
+      details: firebaseAdminInitError.message
+    }, { status: 503 });
   }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
@@ -109,8 +122,12 @@ export async function PUT(req: NextRequest) {
 
 // DELETE a maintenance task
 export async function DELETE(req: NextRequest) {
-  if (!adminFirestore) {
-    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  if (firebaseAdminInitError) {
+    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
+    return NextResponse.json({ 
+      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
+      details: firebaseAdminInitError.message
+    }, { status: 503 });
   }
   const { uid, error } = await verifyUser(req);
   if (error) return error;

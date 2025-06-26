@@ -2,7 +2,7 @@
 // src/app/api/stripe-webhook/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import Stripe from 'stripe';
-import { admin, adminFirestore } from '@/lib/firebase-admin'; // Import Firebase Admin initialized instances
+import { admin, adminFirestore, firebaseAdminInitError } from '@/lib/firebase-admin'; // Import Firebase Admin initialized instances
 import type { UserProfile, SubscriptionTier } from '@/types/auth'; // Import UserProfile
 
 // Initialize Stripe with your secret key
@@ -20,6 +20,13 @@ if (stripeSecretKey) {
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 export async function POST(req: NextRequest) {
+  if (firebaseAdminInitError) {
+    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
+    return NextResponse.json({ 
+      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
+      details: firebaseAdminInitError.message
+    }, { status: 503 });
+  }
   if (!stripe) {
     console.error("Webhook Error: Stripe is not configured on the server (STRIPE_SECRET_KEY missing at runtime).");
     return NextResponse.json({ error: 'Stripe is not configured on the server.' }, { status: 500 });
@@ -27,11 +34,6 @@ export async function POST(req: NextRequest) {
   if (!webhookSecret) {
     console.error("Webhook Error: Stripe webhook secret is not configured (STRIPE_WEBHOOK_SECRET missing at runtime).");
     return NextResponse.json({ error: 'Stripe webhook secret is not configured.' }, { status: 500 });
-  }
-  
-  if (!adminFirestore) {
-    console.error("Webhook Error: Firestore Admin SDK not initialized at start of request.");
-    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
   }
 
   const sig = req.headers.get('stripe-signature');

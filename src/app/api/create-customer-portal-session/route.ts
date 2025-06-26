@@ -2,7 +2,7 @@
 // src/app/api/create-customer-portal-session/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { adminFirestore } from '@/lib/firebase-admin'; // Import Firebase Admin initialized Firestore
+import { adminFirestore, firebaseAdminInitError } from '@/lib/firebase-admin'; // Import Firebase Admin initialized Firestore
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 let stripe: Stripe;
@@ -16,14 +16,17 @@ if (stripeSecretKey) {
 }
 
 export async function POST(req: NextRequest) {
+  if (firebaseAdminInitError) {
+    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
+    return NextResponse.json({ 
+      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
+      details: firebaseAdminInitError.message
+    }, { status: 503 });
+  }
+
   if (!stripe) {
     console.error('Create Customer Portal Session: Stripe is not configured or STRIPE_SECRET_KEY is missing.');
     return NextResponse.json({ error: 'Stripe configuration error on server.' }, { status: 500 });
-  }
-  
-  if (!adminFirestore) {
-    console.error('Create Customer Portal Session: Firestore Admin SDK not initialized.');
-    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
   }
 
   try {

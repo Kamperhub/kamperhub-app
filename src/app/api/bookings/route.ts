@@ -1,7 +1,7 @@
 
 // src/app/api/bookings/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { admin, adminFirestore } from '@/lib/firebase-admin';
+import { admin, adminFirestore, firebaseAdminInitError } from '@/lib/firebase-admin';
 import type { BookingEntry } from '@/types/booking';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { z, ZodError } from 'zod';
@@ -53,9 +53,14 @@ const updateBookingSchema = createBookingSchema.extend({
 
 // GET all bookings for the authenticated user
 export async function GET(req: NextRequest) {
-  if (!adminFirestore) {
-    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  if (firebaseAdminInitError) {
+    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
+    return NextResponse.json({ 
+      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
+      details: firebaseAdminInitError.message
+    }, { status: 503 });
   }
+
   const { uid, error } = await verifyUser(req);
   if (error) return error;
 
@@ -71,8 +76,12 @@ export async function GET(req: NextRequest) {
 
 // POST a new booking for the authenticated user
 export async function POST(req: NextRequest) {
-  if (!adminFirestore) {
-    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  if (firebaseAdminInitError) {
+    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
+    return NextResponse.json({ 
+      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
+      details: firebaseAdminInitError.message
+    }, { status: 503 });
   }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
@@ -131,8 +140,12 @@ export async function POST(req: NextRequest) {
 
 // PUT (update) an existing booking for the authenticated user
 export async function PUT(req: NextRequest) {
-  if (!adminFirestore) {
-    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  if (firebaseAdminInitError) {
+    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
+    return NextResponse.json({ 
+      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
+      details: firebaseAdminInitError.message
+    }, { status: 503 });
   }
   const { uid, error } = await verifyUser(req);
   if (error) return error;
@@ -204,8 +217,12 @@ export async function PUT(req: NextRequest) {
 
 // DELETE a booking for the authenticated user
 export async function DELETE(req: NextRequest) {
-  if (!adminFirestore) {
-    return NextResponse.json({ error: 'Server configuration error: Database service is not available.' }, { status: 503 });
+  if (firebaseAdminInitError) {
+    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
+    return NextResponse.json({ 
+      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
+      details: firebaseAdminInitError.message
+    }, { status: 503 });
   }
   const { uid, error } = await verifyUser(req);
   if (error) return error;

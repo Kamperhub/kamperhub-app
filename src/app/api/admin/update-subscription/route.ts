@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { admin, adminFirestore } from '@/lib/firebase-admin';
+import { admin, adminFirestore, firebaseAdminInitError } from '@/lib/firebase-admin';
 import type { UserProfile, SubscriptionTier } from '@/types/auth';
 import { z, ZodError } from 'zod';
 
@@ -13,6 +13,14 @@ const updateSubscriptionSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  if (firebaseAdminInitError) {
+    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
+    return NextResponse.json({ 
+      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
+      details: firebaseAdminInitError.message
+    }, { status: 503 });
+  }
+
   if (!adminFirestore || !admin.auth) {
     console.error('API Error: Admin SDK not properly initialized. Firestore or Auth service is unavailable.');
     return NextResponse.json({ error: 'Server configuration error: Admin services are not available.' }, { status: 503 });
@@ -116,6 +124,7 @@ export async function GET() {
     adminSDKStatus: adminSDKInitialized ? "Initialized" : "Not Initialized or Error",
     serviceAccountEnvVarSet: !!serviceAccountJsonString,
     firestoreStatus: adminFirestore ? "Initialized" : "Not Initialized or Error",
+    initializationError: firebaseAdminInitError ? firebaseAdminInitError.message : null
   });
 }
     
