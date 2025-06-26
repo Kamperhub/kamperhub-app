@@ -1,6 +1,9 @@
 
 # Firebase & Backend Setup Checklist
 
+> [!WARNING]
+> **VERY IMPORTANT:** This AI assistant may sometimes overwrite your manual changes to code files, especially `src/lib/firebase.ts`. After adding your API key below, **please do not ask the AI to make further changes to `src/lib/firebase.ts`**. If the key seems to "disappear" after a change, please re-add it to the file and notify the AI of the issue.
+
 This guide provides a step-by-step checklist to ensure your Firebase project and environment variables are configured correctly.
 
 **Please follow these steps carefully to ensure a stable backend.**
