@@ -20,7 +20,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 let app: FirebaseApp;
-if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "AIzaSyDislaqwT2blN_zaj6rF4qJj8rs6eGiCJE") {
   app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 } else {
   console.error("Firebase configuration is missing or incomplete. Please add your API Key to src/lib/firebase.ts");
@@ -38,19 +38,26 @@ if (typeof window !== 'undefined' && app.options?.apiKey) {
     console.error("Failed to initialize Firebase Analytics:", error);
   }
 
-  if (process.env.NODE_ENV === 'development') {
-    (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    console.log('[Firebase Client] App Check debug mode is enabled. You can now generate a debug token in the browser console.');
-  }
-
   const reCaptchaKey = process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY;
   if(reCaptchaKey) {
       try {
+        // If a debug token is provided via environment variable, use it directly.
+        if (process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN) {
+          (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN;
+          console.log('[Firebase Client] App Check using debug token from environment variable.');
+        } else if (process.env.NODE_ENV === 'development') {
+          // If no specific debug token is set but we are in development,
+          // then activate the SDK's internal debug token generation.
+          (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+          console.log('[Firebase Client] App Check debug mode is enabled. A debug token might be generated in the browser console.');
+        }
+
         appCheck = initializeAppCheck(app, {
           provider: new ReCaptchaEnterpriseProvider(reCaptchaKey),
           isTokenAutoRefreshEnabled: true
         });
         console.log('[Firebase Client] App Check initialized.');
+
       } catch (error) {
         console.error("[Firebase Client] CRITICAL: Error initializing App Check:", error);
       }
