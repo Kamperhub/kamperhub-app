@@ -14,7 +14,7 @@ interface SubscriptionContextType {
   trialEndsAt: string | null;
   setSubscriptionDetails: (tier: SubscriptionTier, customerId?: string | null, trialEnds?: string | null) => void;
   isLoading: boolean;
-  hasProAccess: boolean; // Renamed from isProTier
+  hasProAccess: boolean;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -25,7 +25,6 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const [trialEndsAt, setTrialEndsAtState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // When details are set via this function (e.g., after profile load), loading is complete.
   const setSubscriptionDetails = useCallback((tier: SubscriptionTier, customerId?: string | null, trialEnds?: string | null) => {
     setSubscriptionTierState(tier);
     if (customerId !== undefined) { 

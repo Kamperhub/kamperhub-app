@@ -14,7 +14,7 @@ import { format, parseISO, isFuture } from 'date-fns';
 import type { UserProfile } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, CalendarClock, UserCog } from 'lucide-react';
+import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, CalendarClock, UserCog, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -25,14 +25,14 @@ const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export default function MyAccountPage() {
   const { user: firebaseUser, isAuthLoading } = useAuth();
+  const { setSubscriptionDetails, hasProAccess, subscriptionTier, stripeCustomerId, trialEndsAt } = useSubscription();
+
   const [userProfile, setUserProfile] = useState<Partial<UserProfile>>({});
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
   const [isRedirectingToPortal, setIsRedirectingToPortal] = useState(false);
-  
-  const { subscriptionTier, stripeCustomerId, trialEndsAt, setSubscriptionDetails, hasProAccess } = useSubscription();
   
   const router = useRouter();
   const { toast } = useToast();
@@ -45,39 +45,36 @@ export default function MyAccountPage() {
 
   useEffect(() => {
     if (firebaseUser) {
-      const fetchProfile = async () => {
-        setIsProfileLoading(true);
-        try {
-          const userDocRef = doc(db, "users", firebaseUser.uid);
-          const docSnap = await getDoc(userDocRef);
-
-          if (docSnap.exists()) {
-            const profileData = docSnap.data() as UserProfile;
-            setUserProfile(profileData);
-            setSubscriptionDetails(
-              profileData.subscriptionTier || 'free', 
-              profileData.stripeCustomerId || null,
-              profileData.trialEndsAt || null
-            );
-          } else {
-            console.warn("No Firestore profile document found for user:", firebaseUser.uid);
-            setUserProfile({ email: firebaseUser.email, displayName: firebaseUser.displayName });
-            setSubscriptionDetails('free', null, null); 
-          }
-        } catch (error: any) {
-          console.error("Error fetching user profile from Firestore:", error);
-          toast({ 
-            title: "Error Loading Profile", 
-            description: `Could not load your profile data. Please try refreshing.`,
-            variant: "destructive",
-          });
-        } finally {
-          setIsProfileLoading(false);
+      setIsProfileLoading(true);
+      const userDocRef = doc(db, "users", firebaseUser.uid);
+      getDoc(userDocRef).then(docSnap => {
+        if (docSnap.exists()) {
+          const profileData = docSnap.data() as UserProfile;
+          setUserProfile(profileData);
+          setSubscriptionDetails(
+            profileData.subscriptionTier || 'free', 
+            profileData.stripeCustomerId || null,
+            profileData.trialEndsAt || null
+          );
+        } else {
+          console.warn("No Firestore profile document found for user:", firebaseUser.uid);
+          setUserProfile({ email: firebaseUser.email, displayName: firebaseUser.displayName });
+          setSubscriptionDetails('free', null, null); 
         }
-      };
-      fetchProfile();
+      }).catch(error => {
+        console.error("Error fetching user profile from Firestore:", error);
+        toast({ 
+          title: "Error Loading Profile", 
+          description: `Could not load your profile data. Please try refreshing.`,
+          variant: "destructive",
+        });
+      }).finally(() => {
+        setIsProfileLoading(false);
+      });
+    } else if (!isAuthLoading) {
+        setIsProfileLoading(false);
     }
-  }, [firebaseUser, setSubscriptionDetails, toast]);
+  }, [firebaseUser, isAuthLoading, setSubscriptionDetails, toast]);
 
 
   const handleLogout = async () => {
@@ -126,7 +123,6 @@ export default function MyAccountPage() {
       if(updatedUserDoc.exists()){
           setUserProfile(updatedUserDoc.data());
       }
-      // Re-sync local firebaseUser object after profile update
       if (auth.currentUser) {
         await auth.currentUser.reload();
       }
@@ -163,7 +159,6 @@ export default function MyAccountPage() {
     }
   };
 
-
   const handleSubscribeToPro = async () => {
     if (!firebaseUser || !firebaseUser.email) {
       toast({ title: "Error", description: "You must be logged in to subscribe.", variant: "destructive" });
@@ -182,15 +177,7 @@ export default function MyAccountPage() {
       });
       const session = await response.json();
       if (response.ok && session.url) {
-        const newWindow = window.open(session.url, '_blank', 'noopener,noreferrer');
-        if (!newWindow) {
-           toast({ 
-            title: "Stripe Page Ready", 
-            description: "Attempting to open Stripe Checkout. If it doesn't appear automatically, please check if your browser blocked a popup or look for a new tab/window.", 
-            variant: "default", 
-            duration: 10000 
-          });
-        }
+        window.location.href = session.url;
       } else {
         toast({ title: "Subscription Error", description: session.error || "Could not initiate subscription. Please try again.", variant: "destructive" });
       }
@@ -242,8 +229,6 @@ export default function MyAccountPage() {
   }
 
   if (!firebaseUser) {
-    // This case should ideally not be reached due to the redirect in useEffect,
-    // but it's good practice as a fallback.
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
         <p>Redirecting to login...</p>
@@ -372,18 +357,11 @@ export default function MyAccountPage() {
             
             {subscriptionTier !== 'pro' && ( 
               <div className="mt-4">
-                <Alert variant="default" className="mb-3">
-                  <Info className="h-4 w-4" />
-                  <AlertTitle className="font-headline">Stripe Checkout & Security Tip</AlertTitle>
+                 <Alert variant="destructive" className="mb-3">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle className="font-headline">Stripe Security & Pop-up Blockers</AlertTitle>
                   <AlertDescription className="font-body text-sm">
-                    If the Stripe payment page doesn't open correctly (e.g., blank screen), if CAPTCHA challenges (like hCaptcha) are not working, or if you encounter unexpected errors submitting payment:
-                    <ul className="list-disc pl-5 mt-1 space-y-0.5">
-                      <li>Aggressive security software (e.g., Kaspersky Safe Money, other antivirus web protection features) or browser extensions (ad blockers, privacy tools) might be interfering.</li>
-                      <li>Consider adding an exception for <code>checkout.stripe.com</code> and <code>js.stripe.com</code> in your security software/extensions.</li>
-                      <li>Alternatively, temporarily disabling such tools for the payment process can help diagnose the issue.</li>
-                      <li>Using an Incognito/Private browser window (which often disables extensions) is a good troubleshooting step.</li>
-                      <li>Ensure your browser allows pop-ups from Stripe for any authentication steps.</li>
-                    </ul>
+                    If the Stripe payment page doesn't open or appears blank, please temporarily disable browser extensions (like ad blockers or privacy tools) or security software that might be interfering. Using an Incognito/Private window can also help.
                   </AlertDescription>
                 </Alert>
                 <Button

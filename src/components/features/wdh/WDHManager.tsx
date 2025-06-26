@@ -44,13 +44,13 @@ export function WDHManager() {
   const { data: wdhs = [], isLoading: isLoadingWdhs, error: wdhsError } = useQuery<StoredWDH[]>({
     queryKey: ['wdhs', user?.uid],
     queryFn: fetchWdhs,
-    enabled: !!user,
+    enabled: !!user && !isAuthLoading,
   });
 
   const { data: userPrefs, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
     queryFn: fetchUserPreferences,
-    enabled: !!user,
+    enabled: !!user && !isAuthLoading,
   });
 
   const activeWdhId = userPrefs?.activeWdhId;

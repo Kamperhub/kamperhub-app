@@ -110,7 +110,6 @@ const FirebaseErrorState = ({ error }: { error: string }) => (
     </div>
 );
 
-
 export default function DashboardPage() {
   const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>([]);
   const [isMobileView, setIsMobileView] = useState(false);
@@ -120,10 +119,10 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: userPrefs, isLoading: isLoadingLayout, error: prefsError } = useQuery<Partial<UserProfile>>({
+  const { data: userPrefs, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', firebaseUser?.uid],
     queryFn: fetchUserPreferences,
-    enabled: !!firebaseUser,
+    enabled: !!firebaseUser && !isAuthLoading,
   });
 
   const updateUserPrefsMutation = useMutation({
@@ -171,11 +170,10 @@ export default function DashboardPage() {
       } else {
         setOrderedNavItems(mainPageNavItems);
       }
-    } else if (!isLoadingLayout) {
+    } else if (!isLoadingPrefs) {
       setOrderedNavItems(defaultNavItems);
     }
-  }, [userPrefs, isLoadingLayout]);
-
+  }, [userPrefs, isLoadingPrefs]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -204,7 +202,7 @@ export default function DashboardPage() {
       return <FirebaseErrorState error={firebaseInitializationError} />;
   }
   
-  const isLoading = isAuthLoading || isLoadingLayout;
+  const isLoading = isAuthLoading || isLoadingPrefs;
 
   if (isLoading) {
      return <DashboardSkeleton loadingText={isAuthLoading ? 'Authenticating...' : 'Loading your personalized dashboard...'} />;

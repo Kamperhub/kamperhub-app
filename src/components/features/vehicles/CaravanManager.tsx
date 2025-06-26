@@ -48,19 +48,19 @@ export function CaravanManager() {
   const { data: caravans = [], isLoading: isLoadingCaravans, error: caravansError } = useQuery<StoredCaravan[]>({
     queryKey: ['caravans', user?.uid],
     queryFn: fetchCaravans,
-    enabled: !!user,
+    enabled: !!user && !isAuthLoading,
   });
 
   const { data: allWdhs = [] } = useQuery<StoredWDH[]>({
     queryKey: ['wdhs', user?.uid],
     queryFn: fetchWdhs,
-    enabled: !!user,
+    enabled: !!user && !isAuthLoading,
   });
 
   const { data: userPrefs, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
     queryFn: fetchUserPreferences,
-    enabled: !!user,
+    enabled: !!user && !isAuthLoading,
   });
 
   const activeCaravanId = userPrefs?.activeCaravanId;

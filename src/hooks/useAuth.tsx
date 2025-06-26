@@ -18,7 +18,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
-    // If Firebase itself failed to initialize, there's no point in listening for auth state.
     if (firebaseInitializationError) {
       setIsAuthLoading(false);
       return;

@@ -45,13 +45,13 @@ export function VehicleManager() {
   const { data: vehicles = [], isLoading: isLoadingVehicles, error: vehiclesError } = useQuery<StoredVehicle[]>({
     queryKey: ['vehicles', user?.uid],
     queryFn: fetchVehicles,
-    enabled: !!user,
+    enabled: !!user && !isAuthLoading,
   });
 
   const { data: userPrefs, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
     queryFn: fetchUserPreferences,
-    enabled: !!user,
+    enabled: !!user && !isAuthLoading,
   });
   
   const activeVehicleId = userPrefs?.activeVehicleId;
