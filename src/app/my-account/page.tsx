@@ -25,7 +25,7 @@ const ADMIN_EMAIL = 'info@kamperhub.com';
 export default function MyAccountPage() {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<Partial<UserProfile>>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Single loading state
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
@@ -37,6 +37,7 @@ export default function MyAccountPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // This is the single source of truth for auth state changes.
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setFirebaseUser(user);
@@ -65,15 +66,18 @@ export default function MyAccountPage() {
             variant: "destructive",
           });
         } finally {
-          setIsLoading(false);
+          // Only stop loading once auth is checked AND profile is fetched.
+          setIsLoading(false); 
         }
       } else {
+        // No user is logged in.
         router.push('/login');
       }
     });
 
     return () => unsubscribe();
-  }, [router, toast, setSubscriptionDetails]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
 
   const handleLogout = async () => {
