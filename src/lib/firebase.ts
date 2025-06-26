@@ -39,12 +39,8 @@ if (typeof window !== 'undefined' && app.options?.apiKey) {
   }
 
   if (process.env.NODE_ENV === 'development') {
-    if (process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN) {
-      (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN;
-      console.log('[Firebase Client] App Check debug token has been set.');
-    } else {
-      console.warn("[Firebase Client] NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN is not set. App Check may fail in local development.");
-    }
+    (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    console.log('[Firebase Client] App Check debug mode is enabled. You can now generate a debug token in the browser console.');
   }
 
   const reCaptchaKey = process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY;
