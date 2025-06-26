@@ -20,17 +20,14 @@ if (stripeSecretKey) {
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 export async function POST(req: NextRequest) {
-  if (firebaseAdminInitError) {
-    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
-    return NextResponse.json({ 
-      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
-      details: firebaseAdminInitError.message
+  if (firebaseAdminInitError || !adminFirestore) {
+    console.error('API Route Error: Firebase Admin SDK not available.', firebaseAdminInitError);
+    return NextResponse.json({
+      error: 'Server configuration error: The connection to the database service is not available. Please check server logs for details about GOOGLE_APPLICATION_CREDENTIALS_JSON.',
+      details: firebaseAdminInitError?.message || "Firebase Admin SDK services are not initialized."
     }, { status: 503 });
   }
-   if (!adminFirestore) {
-    console.error('API Error: Admin SDK not properly initialized. Firestore service is unavailable.');
-    return NextResponse.json({ error: 'Server configuration error: Firestore service is not available.' }, { status: 503 });
-  }
+
   if (!stripe) {
     console.error("Webhook Error: Stripe is not configured on the server (STRIPE_SECRET_KEY missing at runtime).");
     return NextResponse.json({ error: 'Stripe is not configured on the server.' }, { status: 500 });

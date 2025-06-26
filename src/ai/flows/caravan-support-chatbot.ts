@@ -282,6 +282,15 @@ export async function caravanSupportChatbot(
   input: CaravanSupportChatbotInput,
   userId: string,
 ): Promise<CaravanSupportChatbotOutput> {
+  // Add the guard clause at the entry point of the exported function
+  if (firebaseAdminInitError || !adminFirestore) {
+      console.error("Critical: Cannot run caravanSupportChatbot because Firebase Admin SDK failed to initialize.", firebaseAdminInitError);
+      return { 
+        answer: "I'm sorry, I'm unable to connect to the main database right now due to a server configuration issue. My ability to answer questions about your specific data is limited. Please contact support.", 
+        youtubeLink: null,
+        relatedArticleTitle: null,
+      };
+  }
   return caravanSupportChatbotFlow({ ...input, userId });
 }
 
@@ -329,6 +338,7 @@ const caravanSupportChatbotFlow = ai.defineFlow(
     outputSchema: CaravanSupportChatbotOutputSchema,
   },
   async (input): Promise<CaravanSupportChatbotOutput> => {
+    // This check is good, but the one in the exported function is the primary guard.
     if (firebaseAdminInitError) {
       console.error("Critical: Cannot run caravanSupportChatbotFlow because Firebase Admin SDK failed to initialize.", firebaseAdminInitError);
       return { 

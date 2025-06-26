@@ -13,17 +13,12 @@ const updateSubscriptionSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  if (firebaseAdminInitError) {
-    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
-    return NextResponse.json({ 
-      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
-      details: firebaseAdminInitError.message
+  if (firebaseAdminInitError || !adminFirestore || !admin.auth()) {
+    console.error('API Route Error: Firebase Admin SDK not available.', firebaseAdminInitError);
+    return NextResponse.json({
+      error: 'Server configuration error: The connection to the database or authentication service is not available. Please check server logs for details about GOOGLE_APPLICATION_CREDENTIALS_JSON.',
+      details: firebaseAdminInitError?.message || "Firebase Admin SDK services are not initialized."
     }, { status: 503 });
-  }
-
-  if (!adminFirestore || !admin.auth) {
-    console.error('API Error: Admin SDK not properly initialized. Firestore or Auth service is unavailable.');
-    return NextResponse.json({ error: 'Server configuration error: Admin services are not available.' }, { status: 503 });
   }
 
   try {

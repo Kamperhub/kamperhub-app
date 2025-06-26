@@ -5,17 +5,29 @@ import { admin, adminFirestore, firebaseAdminInitError } from '@/lib/firebase-ad
 import { z, ZodError } from 'zod';
 import { maintenanceTaskSchema } from '@/types/service';
 
-async function verifyUser(req: NextRequest): Promise<{ uid: string; error?: NextResponse }> {
+async function verifyUserAndSDK(req: NextRequest): Promise<{ uid?: string; errorResponse?: NextResponse }> {
+  if (firebaseAdminInitError || !adminFirestore || !admin.auth()) {
+    console.error('API Route Error: Firebase Admin SDK not available.', firebaseAdminInitError);
+    return {
+      errorResponse: NextResponse.json({
+        error: 'Server configuration error: The connection to the database or authentication service is not available. Please check server logs for details about GOOGLE_APPLICATION_CREDENTIALS_JSON.',
+        details: firebaseAdminInitError?.message || "Firebase Admin SDK services are not initialized."
+      }, { status: 503 })
+    };
+  }
+  
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { uid: '', error: NextResponse.json({ error: 'Unauthorized: Missing Authorization header.' }, { status: 401 }) };
+    return { errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
+
   try {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     return { uid: decodedToken.uid };
   } catch (error: any) {
-    return { uid: '', error: NextResponse.json({ error: 'Unauthorized: Invalid ID token.' }, { status: 401 }) };
+    console.error('Error verifying Firebase ID token:', { message: error.message, code: error.code });
+    return { errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message, errorCode: error.code }, { status: 401 }) };
   }
 }
 
@@ -24,25 +36,14 @@ const updateMaintenanceTaskSchema = maintenanceTaskSchema.omit({ timestamp: true
 
 // GET all maintenance tasks for a user, optionally filtered by assetId
 export async function GET(req: NextRequest) {
-  if (firebaseAdminInitError) {
-    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
-    return NextResponse.json({ 
-      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
-      details: firebaseAdminInitError.message
-    }, { status: 503 });
-  }
-   if (!adminFirestore || !admin.auth) {
-    console.error('API Error: Admin SDK not properly initialized. Firestore or Auth service is unavailable.');
-    return NextResponse.json({ error: 'Server configuration error: Admin services are not available.' }, { status: 503 });
-  }
-  const { uid, error } = await verifyUser(req);
-  if (error) return error;
+  const { uid, errorResponse } = await verifyUserAndSDK(req);
+  if (errorResponse) return errorResponse;
 
   const assetId = req.nextUrl.searchParams.get('assetId');
   
   try {
-    let query: admin.firestore.Query = adminFirestore
-      .collection('users').doc(uid)
+    let query: admin.firestore.Query = adminFirestore!
+      .collection('users').doc(uid!)
       .collection('maintenanceTasks');
 
     if (assetId) {
@@ -60,26 +61,15 @@ export async function GET(req: NextRequest) {
 
 // POST a new maintenance task
 export async function POST(req: NextRequest) {
-  if (firebaseAdminInitError) {
-    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
-    return NextResponse.json({ 
-      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
-      details: firebaseAdminInitError.message
-    }, { status: 503 });
-  }
-   if (!adminFirestore || !admin.auth) {
-    console.error('API Error: Admin SDK not properly initialized. Firestore or Auth service is unavailable.');
-    return NextResponse.json({ error: 'Server configuration error: Admin services are not available.' }, { status: 503 });
-  }
-  const { uid, error } = await verifyUser(req);
-  if (error) return error;
+  const { uid, errorResponse } = await verifyUserAndSDK(req);
+  if (errorResponse) return errorResponse;
 
   try {
     const body = await req.json();
     const parsedData = createMaintenanceTaskSchema.parse(body);
 
-    const newTaskRef = adminFirestore
-      .collection('users').doc(uid)
+    const newTaskRef = adminFirestore!
+      .collection('users').doc(uid!)
       .collection('maintenanceTasks').doc();
       
     const newTask = {
@@ -100,26 +90,15 @@ export async function POST(req: NextRequest) {
 
 // PUT (update) an existing maintenance task
 export async function PUT(req: NextRequest) {
-  if (firebaseAdminInitError) {
-    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
-    return NextResponse.json({ 
-      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
-      details: firebaseAdminInitError.message
-    }, { status: 503 });
-  }
-   if (!adminFirestore || !admin.auth) {
-    console.error('API Error: Admin SDK not properly initialized. Firestore or Auth service is unavailable.');
-    return NextResponse.json({ error: 'Server configuration error: Admin services are not available.' }, { status: 503 });
-  }
-  const { uid, error } = await verifyUser(req);
-  if (error) return error;
+  const { uid, errorResponse } = await verifyUserAndSDK(req);
+  if (errorResponse) return errorResponse;
   
   try {
     const body = await req.json();
     const parsedData = updateMaintenanceTaskSchema.parse(body);
 
-    const taskRef = adminFirestore
-      .collection('users').doc(uid)
+    const taskRef = adminFirestore!
+      .collection('users').doc(uid!)
       .collection('maintenanceTasks').doc(parsedData.id);
       
     await taskRef.set(parsedData, { merge: true });
@@ -134,19 +113,8 @@ export async function PUT(req: NextRequest) {
 
 // DELETE a maintenance task
 export async function DELETE(req: NextRequest) {
-  if (firebaseAdminInitError) {
-    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
-    return NextResponse.json({ 
-      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
-      details: firebaseAdminInitError.message
-    }, { status: 503 });
-  }
-   if (!adminFirestore || !admin.auth) {
-    console.error('API Error: Admin SDK not properly initialized. Firestore or Auth service is unavailable.');
-    return NextResponse.json({ error: 'Server configuration error: Admin services are not available.' }, { status: 503 });
-  }
-  const { uid, error } = await verifyUser(req);
-  if (error) return error;
+  const { uid, errorResponse } = await verifyUserAndSDK(req);
+  if (errorResponse) return errorResponse;
 
   try {
     const { id } = await req.json();
@@ -154,8 +122,8 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Task ID is required for deletion.' }, { status: 400 });
     }
     
-    await adminFirestore
-        .collection('users').doc(uid)
+    await adminFirestore!
+        .collection('users').doc(uid!)
         .collection('maintenanceTasks').doc(id)
         .delete();
         

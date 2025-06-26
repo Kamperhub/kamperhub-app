@@ -5,6 +5,32 @@ import { admin, adminFirestore, firebaseAdminInitError } from '@/lib/firebase-ad
 import type { VehicleFormData, StoredVehicle } from '@/types/vehicle';
 import { z, ZodError } from 'zod';
 
+async function verifyUserAndSDK(req: NextRequest): Promise<{ uid?: string; errorResponse?: NextResponse }> {
+  if (firebaseAdminInitError || !adminFirestore || !admin.auth()) {
+    console.error('API Route Error: Firebase Admin SDK not available.', firebaseAdminInitError);
+    return {
+      errorResponse: NextResponse.json({
+        error: 'Server configuration error: The connection to the database or authentication service is not available. Please check server logs for details about GOOGLE_APPLICATION_CREDENTIALS_JSON.',
+        details: firebaseAdminInitError?.message || "Firebase Admin SDK services are not initialized."
+      }, { status: 503 })
+    };
+  }
+  
+  const authorizationHeader = req.headers.get('Authorization');
+  if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
+    return { errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+  }
+  const idToken = authorizationHeader.split('Bearer ')[1];
+
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    return { uid: decodedToken.uid };
+  } catch (error: any) {
+    console.error('Error verifying Firebase ID token:', { message: error.message, code: error.code });
+    return { errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message, errorCode: error.code }, { status: 401 }) };
+  }
+}
+
 // Zod schema for validating a new vehicle (doesn't have an ID yet)
 const createVehicleSchema = z.object({
   make: z.string().min(1, "Make is required"),
@@ -27,45 +53,13 @@ const updateVehicleSchema = createVehicleSchema.extend({
   id: z.string().min(1, "Vehicle ID is required for updates"),
 });
 
-
-async function verifyUser(req: NextRequest): Promise<{ uid: string; error?: NextResponse }> {
-  const authorizationHeader = req.headers.get('Authorization');
-  if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { uid: '', error: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
-  }
-  const idToken = authorizationHeader.split('Bearer ')[1];
-
-  try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    return { uid: decodedToken.uid };
-  } catch (error: any) {
-    console.error('Error verifying Firebase ID token:', error);
-    console.error('Firebase ID token verification error details:', {
-        message: error.message,
-        code: error.code, // This can be very informative
-    });
-    return { uid: '', error: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message, errorCode: error.code }, { status: 401 }) };
-  }
-}
-
 // GET all vehicles for the authenticated user
 export async function GET(req: NextRequest) {
-  if (firebaseAdminInitError) {
-    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
-    return NextResponse.json({ 
-      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
-      details: firebaseAdminInitError.message
-    }, { status: 503 });
-  }
-   if (!adminFirestore || !admin.auth) {
-    console.error('API Error: Admin SDK not properly initialized. Firestore or Auth service is unavailable.');
-    return NextResponse.json({ error: 'Server configuration error: Admin services are not available.' }, { status: 503 });
-  }
-  const { uid, error } = await verifyUser(req);
-  if (error) return error;
+  const { uid, errorResponse } = await verifyUserAndSDK(req);
+  if (errorResponse) return errorResponse;
 
   try {
-    const vehiclesSnapshot = await adminFirestore.collection('users').doc(uid).collection('vehicles').get();
+    const vehiclesSnapshot = await adminFirestore!.collection('users').doc(uid!).collection('vehicles').get();
     const vehicles = vehiclesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as StoredVehicle[];
     return NextResponse.json(vehicles, { status: 200 });
   } catch (err: any) {
@@ -76,25 +70,14 @@ export async function GET(req: NextRequest) {
 
 // POST a new vehicle for the authenticated user
 export async function POST(req: NextRequest) {
-  if (firebaseAdminInitError) {
-    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
-    return NextResponse.json({ 
-      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
-      details: firebaseAdminInitError.message
-    }, { status: 503 });
-  }
-   if (!adminFirestore || !admin.auth) {
-    console.error('API Error: Admin SDK not properly initialized. Firestore or Auth service is unavailable.');
-    return NextResponse.json({ error: 'Server configuration error: Admin services are not available.' }, { status: 503 });
-  }
-  const { uid, error } = await verifyUser(req);
-  if (error) return error;
+  const { uid, errorResponse } = await verifyUserAndSDK(req);
+  if (errorResponse) return errorResponse;
 
   try {
     const body = await req.json();
     const parsedData = createVehicleSchema.parse(body);
 
-    const newVehicleRef = adminFirestore.collection('users').doc(uid).collection('vehicles').doc();
+    const newVehicleRef = adminFirestore!.collection('users').doc(uid!).collection('vehicles').doc();
     const newVehicle: StoredVehicle = {
       id: newVehicleRef.id,
       ...parsedData,
@@ -115,25 +98,14 @@ export async function POST(req: NextRequest) {
 
 // PUT (update) an existing vehicle for the authenticated user
 export async function PUT(req: NextRequest) {
-  if (firebaseAdminInitError) {
-    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
-    return NextResponse.json({ 
-      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
-      details: firebaseAdminInitError.message
-    }, { status: 503 });
-  }
-   if (!adminFirestore || !admin.auth) {
-    console.error('API Error: Admin SDK not properly initialized. Firestore or Auth service is unavailable.');
-    return NextResponse.json({ error: 'Server configuration error: Admin services are not available.' }, { status: 503 });
-  }
-  const { uid, error } = await verifyUser(req);
-  if (error) return error;
+  const { uid, errorResponse } = await verifyUserAndSDK(req);
+  if (errorResponse) return errorResponse;
   
   try {
     const body: StoredVehicle = await req.json();
     const parsedData = updateVehicleSchema.parse(body);
 
-    const vehicleRef = adminFirestore.collection('users').doc(uid).collection('vehicles').doc(parsedData.id);
+    const vehicleRef = adminFirestore!.collection('users').doc(uid!).collection('vehicles').doc(parsedData.id);
     await vehicleRef.set(parsedData, { merge: true }); // Use set with merge to update or create if not exists
     
     return NextResponse.json({ message: 'Vehicle updated successfully.', vehicle: parsedData }, { status: 200 });
@@ -148,19 +120,8 @@ export async function PUT(req: NextRequest) {
 
 // DELETE a vehicle for the authenticated user
 export async function DELETE(req: NextRequest) {
-  if (firebaseAdminInitError) {
-    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
-    return NextResponse.json({ 
-      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
-      details: firebaseAdminInitError.message
-    }, { status: 503 });
-  }
-   if (!adminFirestore || !admin.auth) {
-    console.error('API Error: Admin SDK not properly initialized. Firestore or Auth service is unavailable.');
-    return NextResponse.json({ error: 'Server configuration error: Admin services are not available.' }, { status: 503 });
-  }
-  const { uid, error } = await verifyUser(req);
-  if (error) return error;
+  const { uid, errorResponse } = await verifyUserAndSDK(req);
+  if (errorResponse) return errorResponse;
 
   try {
     const { id } = await req.json();
@@ -168,7 +129,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Vehicle ID is required.' }, { status: 400 });
     }
     
-    await adminFirestore.collection('users').doc(uid).collection('vehicles').doc(id).delete();
+    await adminFirestore!.collection('users').doc(uid!).collection('vehicles').doc(id).delete();
     
     return NextResponse.json({ message: 'Vehicle deleted successfully.' }, { status: 200 });
   } catch (err: any) {

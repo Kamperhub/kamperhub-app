@@ -5,6 +5,32 @@ import { admin, adminFirestore, firebaseAdminInitError } from '@/lib/firebase-ad
 import type { InventoryItem } from '@/types/inventory';
 import { z, ZodError } from 'zod';
 
+async function verifyUserAndSDK(req: NextRequest): Promise<{ uid?: string; errorResponse?: NextResponse }> {
+  if (firebaseAdminInitError || !adminFirestore || !admin.auth()) {
+    console.error('API Route Error: Firebase Admin SDK not available.', firebaseAdminInitError);
+    return {
+      errorResponse: NextResponse.json({
+        error: 'Server configuration error: The connection to the database or authentication service is not available. Please check server logs for details about GOOGLE_APPLICATION_CREDENTIALS_JSON.',
+        details: firebaseAdminInitError?.message || "Firebase Admin SDK services are not initialized."
+      }, { status: 503 })
+    };
+  }
+  
+  const authorizationHeader = req.headers.get('Authorization');
+  if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
+    return { errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+  }
+  const idToken = authorizationHeader.split('Bearer ')[1];
+
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    return { uid: decodedToken.uid };
+  } catch (error: any) {
+    console.error('Error verifying Firebase ID token:', { message: error.message, code: error.code });
+    return { errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message, errorCode: error.code }, { status: 401 }) };
+  }
+}
+
 // Zod schema for validating a single inventory item
 const inventoryItemSchema = z.object({
   id: z.string(),
@@ -19,41 +45,10 @@ const updateInventorySchema = z.object({
   items: z.array(inventoryItemSchema),
 });
 
-async function verifyUser(req: NextRequest): Promise<{ uid: string; error?: NextResponse }> {
-  const authorizationHeader = req.headers.get('Authorization');
-  if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { uid: '', error: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
-  }
-  const idToken = authorizationHeader.split('Bearer ')[1];
-
-  try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    return { uid: decodedToken.uid };
-  } catch (error: any) {
-    console.error('Error verifying Firebase ID token:', error);
-    console.error('Firebase ID token verification error details:', {
-        message: error.message,
-        code: error.code, // This can be very informative
-    });
-    return { uid: '', error: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message, errorCode: error.code }, { status: 401 }) };
-  }
-}
-
 // GET the inventory for a specific caravan
 export async function GET(req: NextRequest, { params }: { params: { caravanId: string } }) {
-  if (firebaseAdminInitError) {
-    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
-    return NextResponse.json({ 
-      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
-      details: firebaseAdminInitError.message
-    }, { status: 503 });
-  }
-   if (!adminFirestore || !admin.auth) {
-    console.error('API Error: Admin SDK not properly initialized. Firestore or Auth service is unavailable.');
-    return NextResponse.json({ error: 'Server configuration error: Admin services are not available.' }, { status: 503 });
-  }
-  const { uid, error } = await verifyUser(req);
-  if (error) return error;
+  const { uid, errorResponse } = await verifyUserAndSDK(req);
+  if (errorResponse) return errorResponse;
 
   const { caravanId } = params;
   if (!caravanId) {
@@ -61,7 +56,7 @@ export async function GET(req: NextRequest, { params }: { params: { caravanId: s
   }
 
   try {
-    const inventoryDocRef = adminFirestore.collection('users').doc(uid).collection('inventories').doc(caravanId);
+    const inventoryDocRef = adminFirestore!.collection('users').doc(uid!).collection('inventories').doc(caravanId);
     const inventoryDocSnap = await inventoryDocRef.get();
 
     if (!inventoryDocSnap.exists()) {
@@ -81,19 +76,8 @@ export async function GET(req: NextRequest, { params }: { params: { caravanId: s
 
 // PUT (create/replace) the inventory for a specific caravan
 export async function PUT(req: NextRequest, { params }: { params: { caravanId: string } }) {
-  if (firebaseAdminInitError) {
-    console.error('API Route Error: Firebase Admin SDK failed to initialize.', firebaseAdminInitError);
-    return NextResponse.json({ 
-      error: 'Server configuration error: The connection to the database failed to initialize. Please check the server logs for details.',
-      details: firebaseAdminInitError.message
-    }, { status: 503 });
-  }
-   if (!adminFirestore || !admin.auth) {
-    console.error('API Error: Admin SDK not properly initialized. Firestore or Auth service is unavailable.');
-    return NextResponse.json({ error: 'Server configuration error: Admin services are not available.' }, { status: 503 });
-  }
-  const { uid, error } = await verifyUser(req);
-  if (error) return error;
+  const { uid, errorResponse } = await verifyUserAndSDK(req);
+  if (errorResponse) return errorResponse;
 
   const { caravanId } = params;
   if (!caravanId) {
@@ -105,7 +89,7 @@ export async function PUT(req: NextRequest, { params }: { params: { caravanId: s
     // The entire body should be an array of items, so we wrap it for schema validation
     const parsedData = updateInventorySchema.parse({ items: body });
 
-    const inventoryDocRef = adminFirestore.collection('users').doc(uid).collection('inventories').doc(caravanId);
+    const inventoryDocRef = adminFirestore!.collection('users').doc(uid!).collection('inventories').doc(caravanId);
     
     // We overwrite the document with the new list of items.
     await inventoryDocRef.set({ items: parsedData.items });
