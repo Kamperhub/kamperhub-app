@@ -6,15 +6,15 @@ import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from "
 import { getAnalytics, type Analytics } from "firebase/analytics";
 
 // This configuration object connects the app to your specific Firebase project.
-// It should be filled with your project's specific details.
+// It pulls the values from your environment variables (like .env.local).
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY", // This is unique to your project
-  authDomain: "kamperhub-s4hc2.firebaseapp.com",
-  projectId: "kamperhub-s4hc2",
-  storageBucket: "kamperhub-s4hc2.appspot.com",
-  messagingSenderId: "74707729193",
-  appId: "1:74707729193:web:b06f6dce5757fd1d431538",
-  measurementId:"G-V1CTQMC6BD"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 
@@ -26,8 +26,8 @@ let appCheck: AppCheck | undefined;
 let analytics: Analytics | undefined;
 export let firebaseInitializationError: string | null = null;
 
-if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'YOUR_API_KEY' || !firebaseConfig.projectId) {
-  firebaseInitializationError = "Firebase configuration is missing or incomplete. Please add your API Key to the `firebaseConfig` object in `src/lib/firebase.ts`.";
+if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+  firebaseInitializationError = "Firebase configuration is missing or incomplete. Please ensure your .env.local file has the correct NEXT_PUBLIC_FIREBASE_* variables set and that your development server has been restarted.";
   console.error(`[Firebase Client] ${firebaseInitializationError}`);
   // Assign empty objects to prevent downstream hard errors, the UI will show the config error.
   app = {} as FirebaseApp;
