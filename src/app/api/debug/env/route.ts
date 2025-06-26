@@ -1,5 +1,6 @@
 
 import { NextResponse } from 'next/server';
+import { admin, firebaseAdminInitError } from '@/lib/firebase-admin';
 
 export async function GET() {
   const envVars = {
@@ -21,13 +22,22 @@ export async function GET() {
     // Stripe Config
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY ? 'Set' : 'Not Set',
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET ? 'Set' : 'Not Set',
+    STRIPE_PRO_PRICE_ID: process.env.STRIPE_PRO_PRICE_ID ? 'Set' : 'Not Set',
 
     // Google Maps API Key
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? 'Set' : 'Not Set',
   };
 
+  // Check the status of the Firebase Admin SDK initialization
+  const adminSDKStatus = firebaseAdminInitError 
+    ? `Error: ${firebaseAdminInitError.message}` 
+    : (admin.apps.length > 0 ? "Initialized successfully" : "Not Initialized");
+
   return NextResponse.json({
     message: "This endpoint checks the status of environment variables on the server. 'Set' means the variable is present. 'Not Set' means it is missing. If a NEXT_PUBLIC_ variable is 'Not Set' here, it will also be missing on the client.",
-    status: envVars
+    status: {
+        ...envVars,
+        FIREBASE_ADMIN_SDK_STATUS: adminSDKStatus,
+    }
   });
 }
