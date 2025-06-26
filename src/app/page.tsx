@@ -69,6 +69,34 @@ function SortableNavItem({ id, item, isMobile }: SortableNavItemProps) {
   );
 }
 
+const DashboardSkeleton = ({ loadingText }: { loadingText: string }) => (
+    <div className="space-y-8">
+        <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center">
+                <Skeleton className="mr-4 h-[60px] w-[60px] rounded-md" />
+                <div>
+                    <h1 className="text-3xl font-headline text-primary">Welcome to KamperHub</h1>
+                    <p className="font-body text-muted-foreground">{loadingText}</p>
+                </div>
+            </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+                <Card key={i}>
+                    <CardHeader className="pb-3">
+                        <Skeleton className="h-6 w-3/5" />
+                        <Skeleton className="h-4 w-4/5 mt-1" />
+                    </CardHeader>
+                    <CardContent>
+                        <Skeleton className="h-32 w-full rounded-md mb-2" />
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
+    </div>
+);
+
+
 export default function DashboardPage() {
   const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>([]);
   const [hasMounted, setHasMounted] = useState(false);
@@ -174,51 +202,12 @@ export default function DashboardPage() {
   }, [orderedNavItems, updateUserPrefsMutation]); 
 
 
-  if (!hasMounted || isAuthLoading) {
-    return (
-      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
-        <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
-        <p className="text-lg font-semibold text-primary font-body">Authenticating...</p>
-      </div>
-    );
+  if (!hasMounted || isAuthLoading || (!isAuthLoading && !firebaseUser)) {
+    return <DashboardSkeleton loadingText={isAuthLoading ? 'Authenticating...' : 'Redirecting...'} />;
   }
-
-  if (!firebaseUser) {
-    return (
-      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
-        <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
-        <p className="text-lg font-semibold text-primary font-body">Redirecting to login...</p>
-      </div>
-    );
-  }
-
+  
   if (isLoadingLayout) {
-     return (
-      <div className="space-y-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
-             <Skeleton className="mr-3 h-10 w-10 rounded-full" />
-            <h1 className="text-3xl font-headline text-primary">Welcome to KamperHub</h1>
-          </div>
-        </div>
-        <p className="font-body text-lg text-muted-foreground">
-          Your ultimate caravanning companion. Loading your personalized dashboard...
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="pb-3">
-                <Skeleton className="h-6 w-3/5" />
-                <Skeleton className="h-4 w-4/5 mt-1" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-32 w-full rounded-md mb-2" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
+     return <DashboardSkeleton loadingText="Loading your personalized dashboard..." />;
   }
 
   return (
