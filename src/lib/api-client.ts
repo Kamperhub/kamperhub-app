@@ -1,4 +1,3 @@
-
 'use client';
 
 import { auth, appCheck } from './firebase';
@@ -32,8 +31,13 @@ async function apiFetch(url: string, options: RequestInit = {}) {
       headers.set('X-Firebase-AppCheck', appCheckTokenResponse.token);
     } catch (err: any) {
       console.error("App Check getToken() failed:", err);
-      // This error is now more specific to production environments
-      throw new Error("App Check failed: Could not get verification token. Ensure your domain is whitelisted in Firebase and reCAPTCHA Enterprise is correctly configured.");
+      let errorMessage = "App Check failed: Could not get verification token. ";
+      if (process.env.NODE_ENV === 'development') {
+        errorMessage += "In a development environment, this usually means the App Check debug token is missing or invalid. Please set NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN in your .env.local file. You can find instructions for generating a debug token in the Firebase documentation by searching for 'App Check debug provider'.";
+      } else {
+        errorMessage += "In a production environment, ensure your domain is whitelisted in Firebase and that your reCAPTCHA Enterprise key is correctly configured and linked.";
+      }
+      throw new Error(errorMessage);
     }
   }
   

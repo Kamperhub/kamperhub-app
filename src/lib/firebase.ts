@@ -7,14 +7,15 @@ import { getAnalytics, type Analytics } from "firebase/analytics";
 
 // This configuration object connects the app to your specific Firebase project.
 // Make sure to replace "YOUR_API_KEY" with your actual Firebase Web API Key.
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY", // Important: Replace this with your actual API key!
+  apiKey: "AIzaSyDislaqwT2blN_zaj6rF4qJj8rs6eGiCJE",
   authDomain: "kamperhub-s4hc2.firebaseapp.com",
   projectId: "kamperhub-s4hc2",
-  storageBucket: "kamperhub-s4hc2.appspot.com",
+  storageBucket: "kamperhub-s4hc2.firebasestorage.app",
   messagingSenderId: "74707729193",
   appId: "1:74707729193:web:b06f6dce5757fd1d431538",
-  measurementId: "G-XXXXXXXXXX" // Optional: Add your Measurement ID for Google Analytics
+  measurementId: "G-V1CTQMC6BD"
 };
 
 // Initialize Firebase
