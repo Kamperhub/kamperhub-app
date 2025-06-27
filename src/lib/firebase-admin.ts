@@ -12,22 +12,24 @@ if (!admin.apps.length) {
   if (serviceAccountJsonString) {
     try {
       // Step 1: Trim whitespace from the start and end of the string.
-      let json = serviceAccountJsonString.trim();
+      let jsonString = serviceAccountJsonString.trim();
 
-      // Step 2: Handle if the whole string is wrapped in single or double quotes,
-      // which is a common error when copying from .env files.
-      if ((json.startsWith("'") && json.endsWith("'")) || (json.startsWith('"') && json.endsWith('"'))) {
-        json = json.substring(1, json.length - 1);
+      // Step 2: Handle if the whole string is wrapped in single or double quotes.
+      if ((jsonString.startsWith("'") && jsonString.endsWith("'")) || (jsonString.startsWith('"') && jsonString.endsWith('"'))) {
+        jsonString = jsonString.substring(1, jsonString.length - 1);
       }
       
-      // Step 3: Replace the escaped newline characters `\\n` with actual newlines `\n`.
-      // This is the most critical step for the PEM private key to be parsed correctly.
-      const correctedJson = json.replace(/\\n/g, '\n');
+      // Step 3: Parse the string into a JSON object first.
+      const serviceAccount = JSON.parse(jsonString);
 
-      // Step 4: Parse the corrected and sanitized string into a JSON object.
-      const serviceAccount = JSON.parse(correctedJson);
+      // Step 4: **Crucially, fix the private_key field.** The PEM format requires
+      // actual newline characters, which get escaped to "\\n" in .env variables.
+      // This specifically targets the field causing the "Invalid PEM" error.
+      if (serviceAccount.private_key) {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      }
 
-      // Step 5: Initialize Firebase Admin with the parsed credentials.
+      // Step 5: Initialize Firebase Admin with the corrected credentials object.
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
