@@ -87,9 +87,39 @@ const userPreferencesSchema = z
     { message: 'At least one preference must be provided.' }
   );
 
-// GET user preferences (TEMPORARILY SIMPLIFIED FOR DEBUGGING)
+// GET user preferences
 export async function GET(req: NextRequest) {
-  return NextResponse.json({ message: "API route is working." }, { status: 200 });
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse) return errorResponse;
+  if (!uid || !firestore) {
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+
+  try {
+    const userDocRef = firestore.collection('users').doc(uid);
+    const userDocSnap = await userDocRef.get();
+
+    if (!userDocSnap.exists()) {
+      return NextResponse.json({}, {
+        status: 200,
+        headers: { 'Cache-Control': 'no-store' }
+      });
+    }
+
+    const userData = userDocSnap.data() || {};
+    const serializableData = sanitizeData(userData);
+
+    return NextResponse.json(serializableData, {
+      status: 200,
+      headers: { 'Cache-Control': 'no-store' }
+    });
+  } catch (err: any) {
+    console.error('Error fetching user preferences:', err);
+    return NextResponse.json(
+      { error: 'Failed to fetch user preferences.', details: err.message },
+      { status: 500 }
+    );
+  }
 }
 
 // PUT (update) user preferences
