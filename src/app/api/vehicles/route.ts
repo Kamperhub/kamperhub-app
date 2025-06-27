@@ -5,6 +5,27 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { VehicleFormData, StoredVehicle } from '@/types/vehicle';
 import { z, ZodError } from 'zod';
 
+// Helper function to recursively convert Firestore Timestamps to ISO strings
+function serializeFirestoreTimestamps(data: any): any {
+  if (!data) return data;
+  if (Array.isArray(data)) {
+    return data.map(serializeFirestoreTimestamps);
+  }
+  if (typeof data.toDate === 'function') { // Check for Firestore Timestamp
+    return data.toDate().toISOString();
+  }
+  if (typeof data === 'object') {
+    const res: { [key: string]: any } = {};
+    for (const key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+          res[key] = serializeFirestoreTimestamps(data[key]);
+      }
+    }
+    return res;
+  }
+  return data;
+}
+
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !firestore || !auth) {
@@ -54,7 +75,11 @@ export async function GET(req: NextRequest) {
 
   try {
     const vehiclesSnapshot = await firestore.collection('users').doc(uid).collection('vehicles').get();
-    const vehicles = vehiclesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as StoredVehicle[];
+    const vehicles = vehiclesSnapshot.docs.map(doc => {
+      const data = doc.data();
+      if (!data) return null;
+      return { id: doc.id, ...serializeFirestoreTimestamps(data) };
+    }).filter(Boolean) as StoredVehicle[];
     return NextResponse.json(vehicles, { status: 200 });
   } catch (err: any) {
     console.error('Error fetching vehicles:', err);

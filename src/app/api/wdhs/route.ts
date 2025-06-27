@@ -5,6 +5,27 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { WDHFormData, StoredWDH } from '@/types/wdh';
 import { z, ZodError } from 'zod';
 
+// Helper function to recursively convert Firestore Timestamps to ISO strings
+function serializeFirestoreTimestamps(data: any): any {
+  if (!data) return data;
+  if (Array.isArray(data)) {
+    return data.map(serializeFirestoreTimestamps);
+  }
+  if (typeof data.toDate === 'function') { // Check for Firestore Timestamp
+    return data.toDate().toISOString();
+  }
+  if (typeof data === 'object') {
+    const res: { [key: string]: any } = {};
+    for (const key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+          res[key] = serializeFirestoreTimestamps(data[key]);
+      }
+    }
+    return res;
+  }
+  return data;
+}
+
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !firestore || !auth) {
@@ -57,7 +78,11 @@ export async function GET(req: NextRequest) {
 
   try {
     const wdhsSnapshot = await firestore.collection('users').doc(uid).collection('wdhs').get();
-    const wdhs = wdhsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as StoredWDH[];
+    const wdhs = wdhsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        if (!data) return null;
+        return { id: doc.id, ...serializeFirestoreTimestamps(data) };
+    }).filter(Boolean) as StoredWDH[];
     return NextResponse.json(wdhs, { status: 200 });
   } catch (err: any) {
     console.error('Error fetching WDHs:', err);

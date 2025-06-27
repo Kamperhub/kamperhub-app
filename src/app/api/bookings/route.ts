@@ -8,6 +8,27 @@ import { z, ZodError } from 'zod';
 
 const ACCOMMODATION_CATEGORY_NAME = "Accommodation";
 
+// Helper function to recursively convert Firestore Timestamps to ISO strings
+function serializeFirestoreTimestamps(data: any): any {
+  if (!data) return data;
+  if (Array.isArray(data)) {
+    return data.map(serializeFirestoreTimestamps);
+  }
+  if (typeof data.toDate === 'function') { // Check for Firestore Timestamp
+    return data.toDate().toISOString();
+  }
+  if (typeof data === 'object') {
+    const res: { [key: string]: any } = {};
+    for (const key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+          res[key] = serializeFirestoreTimestamps(data[key]);
+      }
+    }
+    return res;
+  }
+  return data;
+}
+
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !firestore || !auth) {
@@ -59,15 +80,9 @@ export async function GET(req: NextRequest) {
     const bookingsSnapshot = await firestore.collection('users').doc(uid).collection('bookings').get();
     const bookings = bookingsSnapshot.docs.map(doc => {
       const data = doc.data();
-      if (!data) return null; // Defensive check for empty/corrupt documents
-      // Ensure Timestamps are converted to strings for JSON serialization
-      return {
-        ...data,
-        checkInDate: data.checkInDate?.toDate ? data.checkInDate.toDate().toISOString() : data.checkInDate,
-        checkOutDate: data.checkOutDate?.toDate ? data.checkOutDate.toDate().toISOString() : data.checkOutDate,
-        timestamp: data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : data.timestamp,
-      };
-    }).filter(Boolean) as BookingEntry[]; // Filter out any nulls from empty docs
+      if (!data) return null;
+      return serializeFirestoreTimestamps(data);
+    }).filter(Boolean) as BookingEntry[];
     return NextResponse.json(bookings, { status: 200 });
   } catch (err: any) {
     console.error('Error fetching bookings:', err);

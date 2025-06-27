@@ -5,6 +5,27 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { z, ZodError } from 'zod';
 
+// Helper function to recursively convert Firestore Timestamps to ISO strings
+function serializeFirestoreTimestamps(data: any): any {
+  if (!data) return data;
+  if (Array.isArray(data)) {
+    return data.map(serializeFirestoreTimestamps);
+  }
+  if (typeof data.toDate === 'function') { // Check for Firestore Timestamp
+    return data.toDate().toISOString();
+  }
+  if (typeof data === 'object') {
+    const res: { [key: string]: any } = {};
+    for (const key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+          res[key] = serializeFirestoreTimestamps(data[key]);
+      }
+    }
+    return res;
+  }
+  return data;
+}
+
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !firestore || !auth) {
@@ -118,21 +139,9 @@ export async function GET(req: NextRequest) {
     const tripsSnapshot = await firestore.collection('users').doc(uid).collection('trips').get();
     const trips = tripsSnapshot.docs.map(doc => {
       const data = doc.data();
-      if (!data) return null; // Defensive check for empty/corrupt documents
-      // Deeply convert all Timestamps to ISO strings for JSON serialization
-      const expenses = (data.expenses || []).map((exp: any) => ({
-        ...exp,
-        date: exp.date?.toDate ? exp.date.toDate().toISOString() : exp.date,
-        timestamp: exp.timestamp?.toDate ? exp.timestamp.toDate().toISOString() : exp.timestamp,
-      }));
-      return {
-        ...data,
-        timestamp: data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : data.timestamp,
-        plannedStartDate: data.plannedStartDate?.toDate ? data.plannedStartDate.toDate().toISOString() : data.plannedStartDate,
-        plannedEndDate: data.plannedEndDate?.toDate ? data.plannedEndDate.toDate().toISOString() : data.plannedEndDate,
-        expenses,
-      };
-    }).filter(Boolean) as LoggedTrip[]; // Filter out any nulls
+      if (!data) return null;
+      return serializeFirestoreTimestamps(data);
+    }).filter(Boolean) as LoggedTrip[];
     return NextResponse.json(trips, { status: 200 });
   } catch (err: any) {
     console.error('Error fetching trips:', err);

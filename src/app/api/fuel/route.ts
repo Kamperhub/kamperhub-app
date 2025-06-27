@@ -5,6 +5,27 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import { z, ZodError } from 'zod';
 import { fuelLogSchema } from '@/types/service';
 
+// Helper function to recursively convert Firestore Timestamps to ISO strings
+function serializeFirestoreTimestamps(data: any): any {
+  if (!data) return data;
+  if (Array.isArray(data)) {
+    return data.map(serializeFirestoreTimestamps);
+  }
+  if (typeof data.toDate === 'function') { // Check for Firestore Timestamp
+    return data.toDate().toISOString();
+  }
+  if (typeof data === 'object') {
+    const res: { [key: string]: any } = {};
+    for (const key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+          res[key] = serializeFirestoreTimestamps(data[key]);
+      }
+    }
+    return res;
+  }
+  return data;
+}
+
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !firestore || !auth) {
@@ -48,14 +69,9 @@ export async function GET(req: NextRequest) {
       
     const logs = logsSnapshot.docs.map(doc => {
       const data = doc.data();
-      if (!data) return null; // Defensive check
-      // Ensure Timestamps are converted to strings for JSON serialization
-      return {
-        ...data,
-        date: data.date?.toDate ? data.date.toDate().toISOString() : data.date,
-        timestamp: data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : data.timestamp,
-      };
-    }).filter(Boolean); // Filter out nulls
+      if (!data) return null;
+      return serializeFirestoreTimestamps(data);
+    }).filter(Boolean);
     return NextResponse.json(logs, { status: 200 });
   } catch (err: any) {
     console.error(`Error fetching fuel logs for vehicle ${vehicleId}:`, err);

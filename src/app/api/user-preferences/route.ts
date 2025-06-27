@@ -5,6 +5,36 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
 import { z, ZodError } from 'zod';
 
+// Helper function to recursively convert Firestore Timestamps to ISO strings
+function serializeFirestoreTimestamps(data: any): any {
+  if (!data) return data;
+  
+  // Check for Firestore Timestamp-like objects which have a toDate method
+  if (typeof data.toDate === 'function') {
+    return data.toDate().toISOString();
+  }
+  
+  // If it's an array, recurse on each element
+  if (Array.isArray(data)) {
+    return data.map(serializeFirestoreTimestamps);
+  }
+  
+  // If it's a plain object, recurse on each value
+  if (typeof data === 'object' && data !== null && !Buffer.isBuffer(data)) {
+    const res: { [key: string]: any } = {};
+    for (const key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        res[key] = serializeFirestoreTimestamps(data[key]);
+      }
+    }
+    return res;
+  }
+  
+  // Return primitive values as is
+  return data;
+}
+
+
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !firestore || !auth) {
@@ -46,25 +76,16 @@ export async function GET(req: NextRequest) {
     const userDocSnap = await userDocRef.get();
 
     if (!userDocSnap.exists()) {
-      // This is a valid state for a newly signed-up user who hasn't completed profile setup.
       return NextResponse.json({}, { status: 200 });
     }
 
     const userData = userDocSnap.data();
     if (!userData) {
-      // This handles the edge case where the document exists but is empty.
       console.warn(`User document for UID ${uid} exists but contains no data.`);
       return NextResponse.json({}, { status: 200 });
     }
 
-    // Manually ensure date fields are strings to prevent serialization errors
-    const serializableData: Partial<UserProfile> = {
-      ...userData,
-      createdAt: userData.createdAt?.toDate ? userData.createdAt.toDate().toISOString() : userData.createdAt,
-      updatedAt: userData.updatedAt?.toDate ? userData.updatedAt.toDate().toISOString() : userData.updatedAt,
-      currentPeriodEnd: userData.currentPeriodEnd?.toDate ? userData.currentPeriodEnd.toDate().toISOString() : userData.currentPeriodEnd,
-      trialEndsAt: userData.trialEndsAt?.toDate ? userData.trialEndsAt.toDate().toISOString() : userData.trialEndsAt,
-    };
+    const serializableData = serializeFirestoreTimestamps(userData);
     
     return NextResponse.json(serializableData, { status: 200 });
 
