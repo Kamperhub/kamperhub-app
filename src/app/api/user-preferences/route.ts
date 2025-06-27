@@ -1,9 +1,11 @@
+
 export const runtime = 'nodejs';
 // src/app/api/user-preferences/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
 import { z, ZodError } from 'zod';
+import type { auth as adminAuth } from 'firebase-admin';
 
 // Firestore-safe serialization
 const firestoreTimestampReplacer = (key: any, value: any) => {
@@ -30,6 +32,7 @@ async function verifyUserAndGetInstances(req: NextRequest) {
     return {
       uid: null,
       firestore: null,
+      auth: null,
       errorResponse: NextResponse.json(
         { error: 'Server configuration error.', details: error.message },
         { status: 503 }
@@ -42,6 +45,7 @@ async function verifyUserAndGetInstances(req: NextRequest) {
     return {
       uid: null,
       firestore: null,
+      auth: null,
       errorResponse: NextResponse.json(
         { error: 'Unauthorized: Missing or invalid Authorization header.' },
         { status: 401 }
@@ -53,12 +57,13 @@ async function verifyUserAndGetInstances(req: NextRequest) {
 
   try {
     const decoded = await auth.verifyIdToken(idToken);
-    return { uid: decoded.uid, firestore, errorResponse: null };
+    return { uid: decoded.uid, firestore, auth, errorResponse: null };
   } catch (error: any) {
     console.error('Token verification failed:', error);
     return {
       uid: null,
       firestore: null,
+      auth: null,
       errorResponse: NextResponse.json(
         { error: 'Unauthorized: Invalid ID token.', details: error.message },
         { status: 401 }
@@ -87,21 +92,42 @@ const userPreferencesSchema = z
 
 // GET user preferences
 export async function GET(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  const { uid, firestore, auth, errorResponse } = await verifyUserAndGetInstances(req);
   if (errorResponse) return errorResponse;
-  if (!uid || !firestore) {
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  if (!uid || !firestore || !auth) {
+    return NextResponse.json({ error: 'Internal Server Error: Instances not available.' }, { status: 500 });
   }
 
   try {
     const userDocRef = firestore.collection('users').doc(uid);
-    const userDocSnap = await userDocRef.get();
+    let userDocSnap = await userDocRef.get();
 
+    // If the user profile does not exist, create a default one.
     if (!userDocSnap.exists) {
-      return NextResponse.json({}, {
-        status: 200,
-        headers: { 'Cache-Control': 'no-store' }
-      });
+      console.warn(`User profile for UID ${uid} not found. Creating a default profile.`);
+      
+      const authUser = await auth.getUser(uid);
+      const newUserProfile: UserProfile = {
+        uid: authUser.uid,
+        email: authUser.email || null,
+        displayName: authUser.displayName || `User-${authUser.uid.substring(0, 5)}`,
+        firstName: null,
+        lastName: null,
+        city: null,
+        state: null,
+        country: null,
+        subscriptionTier: 'free',
+        stripeCustomerId: null,
+        trialEndsAt: null,
+        createdAt: authUser.metadata.creationTime,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await userDocRef.set(newUserProfile);
+      console.log(`Default profile created for UID ${uid}.`);
+
+      // Re-fetch the document to ensure we return what's in the DB.
+      userDocSnap = await userDocRef.get();
     }
 
     const userData = userDocSnap.data() || {};
@@ -112,9 +138,9 @@ export async function GET(req: NextRequest) {
       headers: { 'Cache-Control': 'no-store' }
     });
   } catch (err: any) {
-    console.error('Error fetching user preferences:', err);
+    console.error('Error fetching/creating user preferences for UID:', uid, 'Error:', err);
     return NextResponse.json(
-      { error: 'Failed to fetch user preferences.', details: err.message },
+      { error: 'Failed to process user preferences.', details: err.message },
       { status: 500 }
     );
   }
