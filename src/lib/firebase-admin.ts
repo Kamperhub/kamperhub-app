@@ -6,34 +6,46 @@ let firestore: admin.firestore.Firestore | undefined;
 let auth: admin.auth.Auth | undefined;
 
 // This check ensures that Firebase is only initialized once.
-// In a serverless environment, this code may run multiple times, but `initializeApp`
-// should only be called if no apps are already initialized.
 if (!admin.apps.length) {
-  const serviceAccountJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
 
-  if (serviceAccountJson) {
+  if (serviceAccountJsonString) {
     try {
-      // This line programmatically fixes the escaped newlines in the private key.
-      const correctedServiceAccountJson = serviceAccountJson.replace(/\\n/g, '\n');
-      const serviceAccount = JSON.parse(correctedServiceAccountJson);
+      // Step 1: Trim whitespace from the start and end of the string.
+      let json = serviceAccountJsonString.trim();
+
+      // Step 2: Handle if the whole string is wrapped in single or double quotes,
+      // which is a common error when copying from .env files.
+      if ((json.startsWith("'") && json.endsWith("'")) || (json.startsWith('"') && json.endsWith('"'))) {
+        json = json.substring(1, json.length - 1);
+      }
       
+      // Step 3: Replace the escaped newline characters `\\n` with actual newlines `\n`.
+      // This is the most critical step for the PEM private key to be parsed correctly.
+      const correctedJson = json.replace(/\\n/g, '\n');
+
+      // Step 4: Parse the corrected and sanitized string into a JSON object.
+      const serviceAccount = JSON.parse(correctedJson);
+
+      // Step 5: Initialize Firebase Admin with the parsed credentials.
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
       console.log("[Firebase Admin] SDK initialized successfully.");
+
     } catch (e: any) {
-      const jsonSnippet = serviceAccountJson.substring(0, 75).replace(/\s/g, '');
-      initError = new Error(`Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON. Ensure it's valid JSON on a single line. Server sees: "${jsonSnippet}...". Original error: ${e.message}`);
+      const errorSnippet = (serviceAccountJsonString || "undefined").substring(0, 75).replace(/\s/g, '');
+      initError = new Error(`Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON. Please ensure it's valid, unescaped JSON on a single line. Server sees: "${errorSnippet}...". Original error: ${e.message}`);
       console.error("[Firebase Admin] CRITICAL:", initError.message);
     }
   } else {
-    initError = new Error("GOOGLE_APPLICATION_CREDENTIALS_JSON is not set. Please follow the setup checklist.");
+    initError = new Error("GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is not set. Please follow the setup checklist.");
     console.error(`[Firebase Admin] CRITICAL: ${initError.message}`);
   }
 }
 
 // Assign the instances only if initialization succeeded.
-if (admin.apps.length > 0) {
+if (admin.apps.length > 0 && !initError) {
   firestore = admin.firestore();
   auth = admin.auth();
 }
