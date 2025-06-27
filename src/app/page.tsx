@@ -114,7 +114,7 @@ const FirebaseErrorState = ({ error }: { error: string }) => (
 );
 
 export default function DashboardPage() {
-  const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>([]);
+  const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>(defaultNavItems);
   const [isMobileView, setIsMobileView] = useState(false);
 
   const { user, isAuthLoading } = useAuth();
@@ -122,10 +122,11 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: userPrefs, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
+  const { data: userPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
     queryFn: fetchUserPreferences,
     enabled: !!user && !isAuthLoading,
+    retry: false, // Don't retry on error for this non-critical query
   });
 
   const updateUserPrefsMutation = useMutation({
@@ -168,15 +169,12 @@ export default function DashboardPage() {
           }
         });
         finalItems = finalItems.filter(item => currentMainPageHrefs.has(item.href));
-
         setOrderedNavItems(finalItems);
       } else {
         setOrderedNavItems(mainPageNavItems);
       }
-    } else if (!isLoadingPrefs) {
-      setOrderedNavItems(defaultNavItems);
     }
-  }, [userPrefs, isLoadingPrefs]);
+  }, [userPrefs]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -205,32 +203,22 @@ export default function DashboardPage() {
       return <FirebaseErrorState error={firebaseInitializationError} />;
   }
   
-  const isLoading = isAuthLoading || isLoadingPrefs;
-
-  if (isLoading) {
-     return <DashboardSkeleton loadingText={isAuthLoading ? 'Authenticating...' : 'Loading your personalized dashboard...'} />;
-  }
-
-  if (prefsError) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-4">
-        <Alert variant="destructive" className="max-w-2xl">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle className="font-headline text-lg">Error Loading Dashboard Data</AlertTitle>
-            <AlertDescription className="font-body space-y-2 mt-2">
-                <p>We couldn't load your personalized dashboard settings. This often happens if the server-side configuration is not set up correctly.</p>
-                <p className="font-mono bg-muted text-destructive-foreground/80 p-2 rounded-md text-xs text-left">
-                  <strong>Error details:</strong> {prefsError.message}
-                </p>
-                <p>Please check the <a href="/api/debug/env" target="_blank" rel="noopener noreferrer" className="font-semibold underline">environment variable status</a> and ensure your <code className="bg-muted text-destructive-foreground px-1 py-0.5 rounded-sm mx-1 font-mono text-sm">GOOGLE_APPLICATION_CREDENTIALS_JSON</code> in `.env.local` is correct and on a single line.</p>
-            </AlertDescription>
-        </Alert>
-      </div>
-    );
+  if (isAuthLoading) {
+     return <DashboardSkeleton loadingText={'Authenticating...'} />;
   }
 
   return (
     <div className="space-y-8">
+      {prefsError && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle className="font-headline">Could Not Load Custom Layout</AlertTitle>
+          <AlertDescription className="font-body">
+            There was an issue fetching your personalized dashboard layout. Displaying the default layout instead.
+            Error: {prefsError.message}
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="flex flex-col sm:flex-row items-center justify-between mb-6">
         <div className="flex items-center mb-4 sm:mb-0">
           <Image
