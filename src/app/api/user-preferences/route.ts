@@ -89,7 +89,7 @@ const userPreferencesSchema = z
 
 // GET user preferences (TEMPORARILY SIMPLIFIED FOR DEBUGGING)
 export async function GET(req: NextRequest) {
-  return NextResponse.json({ message: "Route is working!" }, { status: 200 });
+  return NextResponse.json({ message: "API route is working." }, { status: 200 });
 }
 
 // PUT (update) user preferences
