@@ -116,6 +116,7 @@ const FirebaseErrorState = ({ error }: { error: string }) => (
 export default function DashboardPage() {
   const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>(defaultNavItems);
   const [isMobileView, setIsMobileView] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   const { user, isAuthLoading } = useAuth();
   const router = useRouter();
@@ -144,11 +145,12 @@ export default function DashboardPage() {
       toast({ title: "Could Not Save Layout", description: error.message, variant: "destructive" });
     }
   });
-
+  
   useEffect(() => {
+    setIsMounted(true);
     const handleResize = () => setIsMobileView(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
-    handleResize(); // Set initial state
+    handleResize();
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -159,8 +161,6 @@ export default function DashboardPage() {
   }, [isAuthLoading, user, router]);
 
   useEffect(() => {
-    // This effect runs when userPrefs data arrives or changes.
-    // It's designed to be resilient: if preferences fail to load, it will just use the default.
     const mainPageNavItems = defaultNavItems; 
     const storedLayoutHrefs = userPrefs?.dashboardLayout;
 
@@ -178,10 +178,9 @@ export default function DashboardPage() {
       finalItems = finalItems.filter(item => currentMainPageHrefs.has(item.href));
       setOrderedNavItems(finalItems);
     } else {
-      // If no stored layout, or if it's invalid, fall back to default.
       setOrderedNavItems(mainPageNavItems);
     }
-  }, [userPrefs]); // Only depends on userPrefs.
+  }, [userPrefs]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -210,9 +209,8 @@ export default function DashboardPage() {
       return <FirebaseErrorState error={firebaseInitializationError} />;
   }
   
-  // Show a loading skeleton while authenticating OR fetching initial preferences
-  if (isAuthLoading || (user && isLoadingPrefs)) {
-     return <DashboardSkeleton loadingText={isAuthLoading ? 'Authenticating...' : 'Loading dashboard...'} />;
+  if (isAuthLoading || (user && isLoadingPrefs) || !isMounted) {
+     return <DashboardSkeleton loadingText={isAuthLoading ? 'Authenticating...' : !isMounted ? 'Preparing dashboard...' : 'Loading dashboard...'} />;
   }
 
   return (
