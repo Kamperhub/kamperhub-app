@@ -1,4 +1,3 @@
-
 // src/app/api/user-preferences/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -15,11 +14,17 @@ const firestoreTimestampReplacer = (key: any, value: any) => {
 
 // Helper function to create a clean, JSON-safe object.
 const sanitizeData = (data: any) => {
-    const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
-    return JSON.parse(jsonString);
+    try {
+        const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
+        return JSON.parse(jsonString);
+    } catch (error) {
+        console.error("Error in sanitizeData:", error);
+        // Return a safe, empty object or handle as appropriate
+        return {}; 
+    }
 };
 
-
+// This helper was missing and is now restored.
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error) {
