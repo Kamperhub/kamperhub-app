@@ -1,3 +1,4 @@
+
 import admin from 'firebase-admin';
 
 let initError: Error | null = null;
@@ -12,7 +13,10 @@ if (!admin.apps.length) {
 
   if (serviceAccountJson) {
     try {
-      const serviceAccount = JSON.parse(serviceAccountJson);
+      // This line programmatically fixes the escaped newlines in the private key.
+      const correctedServiceAccountJson = serviceAccountJson.replace(/\\n/g, '\n');
+      const serviceAccount = JSON.parse(correctedServiceAccountJson);
+      
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
