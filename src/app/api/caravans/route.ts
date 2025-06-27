@@ -1,33 +1,27 @@
 
 // src/app/api/caravans/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { admin, adminFirestore, firebaseAdminInitError } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { StoredCaravan, CaravanFormData } from '@/types/caravan';
 import { z, ZodError } from 'zod';
 
-async function verifyUserAndSDK(req: NextRequest): Promise<{ uid?: string; errorResponse?: NextResponse }> {
-  if (firebaseAdminInitError || !adminFirestore || !admin.auth()) {
-    console.error('API Route Error: Firebase Admin SDK not available.', firebaseAdminInitError);
-    return {
-      errorResponse: NextResponse.json({
-        error: 'Server configuration error: The connection to the database or authentication service is not available. Please check server logs for details about GOOGLE_APPLICATION_CREDENTIALS_JSON.',
-        details: firebaseAdminInitError?.message || "Firebase Admin SDK services are not initialized."
-      }, { status: 503 })
-    };
+async function verifyUserAndGetInstances(req: NextRequest) {
+  const { auth, firestore, error } = getFirebaseAdmin();
+  if (error || !firestore || !auth) {
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
   }
-  
+
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    return { uid: decodedToken.uid };
+    const decodedToken = await auth.verifyIdToken(idToken);
+    return { uid: decodedToken.uid, firestore, errorResponse: null };
   } catch (error: any) {
-    console.error('Error verifying Firebase ID token:', { message: error.message, code: error.code });
-    return { errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message, errorCode: error.code }, { status: 401 }) };
+    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
   }
 }
 
@@ -88,11 +82,11 @@ const updateCaravanSchema = createCaravanSchema.extend({
 
 // GET all caravans for the authenticated user
 export async function GET(req: NextRequest) {
-  const { uid, errorResponse } = await verifyUserAndSDK(req);
-  if (errorResponse) return errorResponse;
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
 
   try {
-    const caravansSnapshot = await adminFirestore!.collection('users').doc(uid!).collection('caravans').get();
+    const caravansSnapshot = await firestore.collection('users').doc(uid).collection('caravans').get();
     const caravans = caravansSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as StoredCaravan[];
     return NextResponse.json(caravans, { status: 200 });
   } catch (err: any) {
@@ -103,14 +97,14 @@ export async function GET(req: NextRequest) {
 
 // POST a new caravan for the authenticated user
 export async function POST(req: NextRequest) {
-  const { uid, errorResponse } = await verifyUserAndSDK(req);
-  if (errorResponse) return errorResponse;
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
 
   try {
     const body = await req.json();
     const parsedData = createCaravanSchema.parse(body);
 
-    const newCaravanRef = adminFirestore!.collection('users').doc(uid!).collection('caravans').doc();
+    const newCaravanRef = firestore.collection('users').doc(uid).collection('caravans').doc();
     const newCaravan: StoredCaravan = {
       id: newCaravanRef.id,
       ...parsedData,
@@ -134,15 +128,15 @@ export async function POST(req: NextRequest) {
 
 // PUT (update) an existing caravan for the authenticated user
 export async function PUT(req: NextRequest) {
-  const { uid, errorResponse } = await verifyUserAndSDK(req);
-  if (errorResponse) return errorResponse;
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
   
   try {
     const body: StoredCaravan = await req.json();
     const parsedData = updateCaravanSchema.parse(body);
 
-    const caravanRef = adminFirestore!.collection('users').doc(uid!).collection('caravans').doc(parsedData.id);
-    await caravanRef.set(parsedData, { merge: true }); // Use set with merge to update or create if not exists
+    const caravanRef = firestore.collection('users').doc(uid).collection('caravans').doc(parsedData.id);
+    await caravanRef.set(parsedData, { merge: true });
     
     return NextResponse.json({ message: 'Caravan updated successfully.', caravan: parsedData }, { status: 200 });
   } catch (err: any) {
@@ -156,8 +150,8 @@ export async function PUT(req: NextRequest) {
 
 // DELETE a caravan for the authenticated user
 export async function DELETE(req: NextRequest) {
-  const { uid, errorResponse } = await verifyUserAndSDK(req);
-  if (errorResponse) return errorResponse;
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
 
   try {
     const { id } = await req.json();
@@ -165,7 +159,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Caravan ID is required.' }, { status: 400 });
     }
     
-    await adminFirestore!.collection('users').doc(uid!).collection('caravans').doc(id).delete();
+    await firestore.collection('users').doc(uid).collection('caravans').doc(id).delete();
     
     return NextResponse.json({ message: 'Caravan deleted successfully.' }, { status: 200 });
   } catch (err: any) {

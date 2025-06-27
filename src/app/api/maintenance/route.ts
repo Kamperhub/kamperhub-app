@@ -1,33 +1,28 @@
 
 // src/app/api/maintenance/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { admin, adminFirestore, firebaseAdminInitError } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import { z, ZodError } from 'zod';
 import { maintenanceTaskSchema } from '@/types/service';
+import type { firestore } from 'firebase-admin';
 
-async function verifyUserAndSDK(req: NextRequest): Promise<{ uid?: string; errorResponse?: NextResponse }> {
-  if (firebaseAdminInitError || !adminFirestore || !admin.auth()) {
-    console.error('API Route Error: Firebase Admin SDK not available.', firebaseAdminInitError);
-    return {
-      errorResponse: NextResponse.json({
-        error: 'Server configuration error: The connection to the database or authentication service is not available. Please check server logs for details about GOOGLE_APPLICATION_CREDENTIALS_JSON.',
-        details: firebaseAdminInitError?.message || "Firebase Admin SDK services are not initialized."
-      }, { status: 503 })
-    };
+async function verifyUserAndGetInstances(req: NextRequest) {
+  const { auth, firestore, error } = getFirebaseAdmin();
+  if (error || !firestore || !auth) {
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
   }
-  
+
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    return { uid: decodedToken.uid };
+    const decodedToken = await auth.verifyIdToken(idToken);
+    return { uid: decodedToken.uid, firestore, errorResponse: null };
   } catch (error: any) {
-    console.error('Error verifying Firebase ID token:', { message: error.message, code: error.code });
-    return { errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message, errorCode: error.code }, { status: 401 }) };
+    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
   }
 }
 
@@ -36,14 +31,14 @@ const updateMaintenanceTaskSchema = maintenanceTaskSchema.omit({ timestamp: true
 
 // GET all maintenance tasks for a user, optionally filtered by assetId
 export async function GET(req: NextRequest) {
-  const { uid, errorResponse } = await verifyUserAndSDK(req);
-  if (errorResponse) return errorResponse;
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
 
   const assetId = req.nextUrl.searchParams.get('assetId');
   
   try {
-    let query: admin.firestore.Query = adminFirestore!
-      .collection('users').doc(uid!)
+    let query: firestore.Query = firestore
+      .collection('users').doc(uid)
       .collection('maintenanceTasks');
 
     if (assetId) {
@@ -61,15 +56,15 @@ export async function GET(req: NextRequest) {
 
 // POST a new maintenance task
 export async function POST(req: NextRequest) {
-  const { uid, errorResponse } = await verifyUserAndSDK(req);
-  if (errorResponse) return errorResponse;
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
 
   try {
     const body = await req.json();
     const parsedData = createMaintenanceTaskSchema.parse(body);
 
-    const newTaskRef = adminFirestore!
-      .collection('users').doc(uid!)
+    const newTaskRef = firestore
+      .collection('users').doc(uid)
       .collection('maintenanceTasks').doc();
       
     const newTask = {
@@ -90,15 +85,15 @@ export async function POST(req: NextRequest) {
 
 // PUT (update) an existing maintenance task
 export async function PUT(req: NextRequest) {
-  const { uid, errorResponse } = await verifyUserAndSDK(req);
-  if (errorResponse) return errorResponse;
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
   
   try {
     const body = await req.json();
     const parsedData = updateMaintenanceTaskSchema.parse(body);
 
-    const taskRef = adminFirestore!
-      .collection('users').doc(uid!)
+    const taskRef = firestore
+      .collection('users').doc(uid)
       .collection('maintenanceTasks').doc(parsedData.id);
       
     await taskRef.set(parsedData, { merge: true });
@@ -113,8 +108,8 @@ export async function PUT(req: NextRequest) {
 
 // DELETE a maintenance task
 export async function DELETE(req: NextRequest) {
-  const { uid, errorResponse } = await verifyUserAndSDK(req);
-  if (errorResponse) return errorResponse;
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
 
   try {
     const { id } = await req.json();
@@ -122,8 +117,8 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Task ID is required for deletion.' }, { status: 400 });
     }
     
-    await adminFirestore!
-        .collection('users').doc(uid!)
+    await firestore
+        .collection('users').doc(uid)
         .collection('maintenanceTasks').doc(id)
         .delete();
         

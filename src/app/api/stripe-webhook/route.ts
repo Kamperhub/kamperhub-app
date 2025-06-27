@@ -2,15 +2,14 @@
 // src/app/api/stripe-webhook/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import Stripe from 'stripe';
-import { admin, adminFirestore, firebaseAdminInitError } from '@/lib/firebase-admin'; // Import Firebase Admin initialized instances
-import type { UserProfile, SubscriptionTier } from '@/types/auth'; // Import UserProfile
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import type { UserProfile, SubscriptionTier } from '@/types/auth';
 
-// Initialize Stripe with your secret key
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 let stripe: Stripe;
 if (stripeSecretKey) {
   stripe = new Stripe(stripeSecretKey, {
-    apiVersion: '2024-06-20', // Keep consistent or update to latest desired
+    apiVersion: '2024-06-20',
   });
 } else {
   console.error("Stripe secret key is not configured for webhook handler.");
@@ -20,11 +19,12 @@ if (stripeSecretKey) {
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 export async function POST(req: NextRequest) {
-  if (firebaseAdminInitError || !adminFirestore) {
-    console.error('API Route Error: Firebase Admin SDK not available.', firebaseAdminInitError);
+  const { firestore, error: adminError } = getFirebaseAdmin();
+  if (adminError || !firestore) {
+    console.error('API Route Error: Firebase Admin SDK not available.', adminError);
     return NextResponse.json({
       error: 'Server configuration error: The connection to the database service is not available. Please check server logs for details about GOOGLE_APPLICATION_CREDENTIALS_JSON.',
-      details: firebaseAdminInitError?.message || "Firebase Admin SDK services are not initialized."
+      details: adminError?.message || "Firebase Admin SDK services are not initialized."
     }, { status: 503 });
   }
 
@@ -81,10 +81,10 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: 'Failed to retrieve subscription details from Stripe.' }, { status: 500 });
         }
 
-        const userDocRef = adminFirestore.collection('users').doc(userId);
+        const userDocRef = firestore.collection('users').doc(userId);
         
         let determinedTier: SubscriptionTier;
-        if (subscription.status === 'active') { // If Stripe says 'active', it's 'pro'
+        if (subscription.status === 'active') {
             determinedTier = 'pro';
         } else if (subscription.status === 'trialing') {
             determinedTier = 'trialing';
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
         try {
           const subscriptionFromInvoice = await stripe.subscriptions.retrieve(subId);
           
-          const usersRef = adminFirestore.collection('users');
+          const usersRef = firestore.collection('users');
           const snapshot = await usersRef.where('stripeSubscriptionId', '==', subId).limit(1).get();
 
           if (!snapshot.empty) {
@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
           const subId = failedInvoice.subscription as string;
           const subscriptionDetails = await stripe.subscriptions.retrieve(subId); 
 
-          const usersRef = adminFirestore.collection('users');
+          const usersRef = firestore.collection('users');
           const snapshot = await usersRef.where('stripeSubscriptionId', '==', subId).limit(1).get();
           if (!snapshot.empty) {
             const userDoc = snapshot.docs[0];
@@ -188,7 +188,7 @@ export async function POST(req: NextRequest) {
     case 'customer.subscription.updated':
       const updatedSubscription = event.data.object as Stripe.Subscription;
       try {
-        const usersRef = adminFirestore.collection('users');
+        const usersRef = firestore.collection('users');
         const queryField = updatedSubscription.id.startsWith('sub_') ? 'stripeSubscriptionId' : 'stripeCustomerId';
         const queryValue = updatedSubscription.id.startsWith('sub_') ? updatedSubscription.id : (updatedSubscription.customer as string);
 
@@ -225,7 +225,7 @@ export async function POST(req: NextRequest) {
     case 'customer.subscription.deleted': 
       const deletedSubscription = event.data.object as Stripe.Subscription;
       try {
-        const usersRef = adminFirestore.collection('users');
+        const usersRef = firestore.collection('users');
         const snapshot = await usersRef.where('stripeSubscriptionId', '==', deletedSubscription.id).limit(1).get();
         if (!snapshot.empty) {
             const userDoc = snapshot.docs[0];

@@ -1,33 +1,27 @@
 
 // src/app/api/wdhs/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { admin, adminFirestore, firebaseAdminInitError } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { WDHFormData, StoredWDH } from '@/types/wdh';
 import { z, ZodError } from 'zod';
 
-async function verifyUserAndSDK(req: NextRequest): Promise<{ uid?: string; errorResponse?: NextResponse }> {
-  if (firebaseAdminInitError || !adminFirestore || !admin.auth()) {
-    console.error('API Route Error: Firebase Admin SDK not available.', firebaseAdminInitError);
-    return {
-      errorResponse: NextResponse.json({
-        error: 'Server configuration error: The connection to the database or authentication service is not available. Please check server logs for details about GOOGLE_APPLICATION_CREDENTIALS_JSON.',
-        details: firebaseAdminInitError?.message || "Firebase Admin SDK services are not initialized."
-      }, { status: 503 })
-    };
+async function verifyUserAndGetInstances(req: NextRequest) {
+  const { auth, firestore, error } = getFirebaseAdmin();
+  if (error || !firestore || !auth) {
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
   }
-  
+
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    return { uid: decodedToken.uid };
+    const decodedToken = await auth.verifyIdToken(idToken);
+    return { uid: decodedToken.uid, firestore, errorResponse: null };
   } catch (error: any) {
-    console.error('Error verifying Firebase ID token:', { message: error.message, code: error.code });
-    return { errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message, errorCode: error.code }, { status: 401 }) };
+    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
   }
 }
 
@@ -58,11 +52,11 @@ const updateWdhSchema = createWdhSchema.extend({
 
 // GET all WDHs for the authenticated user
 export async function GET(req: NextRequest) {
-  const { uid, errorResponse } = await verifyUserAndSDK(req);
-  if (errorResponse) return errorResponse;
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
 
   try {
-    const wdhsSnapshot = await adminFirestore!.collection('users').doc(uid!).collection('wdhs').get();
+    const wdhsSnapshot = await firestore.collection('users').doc(uid).collection('wdhs').get();
     const wdhs = wdhsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as StoredWDH[];
     return NextResponse.json(wdhs, { status: 200 });
   } catch (err: any) {
@@ -73,14 +67,14 @@ export async function GET(req: NextRequest) {
 
 // POST a new WDH for the authenticated user
 export async function POST(req: NextRequest) {
-  const { uid, errorResponse } = await verifyUserAndSDK(req);
-  if (errorResponse) return errorResponse;
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
 
   try {
     const body = await req.json();
     const parsedData = createWdhSchema.parse(body);
 
-    const newWdhRef = adminFirestore!.collection('users').doc(uid!).collection('wdhs').doc();
+    const newWdhRef = firestore.collection('users').doc(uid).collection('wdhs').doc();
     const newWdh: StoredWDH = {
       id: newWdhRef.id,
       ...parsedData,
@@ -101,14 +95,14 @@ export async function POST(req: NextRequest) {
 
 // PUT (update) an existing WDH for the authenticated user
 export async function PUT(req: NextRequest) {
-  const { uid, errorResponse } = await verifyUserAndSDK(req);
-  if (errorResponse) return errorResponse;
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
   
   try {
     const body: StoredWDH = await req.json();
     const parsedData = updateWdhSchema.parse(body);
 
-    const wdhRef = adminFirestore!.collection('users').doc(uid!).collection('wdhs').doc(parsedData.id);
+    const wdhRef = firestore.collection('users').doc(uid).collection('wdhs').doc(parsedData.id);
     await wdhRef.set(parsedData, { merge: true });
     
     return NextResponse.json({ message: 'WDH updated successfully.', wdh: parsedData }, { status: 200 });
@@ -123,8 +117,8 @@ export async function PUT(req: NextRequest) {
 
 // DELETE a WDH for the authenticated user
 export async function DELETE(req: NextRequest) {
-  const { uid, errorResponse } = await verifyUserAndSDK(req);
-  if (errorResponse) return errorResponse;
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
 
   try {
     const { id } = await req.json();
@@ -132,7 +126,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'WDH ID is required.' }, { status: 400 });
     }
     
-    await adminFirestore!.collection('users').doc(uid!).collection('wdhs').doc(id).delete();
+    await firestore.collection('users').doc(uid).collection('wdhs').doc(id).delete();
     
     return NextResponse.json({ message: 'WDH deleted successfully.' }, { status: 200 });
   } catch (err: any) {

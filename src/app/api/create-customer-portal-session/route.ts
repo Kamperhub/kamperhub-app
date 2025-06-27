@@ -2,7 +2,7 @@
 // src/app/api/create-customer-portal-session/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { admin, adminFirestore, firebaseAdminInitError } from '@/lib/firebase-admin'; // Import Firebase Admin initialized Firestore
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 let stripe: Stripe;
@@ -16,11 +16,12 @@ if (stripeSecretKey) {
 }
 
 export async function POST(req: NextRequest) {
-  if (firebaseAdminInitError || !adminFirestore) {
-    console.error('API Route Error: Firebase Admin SDK not available.', firebaseAdminInitError);
+  const { firestore, error: adminError } = getFirebaseAdmin();
+  if (adminError || !firestore) {
+    console.error('API Route Error: Firebase Admin SDK not available.', adminError);
     return NextResponse.json({
       error: 'Server configuration error: The connection to the database service is not available. Please check server logs for details about GOOGLE_APPLICATION_CREDENTIALS_JSON.',
-      details: firebaseAdminInitError?.message || "Firebase Admin SDK services are not initialized."
+      details: adminError?.message || "Firebase Admin SDK services are not initialized."
     }, { status: 503 });
   }
 
@@ -36,8 +37,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'User ID is required.' }, { status: 400 });
     }
 
-    // Fetch the user's Stripe Customer ID from Firestore
-    const userDocRef = adminFirestore.collection('users').doc(userId);
+    const userDocRef = firestore.collection('users').doc(userId);
     const userDocSnap = await userDocRef.get();
 
     if (!userDocSnap.exists()) {
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     }
     
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const returnUrl = `${appUrl}/my-account`; // Where Stripe redirects after portal session
+    const returnUrl = `${appUrl}/my-account`;
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: stripeCustomerId,

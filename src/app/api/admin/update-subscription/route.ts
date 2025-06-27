@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { admin, adminFirestore, firebaseAdminInitError } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile, SubscriptionTier } from '@/types/auth';
 import { z, ZodError } from 'zod';
 
@@ -13,11 +13,12 @@ const updateSubscriptionSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  if (firebaseAdminInitError || !adminFirestore || !admin.auth()) {
-    console.error('API Route Error: Firebase Admin SDK not available.', firebaseAdminInitError);
+  const { auth, firestore, error } = getFirebaseAdmin();
+  if (error || !firestore || !auth) {
+    console.error('API Route Error: Firebase Admin SDK not available.', error);
     return NextResponse.json({
       error: 'Server configuration error: The connection to the database or authentication service is not available. Please check server logs for details about GOOGLE_APPLICATION_CREDENTIALS_JSON.',
-      details: firebaseAdminInitError?.message || "Firebase Admin SDK services are not initialized."
+      details: error?.message || "Firebase Admin SDK services are not initialized."
     }, { status: 503 });
   }
 
@@ -30,14 +31,14 @@ export async function POST(req: NextRequest) {
 
     let decodedToken;
     try {
-      decodedToken = await admin.auth().verifyIdToken(idToken);
+      decodedToken = await auth.verifyIdToken(idToken);
     } catch (error: any) {
       console.error('Error verifying Firebase ID token:', error);
       return NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message, errorCode: error.code }, { status: 401 });
     }
 
     const adminUid = decodedToken.uid;
-    const adminUserDocRef = adminFirestore.collection('users').doc(adminUid);
+    const adminUserDocRef = firestore.collection('users').doc(adminUid);
     const adminUserDocSnap = await adminUserDocRef.get();
 
     if (!adminUserDocSnap.exists() || adminUserDocSnap.data()?.isAdmin !== true) {
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
     // Get target user's UID by email
     let targetUserRecord;
     try {
-      targetUserRecord = await admin.auth().getUserByEmail(targetUserEmail);
+      targetUserRecord = await auth.getUserByEmail(targetUserEmail);
     } catch (error: any) {
       if (error.code === 'auth/user-not-found') {
         return NextResponse.json({ error: `Target user with email ${targetUserEmail} not found.` }, { status: 404 });
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
     
     const targetUserId = targetUserRecord.uid;
 
-    const targetUserDocRef = adminFirestore.collection('users').doc(targetUserId);
+    const targetUserDocRef = firestore.collection('users').doc(targetUserId);
     const targetUserDocSnap = await targetUserDocRef.get();
 
     if (!targetUserDocSnap.exists()) {
@@ -111,15 +112,15 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
+  const { firestore, error } = getFirebaseAdmin();
   const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-  const adminSDKInitialized = admin && admin.apps && admin.apps.length > 0;
-
+  
   return NextResponse.json({ 
     message: "Admin update-subscription endpoint. Use POST to update. Identifies users by email.",
-    adminSDKStatus: adminSDKInitialized ? "Initialized" : "Not Initialized or Error",
+    adminSDKStatus: firestore ? "Initialized" : "Not Initialized or Error",
     serviceAccountEnvVarSet: !!serviceAccountJsonString,
-    firestoreStatus: adminFirestore ? "Initialized" : "Not Initialized or Error",
-    initializationError: firebaseAdminInitError ? firebaseAdminInitError.message : null
+    firestoreStatus: firestore ? "Initialized" : "Not Initialized or Error",
+    initializationError: error ? error.message : null
   });
 }
     

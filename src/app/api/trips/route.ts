@@ -1,38 +1,31 @@
 
 // src/app/api/trips/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { admin, adminFirestore, firebaseAdminInitError } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { z, ZodError } from 'zod';
 
-async function verifyUserAndSDK(req: NextRequest): Promise<{ uid?: string; errorResponse?: NextResponse }> {
-  if (firebaseAdminInitError || !adminFirestore || !admin.auth()) {
-    console.error('API Route Error: Firebase Admin SDK not available.', firebaseAdminInitError);
-    return {
-      errorResponse: NextResponse.json({
-        error: 'Server configuration error: The connection to the database or authentication service is not available. Please check server logs for details about GOOGLE_APPLICATION_CREDENTIALS_JSON.',
-        details: firebaseAdminInitError?.message || "Firebase Admin SDK services are not initialized."
-      }, { status: 503 })
-    };
+async function verifyUserAndGetInstances(req: NextRequest) {
+  const { auth, firestore, error } = getFirebaseAdmin();
+  if (error || !firestore || !auth) {
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
   }
-  
+
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    return { uid: decodedToken.uid };
+    const decodedToken = await auth.verifyIdToken(idToken);
+    return { uid: decodedToken.uid, firestore, errorResponse: null };
   } catch (error: any) {
-    console.error('Error verifying Firebase ID token:', { message: error.message, code: error.code });
-    return { errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message, errorCode: error.code }, { status: 401 }) };
+    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
   }
 }
 
 // Zod schemas for validation
-// Define component schemas BEFORE they are used in the main schemas.
 const budgetCategorySchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Category name is required"),
@@ -91,7 +84,6 @@ const occupantSchema = z.object({
     weight: z.coerce.number().min(0, "Occupant weight must be non-negative"),
 });
 
-// Now define the main schemas that use the components above.
 const createTripSchema = z.object({
   name: z.string().min(1, "Trip name is required"),
   startLocationDisplay: z.string().min(1, "Start location is required"),
@@ -119,11 +111,11 @@ const updateTripSchema = createTripSchema.extend({
 
 // GET all trips for the authenticated user
 export async function GET(req: NextRequest) {
-  const { uid, errorResponse } = await verifyUserAndSDK(req);
-  if (errorResponse) return errorResponse;
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
 
   try {
-    const tripsSnapshot = await adminFirestore!.collection('users').doc(uid!).collection('trips').get();
+    const tripsSnapshot = await firestore.collection('users').doc(uid).collection('trips').get();
     const trips = tripsSnapshot.docs.map(doc => ({ ...doc.data() })) as LoggedTrip[];
     return NextResponse.json(trips, { status: 200 });
   } catch (err: any) {
@@ -134,21 +126,21 @@ export async function GET(req: NextRequest) {
 
 // POST a new trip for the authenticated user
 export async function POST(req: NextRequest) {
-  const { uid, errorResponse } = await verifyUserAndSDK(req);
-  if (errorResponse) return errorResponse;
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
 
   try {
     const body = await req.json();
     const parsedData = createTripSchema.parse(body);
 
-    const newTripRef = adminFirestore!.collection('users').doc(uid!).collection('trips').doc();
+    const newTripRef = firestore.collection('users').doc(uid).collection('trips').doc();
     const newTrip: LoggedTrip = {
       id: newTripRef.id,
       timestamp: new Date().toISOString(),
       ...parsedData,
-      expenses: [], // Initialize with an empty expenses array
-      budget: parsedData.budget || [], // Initialize with an empty budget array if not provided
-      occupants: parsedData.occupants || [], // Initialize with an empty occupants array if not provided
+      expenses: [],
+      budget: parsedData.budget || [],
+      occupants: parsedData.occupants || [],
     };
     
     await newTripRef.set(newTrip);
@@ -166,14 +158,14 @@ export async function POST(req: NextRequest) {
 
 // PUT (update) an existing trip for the authenticated user
 export async function PUT(req: NextRequest) {
-  const { uid, errorResponse } = await verifyUserAndSDK(req);
-  if (errorResponse) return errorResponse;
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
   
   try {
     const body = await req.json();
     const parsedData = updateTripSchema.parse(body);
 
-    const tripRef = adminFirestore!.collection('users').doc(uid!).collection('trips').doc(parsedData.id);
+    const tripRef = firestore.collection('users').doc(uid).collection('trips').doc(parsedData.id);
     await tripRef.set(parsedData, { merge: true });
     
     return NextResponse.json({ message: 'Trip updated successfully.', trip: parsedData }, { status: 200 });
@@ -188,8 +180,8 @@ export async function PUT(req: NextRequest) {
 
 // DELETE a trip for the authenticated user
 export async function DELETE(req: NextRequest) {
-  const { uid, errorResponse } = await verifyUserAndSDK(req);
-  if (errorResponse) return errorResponse;
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
 
   try {
     const { id } = await req.json();
@@ -197,7 +189,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Trip ID is required for deletion.' }, { status: 400 });
     }
     
-    await adminFirestore!.collection('users').doc(uid!).collection('trips').doc(id).delete();
+    await firestore.collection('users').doc(uid).collection('trips').doc(id).delete();
     
     return NextResponse.json({ message: 'Trip deleted successfully.' }, { status: 200 });
   } catch (err: any) {

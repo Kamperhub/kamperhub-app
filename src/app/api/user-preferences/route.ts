@@ -1,74 +1,58 @@
 
 // src/app/api/user-preferences/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { admin, adminFirestore, firebaseAdminInitError } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
 import { z, ZodError } from 'zod';
 
-async function verifyUserAndSDK(req: NextRequest): Promise<{ uid?: string; errorResponse?: NextResponse }> {
-  if (firebaseAdminInitError || !adminFirestore || !admin.auth()) {
-    console.error('API Route Error: Firebase Admin SDK not available.', firebaseAdminInitError);
-    return {
-      errorResponse: NextResponse.json({
-        error: 'Server configuration error: The connection to the database or authentication service is not available. Please check server logs for details about GOOGLE_APPLICATION_CREDENTIALS_JSON.',
-        details: firebaseAdminInitError?.message || "Firebase Admin SDK services are not initialized."
-      }, { status: 503 })
-    };
+async function verifyUserAndGetInstances(req: NextRequest) {
+  const { auth, firestore, error } = getFirebaseAdmin();
+  if (error || !firestore || !auth) {
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
   }
-  
+
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    return { uid: decodedToken.uid };
+    const decodedToken = await auth.verifyIdToken(idToken);
+    return { uid: decodedToken.uid, firestore, errorResponse: null };
   } catch (error: any) {
-    console.error('Error verifying Firebase ID token:', { message: error.message, code: error.code });
-    return { errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message, errorCode: error.code }, { status: 401 }) };
+    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
   }
 }
 
 // Zod schema for validating the incoming preferences for a PUT request
-// This only includes fields we want to be updatable through this endpoint.
 const userPreferencesSchema = z.object({
   activeVehicleId: z.string().nullable().optional(),
   activeCaravanId: z.string().nullable().optional(),
   activeWdhId: z.string().nullable().optional(),
   dashboardLayout: z.array(z.string()).nullable().optional(),
   caravanWaterLevels: z.record(z.record(z.number())).nullable().optional(),
-  caravanDefaultChecklists: z.any().optional(), // Allow any for now, since it's complex and not the focus of this endpoint
+  caravanDefaultChecklists: z.any().optional(),
 }).nonempty({ message: "Update object cannot be empty." });
 
 
 // GET user preferences
 export async function GET(req: NextRequest) {
-  const { uid, errorResponse } = await verifyUserAndSDK(req);
-  if (errorResponse) return errorResponse;
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
 
   try {
-    const userDocRef = adminFirestore!.collection('users').doc(uid!);
+    const userDocRef = firestore.collection('users').doc(uid);
     const userDocSnap = await userDocRef.get();
 
     if (!userDocSnap.exists()) {
-      return NextResponse.json({}, { status: 200 }); // Return empty object if no profile/preferences exist yet
+      return NextResponse.json({}, { status: 200 });
     }
 
-    const userData = (userDocSnap.data() as UserProfile) || {}; // Handle empty documents gracefully
+    const userData = (userDocSnap.data() as UserProfile) || {};
     
-    // Extract only the preference fields
-    const preferences = {
-      activeVehicleId: userData.activeVehicleId || null,
-      activeCaravanId: userData.activeCaravanId || null,
-      activeWdhId: userData.activeWdhId || null,
-      dashboardLayout: userData.dashboardLayout || null,
-      caravanWaterLevels: userData.caravanWaterLevels || null,
-      caravanDefaultChecklists: userData.caravanDefaultChecklists || null,
-    };
-
-    return NextResponse.json(preferences, { status: 200 });
+    // This now returns the full profile, client-side hooks can pick what they need
+    return NextResponse.json(userData, { status: 200 });
   } catch (err: any) {
     console.error('Error fetching user preferences:', err);
     return NextResponse.json({ error: 'Failed to fetch user preferences.', details: err.message }, { status: 500 });
@@ -77,14 +61,14 @@ export async function GET(req: NextRequest) {
 
 // PUT (update) user preferences
 export async function PUT(req: NextRequest) {
-  const { uid, errorResponse } = await verifyUserAndSDK(req);
-  if (errorResponse) return errorResponse;
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
   
   try {
     const body = await req.json();
     const parsedData = userPreferencesSchema.parse(body);
 
-    const userDocRef = adminFirestore!.collection('users').doc(uid!);
+    const userDocRef = firestore.collection('users').doc(uid);
     
     const updateData: Partial<UserProfile> = {
       ...parsedData,

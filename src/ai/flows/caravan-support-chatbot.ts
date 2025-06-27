@@ -12,7 +12,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { staticCaravanningArticles, type AiGeneratedArticle } from '@/types/learn';
-import { adminFirestore, firebaseAdminInitError } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import type { Expense } from '@/types/expense';
 
@@ -147,12 +147,13 @@ const listUserTripsTool = ai.defineTool(
     outputSchema: z.array(z.string()).describe("A list of trip names.").nullable(),
   },
   async ({ userId }) => {
-    if (firebaseAdminInitError || !adminFirestore) {
-      console.error('listUserTripsTool: Firestore is not available due to initialization error.', firebaseAdminInitError);
+    const { firestore, error } = getFirebaseAdmin();
+    if (error || !firestore) {
+      console.error('listUserTripsTool: Firestore is not available due to initialization error.', error);
       return null;
     }
     try {
-      const tripsRef = adminFirestore.collection('users').doc(userId).collection('trips');
+      const tripsRef = firestore.collection('users').doc(userId).collection('trips');
       const snapshot = await tripsRef.get();
       if (snapshot.empty) return null;
 
@@ -184,12 +185,13 @@ const findUserTripTool = ai.defineTool(
     }).nullable(),
   },
   async ({ userId, tripName }) => {
-    if (firebaseAdminInitError || !adminFirestore) {
-      console.error('findUserTripTool: Firestore is not available due to initialization error.', firebaseAdminInitError);
+    const { firestore, error } = getFirebaseAdmin();
+    if (error || !firestore) {
+      console.error('findUserTripTool: Firestore is not available due to initialization error.', error);
       return null;
     }
     try {
-      const tripsRef = adminFirestore.collection('users').doc(userId).collection('trips');
+      const tripsRef = firestore.collection('users').doc(userId).collection('trips');
       const snapshot = await tripsRef.get();
       if (snapshot.empty) {
         return null;
@@ -235,12 +237,13 @@ const addExpenseToTripTool = ai.defineTool(
     outputSchema: z.string().describe("A confirmation message indicating success or failure."),
   },
   async ({ userId, tripId, amount, categoryName, description, expenseDate }) => {
-    if (firebaseAdminInitError || !adminFirestore) {
-      console.error('addExpenseToTripTool: Firestore is not available due to initialization error.', firebaseAdminInitError);
+    const { firestore, error } = getFirebaseAdmin();
+    if (error || !firestore) {
+      console.error('addExpenseToTripTool: Firestore is not available due to initialization error.', error);
       return "Error: The database service is not available due to a configuration issue.";
     }
     
-    const tripRef = adminFirestore.collection('users').doc(userId).collection('trips').doc(tripId);
+    const tripRef = firestore.collection('users').doc(userId).collection('trips').doc(tripId);
     
     try {
       const doc = await tripRef.get();
@@ -282,9 +285,9 @@ export async function caravanSupportChatbot(
   input: CaravanSupportChatbotInput,
   userId: string,
 ): Promise<CaravanSupportChatbotOutput> {
-  // Add the guard clause at the entry point of the exported function
-  if (firebaseAdminInitError || !adminFirestore) {
-      console.error("Critical: Cannot run caravanSupportChatbot because Firebase Admin SDK failed to initialize.", firebaseAdminInitError);
+  const { error } = getFirebaseAdmin();
+  if (error) {
+      console.error("Critical: Cannot run caravanSupportChatbot because Firebase Admin SDK failed to initialize.", error);
       return { 
         answer: "I'm sorry, I'm unable to connect to the main database right now due to a server configuration issue. My ability to answer questions about your specific data is limited. Please contact support.", 
         youtubeLink: null,
@@ -338,9 +341,9 @@ const caravanSupportChatbotFlow = ai.defineFlow(
     outputSchema: CaravanSupportChatbotOutputSchema,
   },
   async (input): Promise<CaravanSupportChatbotOutput> => {
-    // This check is good, but the one in the exported function is the primary guard.
-    if (firebaseAdminInitError) {
-      console.error("Critical: Cannot run caravanSupportChatbotFlow because Firebase Admin SDK failed to initialize.", firebaseAdminInitError);
+    const { error: adminError } = getFirebaseAdmin();
+    if (adminError) {
+      console.error("Critical: Cannot run caravanSupportChatbotFlow because Firebase Admin SDK failed to initialize.", adminError);
       return { 
         answer: "I'm sorry, I'm unable to connect to the main database right now due to a server configuration issue. My ability to answer questions about your specific data is limited. Please contact support.", 
         youtubeLink: null,
