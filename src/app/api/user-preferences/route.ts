@@ -1,3 +1,4 @@
+
 // src/app/api/user-preferences/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -51,7 +52,9 @@ const userPreferencesSchema = z.object({
   dashboardLayout: z.array(z.string()).nullable().optional(),
   caravanWaterLevels: z.record(z.record(z.number())).nullable().optional(),
   caravanDefaultChecklists: z.any().optional(),
-}).nonempty({ message: "Update object cannot be empty." });
+}).refine(obj => Object.keys(obj).length > 0, {
+  message: "Update object cannot be empty.",
+});
 
 
 // GET user preferences
