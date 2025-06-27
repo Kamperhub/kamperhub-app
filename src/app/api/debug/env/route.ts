@@ -40,13 +40,13 @@ export async function GET() {
       if (parsedJson.project_id && parsedJson.private_key && parsedJson.client_email) {
         adminSDKStatus = 'Set and appears to be valid JSON with key fields present.';
       } else {
-        adminSDKStatus = 'Set, but the JSON is missing required fields like project_id, private_key, or client_email.';
+        adminSDKStatus = 'Error: The JSON is valid, but it is missing required fields like project_id, private_key, or client_email. Please ensure you have copied the entire service account file content.';
       }
     } catch (e: any) {
-      adminSDKStatus = `Error: The GOOGLE_APPLICATION_CREDENTIALS_JSON is set, but it is NOT valid JSON. This is the most common cause of server errors. Please ensure it is copied correctly and on a single line. Parser error: ${e.message}`;
+      adminSDKStatus = `CRITICAL ERROR: The GOOGLE_APPLICATION_CREDENTIALS_JSON is set, but it is NOT valid JSON. This is the most common cause of server errors. Please ensure it is copied correctly and on a single line. Parser error: ${e.message}`;
     }
   } else {
-    adminSDKStatus = 'Not Set: The GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is missing.';
+    adminSDKStatus = 'Error: The GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is missing.';
   }
 
 
