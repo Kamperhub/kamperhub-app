@@ -99,7 +99,7 @@ export async function GET(req: NextRequest) {
     const userDocRef = firestore.collection('users').doc(uid);
     const userDocSnap = await userDocRef.get();
 
-    if (!userDocSnap.exists()) {
+    if (!userDocSnap.exists) {
       return NextResponse.json({}, {
         status: 200,
         headers: { 'Cache-Control': 'no-store' }
