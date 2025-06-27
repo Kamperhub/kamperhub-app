@@ -10,23 +10,26 @@ const ACCOMMODATION_CATEGORY_NAME = "Accommodation";
 
 // Helper function to recursively convert Firestore Timestamps to ISO strings
 function serializeFirestoreTimestamps(data: any): any {
-  if (!data) return data;
-  if (Array.isArray(data)) {
-    return data.map(serializeFirestoreTimestamps);
-  }
-  if (typeof data.toDate === 'function') { // Check for Firestore Timestamp
-    return data.toDate().toISOString();
-  }
-  if (typeof data === 'object' && data !== null && !Buffer.isBuffer(data)) {
+    if (data === null || data === undefined || typeof data !== 'object') {
+        return data;
+    }
+
+    if (typeof data.toDate === 'function') { // Firestore Timestamp
+        return data.toDate().toISOString();
+    }
+
+    if (Array.isArray(data)) {
+        return data.map(serializeFirestoreTimestamps);
+    }
+
+    // It must be a plain object
     const res: { [key: string]: any } = {};
     for (const key in data) {
-      if (Object.prototype.hasOwnProperty.call(data, key)) {
-          res[key] = serializeFirestoreTimestamps(data[key]);
-      }
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+            res[key] = serializeFirestoreTimestamps(data[key]);
+        }
     }
     return res;
-  }
-  return data;
 }
 
 async function verifyUserAndGetInstances(req: NextRequest) {

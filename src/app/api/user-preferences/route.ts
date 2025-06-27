@@ -7,30 +7,26 @@ import { z, ZodError } from 'zod';
 
 // Helper function to recursively convert Firestore Timestamps to ISO strings
 function serializeFirestoreTimestamps(data: any): any {
-  if (!data) return data;
-  
-  if (Array.isArray(data)) {
-    return data.map(serializeFirestoreTimestamps);
-  }
+    if (data === null || data === undefined || typeof data !== 'object') {
+        return data;
+    }
 
-  // Check for Firestore Timestamp-like objects which have a toDate method
-  if (typeof data === 'object' && data !== null && typeof data.toDate === 'function') {
-    return data.toDate().toISOString();
-  }
-  
-  // If it's a plain object, recurse on each value
-  if (typeof data === 'object' && data !== null && !Buffer.isBuffer(data)) {
+    if (typeof data.toDate === 'function') { // Firestore Timestamp
+        return data.toDate().toISOString();
+    }
+
+    if (Array.isArray(data)) {
+        return data.map(serializeFirestoreTimestamps);
+    }
+
+    // It must be a plain object
     const res: { [key: string]: any } = {};
     for (const key in data) {
-      if (Object.prototype.hasOwnProperty.call(data, key)) {
-        res[key] = serializeFirestoreTimestamps(data[key]);
-      }
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+            res[key] = serializeFirestoreTimestamps(data[key]);
+        }
     }
     return res;
-  }
-  
-  // Return primitive values as is
-  return data;
 }
 
 

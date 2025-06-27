@@ -5,6 +5,30 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { InventoryItem } from '@/types/inventory';
 import { z, ZodError } from 'zod';
 
+// Helper function to recursively convert Firestore Timestamps to ISO strings
+function serializeFirestoreTimestamps(data: any): any {
+    if (data === null || data === undefined || typeof data !== 'object') {
+        return data;
+    }
+
+    if (typeof data.toDate === 'function') { // Firestore Timestamp
+        return data.toDate().toISOString();
+    }
+
+    if (Array.isArray(data)) {
+        return data.map(serializeFirestoreTimestamps);
+    }
+
+    // It must be a plain object
+    const res: { [key: string]: any } = {};
+    for (const key in data) {
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+            res[key] = serializeFirestoreTimestamps(data[key]);
+        }
+    }
+    return res;
+}
+
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error) {
@@ -58,10 +82,9 @@ export async function GET(req: NextRequest, { params }: { params: { caravanId: s
     }
     
     const inventoryData = inventoryDocSnap.data();
-    // Although InventoryItem doesn't have timestamps, it's good practice to serialize
-    // in case the data model changes in the future.
     const items = inventoryData?.items || [];
-    return NextResponse.json({ items }, { status: 200 });
+    const serializableData = serializeFirestoreTimestamps({ items }); // Serialize the whole object
+    return NextResponse.json(serializableData, { status: 200 });
 
   } catch (err: any) {
     console.error(`Error fetching inventory for caravan ${caravanId}:`, err);
