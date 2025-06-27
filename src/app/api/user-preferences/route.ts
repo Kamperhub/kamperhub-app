@@ -49,10 +49,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({}, { status: 200 });
     }
 
-    const userData = (userDocSnap.data() as UserProfile) || {};
+    const userData = userDocSnap.data();
+    if (!userData) {
+      return NextResponse.json({}, { status: 200 });
+    }
+
+    // Manually ensure date fields are strings to prevent serialization errors
+    const serializableData: Partial<UserProfile> = {
+      ...userData,
+      createdAt: userData.createdAt?.toDate ? userData.createdAt.toDate().toISOString() : userData.createdAt,
+      updatedAt: userData.updatedAt?.toDate ? userData.updatedAt.toDate().toISOString() : userData.updatedAt,
+      currentPeriodEnd: userData.currentPeriodEnd?.toDate ? userData.currentPeriodEnd.toDate().toISOString() : userData.currentPeriodEnd,
+      trialEndsAt: userData.trialEndsAt?.toDate ? userData.trialEndsAt.toDate().toISOString() : userData.trialEndsAt,
+    };
     
-    // This now returns the full profile, client-side hooks can pick what they need
-    return NextResponse.json(userData, { status: 200 });
+    return NextResponse.json(serializableData, { status: 200 });
+
   } catch (err: any) {
     console.error('Error fetching user preferences:', err);
     return NextResponse.json({ error: 'Failed to fetch user preferences.', details: err.message }, { status: 500 });

@@ -46,7 +46,15 @@ export async function GET(req: NextRequest) {
       .orderBy('date', 'desc')
       .get();
       
-    const logs = logsSnapshot.docs.map(doc => doc.data());
+    const logs = logsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      // Ensure Timestamps are converted to strings for JSON serialization
+      return {
+        ...data,
+        date: data.date?.toDate ? data.date.toDate().toISOString() : data.date,
+        timestamp: data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : data.timestamp,
+      };
+    });
     return NextResponse.json(logs, { status: 200 });
   } catch (err: any) {
     console.error(`Error fetching fuel logs for vehicle ${vehicleId}:`, err);

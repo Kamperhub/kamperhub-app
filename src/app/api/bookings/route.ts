@@ -57,7 +57,16 @@ export async function GET(req: NextRequest) {
 
   try {
     const bookingsSnapshot = await firestore.collection('users').doc(uid).collection('bookings').get();
-    const bookings = bookingsSnapshot.docs.map(doc => ({ ...doc.data() })) as BookingEntry[];
+    const bookings = bookingsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      // Ensure Timestamps are converted to strings for JSON serialization
+      return {
+        ...data,
+        checkInDate: data.checkInDate?.toDate ? data.checkInDate.toDate().toISOString() : data.checkInDate,
+        checkOutDate: data.checkOutDate?.toDate ? data.checkOutDate.toDate().toISOString() : data.checkOutDate,
+        timestamp: data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : data.timestamp,
+      };
+    }) as BookingEntry[];
     return NextResponse.json(bookings, { status: 200 });
   } catch (err: any) {
     console.error('Error fetching bookings:', err);

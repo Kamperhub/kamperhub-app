@@ -116,7 +116,22 @@ export async function GET(req: NextRequest) {
 
   try {
     const tripsSnapshot = await firestore.collection('users').doc(uid).collection('trips').get();
-    const trips = tripsSnapshot.docs.map(doc => ({ ...doc.data() })) as LoggedTrip[];
+    const trips = tripsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      // Deeply convert all Timestamps to ISO strings for JSON serialization
+      const expenses = (data.expenses || []).map((exp: any) => ({
+        ...exp,
+        date: exp.date?.toDate ? exp.date.toDate().toISOString() : exp.date,
+        timestamp: exp.timestamp?.toDate ? exp.timestamp.toDate().toISOString() : exp.timestamp,
+      }));
+      return {
+        ...data,
+        timestamp: data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : data.timestamp,
+        plannedStartDate: data.plannedStartDate?.toDate ? data.plannedStartDate.toDate().toISOString() : data.plannedStartDate,
+        plannedEndDate: data.plannedEndDate?.toDate ? data.plannedEndDate.toDate().toISOString() : data.plannedEndDate,
+        expenses,
+      };
+    }) as LoggedTrip[];
     return NextResponse.json(trips, { status: 200 });
   } catch (err: any) {
     console.error('Error fetching trips:', err);
