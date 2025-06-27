@@ -14,7 +14,7 @@ function serializeFirestoreTimestamps(data: any): any {
   if (typeof data.toDate === 'function') { // Check for Firestore Timestamp
     return data.toDate().toISOString();
   }
-  if (typeof data === 'object') {
+  if (typeof data === 'object' && data !== null && !Buffer.isBuffer(data)) {
     const res: { [key: string]: any } = {};
     for (const key in data) {
       if (Object.prototype.hasOwnProperty.call(data, key)) {

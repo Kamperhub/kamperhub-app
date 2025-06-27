@@ -122,11 +122,17 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: userPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
+  const { data: userPrefs, error: prefsError, isLoading: isLoadingPrefs } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
     queryFn: fetchUserPreferences,
     enabled: !!user && !isAuthLoading,
-    retry: false, // Don't retry on error for this non-critical query
+    retry: (failureCount, error) => {
+      // Don't retry for certain fatal errors that won't resolve.
+      if (error.message.includes("500") || error.message.includes("crash")) {
+        return false;
+      }
+      return failureCount < 2; // Retry up to 2 times for other errors
+    },
   });
 
   const updateUserPrefsMutation = useMutation({
@@ -153,28 +159,29 @@ export default function DashboardPage() {
   }, [isAuthLoading, user, router]);
 
   useEffect(() => {
-    if (userPrefs) {
-      const mainPageNavItems = defaultNavItems; 
-      const storedLayoutHrefs = userPrefs.dashboardLayout;
+    // This effect runs when userPrefs data arrives or changes.
+    // It's designed to be resilient: if preferences fail to load, it will just use the default.
+    const mainPageNavItems = defaultNavItems; 
+    const storedLayoutHrefs = userPrefs?.dashboardLayout;
 
-      if (storedLayoutHrefs && storedLayoutHrefs.length > 0) {
-        const itemsFromStorage = storedLayoutHrefs.map(href => mainPageNavItems.find(item => item.href === href)).filter(Boolean) as NavItem[];
-        const currentMainPageHrefs = new Set(mainPageNavItems.map(item => item.href));
-        const itemsInStorageHrefs = new Set(itemsFromStorage.map(item => item.href));
+    if (storedLayoutHrefs && Array.isArray(storedLayoutHrefs) && storedLayoutHrefs.length > 0) {
+      const itemsFromStorage = storedLayoutHrefs.map(href => mainPageNavItems.find(item => item.href === href)).filter(Boolean) as NavItem[];
+      const currentMainPageHrefs = new Set(mainPageNavItems.map(item => item.href));
+      const itemsInStorageHrefs = new Set(itemsFromStorage.map(item => item.href));
 
-        let finalItems = [...itemsFromStorage];
-        mainPageNavItems.forEach(defaultItem => {
-          if (!itemsInStorageHrefs.has(defaultItem.href)) {
-            finalItems.push(defaultItem);
-          }
-        });
-        finalItems = finalItems.filter(item => currentMainPageHrefs.has(item.href));
-        setOrderedNavItems(finalItems);
-      } else {
-        setOrderedNavItems(mainPageNavItems);
-      }
+      let finalItems = [...itemsFromStorage];
+      mainPageNavItems.forEach(defaultItem => {
+        if (!itemsInStorageHrefs.has(defaultItem.href)) {
+          finalItems.push(defaultItem);
+        }
+      });
+      finalItems = finalItems.filter(item => currentMainPageHrefs.has(item.href));
+      setOrderedNavItems(finalItems);
+    } else {
+      // If no stored layout, or if it's invalid, fall back to default.
+      setOrderedNavItems(mainPageNavItems);
     }
-  }, [userPrefs]);
+  }, [userPrefs]); // Only depends on userPrefs.
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -203,8 +210,9 @@ export default function DashboardPage() {
       return <FirebaseErrorState error={firebaseInitializationError} />;
   }
   
-  if (isAuthLoading) {
-     return <DashboardSkeleton loadingText={'Authenticating...'} />;
+  // Show a loading skeleton while authenticating OR fetching initial preferences
+  if (isAuthLoading || (user && isLoadingPrefs)) {
+     return <DashboardSkeleton loadingText={isAuthLoading ? 'Authenticating...' : 'Loading dashboard...'} />;
   }
 
   return (
@@ -212,10 +220,11 @@ export default function DashboardPage() {
       {prefsError && (
         <Alert variant="destructive" className="mb-6">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle className="font-headline">Could Not Load Custom Layout</AlertTitle>
+          <AlertTitle className="font-headline">Error Loading Dashboard Data</AlertTitle>
           <AlertDescription className="font-body">
-            There was an issue fetching your personalized dashboard layout. Displaying the default layout instead.
-            Error: {prefsError.message}
+             <p>We couldn't load your personalized dashboard settings. This often happens if the server-side configuration is not set up correctly.</p>
+             <p className="font-mono text-xs mt-2">Error details: {prefsError.message}</p>
+             <p className="mt-2">Please check the environment variable status and ensure your <code className="bg-destructive-foreground/20 px-1 rounded-sm">GOOGLE_APPLICATION_CREDENTIALS_JSON</code> in <code className="bg-destructive-foreground/20 px-1 rounded-sm">.env.local</code> is correct and on a single line.</p>
           </AlertDescription>
         </Alert>
       )}

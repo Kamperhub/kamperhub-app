@@ -9,14 +9,13 @@ import { z, ZodError } from 'zod';
 function serializeFirestoreTimestamps(data: any): any {
   if (!data) return data;
   
-  // Check for Firestore Timestamp-like objects which have a toDate method
-  if (typeof data.toDate === 'function') {
-    return data.toDate().toISOString();
-  }
-  
-  // If it's an array, recurse on each element
   if (Array.isArray(data)) {
     return data.map(serializeFirestoreTimestamps);
+  }
+
+  // Check for Firestore Timestamp-like objects which have a toDate method
+  if (typeof data === 'object' && data !== null && typeof data.toDate === 'function') {
+    return data.toDate().toISOString();
   }
   
   // If it's a plain object, recurse on each value
@@ -84,7 +83,7 @@ export async function GET(req: NextRequest) {
       console.warn(`User document for UID ${uid} exists but contains no data.`);
       return NextResponse.json({}, { status: 200 });
     }
-
+    
     const serializableData = serializeFirestoreTimestamps(userData);
     
     return NextResponse.json(serializableData, { status: 200 });
