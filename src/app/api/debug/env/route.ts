@@ -36,7 +36,14 @@ export async function GET() {
 
   if (serviceAccountJsonString) {
     try {
-      const parsedJson = JSON.parse(serviceAccountJsonString);
+      let jsonString = serviceAccountJsonString.trim();
+      // Handle cases where the string might be wrapped in single or double quotes, which is common in .env files.
+      if ((jsonString.startsWith("'") && jsonString.endsWith("'")) || (jsonString.startsWith('"') && jsonString.endsWith('"'))) {
+        jsonString = jsonString.substring(1, jsonString.length - 1);
+      }
+      
+      const parsedJson = JSON.parse(jsonString);
+
       if (parsedJson.project_id && parsedJson.private_key && parsedJson.client_email) {
         adminSDKStatus = 'Set and appears to be valid JSON with key fields present.';
       } else {
