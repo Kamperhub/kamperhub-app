@@ -8,29 +8,19 @@ import { z, ZodError } from 'zod';
 
 const ACCOMMODATION_CATEGORY_NAME = "Accommodation";
 
-// Helper function to recursively convert Firestore Timestamps to ISO strings
-function serializeFirestoreTimestamps(data: any): any {
-    if (data === null || data === undefined || typeof data !== 'object') {
-        return data;
+// A robust replacer function for JSON.stringify to handle Firestore Timestamps.
+const firestoreTimestampReplacer = (key: any, value: any) => {
+    if (value && typeof value === 'object' && typeof value.toDate === 'function') {
+        return value.toDate().toISOString();
     }
+    return value;
+};
 
-    if (typeof data.toDate === 'function') { // Firestore Timestamp
-        return data.toDate().toISOString();
-    }
-
-    if (Array.isArray(data)) {
-        return data.map(serializeFirestoreTimestamps);
-    }
-
-    // It must be a plain object
-    const res: { [key: string]: any } = {};
-    for (const key in data) {
-        if (Object.prototype.hasOwnProperty.call(data, key)) {
-            res[key] = serializeFirestoreTimestamps(data[key]);
-        }
-    }
-    return res;
-}
+// Helper function to create a clean, JSON-safe object.
+const sanitizeData = (data: any) => {
+    const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
+    return JSON.parse(jsonString);
+};
 
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
@@ -81,12 +71,9 @@ export async function GET(req: NextRequest) {
 
   try {
     const bookingsSnapshot = await firestore.collection('users').doc(uid).collection('bookings').get();
-    const bookings = bookingsSnapshot.docs.map(doc => {
-      const data = doc.data();
-      if (!data) return null;
-      return serializeFirestoreTimestamps(data);
-    }).filter(Boolean);
-    return NextResponse.json(bookings, { status: 200 });
+    const bookings = bookingsSnapshot.docs.map(doc => doc.data()).filter(Boolean);
+    const sanitizedBookings = sanitizeData(bookings);
+    return NextResponse.json(sanitizedBookings, { status: 200 });
   } catch (err: any) {
     console.error('Error fetching bookings:', err);
     return NextResponse.json({ error: 'Failed to fetch bookings.', details: err.message }, { status: 500 });
@@ -138,7 +125,8 @@ export async function POST(req: NextRequest) {
         await newBookingRef.set(newBooking);
     }
     
-    return NextResponse.json(newBooking, { status: 201 });
+    const sanitizedNewBooking = sanitizeData(newBooking);
+    return NextResponse.json(sanitizedNewBooking, { status: 201 });
 
   } catch (err: any) {
     console.error('Error creating booking:', err);
@@ -162,6 +150,7 @@ export async function PUT(req: NextRequest) {
 
     const bookingRef = firestore.collection('users').doc(uid).collection('bookings').doc(bookingId);
 
+    let finalUpdatedBooking: BookingEntry | null = null;
     await firestore.runTransaction(async (transaction) => {
       const bookingDoc = await transaction.get(bookingRef);
       if (!bookingDoc.exists) throw new Error("Booking not found.");
@@ -202,11 +191,11 @@ export async function PUT(req: NextRequest) {
         transaction.update(newTripRef, { budget });
       }
 
-      const updatedBookingData = { ...newBookingData, updatedAt: new Date().toISOString() };
-      transaction.set(bookingRef, updatedBookingData, { merge: true });
+      finalUpdatedBooking = { ...newBookingData, updatedAt: new Date().toISOString() };
+      transaction.set(bookingRef, finalUpdatedBooking, { merge: true });
     });
     
-    return NextResponse.json({ message: 'Booking updated successfully.' }, { status: 200 });
+    return NextResponse.json({ message: 'Booking updated successfully.', booking: sanitizeData(finalUpdatedBooking) }, { status: 200 });
   } catch (err: any) {
     console.error('Error updating booking:', err);
     if (err instanceof ZodError) {

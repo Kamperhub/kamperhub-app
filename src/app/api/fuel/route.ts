@@ -5,29 +5,19 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import { z, ZodError } from 'zod';
 import { fuelLogSchema } from '@/types/service';
 
-// Helper function to recursively convert Firestore Timestamps to ISO strings
-function serializeFirestoreTimestamps(data: any): any {
-    if (data === null || data === undefined || typeof data !== 'object') {
-        return data;
+// A robust replacer function for JSON.stringify to handle Firestore Timestamps.
+const firestoreTimestampReplacer = (key: any, value: any) => {
+    if (value && typeof value === 'object' && typeof value.toDate === 'function') {
+        return value.toDate().toISOString();
     }
+    return value;
+};
 
-    if (typeof data.toDate === 'function') { // Firestore Timestamp
-        return data.toDate().toISOString();
-    }
-
-    if (Array.isArray(data)) {
-        return data.map(serializeFirestoreTimestamps);
-    }
-
-    // It must be a plain object
-    const res: { [key: string]: any } = {};
-    for (const key in data) {
-        if (Object.prototype.hasOwnProperty.call(data, key)) {
-            res[key] = serializeFirestoreTimestamps(data[key]);
-        }
-    }
-    return res;
-}
+// Helper function to create a clean, JSON-safe object.
+const sanitizeData = (data: any) => {
+    const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
+    return JSON.parse(jsonString);
+};
 
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
@@ -70,12 +60,9 @@ export async function GET(req: NextRequest) {
       .orderBy('date', 'desc')
       .get();
       
-    const logs = logsSnapshot.docs.map(doc => {
-      const data = doc.data();
-      if (!data) return null;
-      return serializeFirestoreTimestamps(data);
-    }).filter(Boolean);
-    return NextResponse.json(logs, { status: 200 });
+    const logs = logsSnapshot.docs.map(doc => doc.data()).filter(Boolean);
+    const sanitizedLogs = sanitizeData(logs);
+    return NextResponse.json(sanitizedLogs, { status: 200 });
   } catch (err: any) {
     console.error(`Error fetching fuel logs for vehicle ${vehicleId}:`, err);
     return NextResponse.json({ error: 'Failed to fetch fuel logs.', details: err.message }, { status: 500 });
@@ -103,7 +90,8 @@ export async function POST(req: NextRequest) {
     };
     
     await newLogRef.set(newLog);
-    return NextResponse.json(newLog, { status: 201 });
+    const sanitizedNewLog = sanitizeData(newLog);
+    return NextResponse.json(sanitizedNewLog, { status: 201 });
   } catch (err: any) {
     if (err instanceof ZodError) {
       return NextResponse.json({ error: 'Invalid fuel log data.', details: err.format() }, { status: 400 });
@@ -127,7 +115,8 @@ export async function PUT(req: NextRequest) {
       .collection('fuelLogs').doc(parsedData.id);
       
     await logRef.set(parsedData, { merge: true });
-    return NextResponse.json({ message: 'Fuel log updated.', fuelLog: parsedData }, { status: 200 });
+    const sanitizedParsedData = sanitizeData(parsedData);
+    return NextResponse.json({ message: 'Fuel log updated.', fuelLog: sanitizedParsedData }, { status: 200 });
   } catch (err: any) {
     if (err instanceof ZodError) {
       return NextResponse.json({ error: 'Invalid fuel log data for update.', details: err.format() }, { status: 400 });

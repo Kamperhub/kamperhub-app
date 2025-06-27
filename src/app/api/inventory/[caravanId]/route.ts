@@ -5,29 +5,19 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { InventoryItem } from '@/types/inventory';
 import { z, ZodError } from 'zod';
 
-// Helper function to recursively convert Firestore Timestamps to ISO strings
-function serializeFirestoreTimestamps(data: any): any {
-    if (data === null || data === undefined || typeof data !== 'object') {
-        return data;
+// A robust replacer function for JSON.stringify to handle Firestore Timestamps.
+const firestoreTimestampReplacer = (key: any, value: any) => {
+    if (value && typeof value === 'object' && typeof value.toDate === 'function') {
+        return value.toDate().toISOString();
     }
+    return value;
+};
 
-    if (typeof data.toDate === 'function') { // Firestore Timestamp
-        return data.toDate().toISOString();
-    }
-
-    if (Array.isArray(data)) {
-        return data.map(serializeFirestoreTimestamps);
-    }
-
-    // It must be a plain object
-    const res: { [key: string]: any } = {};
-    for (const key in data) {
-        if (Object.prototype.hasOwnProperty.call(data, key)) {
-            res[key] = serializeFirestoreTimestamps(data[key]);
-        }
-    }
-    return res;
-}
+// Helper function to create a clean, JSON-safe object.
+const sanitizeData = (data: any) => {
+    const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
+    return JSON.parse(jsonString);
+};
 
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
@@ -83,7 +73,7 @@ export async function GET(req: NextRequest, { params }: { params: { caravanId: s
     
     const inventoryData = inventoryDocSnap.data();
     const items = inventoryData?.items || [];
-    const serializableData = serializeFirestoreTimestamps({ items }); // Serialize the whole object
+    const serializableData = sanitizeData({ items });
     return NextResponse.json(serializableData, { status: 200 });
 
   } catch (err: any) {
@@ -110,7 +100,8 @@ export async function PUT(req: NextRequest, { params }: { params: { caravanId: s
     
     await inventoryDocRef.set({ items: parsedData.items });
     
-    return NextResponse.json({ message: 'Inventory updated successfully.', items: parsedData.items }, { status: 200 });
+    const sanitizedItems = sanitizeData(parsedData.items);
+    return NextResponse.json({ message: 'Inventory updated successfully.', items: sanitizedItems }, { status: 200 });
 
   } catch (err: any) {
     console.error(`Error updating inventory for caravan ${caravanId}:`, err);

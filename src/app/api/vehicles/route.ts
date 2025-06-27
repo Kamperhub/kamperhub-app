@@ -5,29 +5,19 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { VehicleFormData, StoredVehicle } from '@/types/vehicle';
 import { z, ZodError } from 'zod';
 
-// Helper function to recursively convert Firestore Timestamps to ISO strings
-function serializeFirestoreTimestamps(data: any): any {
-    if (data === null || data === undefined || typeof data !== 'object') {
-        return data;
+// A robust replacer function for JSON.stringify to handle Firestore Timestamps.
+const firestoreTimestampReplacer = (key: any, value: any) => {
+    if (value && typeof value === 'object' && typeof value.toDate === 'function') {
+        return value.toDate().toISOString();
     }
+    return value;
+};
 
-    if (typeof data.toDate === 'function') { // Firestore Timestamp
-        return data.toDate().toISOString();
-    }
-
-    if (Array.isArray(data)) {
-        return data.map(serializeFirestoreTimestamps);
-    }
-
-    // It must be a plain object
-    const res: { [key: string]: any } = {};
-    for (const key in data) {
-        if (Object.prototype.hasOwnProperty.call(data, key)) {
-            res[key] = serializeFirestoreTimestamps(data[key]);
-        }
-    }
-    return res;
-}
+// Helper function to create a clean, JSON-safe object.
+const sanitizeData = (data: any) => {
+    const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
+    return JSON.parse(jsonString);
+};
 
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
@@ -78,12 +68,9 @@ export async function GET(req: NextRequest) {
 
   try {
     const vehiclesSnapshot = await firestore.collection('users').doc(uid).collection('vehicles').get();
-    const vehicles = vehiclesSnapshot.docs.map(doc => {
-      const data = doc.data();
-      if (!data) return null;
-      return { id: doc.id, ...serializeFirestoreTimestamps(data) };
-    }).filter(Boolean);
-    return NextResponse.json(vehicles, { status: 200 });
+    const vehicles = vehiclesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(Boolean);
+    const sanitizedVehicles = sanitizeData(vehicles);
+    return NextResponse.json(sanitizedVehicles, { status: 200 });
   } catch (err: any) {
     console.error('Error fetching vehicles:', err);
     return NextResponse.json({ error: 'Failed to fetch vehicles.', details: err.message }, { status: 500 });
@@ -107,7 +94,8 @@ export async function POST(req: NextRequest) {
     
     await newVehicleRef.set(newVehicle);
     
-    return NextResponse.json(newVehicle, { status: 201 });
+    const sanitizedNewVehicle = sanitizeData(newVehicle);
+    return NextResponse.json(sanitizedNewVehicle, { status: 201 });
 
   } catch (err: any) {
     console.error('Error creating vehicle:', err);
@@ -130,7 +118,8 @@ export async function PUT(req: NextRequest) {
     const vehicleRef = firestore.collection('users').doc(uid).collection('vehicles').doc(parsedData.id);
     await vehicleRef.set(parsedData, { merge: true });
     
-    return NextResponse.json({ message: 'Vehicle updated successfully.', vehicle: parsedData }, { status: 200 });
+    const sanitizedParsedData = sanitizeData(parsedData);
+    return NextResponse.json({ message: 'Vehicle updated successfully.', vehicle: sanitizedParsedData }, { status: 200 });
   } catch (err: any) {
     console.error('Error updating vehicle:', err);
     if (err instanceof ZodError) {

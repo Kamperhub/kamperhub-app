@@ -5,29 +5,19 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
 import { z, ZodError } from 'zod';
 
-// Helper function to recursively convert Firestore Timestamps to ISO strings
-function serializeFirestoreTimestamps(data: any): any {
-    if (data === null || data === undefined || typeof data !== 'object') {
-        return data;
+// A robust replacer function for JSON.stringify to handle Firestore Timestamps.
+const firestoreTimestampReplacer = (key: any, value: any) => {
+    if (value && typeof value === 'object' && typeof value.toDate === 'function') {
+        return value.toDate().toISOString();
     }
+    return value;
+};
 
-    if (typeof data.toDate === 'function') { // Firestore Timestamp
-        return data.toDate().toISOString();
-    }
-
-    if (Array.isArray(data)) {
-        return data.map(serializeFirestoreTimestamps);
-    }
-
-    // It must be a plain object
-    const res: { [key: string]: any } = {};
-    for (const key in data) {
-        if (Object.prototype.hasOwnProperty.call(data, key)) {
-            res[key] = serializeFirestoreTimestamps(data[key]);
-        }
-    }
-    return res;
-}
+// Helper function to create a clean, JSON-safe object.
+const sanitizeData = (data: any) => {
+    const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
+    return JSON.parse(jsonString);
+};
 
 
 async function verifyUserAndGetInstances(req: NextRequest) {
@@ -80,7 +70,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({}, { status: 200 });
     }
     
-    const serializableData = serializeFirestoreTimestamps(userData);
+    const serializableData = sanitizeData(userData);
     
     return NextResponse.json(serializableData, { status: 200 });
 
@@ -108,7 +98,8 @@ export async function PUT(req: NextRequest) {
     
     await userDocRef.set(updateData, { merge: true });
     
-    return NextResponse.json({ message: 'User preferences updated successfully.', preferences: updateData }, { status: 200 });
+    const sanitizedData = sanitizeData(updateData);
+    return NextResponse.json({ message: 'User preferences updated successfully.', preferences: sanitizedData }, { status: 200 });
   } catch (err: any) {
     console.error('Error updating user preferences:', err);
     if (err instanceof ZodError) {

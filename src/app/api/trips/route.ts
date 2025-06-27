@@ -5,29 +5,19 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { z, ZodError } from 'zod';
 
-// Helper function to recursively convert Firestore Timestamps to ISO strings
-function serializeFirestoreTimestamps(data: any): any {
-    if (data === null || data === undefined || typeof data !== 'object') {
-        return data;
+// A robust replacer function for JSON.stringify to handle Firestore Timestamps.
+const firestoreTimestampReplacer = (key: any, value: any) => {
+    if (value && typeof value === 'object' && typeof value.toDate === 'function') {
+        return value.toDate().toISOString();
     }
+    return value;
+};
 
-    if (typeof data.toDate === 'function') { // Firestore Timestamp
-        return data.toDate().toISOString();
-    }
-
-    if (Array.isArray(data)) {
-        return data.map(serializeFirestoreTimestamps);
-    }
-
-    // It must be a plain object
-    const res: { [key: string]: any } = {};
-    for (const key in data) {
-        if (Object.prototype.hasOwnProperty.call(data, key)) {
-            res[key] = serializeFirestoreTimestamps(data[key]);
-        }
-    }
-    return res;
-}
+// Helper function to create a clean, JSON-safe object.
+const sanitizeData = (data: any) => {
+    const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
+    return JSON.parse(jsonString);
+};
 
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
@@ -140,12 +130,9 @@ export async function GET(req: NextRequest) {
 
   try {
     const tripsSnapshot = await firestore.collection('users').doc(uid).collection('trips').get();
-    const trips = tripsSnapshot.docs.map(doc => {
-      const data = doc.data();
-      if (!data) return null;
-      return serializeFirestoreTimestamps(data);
-    }).filter(Boolean);
-    return NextResponse.json(trips, { status: 200 });
+    const trips = tripsSnapshot.docs.map(doc => doc.data()).filter(Boolean);
+    const sanitizedTrips = sanitizeData(trips);
+    return NextResponse.json(sanitizedTrips, { status: 200 });
   } catch (err: any) {
     console.error('Error fetching trips:', err);
     return NextResponse.json({ error: 'Failed to fetch trips.', details: err.message }, { status: 500 });
@@ -173,7 +160,8 @@ export async function POST(req: NextRequest) {
     
     await newTripRef.set(newTrip);
     
-    return NextResponse.json(newTrip, { status: 201 });
+    const sanitizedNewTrip = sanitizeData(newTrip);
+    return NextResponse.json(sanitizedNewTrip, { status: 201 });
 
   } catch (err: any) {
     console.error('Error creating trip:', err);
@@ -196,7 +184,8 @@ export async function PUT(req: NextRequest) {
     const tripRef = firestore.collection('users').doc(uid).collection('trips').doc(parsedData.id);
     await tripRef.set(parsedData, { merge: true });
     
-    return NextResponse.json({ message: 'Trip updated successfully.', trip: parsedData }, { status: 200 });
+    const sanitizedParsedData = sanitizeData(parsedData);
+    return NextResponse.json({ message: 'Trip updated successfully.', trip: sanitizedParsedData }, { status: 200 });
   } catch (err: any) {
     console.error('Error updating trip:', err);
     if (err instanceof ZodError) {
