@@ -52,9 +52,10 @@ function initializeFirebaseAdmin(): FirebaseAdminInstances | FirebaseAdminError 
 
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
+      databaseId: 'kamperhubv2', // <--- ADD THIS LINE
     });
 
-    console.log("[Firebase Admin] SDK initialized successfully.");
+    console.log("[Firebase Admin] SDK initialized successfully to kamperhubv2."); // <--- Update this line
     return {
       firestore: admin.firestore(),
       auth: admin.auth(),
