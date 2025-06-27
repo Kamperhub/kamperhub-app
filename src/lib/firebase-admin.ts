@@ -1,73 +1,83 @@
 
 import admin from 'firebase-admin';
 
-let initError: Error | null = null;
-let firestore: admin.firestore.Firestore | undefined;
-let auth: admin.auth.Auth | undefined;
-
-// This check ensures that Firebase is only initialized once.
-if (!admin.apps.length) {
-  const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-
-  if (serviceAccountJsonString) {
-    try {
-      // Step 1: Trim whitespace from the start and end of the string.
-      let jsonString = serviceAccountJsonString.trim();
-
-      // Step 2: Handle if the whole string is wrapped in single or double quotes.
-      if ((jsonString.startsWith("'") && jsonString.endsWith("'")) || (jsonString.startsWith('"') && jsonString.endsWith('"'))) {
-        jsonString = jsonString.substring(1, jsonString.length - 1);
-      }
-      
-      // Step 3: Parse the string into a JSON object first.
-      const serviceAccount = JSON.parse(jsonString);
-
-      // Step 4: **Crucially, fix the private_key field.** The PEM format requires
-      // actual newline characters, which get escaped to "\\n" in .env variables.
-      // This specifically targets the field causing the "Invalid PEM" error.
-      if (serviceAccount.private_key) {
-        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-      }
-
-      // Step 5: Initialize Firebase Admin with the corrected credentials object.
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-      console.log("[Firebase Admin] SDK initialized successfully.");
-
-    } catch (e: any) {
-      const errorSnippet = (serviceAccountJsonString || "undefined").substring(0, 75).replace(/\s/g, '');
-      initError = new Error(`Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON. Please ensure it's valid, unescaped JSON on a single line. Server sees: "${errorSnippet}...". Original error: ${e.message}`);
-      console.error("[Firebase Admin] CRITICAL:", initError.message);
-    }
-  } else {
-    initError = new Error("GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is not set. Please follow the setup checklist.");
-    console.error(`[Firebase Admin] CRITICAL: ${initError.message}`);
-  }
+interface FirebaseAdminInstances {
+  firestore: admin.firestore.Firestore;
+  auth: admin.auth.Auth;
+  error: null;
 }
 
-// Assign the instances only if initialization succeeded.
-if (admin.apps.length > 0 && !initError) {
-  firestore = admin.firestore();
-  auth = admin.auth();
+interface FirebaseAdminError {
+  firestore: undefined;
+  auth: undefined;
+  error: Error;
+}
+
+let instance: FirebaseAdminInstances | FirebaseAdminError | null = null;
+
+function initializeFirebaseAdmin(): FirebaseAdminInstances | FirebaseAdminError {
+  // If the app is already initialized, return the existing instances.
+  // This is the core of the singleton pattern for this module.
+  if (admin.apps.length) {
+    return {
+      firestore: admin.firestore(),
+      auth: admin.auth(),
+      error: null,
+    };
+  }
+
+  const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  if (!serviceAccountJsonString) {
+    return {
+      firestore: undefined,
+      auth: undefined,
+      error: new Error("GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is not set. Please follow the setup checklist."),
+    };
+  }
+
+  try {
+    let jsonString = serviceAccountJsonString.trim();
+    if ((jsonString.startsWith("'") && jsonString.endsWith("'")) || (jsonString.startsWith('"') && jsonString.endsWith('"'))) {
+      jsonString = jsonString.substring(1, jsonString.length - 1);
+    }
+    
+    const serviceAccount = JSON.parse(jsonString);
+    
+    if (serviceAccount.private_key) {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    }
+
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+
+    console.log("[Firebase Admin] SDK initialized successfully.");
+    return {
+      firestore: admin.firestore(),
+      auth: admin.auth(),
+      error: null,
+    };
+  } catch (e: any) {
+    const errorSnippet = (serviceAccountJsonString || "undefined").substring(0, 75).replace(/\s/g, '');
+    const error = new Error(`Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON. Please ensure it's valid, unescaped JSON on a single line. Server sees: "${errorSnippet}...". Original error: ${e.message}`);
+    return {
+      firestore: undefined,
+      auth: undefined,
+      error,
+    };
+  }
 }
 
 /**
  * Gets the initialized Firebase Admin instances (firestore, auth).
- * This function now acts as a getter for the singleton instances initialized above.
- * It returns an error if the initial initialization failed.
+ * This function now uses a singleton pattern to ensure initialization
+ * happens only once, preventing race conditions.
  *
- * @returns An object containing the admin instances or an error.
+ * @returns An object containing the admin instances or a captured initialization error.
  */
-export function getFirebaseAdmin() {
-  if (initError) {
-    return { firestore: undefined, auth: undefined, error: initError };
+export function getFirebaseAdmin(): FirebaseAdminInstances | FirebaseAdminError {
+  if (!instance) {
+    instance = initializeFirebaseAdmin();
   }
-  
-  // This condition handles the case where initialization didn't error but didn't succeed either.
-  if (!firestore || !auth) {
-    return { firestore: undefined, auth: undefined, error: new Error("Firebase Admin SDK not available. Check server logs for initialization errors.") };
-  }
-
-  return { firestore, auth, error: null };
+  return instance;
 }
