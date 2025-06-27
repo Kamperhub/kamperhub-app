@@ -19,12 +19,10 @@ const sanitizeData = (data: any) => {
         return JSON.parse(jsonString);
     } catch (error) {
         console.error("Error in sanitizeData:", error);
-        // Return a safe, empty object or handle as appropriate
-        return {}; 
+        return {}; // Return a safe, empty object
     }
 };
 
-// This helper was missing and is now restored.
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error) {
