@@ -17,7 +17,6 @@ let instance: FirebaseAdminInstances | FirebaseAdminError | null = null;
 
 function initializeFirebaseAdmin(): FirebaseAdminInstances | FirebaseAdminError {
   // If the app is already initialized, return the existing instances.
-  // This is the core of the singleton pattern for this module.
   if (admin.apps.length) {
     return {
       firestore: admin.firestore(),
@@ -27,22 +26,26 @@ function initializeFirebaseAdmin(): FirebaseAdminInstances | FirebaseAdminError 
   }
 
   const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  
+  // Per your instructions, explicitly check for the env var first.
   if (!serviceAccountJsonString) {
     return {
       firestore: undefined,
       auth: undefined,
-      error: new Error("GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is not set. Please follow the setup checklist."),
+      error: new Error("FATAL: GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is not set. The server cannot connect to Firebase services. Please follow the setup checklist."),
     };
   }
 
   try {
     let jsonString = serviceAccountJsonString.trim();
+    // Handle cases where the string might be wrapped in single or double quotes.
     if ((jsonString.startsWith("'") && jsonString.endsWith("'")) || (jsonString.startsWith('"') && jsonString.endsWith('"'))) {
       jsonString = jsonString.substring(1, jsonString.length - 1);
     }
     
     const serviceAccount = JSON.parse(jsonString);
     
+    // This is a common issue with .env files, so explicitly handle it.
     if (serviceAccount.private_key) {
       serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
     }
