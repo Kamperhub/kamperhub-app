@@ -14,7 +14,7 @@ const updateSubscriptionSchema = z.object({
 
 export async function POST(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
-  if (error || !firestore || !auth) {
+  if (error) {
     console.error('API Route Error: Firebase Admin SDK not available.', error);
     return NextResponse.json({
       error: 'Server configuration error.',

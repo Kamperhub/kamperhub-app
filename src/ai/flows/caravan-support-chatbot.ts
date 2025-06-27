@@ -148,7 +148,7 @@ const listUserTripsTool = ai.defineTool(
   },
   async ({ userId }) => {
     const { firestore, error } = getFirebaseAdmin();
-    if (error || !firestore) {
+    if (error) {
       console.error('listUserTripsTool: Firestore is not available due to initialization error.', error);
       return null;
     }
@@ -186,7 +186,7 @@ const findUserTripTool = ai.defineTool(
   },
   async ({ userId, tripName }) => {
     const { firestore, error } = getFirebaseAdmin();
-    if (error || !firestore) {
+    if (error) {
       console.error('findUserTripTool: Firestore is not available due to initialization error.', error);
       return null;
     }
@@ -238,7 +238,7 @@ const addExpenseToTripTool = ai.defineTool(
   },
   async ({ userId, tripId, amount, categoryName, description, expenseDate }) => {
     const { firestore, error } = getFirebaseAdmin();
-    if (error || !firestore) {
+    if (error) {
       console.error('addExpenseToTripTool: Firestore is not available due to initialization error.', error);
       return "Error: The database service is not available due to a configuration issue.";
     }

@@ -28,7 +28,7 @@ function serializeFirestoreTimestamps(data: any): any {
 
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
-  if (error || !firestore || !auth) {
+  if (error) {
     return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
   }
 

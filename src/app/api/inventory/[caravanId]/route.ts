@@ -7,7 +7,7 @@ import { z, ZodError } from 'zod';
 
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
-  if (error || !firestore || !auth) {
+  if (error) {
     return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
   }
 
@@ -58,6 +58,8 @@ export async function GET(req: NextRequest, { params }: { params: { caravanId: s
     }
     
     const inventoryData = inventoryDocSnap.data();
+    // Although InventoryItem doesn't have timestamps, it's good practice to serialize
+    // in case the data model changes in the future.
     const items = inventoryData?.items || [];
     return NextResponse.json({ items }, { status: 200 });
 

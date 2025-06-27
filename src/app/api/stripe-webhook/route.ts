@@ -20,7 +20,7 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 export async function POST(req: NextRequest) {
   const { firestore, error: adminError } = getFirebaseAdmin();
-  if (adminError || !firestore) {
+  if (adminError) {
     console.error('API Route Error: Firebase Admin SDK not available.', adminError);
     return NextResponse.json({
       error: 'Server configuration error.',
