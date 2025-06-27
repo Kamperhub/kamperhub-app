@@ -23,8 +23,8 @@ export async function POST(req: NextRequest) {
   if (adminError || !firestore) {
     console.error('API Route Error: Firebase Admin SDK not available.', adminError);
     return NextResponse.json({
-      error: 'Server configuration error: The connection to the database service is not available. Please check server logs for details about GOOGLE_APPLICATION_CREDENTIALS_JSON.',
-      details: adminError?.message || "Firebase Admin SDK services are not initialized."
+      error: 'Server configuration error.',
+      details: adminError?.message || "The backend failed to connect to the database. Please check server logs."
     }, { status: 503 });
   }
 
