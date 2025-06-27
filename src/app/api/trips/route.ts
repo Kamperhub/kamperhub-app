@@ -118,6 +118,7 @@ export async function GET(req: NextRequest) {
     const tripsSnapshot = await firestore.collection('users').doc(uid).collection('trips').get();
     const trips = tripsSnapshot.docs.map(doc => {
       const data = doc.data();
+      if (!data) return null; // Defensive check for empty/corrupt documents
       // Deeply convert all Timestamps to ISO strings for JSON serialization
       const expenses = (data.expenses || []).map((exp: any) => ({
         ...exp,
@@ -131,7 +132,7 @@ export async function GET(req: NextRequest) {
         plannedEndDate: data.plannedEndDate?.toDate ? data.plannedEndDate.toDate().toISOString() : data.plannedEndDate,
         expenses,
       };
-    }) as LoggedTrip[];
+    }).filter(Boolean) as LoggedTrip[]; // Filter out any nulls
     return NextResponse.json(trips, { status: 200 });
   } catch (err: any) {
     console.error('Error fetching trips:', err);

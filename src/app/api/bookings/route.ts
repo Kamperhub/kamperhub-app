@@ -59,6 +59,7 @@ export async function GET(req: NextRequest) {
     const bookingsSnapshot = await firestore.collection('users').doc(uid).collection('bookings').get();
     const bookings = bookingsSnapshot.docs.map(doc => {
       const data = doc.data();
+      if (!data) return null; // Defensive check for empty/corrupt documents
       // Ensure Timestamps are converted to strings for JSON serialization
       return {
         ...data,
@@ -66,7 +67,7 @@ export async function GET(req: NextRequest) {
         checkOutDate: data.checkOutDate?.toDate ? data.checkOutDate.toDate().toISOString() : data.checkOutDate,
         timestamp: data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : data.timestamp,
       };
-    }) as BookingEntry[];
+    }).filter(Boolean) as BookingEntry[]; // Filter out any nulls from empty docs
     return NextResponse.json(bookings, { status: 200 });
   } catch (err: any) {
     console.error('Error fetching bookings:', err);

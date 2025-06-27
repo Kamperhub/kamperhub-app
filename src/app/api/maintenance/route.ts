@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
     const tasksSnapshot = await query.orderBy('dueDate', 'asc').get();
     const tasks = tasksSnapshot.docs.map(doc => {
       const data = doc.data();
+      if (!data) return null; // Defensive check
       // Ensure Timestamps are converted to strings for JSON serialization
       return {
         ...data,
@@ -55,7 +56,7 @@ export async function GET(req: NextRequest) {
         completedDate: data.completedDate?.toDate ? data.completedDate.toDate().toISOString() : data.completedDate,
         timestamp: data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : data.timestamp,
       };
-    });
+    }).filter(Boolean); // Filter out nulls
     return NextResponse.json(tasks, { status: 200 });
   } catch (err: any) {
     console.error(`Error fetching maintenance tasks:`, err);

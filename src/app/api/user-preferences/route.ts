@@ -46,11 +46,14 @@ export async function GET(req: NextRequest) {
     const userDocSnap = await userDocRef.get();
 
     if (!userDocSnap.exists()) {
+      // This is a valid state for a newly signed-up user who hasn't completed profile setup.
       return NextResponse.json({}, { status: 200 });
     }
 
     const userData = userDocSnap.data();
     if (!userData) {
+      // This handles the edge case where the document exists but is empty.
+      console.warn(`User document for UID ${uid} exists but contains no data.`);
       return NextResponse.json({}, { status: 200 });
     }
 
