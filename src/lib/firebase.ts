@@ -60,8 +60,8 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
             // It allows App Check to work without a real reCAPTCHA challenge.
             if (process.env.NODE_ENV === 'development') {
                // The .env.local file should contain: NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN=...
-               (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN;
                if (process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN) {
+                  (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN;
                   console.log('[Firebase Client] App Check using debug token from .env.local.');
                } else {
                   console.warn('[Firebase Client] App Check debug mode may be enabled. If you see App Check errors, ensure NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN is set in .env.local and that you have restarted your server. Check the browser console for the required token if one is logged there.');
