@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 import { UserCog, ShieldAlert, CalendarIcon, AlertTriangle, Loader2, Send, Mail, UserX, Trash2 } from 'lucide-react';
 import type { SubscriptionTier } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchAllUsers } from '@/lib/api-client';
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
@@ -48,15 +48,40 @@ type DeleteUserFormData = z.infer<typeof deleteUserFormSchema>;
 export default function AdminPage() {
   const { user: currentUser, isAuthLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const { data: allUsers = [], isLoading: isLoadingUsers } = useQuery({
+  const { data: allUsers = [], isLoading: isLoadingUsers, error: usersError } = useQuery({
     queryKey: ['allUsers', currentUser?.uid],
     queryFn: fetchAllUsers,
-    enabled: !!currentUser,
+    enabled: !!currentUser && currentUser.email === ADMIN_EMAIL,
   });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (email: string) => {
+        const idToken = await currentUser!.getIdToken(true);
+        const response = await fetch('/api/admin/delete-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}`},
+            body: JSON.stringify({ email }),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to delete user.');
+        }
+        return result;
+    },
+    onSuccess: (result) => {
+        toast({ title: "User Deleted", description: result.message });
+        queryClient.invalidateQueries({ queryKey: ['allUsers', currentUser?.uid] });
+        deleteForm.reset();
+    },
+    onError: (error: Error) => {
+        toast({ title: "Deletion Failed", description: error.message, variant: "destructive" });
+    }
+  });
+
 
   const updateForm = useForm<UpdateSubscriptionFormData>({
     resolver: zodResolver(updateSubscriptionFormSchema),
@@ -71,7 +96,7 @@ export default function AdminPage() {
   });
 
   useEffect(() => {
-    if (!isAuthLoading && !currentUser) {
+    if (!isAuthLoading && (!currentUser || currentUser.email !== ADMIN_EMAIL)) {
       router.push('/login');
     }
   }, [currentUser, isAuthLoading, router]);
@@ -107,30 +132,11 @@ export default function AdminPage() {
     }
   };
 
-  const onDeleteSubmit: SubmitHandler<DeleteUserFormData> = async (data) => {
-    setIsDeleting(true);
-    try {
-      const idToken = await currentUser!.getIdToken(true);
-      const response = await fetch('/api/admin/delete-user', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}`},
-          body: JSON.stringify({ email: data.deleteUserEmail }),
-      });
-      const result = await response.json();
-      if (response.ok) {
-          toast({ title: "User Deleted", description: result.message });
-          deleteForm.reset();
-      } else {
-          toast({ title: "Deletion Failed", description: result.error || "An unknown error occurred.", variant: "destructive" });
-      }
-    } catch (error: any) {
-        toast({ title: "Client-Side Error", description: error.message, variant: "destructive" });
-    } finally {
-        setIsDeleting(false);
-    }
+  const onDeleteSubmit: SubmitHandler<DeleteUserFormData> = (data) => {
+    deleteUserMutation.mutate(data.deleteUserEmail);
   };
   
-  if (isAuthLoading) {
+  if (isAuthLoading || isLoadingUsers) {
     return (
         <div className="flex justify-center items-center min-h-screen">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -147,6 +153,18 @@ export default function AdminPage() {
         <Button onClick={() => router.push('/')} className="mt-6 font-body">Go to Dashboard</Button>
       </div>
     );
+  }
+  
+  if (usersError) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen text-center p-6">
+            <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Error loading users</AlertTitle>
+                <AlertDescription>{usersError.message}</AlertDescription>
+            </Alert>
+        </div>
+    )
   }
 
   return (
@@ -206,7 +224,7 @@ export default function AdminPage() {
                       <Select
                         onValueChange={field.onChange}
                         value={field.value}
-                        disabled={isDeleting || isLoadingUsers}
+                        disabled={deleteUserMutation.isPending || isLoadingUsers}
                       >
                         <SelectTrigger className="font-body pl-10 relative">
                           <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -232,12 +250,12 @@ export default function AdminPage() {
               </div>
               <div>
                 <Label htmlFor="confirmationText" className="font-body">Type "DELETE" to confirm</Label>
-                <Input id="confirmationText" {...deleteForm.register("confirmationText")} placeholder='Type DELETE here' disabled={isDeleting}/>
+                <Input id="confirmationText" {...deleteForm.register("confirmationText")} placeholder='Type DELETE here' disabled={deleteUserMutation.isPending}/>
                 {deleteForm.formState.errors.confirmationText && <p className="text-sm text-destructive mt-1 font-body">{deleteForm.formState.errors.confirmationText.message}</p>}
               </div>
-              <Button type="submit" variant="destructive" className="w-full font-body" disabled={isDeleting || allUsers.length === 0}>
-                {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash2 className="mr-2 h-4 w-4" />}
-                {isDeleting ? 'Deleting User...' : 'Delete User Permanently'}
+              <Button type="submit" variant="destructive" className="w-full font-body" disabled={deleteUserMutation.isPending || allUsers.length === 0}>
+                {deleteUserMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash2 className="mr-2 h-4 w-4" />}
+                {deleteUserMutation.isPending ? 'Deleting User...' : 'Delete User Permanently'}
               </Button>
             </form>
         </CardContent>
