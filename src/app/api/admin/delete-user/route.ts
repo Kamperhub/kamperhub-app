@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, firestore } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import { z } from 'zod';
 
 const deleteUserSchema = z.object({
@@ -10,6 +10,12 @@ const deleteUserSchema = z.object({
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export async function POST(req: NextRequest) {
+  const { auth, firestore, error: adminError } = getFirebaseAdmin();
+  if (adminError || !auth || !firestore) {
+    console.error('Error getting Firebase Admin instances:', adminError?.message);
+    return NextResponse.json({ error: 'Server configuration error.', details: adminError?.message }, { status: 503 });
+  }
+
   try {
     const authorizationHeader = req.headers.get('Authorization');
     if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
@@ -36,7 +42,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Admin user cannot be deleted.' }, { status: 400 });
     }
 
-    // --- CHANGE: Fetch all users and filter in-memory to avoid needing an index ---
     const usersRef = firestore.collection('users');
     const allUsersSnapshot = await usersRef.get();
     
@@ -46,23 +51,17 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: `User with email ${targetEmail} not found in Firestore database.` }, { status: 404 });
     }
 
-    const userIdToDelete = userDoc.id; // The document ID is the UID
+    const userIdToDelete = userDoc.id;
 
-    // 1. Delete from Firestore (ensures data is gone even if Auth fails)
     await userDoc.ref.delete();
     
-    // 2. Attempt to delete from Firebase Authentication, but don't fail if they don't exist
     try {
       await auth.deleteUser(userIdToDelete);
     } catch (authError: any) {
       if (authError.code === 'auth/user-not-found') {
-        // This is expected for orphaned records, log it but don't treat it as an error.
         console.log(`Info: User with UID ${userIdToDelete} was not found in Firebase Auth (already deleted or orphaned), but their Firestore data has been removed.`);
       } else {
-        // For other auth errors, we should report them.
         console.error(`Error deleting user ${userIdToDelete} from Firebase Auth:`, authError);
-        // We don't re-throw here because the primary goal (deleting Firestore data) succeeded.
-        // We can return a partial success message.
         return NextResponse.json({ message: `Successfully deleted Firestore data for ${targetEmail}. However, an error occurred while removing them from Authentication: ${authError.message}` }, { status: 207 }); // 207 Multi-Status
       }
     }

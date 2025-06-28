@@ -1,10 +1,16 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, firestore } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export async function GET(req: NextRequest) {
+  const { auth, firestore, error: adminError } = getFirebaseAdmin();
+  if (adminError || !auth || !firestore) {
+    console.error('Error getting Firebase Admin instances:', adminError?.message);
+    return NextResponse.json({ error: 'Server configuration error.', details: adminError?.message }, { status: 503 });
+  }
+  
   try {
     const authorizationHeader = req.headers.get('Authorization');
     if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
