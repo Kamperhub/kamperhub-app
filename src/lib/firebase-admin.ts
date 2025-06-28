@@ -52,13 +52,15 @@ function initializeFirebaseAdmin(): FirebaseAdminInstances | FirebaseAdminError 
       serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
     }
 
+    // Explicitly initialize with project ID to prevent "5 NOT_FOUND" errors.
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
+      projectId: serviceAccount.project_id,
     });
 
     const db = getFirestore();
 
-    console.log("[Firebase Admin] SDK initialized successfully for project.");
+    console.log("[Firebase Admin] SDK initialized successfully for project:", serviceAccount.project_id);
     return {
       firestore: db,
       auth: admin.auth(),
