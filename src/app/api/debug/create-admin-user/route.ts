@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
 
-const ADMIN_UID = 'w4qTTadc0rM1qpJfszuKwRrdWiU2';
+const ADMIN_UID = 'YKsb0Vzq13cMBAv2Ql8iyDFpbj42'; // CORRECTED: This now matches your true Authentication UID.
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export async function GET(req: NextRequest) {
