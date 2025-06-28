@@ -187,16 +187,3 @@ export async function PUT(req: NextRequest) {
     );
   }
 }
-
-// OPTIONS request handler (e.g. CORS preflight or HEAD)
-export async function OPTIONS() {
-  return NextResponse.json({}, {
-    status: 204,
-    headers: {
-      'Allow': 'GET, PUT, OPTIONS',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
-      'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-    },
-  });
-}

@@ -209,14 +209,16 @@ export default function MyAccountPage() {
 
   if (!user || profileError) {
     return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
-        <Alert variant="destructive" className="max-w-md">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
+        <Alert variant="destructive" className="max-w-md text-center">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Error Loading Account</AlertTitle>
-            <AlertDescription>
+            <AlertTitle className="font-headline">Error Loading Account</AlertTitle>
+            <AlertDescription className="font-body mt-2">
                 {profileError ? profileError.message : "You must be logged in to view this page."}
             </AlertDescription>
-            <Button variant="secondary" onClick={() => router.push('/login')} className="mt-4">Go to Login</Button>
+            <Button variant="secondary" onClick={() => router.push('/login')} className="mt-4 font-body">
+                Go to Login
+            </Button>
         </Alert>
       </div>
     );
