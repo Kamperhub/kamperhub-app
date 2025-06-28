@@ -18,6 +18,7 @@ let instance: FirebaseAdminInstances | FirebaseAdminError | null = null;
 function initializeFirebaseAdmin(): FirebaseAdminInstances | FirebaseAdminError {
   // If the app is already initialized, return the existing instances.
   if (admin.apps.length) {
+    console.log("[Firebase Admin] Re-using existing initialized app.");
     return {
       firestore: admin.firestore(),
       auth: admin.auth(),
@@ -29,10 +30,12 @@ function initializeFirebaseAdmin(): FirebaseAdminInstances | FirebaseAdminError 
   
   // Per your instructions, explicitly check for the env var first.
   if (!serviceAccountJsonString) {
+    const errorMessage = "FATAL: GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is not set. The server cannot connect to Firebase services. Please follow the setup checklist.";
+    console.error(`[Firebase Admin] ${errorMessage}`);
     return {
       firestore: undefined,
       auth: undefined,
-      error: new Error("FATAL: GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is not set. The server cannot connect to Firebase services. Please follow the setup checklist."),
+      error: new Error(errorMessage),
     };
   }
 
@@ -52,10 +55,9 @@ function initializeFirebaseAdmin(): FirebaseAdminInstances | FirebaseAdminError 
 
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      databaseId: 'kamperhubv2',
     });
 
-    console.log("[Firebase Admin] SDK initialized successfully to kamperhubv2.");
+    console.log("[Firebase Admin] SDK initialized successfully.");
     return {
       firestore: admin.firestore(),
       auth: admin.auth(),
@@ -63,11 +65,12 @@ function initializeFirebaseAdmin(): FirebaseAdminInstances | FirebaseAdminError 
     };
   } catch (e: any) {
     const errorSnippet = (serviceAccountJsonString || "undefined").substring(0, 75).replace(/\s/g, '');
-    const error = new Error(`Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON. Please ensure it's valid, unescaped JSON on a single line. Server sees: "${errorSnippet}...". Original error: ${e.message}`);
+    const errorMessage = `Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON. Please ensure it's valid, unescaped JSON on a single line. The server sees: "${errorSnippet}...". Original error: ${e.message}`;
+    console.error(`[Firebase Admin] ${errorMessage}`);
     return {
       firestore: undefined,
       auth: undefined,
-      error,
+      error: new Error(errorMessage),
     };
   }
 }
@@ -80,7 +83,11 @@ function initializeFirebaseAdmin(): FirebaseAdminInstances | FirebaseAdminError 
  * @returns An object containing the admin instances or a captured initialization error.
  */
 export function getFirebaseAdmin(): FirebaseAdminInstances | FirebaseAdminError {
-  if (!instance) {
+  // If the instance exists AND it had an error, force a re-initialization attempt.
+  // This allows for recovery without a full server restart in some environments,
+  // though a restart is still the recommended approach after fixing env vars.
+  if (!instance || instance.error) {
+    console.log(`[Firebase Admin] Attempting to initialize... (Previous state: ${instance ? 'Error' : 'Not Initialized'})`);
     instance = initializeFirebaseAdmin();
   }
   return instance;

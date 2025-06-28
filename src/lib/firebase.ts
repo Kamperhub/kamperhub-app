@@ -31,7 +31,7 @@ export let firebaseInitializationError: string | null = null;
 
 // Validate that the configuration has been loaded from environment variables
 if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-  firebaseInitializationError = "Firebase configuration is missing. Please ensure all NEXT_PUBLIC_FIREBASE_* variables are set in your .env.local file and that you have restarted the development server.";
+  firebaseInitializationError = "CRITICAL ERROR: Firebase client-side configuration is missing. Please ensure all NEXT_PUBLIC_FIREBASE_* variables are set in your .env.local file and that you have restarted the development server. The application cannot connect to Firebase.";
   console.error(`[Firebase Client] ${firebaseInitializationError}`);
   // Assign empty objects to prevent downstream hard errors, the UI will show the config error.
   app = {} as FirebaseApp;
@@ -42,8 +42,8 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     // Initialize Firebase if config is valid
     app = getApps().length ? getApp() : initializeApp(firebaseConfig as FirebaseOptions);
     auth = getAuth(app);
-    db = getFirestore(app, 'kamperhubv2');
-    console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId} and database kamperhubv2`);
+    db = getFirestore(app);
+    console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}`);
 
     // Initialize other services only on the client-side
     if (typeof window !== 'undefined') {
