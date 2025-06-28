@@ -42,15 +42,16 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Admin user cannot be deleted.' }, { status: 400 });
     }
 
-    // --- CHANGE: Find user in Firestore first to handle orphaned data ---
+    // --- CHANGE: Fetch all users and filter in-memory to avoid needing an index ---
     const usersRef = firestore.collection('users');
-    const userQuerySnapshot = await usersRef.where('email', '==', targetEmail).limit(1).get();
+    const allUsersSnapshot = await usersRef.get();
+    
+    const userDoc = allUsersSnapshot.docs.find(doc => doc.data().email === targetEmail);
 
-    if (userQuerySnapshot.empty) {
+    if (!userDoc) {
         return NextResponse.json({ error: `User with email ${targetEmail} not found in Firestore database.` }, { status: 404 });
     }
 
-    const userDoc = userQuerySnapshot.docs[0];
     const userIdToDelete = userDoc.id; // The document ID is the UID
 
     // 1. Delete from Firestore (ensures data is gone even if Auth fails)
