@@ -1,3 +1,4 @@
+
 // src/components/features/learn/UserManualContent.tsx
 import {
   Accordion,

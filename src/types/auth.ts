@@ -1,3 +1,4 @@
+
 // src/types/auth.ts
 
 import type { CaravanDefaultChecklistSet } from './checklist';
@@ -15,6 +16,7 @@ export interface UserProfile {
   subscriptionTier: SubscriptionTier;
   stripeCustomerId: string | null;
   stripeSubscriptionId?: string | null;
+  trialEndsAt?: string | null; // ISO Date string for when trial ends
   createdAt: string; // ISO Date string or Firestore Timestamp
   updatedAt?: string; // ISO Date string or Firestore Timestamp
   isAdmin?: boolean;

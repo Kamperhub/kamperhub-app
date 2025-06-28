@@ -97,6 +97,7 @@ export async function POST(req: NextRequest) {
           subscriptionTier: determinedTier, 
           stripeCustomerId: stripeCustomerId,
           stripeSubscriptionId: stripeSubscriptionId,
+          trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
           updatedAt: new Date().toISOString(),
         };
 
@@ -131,6 +132,7 @@ export async function POST(req: NextRequest) {
 
             const userProfileUpdate: Partial<UserProfile> = {
               subscriptionTier: newTier, 
+              trialEndsAt: subscriptionFromInvoice.trial_end ? new Date(subscriptionFromInvoice.trial_end * 1000).toISOString() : null,
               updatedAt: new Date().toISOString(),
             };
             await userDoc.ref.set(userProfileUpdate, { merge: true });
@@ -165,6 +167,7 @@ export async function POST(req: NextRequest) {
 
             const userProfileUpdate: Partial<UserProfile> = { 
               subscriptionTier: newTier,
+              trialEndsAt: subscriptionDetails.trial_end ? new Date(subscriptionDetails.trial_end * 1000).toISOString() : null,
               updatedAt: new Date().toISOString(),
             };
             await userDoc.ref.set(userProfileUpdate, { merge: true });
@@ -191,6 +194,7 @@ export async function POST(req: NextRequest) {
             const userDoc = snapshot.docs[0];
             const userProfileUpdate: Partial<UserProfile> = { 
               stripeSubscriptionId: updatedSubscription.id, 
+              trialEndsAt: updatedSubscription.trial_end ? new Date(updatedSubscription.trial_end * 1000).toISOString() : null,
               updatedAt: new Date().toISOString(),
             };
 
@@ -222,6 +226,7 @@ export async function POST(req: NextRequest) {
             const userProfileUpdate: Partial<UserProfile> = { 
               subscriptionTier: 'free',
               stripeSubscriptionId: null, 
+              trialEndsAt: null,
               updatedAt: new Date().toISOString(),
             };
             await userDoc.ref.set(userProfileUpdate, { merge: true });

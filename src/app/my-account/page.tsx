@@ -10,11 +10,12 @@ import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
 import { updateProfile, updateEmail } from 'firebase/auth';
 import { fetchUserPreferences, updateUserPreferences } from '@/lib/api-client';
+import { format, isAfter, parseISO } from 'date-fns';
 
 import type { UserProfile } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, UserCog, AlertTriangle, RotateCw } from 'lucide-react';
+import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, UserCog, AlertTriangle, RotateCw, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +26,7 @@ const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export default function MyAccountPage() {
   const { user, isAuthLoading } = useAuth();
-  const { setSubscriptionDetails, hasProAccess, subscriptionTier, stripeCustomerId } = useSubscription();
+  const { setSubscriptionDetails, hasProAccess, subscriptionTier, stripeCustomerId, isTrialActive, trialEndsAt } = useSubscription();
   const queryClient = useQueryClient();
 
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -55,7 +56,8 @@ export default function MyAccountPage() {
     if (userProfile) {
       setSubscriptionDetails(
         userProfile.subscriptionTier || 'free', 
-        userProfile.stripeCustomerId || null
+        userProfile.stripeCustomerId || null,
+        userProfile.trialEndsAt || null
       );
     }
   }, [userProfile, setSubscriptionDetails]);
@@ -319,12 +321,12 @@ export default function MyAccountPage() {
               </Badge>
             </div>
 
-            {subscriptionTier === 'trialing' && (
+            {isTrialActive && trialEndsAt && (
               <Alert variant="default" className="mb-3 bg-blue-50 border-blue-300">
-                <Info className="h-4 w-4 text-blue-600" />
+                <Clock className="h-4 w-4 text-blue-600" />
                 <AlertTitle className="font-headline text-blue-700">Pro Trial Active!</AlertTitle>
                 <AlertDescription className="font-body text-blue-600">
-                  You are currently on a trial. Subscribe now to keep Pro features after your trial.
+                  Your Pro trial ends on {format(parseISO(trialEndsAt), "PP")}. Subscribe to keep Pro features after your trial.
                 </AlertDescription>
               </Alert>
             )}
@@ -346,7 +348,7 @@ export default function MyAccountPage() {
               </div>
             )}
             
-            {!hasProAccess && subscriptionTier !== 'trialing' && ( 
+            {!hasProAccess && ( 
               <div className="mt-4">
                  <Alert variant="destructive" className="mb-3">
                   <AlertTriangle className="h-4 w-4" />
