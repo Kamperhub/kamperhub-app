@@ -122,17 +122,17 @@ export async function GET(req: NextRequest) {
         uid: authUser.uid,
         email: authUser.email || 'error@example.com',
         displayName: authUser.displayName || 'KamperAdmin',
-        firstName: 'Admin', // Fake data as requested
-        lastName: 'User', // Fake data as requested
-        city: 'Brisbane', // Fake data as requested
-        state: 'QLD', // Fake data as requested
-        country: 'Australia', // Fake data as requested
-        subscriptionTier: 'pro', // Give admin pro tier
+        firstName: 'Admin',
+        lastName: 'User',
+        city: 'Brisbane',
+        state: 'QLD',
+        country: 'Australia',
+        subscriptionTier: 'pro',
         stripeCustomerId: null,
         trialEndsAt: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        isAdmin: isKamperHubAdmin, // This will be true
+        isAdmin: isKamperHubAdmin,
       };
 
       await userDocRef.set(newUserProfile);
