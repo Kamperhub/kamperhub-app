@@ -12,6 +12,8 @@ const updateSubscriptionSchema = z.object({
   newCurrentPeriodEnd: z.string().datetime({ offset: true }).nullable().optional(),
 });
 
+const ADMIN_EMAIL = 'info@kamperhub.com';
+
 export async function POST(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error) {
@@ -37,11 +39,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message, errorCode: error.code }, { status: 401 });
     }
 
-    const adminUid = decodedToken.uid;
-    const adminUserDocRef = firestore.collection('users').doc(adminUid);
-    const adminUserDocSnap = await adminUserDocRef.get();
-
-    if (!adminUserDocSnap.exists() || adminUserDocSnap.data()?.isAdmin !== true) {
+    if (decodedToken.email !== ADMIN_EMAIL) {
       return NextResponse.json({ error: 'Forbidden: User does not have admin privileges.' }, { status: 403 });
     }
 
