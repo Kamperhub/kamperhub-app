@@ -4,6 +4,7 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
 
 const ADMIN_UID = 'w4qTTadc0rM1qpJfszuKwRrdWiU2';
+const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export async function GET(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
@@ -29,15 +30,22 @@ export async function GET(req: NextRequest) {
     } catch (authError: any) {
       if (authError.code === 'auth/user-not-found') {
         return NextResponse.json({ 
-          error: `Authentication user with UID ${ADMIN_UID} not found. Please ensure this is the correct UID and that the user exists in Firebase Authentication.` 
+          error: `CRITICAL: Authentication user with UID ${ADMIN_UID} not found. Please ensure this is the correct UID and that the user exists in Firebase Authentication. You may need to sign up first.` 
         }, { status: 404 });
       }
       throw authError; // Re-throw other auth errors
     }
+    
+    // Ensure the UID corresponds to the correct admin email
+    if(adminAuthRecord.email !== ADMIN_EMAIL) {
+         return NextResponse.json({ 
+          error: `CRITICAL: The UID ${ADMIN_UID} does not belong to ${ADMIN_EMAIL}. It belongs to ${adminAuthRecord.email}. Aborting for safety.` 
+        }, { status: 400 });
+    }
 
     const newUserProfile: UserProfile = {
       uid: ADMIN_UID,
-      email: adminAuthRecord.email || 'info@kamperhub.com',
+      email: ADMIN_EMAIL,
       displayName: adminAuthRecord.displayName || 'KamperAdmin',
       firstName: 'Admin',
       lastName: 'User',
@@ -55,7 +63,7 @@ export async function GET(req: NextRequest) {
     await userDocRef.set(newUserProfile);
 
     return NextResponse.json({ 
-      message: `Successfully created Firestore profile for UID ${ADMIN_UID}. Please refresh the main application page and log in.`,
+      message: `SUCCESS: Successfully created Firestore profile for UID ${ADMIN_UID} (${ADMIN_EMAIL}). Please refresh the main application page and log in.`,
       createdData: newUserProfile 
     }, { status: 201 });
 

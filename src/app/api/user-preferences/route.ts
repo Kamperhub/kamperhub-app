@@ -118,18 +118,21 @@ export async function GET(req: NextRequest) {
       const authUser = await auth.getUser(uid);
       const isKamperHubAdmin = authUser.email === ADMIN_EMAIL;
       
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + 7);
+
       const newUserProfile: UserProfile = {
         uid: authUser.uid,
         email: authUser.email || 'error@example.com',
-        displayName: authUser.displayName || 'KamperAdmin',
-        firstName: 'Admin',
+        displayName: authUser.displayName || 'New User',
+        firstName: 'New',
         lastName: 'User',
-        city: 'Brisbane',
-        state: 'QLD',
-        country: 'Australia',
-        subscriptionTier: 'pro',
+        city: 'Not Set',
+        state: 'Not Set',
+        country: 'Not Set',
+        subscriptionTier: 'trialing', // Start all new users on a trial
         stripeCustomerId: null,
-        trialEndsAt: null,
+        trialEndsAt: trialEndDate.toISOString(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         isAdmin: isKamperHubAdmin,
