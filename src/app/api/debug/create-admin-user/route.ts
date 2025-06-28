@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
 
-const ADMIN_EMAIL = 'info@kamperhub.com';
+const ADMIN_UID = 'w4qTTadc0rM1qpJfszuKwRrdWiU2';
 
 export async function GET(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
@@ -13,53 +13,49 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // 1. Find the user in Firebase Authentication by email
+    const userDocRef = firestore.collection('users').doc(ADMIN_UID);
+    const docSnap = await userDocRef.get();
+
+    if (docSnap.exists) {
+      return NextResponse.json({ 
+        message: `Profile for UID ${ADMIN_UID} already exists in Firestore. No action was taken.`,
+        data: docSnap.data()
+      }, { status: 200 });
+    }
+
     let adminAuthRecord;
     try {
-      adminAuthRecord = await auth.getUserByEmail(ADMIN_EMAIL);
+      adminAuthRecord = await auth.getUser(ADMIN_UID);
     } catch (authError: any) {
       if (authError.code === 'auth/user-not-found') {
         return NextResponse.json({ 
-          error: `Authentication user for ${ADMIN_EMAIL} not found. Please sign up with this email first.` 
+          error: `Authentication user with UID ${ADMIN_UID} not found. Please ensure this is the correct UID and that the user exists in Firebase Authentication.` 
         }, { status: 404 });
       }
       throw authError; // Re-throw other auth errors
     }
 
-    const adminUid = adminAuthRecord.uid;
-    const userDocRef = firestore.collection('users').doc(adminUid);
-
-    // 2. Check if the document already exists in Firestore
-    const docSnap = await userDocRef.get();
-    if (docSnap.exists) {
-      return NextResponse.json({ 
-        message: `Profile for ${ADMIN_EMAIL} (UID: ${adminUid}) already exists in Firestore. No action was taken.`,
-        data: docSnap.data()
-      }, { status: 200 });
-    }
-
-    // 3. Create the profile with placeholder data if it doesn't exist
     const newUserProfile: UserProfile = {
-      uid: adminUid,
-      email: ADMIN_EMAIL,
-      displayName: 'KamperAdmin',
+      uid: ADMIN_UID,
+      email: adminAuthRecord.email || 'info@kamperhub.com',
+      displayName: adminAuthRecord.displayName || 'KamperAdmin',
       firstName: 'Admin',
       lastName: 'User',
       city: 'Brisbane',
       state: 'QLD',
       country: 'Australia',
-      subscriptionTier: 'pro', // Give admin pro tier
+      subscriptionTier: 'pro',
       stripeCustomerId: null,
       trialEndsAt: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      isAdmin: true, // This is the crucial part
+      isAdmin: true,
     };
 
     await userDocRef.set(newUserProfile);
 
     return NextResponse.json({ 
-      message: `Successfully created Firestore profile for ${ADMIN_EMAIL} (UID: ${adminUid}). Please refresh the main application page.`,
+      message: `Successfully created Firestore profile for UID ${ADMIN_UID}. Please refresh the main application page and log in.`,
       createdData: newUserProfile 
     }, { status: 201 });
 
