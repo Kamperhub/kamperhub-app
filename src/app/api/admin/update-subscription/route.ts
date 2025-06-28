@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message, errorCode: error.code }, { status: 401 });
     }
 
-    if (decodedToken.email !== ADMIN_EMAIL) {
+    if (decodedToken.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
       return NextResponse.json({ error: 'Forbidden: User does not have admin privileges.' }, { status: 403 });
     }
 

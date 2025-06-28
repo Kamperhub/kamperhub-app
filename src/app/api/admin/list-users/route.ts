@@ -20,8 +20,8 @@ export async function GET(req: NextRequest) {
 
     const decodedToken = await auth.verifyIdToken(idToken);
     
-    // Check if the caller is the specific admin user
-    if (decodedToken.email !== ADMIN_EMAIL) {
+    // Check if the caller is the specific admin user (case-insensitive)
+    if (decodedToken.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
       return NextResponse.json({ error: 'Forbidden: You do not have permission to perform this action.' }, { status: 403 });
     }
     
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
         uid: userRecord.uid,
         email: userRecord.email,
       }))
-      .filter(user => user.email && user.email !== ADMIN_EMAIL); // Filter out admin and users without email
+      .filter(user => user.email && user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()); // Filter out admin (case-insensitive) and users without email
 
     return NextResponse.json(users, { status: 200 });
 

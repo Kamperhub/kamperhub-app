@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
 
     const decodedToken = await auth.verifyIdToken(idToken);
     
-    // Check if the caller is the specific admin user
-    if (decodedToken.email !== ADMIN_EMAIL) {
+    // Check if the caller is the specific admin user (case-insensitive)
+    if (decodedToken.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
       return NextResponse.json({ error: 'Forbidden: You do not have permission to perform this action.' }, { status: 403 });
     }
 
@@ -39,8 +39,8 @@ export async function POST(req: NextRequest) {
     
     const { email: targetEmail } = parsedBody.data;
 
-    // Self-deletion safeguard
-    if (targetEmail === ADMIN_EMAIL) {
+    // Self-deletion safeguard (case-insensitive)
+    if (targetEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
         return NextResponse.json({ error: 'Admin user cannot be deleted.' }, { status: 400 });
     }
     
