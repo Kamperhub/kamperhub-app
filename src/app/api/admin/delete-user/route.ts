@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { auth, firestore } from '@/lib/firebase-admin';
 import { z } from 'zod';
 
 const deleteUserSchema = z.object({
@@ -10,12 +10,6 @@ const deleteUserSchema = z.object({
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export async function POST(req: NextRequest) {
-  const { auth, firestore, error } = getFirebaseAdmin();
-  if (error) {
-    console.error('API Delete User Error: Firebase Admin SDK not available.', error);
-    return NextResponse.json({ error: 'Server configuration error.', details: error.message }, { status: 503 });
-  }
-
   try {
     const authorizationHeader = req.headers.get('Authorization');
     if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {

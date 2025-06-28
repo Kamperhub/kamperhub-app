@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { auth, firestore } from '@/lib/firebase-admin';
 import type { UserProfile, SubscriptionTier } from '@/types/auth';
 import { z, ZodError } from 'zod';
 
@@ -12,15 +12,6 @@ const updateSubscriptionSchema = z.object({
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export async function POST(req: NextRequest) {
-  const { auth, firestore, error } = getFirebaseAdmin();
-  if (error) {
-    console.error('API Route Error: Firebase Admin SDK not available.', error);
-    return NextResponse.json({
-      error: 'Server configuration error.',
-      details: error?.message || "The backend failed to connect to the database. Please check server logs."
-    }, { status: 503 });
-  }
-
   try {
     const authorizationHeader = req.headers.get('Authorization');
     if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
@@ -86,17 +77,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Internal Server Error', details: error.message || 'An unknown error occurred.' }, { status: 500 });
   }
 }
-
-export async function GET() {
-  const { firestore, error } = getFirebaseAdmin();
-  const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-  
-  return NextResponse.json({ 
-    message: "Admin update-subscription endpoint. Use POST to update. Identifies users by email.",
-    adminSDKStatus: firestore ? "Initialized" : "Not Initialized or Error",
-    serviceAccountEnvVarSet: !!serviceAccountJsonString,
-    firestoreStatus: firestore ? "Initialized" : "Not Initialized or Error",
-    initializationError: error ? error.message : null
-  });
-}
-    

@@ -1,19 +1,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { auth, firestore } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
-import admin from 'firebase-admin';
 
 const ADMIN_UID = 'YKsb0Vzq13cMBAv2Ql8iyDFpbj42'; // This is your correct Authentication UID.
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export async function GET(req: NextRequest) {
-  const { auth, firestore, error } = getFirebaseAdmin();
-  if (error) {
-    console.error('API Create Admin User Error: Firebase Admin SDK not available.', error);
-    return NextResponse.json({ error: 'Server configuration error.', details: error.message }, { status: 503 });
-  }
-
   try {
     const userDocRef = firestore.collection('users').doc(ADMIN_UID);
     const docSnap = await userDocRef.get();
@@ -69,17 +62,15 @@ export async function GET(req: NextRequest) {
   } catch (err: any) {
     console.error('Error in create-admin-user endpoint:', err);
     
-    const projectId = admin.apps.length ? admin.app().options.projectId : 'Admin SDK not initialized';
     let details = err.message;
 
     if (err.code === 5 /* NOT_FOUND */) {
-      details = `The server connected to Firebase Project ID "${projectId || 'unknown'}" but could not find the database. This usually means either (a) the Firestore database has not been created in the Firebase console for this project, or (b) the Project ID in your GOOGLE_APPLICATION_CREDENTIALS_JSON does not match the client-side NEXT_PUBLIC_FIREBASE_PROJECT_ID.`;
+      details = `The server could not find the database. This usually means either (a) the Firestore database has not been created in the Firebase console for this project, or (b) the Project ID in your GOOGLE_APPLICATION_CREDENTIALS_JSON does not match the client-side NEXT_PUBLIC_FIREBASE_PROJECT_ID.`;
     }
 
     return NextResponse.json({ 
       error: 'Internal Server Error While Creating Admin User', 
       details: details,
-      adminSdkProjectId: projectId || 'Could not determine Project ID.',
       clientProjectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not set on server.',
     }, { status: 500 });
   }

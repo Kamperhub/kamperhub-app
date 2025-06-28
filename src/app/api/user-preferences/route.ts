@@ -1,10 +1,9 @@
 
 export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { auth, firestore } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
 import { z, ZodError } from 'zod';
-import admin from 'firebase-admin';
 
 // Firestore-safe serialization
 const firestoreTimestampReplacer = (key: any, value: any) => {
@@ -24,51 +23,19 @@ const sanitizeData = (data: any) => {
   }
 };
 
-async function verifyUserAndGetInstances(req: NextRequest) {
-  const { auth, firestore, error } = getFirebaseAdmin();
-
-  if (error) {
-    return {
-      uid: null,
-      auth: null,
-      firestore: null,
-      errorResponse: NextResponse.json(
-        { error: 'Server configuration error.', details: error.message },
-        { status: 503 }
-      ),
-    };
-  }
-
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return {
-      uid: null,
-      auth: null,
-      firestore: null,
-      errorResponse: NextResponse.json(
-        { error: 'Unauthorized: Missing or invalid Authorization header.' },
-        { status: 401 }
-      ),
-    };
-  }
-
-  const idToken = authHeader.split('Bearer ')[1];
-
-  try {
-    const decoded = await auth.verifyIdToken(idToken);
-    return { uid: decoded.uid, auth, firestore, errorResponse: null };
-  } catch (error: any) {
-    console.error('Token verification failed:', error);
-    return {
-      uid: null,
-      auth: null,
-      firestore: null,
-      errorResponse: NextResponse.json(
-        { error: 'Unauthorized: Invalid ID token.', details: error.message },
-        { status: 401 }
-      ),
-    };
-  }
+async function getUserIdFromRequest(req: NextRequest): Promise<string | null> {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+        return null;
+    }
+    const idToken = authHeader.split('Bearer ')[1];
+    try {
+        const decoded = await auth.verifyIdToken(idToken);
+        return decoded.uid;
+    } catch (error) {
+        console.error('Token verification failed:', error);
+        return null;
+    }
 }
 
 // Schema for validating preference updates from the client
@@ -96,11 +63,10 @@ const userPreferencesUpdateSchema = z
 
 // GET user preferences
 export async function GET(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse) return errorResponse;
-  if (!uid || !firestore) {
-    return NextResponse.json({ error: 'Internal Server Error: Instances not available.' }, { status: 500 });
-  }
+    const uid = await getUserIdFromRequest(req);
+    if (!uid) {
+        return NextResponse.json({ error: 'Unauthorized: Invalid or missing token.' }, { status: 401 });
+    }
 
   try {
     const userDocRef = firestore.collection('users').doc(uid);
@@ -131,8 +97,7 @@ export async function GET(req: NextRequest) {
     // Check for the specific "NOT_FOUND" error from Firestore
     if (err.code === 5 || (err.message && err.message.includes('NOT_FOUND'))) {
         errorMessage = 'Database Not Found or Inaccessible';
-        const projectId = admin.apps[0]?.options.projectId || 'unknown';
-        const details = `The server connected to Firebase Project ID "${projectId}" but could not find the Firestore database. This usually means the database has not been created in the Firebase console for this project. Please go to the Firebase Console, select your project, and ensure you have created a Firestore Database. Refer to Step 6 in FIREBASE_SETUP_CHECKLIST.md.`;
+        const details = `The server connected to Firebase but could not find the Firestore database. This usually means the database has not been created in the Firebase console for this project. Please go to the Firebase Console, select your project, and ensure you have created a Firestore Database. Refer to Step 6 in FIREBASE_SETUP_CHECKLIST.md.`;
         return NextResponse.json({ error: errorMessage, details: details }, { status: 404 });
     }
 
@@ -145,11 +110,10 @@ export async function GET(req: NextRequest) {
 
 // PUT (update) user preferences
 export async function PUT(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse) return errorResponse;
-  if (!uid || !firestore) {
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  }
+  const uid = await getUserIdFromRequest(req);
+    if (!uid) {
+        return NextResponse.json({ error: 'Unauthorized: Invalid or missing token.' }, { status: 401 });
+    }
 
   try {
     const body = await req.json();
@@ -186,4 +150,3 @@ export async function PUT(req: NextRequest) {
     );
   }
 }
-    

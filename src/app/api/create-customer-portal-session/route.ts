@@ -2,7 +2,7 @@
 // src/app/api/create-customer-portal-session/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { firestore } from '@/lib/firebase-admin';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 let stripe: Stripe;
@@ -16,15 +16,6 @@ if (stripeSecretKey) {
 }
 
 export async function POST(req: NextRequest) {
-  const { firestore, error: adminError } = getFirebaseAdmin();
-  if (adminError) {
-    console.error('API Route Error: Firebase Admin SDK not available.', adminError);
-    return NextResponse.json({
-      error: 'Server configuration error.',
-      details: adminError?.message || "The backend failed to connect to the database. Please check server logs."
-    }, { status: 503 });
-  }
-
   if (!stripe) {
     console.error('Create Customer Portal Session: Stripe is not configured or STRIPE_SECRET_KEY is missing.');
     return NextResponse.json({ error: 'Stripe configuration error on server.' }, { status: 500 });

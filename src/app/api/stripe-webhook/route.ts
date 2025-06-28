@@ -2,7 +2,7 @@
 // src/app/api/stripe-webhook/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import Stripe from 'stripe';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { firestore } from '@/lib/firebase-admin';
 import type { UserProfile, SubscriptionTier } from '@/types/auth';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -19,15 +19,6 @@ if (stripeSecretKey) {
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 export async function POST(req: NextRequest) {
-  const { firestore, error: adminError } = getFirebaseAdmin();
-  if (adminError) {
-    console.error('API Route Error: Firebase Admin SDK not available.', adminError);
-    return NextResponse.json({
-      error: 'Server configuration error.',
-      details: adminError?.message || "The backend failed to connect to the database. Please check server logs."
-    }, { status: 503 });
-  }
-
   if (!stripe) {
     console.error("Webhook Error: Stripe is not configured on the server (STRIPE_SECRET_KEY missing at runtime).");
     return NextResponse.json({ error: 'Stripe is not configured on the server.' }, { status: 500 });

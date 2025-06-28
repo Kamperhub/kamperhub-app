@@ -1,17 +1,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { auth, firestore } from '@/lib/firebase-admin';
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export async function GET(req: NextRequest) {
-  // Now fetching firestore instance as well
-  const { auth, firestore, error } = getFirebaseAdmin();
-  if (error) {
-    console.error('API List Users Error: Firebase Admin SDK not available.', error);
-    return NextResponse.json({ error: 'Server configuration error.', details: error.message }, { status: 503 });
-  }
-
   try {
     const authorizationHeader = req.headers.get('Authorization');
     if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
