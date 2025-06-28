@@ -38,7 +38,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   
   const hasProAccess = 
     subscriptionTier === 'pro' || 
-    (subscriptionTier === 'trialing' && trialEndsAt && new Date(trialEndsAt) > new Date());
+    (subscriptionTier === 'trialing' && typeof trialEndsAt === 'string' && new Date(trialEndsAt) > new Date());
 
   return (
     <SubscriptionContext.Provider value={{ subscriptionTier, stripeCustomerId, trialEndsAt, setSubscriptionDetails, isLoading, hasProAccess }}>
