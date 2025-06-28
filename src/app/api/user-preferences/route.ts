@@ -7,6 +7,8 @@ import type { UserProfile } from '@/types/auth';
 import { z, ZodError } from 'zod';
 import type { auth as adminAuth } from 'firebase-admin';
 
+const ADMIN_EMAIL = 'info@kamperhub.com';
+
 // Firestore-safe serialization
 const firestoreTimestampReplacer = (key: any, value: any) => {
   if (value && typeof value === 'object' && typeof value.toDate === 'function') {
@@ -102,11 +104,13 @@ export async function GET(req: NextRequest) {
     const userDocRef = firestore.collection('users').doc(uid);
     let userDocSnap = await userDocRef.get();
 
-    // If the user profile does not exist, create a default one.
+    // If the user profile does not exist, create a default one. This is the "self-healing" part.
     if (!userDocSnap.exists) {
       console.warn(`User profile for UID ${uid} not found. Creating a default profile.`);
       
       const authUser = await auth.getUser(uid);
+      const isKamperHubAdmin = authUser.email === ADMIN_EMAIL;
+      
       const newUserProfile: UserProfile = {
         uid: authUser.uid,
         email: authUser.email || null,
@@ -121,10 +125,11 @@ export async function GET(req: NextRequest) {
         trialEndsAt: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        isAdmin: isKamperHubAdmin, // Set isAdmin flag correctly
       };
 
       await userDocRef.set(newUserProfile);
-      console.log(`Default profile created for UID ${uid}.`);
+      console.log(`Default profile created for UID ${uid}. Admin status: ${isKamperHubAdmin}`);
 
       // Re-fetch the document to ensure we return what's in the DB.
       userDocSnap = await userDocRef.get();
