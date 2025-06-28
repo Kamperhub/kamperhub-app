@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +28,7 @@ const ADMIN_EMAIL = 'info@kamperhub.com';
 export default function MyAccountPage() {
   const { user, isAuthLoading } = useAuth();
   const { setSubscriptionDetails, hasProAccess, subscriptionTier, stripeCustomerId, trialEndsAt } = useSubscription();
+  const queryClient = useQueryClient();
 
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -109,6 +110,7 @@ export default function MyAccountPage() {
         description: "Your account details have been successfully saved.",
       });
       setIsEditProfileOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['userPreferences', user.uid] }); // Invalidate query to refetch
 
     } catch (error: any) {
       let errorMessage = "An unexpected error occurred while saving your profile.";
