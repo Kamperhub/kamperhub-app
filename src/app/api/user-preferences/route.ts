@@ -6,8 +6,6 @@ import type { UserProfile } from '@/types/auth';
 import { z, ZodError } from 'zod';
 import admin from 'firebase-admin';
 
-const ADMIN_EMAIL = 'info@kamperhub.com';
-
 // Firestore-safe serialization
 const firestoreTimestampReplacer = (key: any, value: any) => {
   if (value && typeof value === 'object' && typeof value.toDate === 'function') {
@@ -96,54 +94,26 @@ const userPreferencesUpdateSchema = z
     { message: 'At least one preference or profile field must be provided for an update.' }
   );
 
-// GET user preferences (with self-healing profile creation)
+// GET user preferences
 export async function GET(req: NextRequest) {
-  const { uid, auth, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
   if (errorResponse) return errorResponse;
-  if (!uid || !firestore || !auth) {
+  if (!uid || !firestore) {
     return NextResponse.json({ error: 'Internal Server Error: Instances not available.' }, { status: 500 });
   }
 
   try {
     const userDocRef = firestore.collection('users').doc(uid);
-    let userDocSnap = await userDocRef.get();
+    const userDocSnap = await userDocRef.get();
 
-    // Self-healing: If the user profile does not exist in Firestore, create it.
     if (!userDocSnap.exists) {
-      console.warn(`User profile for UID ${uid} not found in Firestore. Attempting to create one.`);
-      
-      let authUser;
-      try {
-        authUser = await auth.getUser(uid);
-      } catch (authError: any) {
-        console.error(`CRITICAL: Failed to get auth user for UID ${uid} during self-healing.`, authError);
-        return NextResponse.json({ error: 'User exists in auth but could not be fetched for profile creation.', details: authError.message }, { status: 500 });
-      }
-
-      const isKamperHubAdmin = authUser.email === ADMIN_EMAIL;
-      const trialEndDate = new Date();
-      trialEndDate.setDate(trialEndDate.getDate() + 7);
-
-      const newUserProfile: UserProfile = {
-        uid: authUser.uid,
-        email: authUser.email || 'error@example.com',
-        displayName: authUser.displayName || 'New User',
-        firstName: 'New',
-        lastName: 'User',
-        city: 'Not Set',
-        state: 'Not Set',
-        country: 'Not Set',
-        subscriptionTier: 'trialing',
-        stripeCustomerId: null,
-        trialEndsAt: trialEndDate.toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        isAdmin: isKamperHubAdmin,
-      };
-
-      await userDocRef.set(newUserProfile);
-      console.log(`Default profile created for UID ${uid}.`);
-      userDocSnap = await userDocRef.get(); // Re-fetch the newly created document
+       return NextResponse.json(
+        { 
+          error: 'User profile not found.',
+          details: `A profile for the authenticated user (UID: ${uid}) does not exist in the Firestore 'users' collection.`
+        },
+        { status: 404 }
+      );
     }
 
     const userData = userDocSnap.data() || {};
@@ -155,16 +125,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (err: any) {
     console.error('Error in user-preferences GET handler for UID:', uid, 'Error:', err);
-    // Specific check for Firestore `NOT_FOUND` error
-    if (err.code === 5 || (err.details && err.details.includes('NOT_FOUND'))) {
-       return NextResponse.json(
-        { 
-          error: 'The Firestore database for this project does not seem to exist or is not accessible.',
-          details: `This is a common issue during setup. Please go to the Firebase Console for project '${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}' and ensure you have created a Firestore database. Refer to FIREBASE_SETUP_CHECKLIST.md for instructions.`
-        },
-        { status: 500 }
-      );
-    }
     return NextResponse.json(
       { error: 'Failed to process user preferences on the server.', details: err.message },
       { status: 500 }
