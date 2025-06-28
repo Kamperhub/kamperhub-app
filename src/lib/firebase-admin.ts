@@ -20,7 +20,7 @@ function initializeFirebaseAdmin(): FirebaseAdminInstances | FirebaseAdminError 
   // If the app is already initialized, return the existing instances.
   if (admin.apps.length) {
     console.log("[Firebase Admin] Re-using existing initialized app.");
-    const db = getFirestore(undefined, 'kamperhubv2');
+    const db = getFirestore();
     return {
       firestore: db,
       auth: admin.auth(),
@@ -56,9 +56,9 @@ function initializeFirebaseAdmin(): FirebaseAdminInstances | FirebaseAdminError 
       credential: admin.credential.cert(serviceAccount),
     });
 
-    const db = getFirestore(undefined, 'kamperhubv2');
+    const db = getFirestore();
 
-    console.log("[Firebase Admin] SDK initialized successfully for database 'kamperhubv2'.");
+    console.log("[Firebase Admin] SDK initialized successfully for project.");
     return {
       firestore: db,
       auth: admin.auth(),
