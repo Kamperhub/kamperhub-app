@@ -85,10 +85,7 @@ export default function SignupPage() {
       newFirebaseUser = userCredential.user;
       await updateProfile(newFirebaseUser, { displayName: username });
 
-      const trialEndDate = new Date();
-      trialEndDate.setDate(trialEndDate.getDate() + 7);
-
-      const userProfileData: UserProfile = {
+      const userProfileData: Omit<UserProfile, 'activeVehicleId' | 'activeCaravanId' | 'activeWdhId' | 'dashboardLayout' | 'caravanWaterLevels' | 'caravanDefaultChecklists' | 'updatedAt' | 'isAdmin'> = {
         uid: newFirebaseUser.uid,
         email: newFirebaseUser.email, 
         displayName: username, 
@@ -98,8 +95,8 @@ export default function SignupPage() {
         state: state,
         country: country,
         subscriptionTier: 'trialing', // Start user on a trial
-        stripeCustomerId: null,  
-        trialEndsAt: trialEndDate.toISOString(), // Set trial end date
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
         createdAt: new Date().toISOString(),
       };
 

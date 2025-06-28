@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -8,13 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
 import { updateProfile, updateEmail } from 'firebase/auth';
-import { format, parseISO, isFuture } from 'date-fns';
 import { fetchUserPreferences, updateUserPreferences } from '@/lib/api-client';
 
 import type { UserProfile } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, CalendarClock, UserCog, AlertTriangle, RotateCw } from 'lucide-react';
+import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, UserCog, AlertTriangle, RotateCw } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +25,7 @@ const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export default function MyAccountPage() {
   const { user, isAuthLoading } = useAuth();
-  const { setSubscriptionDetails, hasProAccess, subscriptionTier, stripeCustomerId, trialEndsAt } = useSubscription();
+  const { setSubscriptionDetails, hasProAccess, subscriptionTier, stripeCustomerId } = useSubscription();
   const queryClient = useQueryClient();
 
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -55,8 +55,7 @@ export default function MyAccountPage() {
     if (userProfile) {
       setSubscriptionDetails(
         userProfile.subscriptionTier || 'free', 
-        userProfile.stripeCustomerId || null,
-        userProfile.trialEndsAt || null
+        userProfile.stripeCustomerId || null
       );
     }
   }, [userProfile, setSubscriptionDetails]);
@@ -147,7 +146,6 @@ export default function MyAccountPage() {
         body: JSON.stringify({ 
           email: user.email, 
           userId: user.uid,
-          startTrial: false 
         }),
       });
       const session = await response.json();
@@ -251,8 +249,6 @@ export default function MyAccountPage() {
   };
   
   const displayUserName = userProfile?.displayName || user.displayName || 'User';
-  const isTrialActive = subscriptionTier === 'trialing' && isFuture(parseISO(trialEndsAt!));
-  const hasTrialExpired = subscriptionTier === 'trial_expired' || (subscriptionTier === 'trialing' && !isFuture(parseISO(trialEndsAt!)));
   const isAdminUser = user?.email === ADMIN_EMAIL;
 
   return (
@@ -319,31 +315,20 @@ export default function MyAccountPage() {
               <Star className={`h-4 w-4 mr-2 ${hasProAccess ? 'text-yellow-500 fill-yellow-400' : 'text-primary/80'}`} />
               <strong>Current Access:</strong>&nbsp;
               <Badge variant={hasProAccess ? 'default' : 'secondary'} className={hasProAccess ? 'bg-yellow-500 text-white' : ''}>
-                {hasProAccess ? 'PRO ACCESS' : 'FREE TIER'}
+                {subscriptionTier.toUpperCase()}
               </Badge>
             </div>
 
-            {isTrialActive && trialEndsAt && (
+            {subscriptionTier === 'trialing' && (
               <Alert variant="default" className="mb-3 bg-blue-50 border-blue-300">
-                <CalendarClock className="h-4 w-4 text-blue-600" />
+                <Info className="h-4 w-4 text-blue-600" />
                 <AlertTitle className="font-headline text-blue-700">Pro Trial Active!</AlertTitle>
                 <AlertDescription className="font-body text-blue-600">
-                  Your 7-day Pro trial ends on: {format(parseISO(trialEndsAt), "PPP")}.
-                  Subscribe now to keep Pro features after your trial.
+                  You are currently on a 7-day Pro trial. Subscribe now to keep Pro features after your trial.
                 </AlertDescription>
               </Alert>
             )}
 
-            {hasTrialExpired && subscriptionTier !== 'pro' && (
-              <Alert variant="destructive" className="mb-3">
-                <CalendarClock className="h-4 w-4" />
-                <AlertTitle className="font-headline">Pro Trial Expired</AlertTitle>
-                <AlertDescription className="font-body">
-                  Your Pro trial has ended. Subscribe to regain access to Pro features.
-                </AlertDescription>
-              </Alert>
-            )}
-            
             {stripeCustomerId && (
               <div className="mt-3">
                 <p className="font-body text-sm text-muted-foreground">
@@ -361,7 +346,7 @@ export default function MyAccountPage() {
               </div>
             )}
             
-            {subscriptionTier !== 'pro' && ( 
+            {!hasProAccess && subscriptionTier !== 'trialing' && ( 
               <div className="mt-4">
                  <Alert variant="destructive" className="mb-3">
                   <AlertTriangle className="h-4 w-4" />
@@ -380,11 +365,8 @@ export default function MyAccountPage() {
                   ) : (
                     <CreditCard className="mr-2 h-4 w-4" />
                   )}
-                  {isRedirectingToCheckout ? 'Processing...' : (isTrialActive ? 'Subscribe to Pro Now' : 'Upgrade to KamperHub Pro')}
+                  {isRedirectingToCheckout ? 'Processing...' : 'Upgrade to KamperHub Pro'}
                 </Button>
-                 <p className="text-xs text-muted-foreground mt-2 font-body">
-                    {isTrialActive ? 'This will end your trial and start your paid Pro subscription immediately.' : 'This will start your paid Pro subscription.'}
-                 </p>
               </div>
             )}
             

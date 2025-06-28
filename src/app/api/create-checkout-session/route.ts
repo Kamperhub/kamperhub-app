@@ -13,7 +13,6 @@ if (stripeSecretKey) {
   console.error("FATAL: STRIPE_SECRET_KEY is not set in the environment variables. Stripe Checkout will not work.");
 }
 
-const TRIAL_PERIOD_DAYS = 7; // Centralized trial period definition
 const proPriceId = process.env.STRIPE_PRO_PRICE_ID;
 
 export async function POST(req: NextRequest) {
@@ -28,7 +27,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { email, userId, startTrial } = await req.json();
+    const { email, userId } = await req.json();
 
     if (!email || !userId) {
       return NextResponse.json({ error: 'Email and userId are required.' }, { status: 400 });
@@ -52,12 +51,6 @@ export async function POST(req: NextRequest) {
       success_url: `${appUrl}/subscribe/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/subscribe/cancel`,
     };
-
-    if (startTrial !== false) {
-      checkoutSessionParams.subscription_data = {
-        trial_period_days: TRIAL_PERIOD_DAYS,
-      };
-    }
 
     const session = await stripe.checkout.sessions.create(checkoutSessionParams);
 

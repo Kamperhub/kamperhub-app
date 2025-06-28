@@ -11,13 +11,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { UserCog, ShieldAlert, CalendarIcon, AlertTriangle, Loader2, Send, Mail, UserX, Trash2, Info } from 'lucide-react';
+import { UserCog, ShieldAlert, AlertTriangle, Loader2, Send, Mail, UserX, Trash2, Info } from 'lucide-react';
 import type { SubscriptionTier } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -30,9 +27,6 @@ const updateSubscriptionFormSchema = z.object({
   newTier: z.enum(["free", "pro", "trialing", "trial_expired"], {
     required_error: "New subscription tier is required.",
   }),
-  newStatus: z.string().optional(),
-  newTrialEndsAt: z.date().nullable().optional(),
-  newCurrentPeriodEnd: z.date().nullable().optional(),
 });
 
 const deleteUserFormSchema = z.object({
@@ -86,7 +80,7 @@ export default function AdminPage() {
   const updateForm = useForm<UpdateSubscriptionFormData>({
     resolver: zodResolver(updateSubscriptionFormSchema),
     defaultValues: {
-      targetUserEmail: '', newTier: 'free', newStatus: '', newTrialEndsAt: null, newCurrentPeriodEnd: null,
+      targetUserEmail: '', newTier: 'free',
     },
   });
 
@@ -105,13 +99,10 @@ export default function AdminPage() {
     setIsSubmitting(true);
     try {
       const idToken = await currentUser!.getIdToken(true);
-      const payload: any = {
+      const payload = {
         targetUserEmail: data.targetUserEmail,
         newTier: data.newTier,
       };
-      if (data.newStatus) payload.newStatus = data.newStatus;
-      if (data.newTrialEndsAt) payload.newTrialEndsAt = data.newTrialEndsAt.toISOString();
-      if (data.newCurrentPeriodEnd) payload.newCurrentPeriodEnd = data.newCurrentPeriodEnd.toISOString();
       
       const response = await fetch('/api/admin/update-subscription', {
         method: 'POST',
@@ -186,21 +177,6 @@ export default function AdminPage() {
               <Label htmlFor="newTier" className="font-body">New Subscription Tier</Label>
               <Controller name="newTier" control={updateForm.control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}><SelectTrigger className="font-body"><SelectValue placeholder="Select new tier" /></SelectTrigger><SelectContent>{(["free", "pro", "trialing", "trial_expired"] as SubscriptionTier[]).map(tier => (<SelectItem key={tier} value={tier} className="font-body">{tier.charAt(0).toUpperCase() + tier.slice(1).replace('_', ' ')}</SelectItem>))}</SelectContent></Select>)} />
               {updateForm.formState.errors.newTier && <p className="text-sm text-destructive mt-1 font-body">{updateForm.formState.errors.newTier.message}</p>}
-            </div>
-            <div>
-              <Label htmlFor="newStatus" className="font-body">New Status (Optional)</Label>
-              <Input id="newStatus" {...updateForm.register("newStatus")} placeholder="e.g., active, trialing, canceled" className="font-body" disabled={isSubmitting}/>
-              <p className="text-xs text-muted-foreground mt-1 font-body">Usually corresponds to Stripe's subscription status.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <Label htmlFor="newTrialEndsAt" className="font-body">New Trial Ends At (Optional)</Label>
-                    <Controller name="newTrialEndsAt" control={updateForm.control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal font-body", !field.value && "text-muted-foreground")} disabled={isSubmitting}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value || undefined} onSelect={(date) => field.onChange(date || null)} initialFocus disabled={isSubmitting}/></PopoverContent></Popover>)} />
-                </div>
-                <div>
-                    <Label htmlFor="newCurrentPeriodEnd" className="font-body">New Current Period End (Optional)</Label>
-                     <Controller name="newCurrentPeriodEnd" control={updateForm.control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal font-body", !field.value && "text-muted-foreground")} disabled={isSubmitting}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value || undefined} onSelect={(date) => field.onChange(date || null)} initialFocus disabled={isSubmitting} /></PopoverContent></Popover>)} />
-                </div>
             </div>
             <Button type="submit" className="w-full font-body bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}{isSubmitting ? 'Updating...' : 'Update Subscription'}</Button>
           </form>

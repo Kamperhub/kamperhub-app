@@ -7,9 +7,6 @@ import { z, ZodError } from 'zod';
 const updateSubscriptionSchema = z.object({
   targetUserEmail: z.string().email("Target User Email is required and must be a valid email."),
   newTier: z.enum(["free", "pro", "trialing", "trial_expired"]),
-  newStatus: z.string().optional(),
-  newTrialEndsAt: z.string().datetime({ offset: true }).nullable().optional(),
-  newCurrentPeriodEnd: z.string().datetime({ offset: true }).nullable().optional(),
 });
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
@@ -50,7 +47,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body.', details: parsedBody.error.format() }, { status: 400 });
     }
 
-    const { targetUserEmail, newTier, newStatus, newTrialEndsAt, newCurrentPeriodEnd } = parsedBody.data;
+    const { targetUserEmail, newTier } = parsedBody.data;
 
     // Get target user's UID by email
     let targetUserRecord;
@@ -67,30 +64,11 @@ export async function POST(req: NextRequest) {
     const targetUserId = targetUserRecord.uid;
 
     const targetUserDocRef = firestore.collection('users').doc(targetUserId);
-    const targetUserDocSnap = await targetUserDocRef.get();
 
-    if (!targetUserDocSnap.exists()) {
-      // This case might be rare if auth record exists, but good to check Firestore profile presence
-      console.warn(`Auth record found for ${targetUserEmail} (UID: ${targetUserId}), but no Firestore profile document. Creating one with subscription update.`);
-    }
-
-    const updateData: Partial<UserProfile> = {
+    const updateData: Partial<Pick<UserProfile, 'subscriptionTier' | 'updatedAt'>> = {
       subscriptionTier: newTier as SubscriptionTier,
       updatedAt: new Date().toISOString(),
-      // Ensure basic profile fields are present if creating a new doc, or if user exists but has no these fields
-      email: targetUserEmail, 
-      uid: targetUserId,
     };
-    
-    if (newStatus !== undefined) {
-        updateData.subscriptionStatus = newStatus;
-    }
-    if (newTrialEndsAt !== undefined) {
-        updateData.trialEndsAt = newTrialEndsAt;
-    }
-    if (newCurrentPeriodEnd !== undefined) {
-        updateData.currentPeriodEnd = newCurrentPeriodEnd;
-    }
 
     await targetUserDocRef.set(updateData, { merge: true });
 

@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import { 
   type SubscriptionTier 
 } from '@/types/auth';
@@ -10,8 +11,7 @@ const DEFAULT_TIER: SubscriptionTier = 'free';
 interface SubscriptionContextType {
   subscriptionTier: SubscriptionTier;
   stripeCustomerId: string | null;
-  trialEndsAt: string | null;
-  setSubscriptionDetails: (tier: SubscriptionTier, customerId?: string | null, trialEnds?: string | null) => void;
+  setSubscriptionDetails: (tier: SubscriptionTier, customerId?: string | null) => void;
   isLoading: boolean;
   hasProAccess: boolean;
 }
@@ -21,16 +21,12 @@ const SubscriptionContext = createContext<SubscriptionContextType | undefined>(u
 export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const [subscriptionTier, setSubscriptionTierState] = useState<SubscriptionTier>(DEFAULT_TIER);
   const [stripeCustomerId, setStripeCustomerIdState] = useState<string | null>(null);
-  const [trialEndsAt, setTrialEndsAtState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const setSubscriptionDetails = useCallback((tier: SubscriptionTier, customerId?: string | null, trialEnds?: string | null) => {
+  const setSubscriptionDetails = useCallback((tier: SubscriptionTier, customerId?: string | null) => {
     setSubscriptionTierState(tier);
     if (customerId !== undefined) { 
         setStripeCustomerIdState(customerId);
-    }
-    if (trialEnds !== undefined) {
-        setTrialEndsAtState(trialEnds);
     }
     setIsLoading(false);
   }, []);
@@ -38,7 +34,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const hasProAccess = subscriptionTier === 'pro' || subscriptionTier === 'trialing';
 
   return (
-    <SubscriptionContext.Provider value={{ subscriptionTier, stripeCustomerId, trialEndsAt, setSubscriptionDetails, isLoading, hasProAccess }}>
+    <SubscriptionContext.Provider value={{ subscriptionTier, stripeCustomerId, setSubscriptionDetails, isLoading, hasProAccess }}>
       {children}
     </SubscriptionContext.Provider>
   );

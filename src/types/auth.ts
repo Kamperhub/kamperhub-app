@@ -16,9 +16,6 @@ export interface UserProfile {
   subscriptionTier: SubscriptionTier;
   stripeCustomerId: string | null;
   stripeSubscriptionId?: string | null; 
-  subscriptionStatus?: string | null; 
-  currentPeriodEnd?: string | null; // ISO Date string or Firestore Timestamp for actual end
-  trialEndsAt?: string | null; // ISO Date string or Firestore Timestamp
   createdAt: string; // ISO Date string or Firestore Timestamp
   updatedAt?: string; // ISO Date string or Firestore Timestamp
   isAdmin?: boolean;

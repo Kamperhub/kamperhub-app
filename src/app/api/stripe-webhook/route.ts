@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
         } else if (subscription.status === 'trialing') {
             determinedTier = 'trialing';
         } else {
-            determinedTier = subscription.trial_end ? 'trialing' : 'free'; 
+            determinedTier = 'free'; 
             console.warn(`Webhook: checkout.session.completed for session ${session.id} - Subscription status is '${subscription.status}'. Determined tier as '${determinedTier}'.`);
         }
 
@@ -97,9 +97,6 @@ export async function POST(req: NextRequest) {
           subscriptionTier: determinedTier, 
           stripeCustomerId: stripeCustomerId,
           stripeSubscriptionId: stripeSubscriptionId,
-          subscriptionStatus: subscription.status,
-          currentPeriodEnd: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : undefined,
-          trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null, 
           updatedAt: new Date().toISOString(),
         };
 
@@ -133,10 +130,7 @@ export async function POST(req: NextRequest) {
             }
 
             const userProfileUpdate: Partial<UserProfile> = {
-              subscriptionStatus: subscriptionFromInvoice.status,
-              currentPeriodEnd: new Date(subscriptionFromInvoice.current_period_end * 1000).toISOString(),
               subscriptionTier: newTier, 
-              trialEndsAt: subscriptionFromInvoice.trial_end ? new Date(subscriptionFromInvoice.trial_end * 1000).toISOString() : null,
               updatedAt: new Date().toISOString(),
             };
             await userDoc.ref.set(userProfileUpdate, { merge: true });
@@ -170,7 +164,6 @@ export async function POST(req: NextRequest) {
             }
 
             const userProfileUpdate: Partial<UserProfile> = { 
-              subscriptionStatus: subscriptionDetails.status, 
               subscriptionTier: newTier,
               updatedAt: new Date().toISOString(),
             };
@@ -198,9 +191,6 @@ export async function POST(req: NextRequest) {
             const userDoc = snapshot.docs[0];
             const userProfileUpdate: Partial<UserProfile> = { 
               stripeSubscriptionId: updatedSubscription.id, 
-              subscriptionStatus: updatedSubscription.status,
-              currentPeriodEnd: new Date(updatedSubscription.current_period_end * 1000).toISOString(),
-              trialEndsAt: updatedSubscription.trial_end ? new Date(updatedSubscription.trial_end * 1000).toISOString() : null,
               updatedAt: new Date().toISOString(),
             };
 
@@ -231,10 +221,7 @@ export async function POST(req: NextRequest) {
             const userDoc = snapshot.docs[0];
             const userProfileUpdate: Partial<UserProfile> = { 
               subscriptionTier: 'free',
-              subscriptionStatus: 'canceled', 
               stripeSubscriptionId: null, 
-              currentPeriodEnd: null, 
-              trialEndsAt: null, 
               updatedAt: new Date().toISOString(),
             };
             await userDoc.ref.set(userProfileUpdate, { merge: true });
