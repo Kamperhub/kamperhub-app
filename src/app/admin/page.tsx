@@ -17,7 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { UserCog, ShieldAlert, CalendarIcon, AlertTriangle, Loader2, Send, Mail, UserX, Trash2 } from 'lucide-react';
+import { UserCog, ShieldAlert, CalendarIcon, AlertTriangle, Loader2, Send, Mail, UserX, Trash2, Info } from 'lucide-react';
 import type { SubscriptionTier } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -136,7 +136,7 @@ export default function AdminPage() {
     deleteUserMutation.mutate(data.deleteUserEmail);
   };
   
-  if (isAuthLoading || isLoadingUsers) {
+  if (isAuthLoading || (currentUser && isLoadingUsers)) {
     return (
         <div className="flex justify-center items-center min-h-screen">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -214,6 +214,17 @@ export default function AdminPage() {
         </CardHeader>
         <CardContent>
           <Alert variant="destructive" className="mb-6"><AlertTriangle className="h-4 w-4" /><AlertTitle className="font-headline">DANGER ZONE</AlertTitle><AlertDescription className="font-body">This action is irreversible. The user and all their data will be permanently deleted.</AlertDescription></Alert>
+            
+            {!isLoadingUsers && allUsers.length === 0 && (
+                <Alert variant="default" className="mb-4 bg-muted/50 border-border">
+                    <Info className="h-4 w-4 text-primary" />
+                    <AlertTitle className="font-headline">No Other Users Found</AlertTitle>
+                    <AlertDescription className="font-body">
+                        The dropdown list is empty because no other user accounts were found in the system. Your own admin account is automatically excluded from this list to prevent accidental self-deletion.
+                    </AlertDescription>
+                </Alert>
+            )}
+
             <form onSubmit={deleteForm.handleSubmit(onDeleteSubmit)} className="space-y-4">
               <div>
                 <Label htmlFor="deleteUserEmail" className="font-body">User Email to Delete</Label>
@@ -240,7 +251,7 @@ export default function AdminPage() {
                               </SelectItem>
                             ))
                           ) : (
-                             <SelectItem value="none" disabled>No other users found</SelectItem>
+                             <SelectItem value="none" disabled>No users available to delete</SelectItem>
                           )}
                         </SelectContent>
                       </Select>
@@ -250,7 +261,7 @@ export default function AdminPage() {
               </div>
               <div>
                 <Label htmlFor="confirmationText" className="font-body">Type "DELETE" to confirm</Label>
-                <Input id="confirmationText" {...deleteForm.register("confirmationText")} placeholder='Type DELETE here' disabled={deleteUserMutation.isPending}/>
+                <Input id="confirmationText" {...register("confirmationText")} placeholder='Type DELETE here' disabled={deleteUserMutation.isPending}/>
                 {deleteForm.formState.errors.confirmationText && <p className="text-sm text-destructive mt-1 font-body">{deleteForm.formState.errors.confirmationText.message}</p>}
               </div>
               <Button type="submit" variant="destructive" className="w-full font-body" disabled={deleteUserMutation.isPending || allUsers.length === 0}>
