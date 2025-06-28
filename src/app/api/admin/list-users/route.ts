@@ -5,7 +5,8 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export async function GET(req: NextRequest) {
-  const { auth, error } = getFirebaseAdmin();
+  // Now fetching firestore instance as well
+  const { auth, firestore, error } = getFirebaseAdmin();
   if (error) {
     console.error('API List Users Error: Firebase Admin SDK not available.', error);
     return NextResponse.json({ error: 'Server configuration error.', details: error.message }, { status: 503 });
@@ -25,12 +26,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: You do not have permission to perform this action.' }, { status: 403 });
     }
     
-    const listUsersResult = await auth.listUsers(1000); // Max 1000 users per page
-    const users = listUsersResult.users
-      .map(userRecord => ({
-        uid: userRecord.uid,
-        email: userRecord.email,
-      }))
+    // --- CHANGE: Fetch users from Firestore collection instead of Auth ---
+    const usersSnapshot = await firestore.collection('users').get();
+    const users = usersSnapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return {
+          uid: data.uid || doc.id, // Prefer UID field, fallback to doc ID
+          email: data.email,
+        };
+      })
       .filter(user => user.email && user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()); // Filter out admin (case-insensitive) and users without email
 
     return NextResponse.json(users, { status: 200 });
