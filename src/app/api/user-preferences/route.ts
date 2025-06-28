@@ -154,6 +154,16 @@ export async function GET(req: NextRequest) {
     });
   } catch (err: any) {
     console.error('Error in user-preferences GET handler for UID:', uid, 'Error:', err);
+    // Specific check for Firestore `NOT_FOUND` error
+    if (err.code === 5 || (err.details && err.details.includes('NOT_FOUND'))) {
+       return NextResponse.json(
+        { 
+          error: 'The Firestore database for this project does not seem to exist or is not accessible.',
+          details: `This is a common issue during setup. Please go to the Firebase Console for project '${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}' and ensure you have created a Firestore database. Refer to FIREBASE_SETUP_CHECKLIST.md for instructions.`
+        },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(
       { error: 'Failed to process user preferences on the server.', details: err.message },
       { status: 500 }

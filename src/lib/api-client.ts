@@ -143,5 +143,3 @@ export const deleteMaintenanceTask = (id: string): Promise<{ message: string }> 
 
 // ---- Admin API Functions ----
 export const fetchAllUsers = (): Promise<{uid: string, email: string | undefined}[]> => apiFetch('/api/admin/list-users');
-
-    
