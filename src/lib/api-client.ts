@@ -143,3 +143,6 @@ export const fetchMaintenanceTasks = (assetId?: string): Promise<MaintenanceTask
 export const createMaintenanceTask = (data: Omit<MaintenanceTask, 'id' | 'timestamp'>): Promise<MaintenanceTask> => apiFetch('/api/maintenance', { method: 'POST', body: JSON.stringify(data) });
 export const updateMaintenanceTask = (data: MaintenanceTask): Promise<{ maintenanceTask: MaintenanceTask }> => apiFetch('/api/maintenance', { method: 'PUT', body: JSON.stringify(data) });
 export const deleteMaintenanceTask = (id: string): Promise<{ message: string }> => apiFetch('/api/maintenance', { method: 'DELETE', body: JSON.stringify({ id }) });
+
+// ---- Admin API Functions ----
+export const fetchAllUsers = (): Promise<{uid: string, email: string}[]> => apiFetch('/api/admin/list-users');

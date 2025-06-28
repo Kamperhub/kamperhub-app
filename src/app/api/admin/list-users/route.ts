@@ -1,0 +1,45 @@
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
+
+const ADMIN_EMAIL = 'info@kamperhub.com';
+
+export async function GET(req: NextRequest) {
+  const { auth, error } = getFirebaseAdmin();
+  if (error) {
+    console.error('API List Users Error: Firebase Admin SDK not available.', error);
+    return NextResponse.json({ error: 'Server configuration error.', details: error.message }, { status: 503 });
+  }
+
+  try {
+    const authorizationHeader = req.headers.get('Authorization');
+    if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 });
+    }
+    const idToken = authorizationHeader.split('Bearer ')[1];
+
+    const decodedToken = await auth.verifyIdToken(idToken);
+    
+    // Check if the caller is the specific admin user
+    if (decodedToken.email !== ADMIN_EMAIL) {
+      return NextResponse.json({ error: 'Forbidden: You do not have permission to perform this action.' }, { status: 403 });
+    }
+    
+    const listUsersResult = await auth.listUsers(1000); // Max 1000 users per page
+    const users = listUsersResult.users
+      .map(userRecord => ({
+        uid: userRecord.uid,
+        email: userRecord.email,
+      }))
+      .filter(user => user.email && user.email !== ADMIN_EMAIL); // Filter out admin and users without email
+
+    return NextResponse.json(users, { status: 200 });
+
+  } catch (error: any) {
+    console.error('Error in admin list-users endpoint:', error);
+    if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') {
+      return NextResponse.json({ error: 'Unauthorized: Invalid or expired token.' }, { status: 401 });
+    }
+    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+  }
+}

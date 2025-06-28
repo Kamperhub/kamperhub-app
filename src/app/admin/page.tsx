@@ -14,13 +14,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { UserCog, ShieldAlert, CalendarIcon, AlertTriangle, Loader2, Send, Mail, UserX, Trash2 } from 'lucide-react';
 import type { SubscriptionTier } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
+import { fetchAllUsers } from '@/lib/api-client';
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
@@ -35,7 +36,7 @@ const updateSubscriptionFormSchema = z.object({
 });
 
 const deleteUserFormSchema = z.object({
-  deleteUserEmail: z.string().email("Please enter a valid email to delete."),
+  deleteUserEmail: z.string().email("Please select a valid user email to delete."),
   confirmationText: z.string().refine(val => val === "DELETE", {
     message: "You must type DELETE to confirm.",
   }),
@@ -50,6 +51,12 @@ export default function AdminPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+
+  const { data: allUsers = [], isLoading: isLoadingUsers } = useQuery({
+    queryKey: ['allUsers', currentUser?.uid],
+    queryFn: fetchAllUsers,
+    enabled: !!currentUser,
+  });
 
   const updateForm = useForm<UpdateSubscriptionFormData>({
     resolver: zodResolver(updateSubscriptionFormSchema),
@@ -192,7 +199,35 @@ export default function AdminPage() {
             <form onSubmit={deleteForm.handleSubmit(onDeleteSubmit)} className="space-y-4">
               <div>
                 <Label htmlFor="deleteUserEmail" className="font-body">User Email to Delete</Label>
-                <div className="relative"><Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input id="deleteUserEmail" {...deleteForm.register("deleteUserEmail")} placeholder="Enter email of the user to delete" className="font-body pl-10" disabled={isDeleting} type="email"/></div>
+                <Controller
+                    name="deleteUserEmail"
+                    control={deleteForm.control}
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={isDeleting || isLoadingUsers}
+                      >
+                        <SelectTrigger className="font-body pl-10 relative">
+                          <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <SelectValue placeholder="Select a user to delete..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {isLoadingUsers ? (
+                            <SelectItem value="loading" disabled>Loading users...</SelectItem>
+                          ) : allUsers.length > 0 ? (
+                            allUsers.map(u => (
+                              <SelectItem key={u.uid} value={u.email!}>
+                                {u.email}
+                              </SelectItem>
+                            ))
+                          ) : (
+                             <SelectItem value="none" disabled>No other users found</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 {deleteForm.formState.errors.deleteUserEmail && <p className="text-sm text-destructive mt-1 font-body">{deleteForm.formState.errors.deleteUserEmail.message}</p>}
               </div>
               <div>
@@ -200,7 +235,10 @@ export default function AdminPage() {
                 <Input id="confirmationText" {...deleteForm.register("confirmationText")} placeholder='Type DELETE here' disabled={isDeleting}/>
                 {deleteForm.formState.errors.confirmationText && <p className="text-sm text-destructive mt-1 font-body">{deleteForm.formState.errors.confirmationText.message}</p>}
               </div>
-              <Button type="submit" variant="destructive" className="w-full font-body" disabled={isDeleting}>{isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash2 className="mr-2 h-4 w-4" />}{isDeleting ? 'Deleting User...' : 'Delete User Permanently'}</Button>
+              <Button type="submit" variant="destructive" className="w-full font-body" disabled={isDeleting || allUsers.length === 0}>
+                {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash2 className="mr-2 h-4 w-4" />}
+                {isDeleting ? 'Deleting User...' : 'Delete User Permanently'}
+              </Button>
             </form>
         </CardContent>
       </Card>
