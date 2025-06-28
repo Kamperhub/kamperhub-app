@@ -251,8 +251,8 @@ export default function MyAccountPage() {
   };
   
   const displayUserName = userProfile?.displayName || user.displayName || 'User';
-  const isTrialActive = subscriptionTier === 'trialing' && typeof trialEndsAt === 'string' && isFuture(parseISO(trialEndsAt));
-  const hasTrialExpired = subscriptionTier === 'trial_expired' || (subscriptionTier === 'trialing' && typeof trialEndsAt === 'string' && !isFuture(parseISO(trialEndsAt)));
+  const isTrialActive = subscriptionTier === 'trialing' && isFuture(parseISO(trialEndsAt!));
+  const hasTrialExpired = subscriptionTier === 'trial_expired' || (subscriptionTier === 'trialing' && !isFuture(parseISO(trialEndsAt!)));
   const isAdminUser = user?.email === ADMIN_EMAIL;
 
   return (
