@@ -14,10 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { UserCog, ShieldAlert, CalendarIcon, AlertTriangle, Loader2, Send, Mail } from 'lucide-react';
+import { UserCog, ShieldAlert, CalendarIcon, AlertTriangle, Loader2, Send, Mail, UserX, Trash2 } from 'lucide-react';
 import type { SubscriptionTier } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -33,23 +34,33 @@ const updateSubscriptionFormSchema = z.object({
   newCurrentPeriodEnd: z.date().nullable().optional(),
 });
 
+const deleteUserFormSchema = z.object({
+  deleteUserEmail: z.string().email("Please enter a valid email to delete."),
+  confirmationText: z.string().refine(val => val === "DELETE", {
+    message: "You must type DELETE to confirm.",
+  }),
+});
+
 type UpdateSubscriptionFormData = z.infer<typeof updateSubscriptionFormSchema>;
+type DeleteUserFormData = z.infer<typeof deleteUserFormSchema>;
 
 export default function AdminPage() {
   const { user: currentUser, isAuthLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
-  const { control, handleSubmit, register, formState: { errors }, reset } = useForm<UpdateSubscriptionFormData>({
+  const updateForm = useForm<UpdateSubscriptionFormData>({
     resolver: zodResolver(updateSubscriptionFormSchema),
     defaultValues: {
-      targetUserEmail: '',
-      newTier: 'free', // Default to 'free'
-      newStatus: '',
-      newTrialEndsAt: null,
-      newCurrentPeriodEnd: null,
+      targetUserEmail: '', newTier: 'free', newStatus: '', newTrialEndsAt: null, newCurrentPeriodEnd: null,
     },
+  });
+
+  const deleteForm = useForm<DeleteUserFormData>({
+    resolver: zodResolver(deleteUserFormSchema),
+    defaultValues: { deleteUserEmail: '', confirmationText: '' },
   });
 
   useEffect(() => {
@@ -58,15 +69,10 @@ export default function AdminPage() {
     }
   }, [currentUser, isAuthLoading, router]);
 
-  const onSubmit: SubmitHandler<UpdateSubscriptionFormData> = async (data) => {
-    if (!currentUser || currentUser.email !== ADMIN_EMAIL) {
-      toast({ title: "Error", description: "Unauthorized action.", variant: "destructive" });
-      return;
-    }
+  const onUpdateSubmit: SubmitHandler<UpdateSubscriptionFormData> = async (data) => {
     setIsSubmitting(true);
-
     try {
-      const idToken = await currentUser.getIdToken(true);
+      const idToken = await currentUser!.getIdToken(true);
       const payload: any = {
         targetUserEmail: data.targetUserEmail,
         newTier: data.newTier,
@@ -77,37 +83,43 @@ export default function AdminPage() {
       
       const response = await fetch('/api/admin/update-subscription', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
         body: JSON.stringify(payload),
       });
-
       const result = await response.json();
-
       if (response.ok) {
-        toast({ title: "Success", description: result.message || "Subscription updated successfully." });
-        reset();
+        toast({ title: "Success", description: result.message || "Subscription updated." });
+        updateForm.reset();
       } else {
-        toast({
-          title: "Error Updating Subscription",
-          description: result.error || result.message || "An unknown error occurred.",
-          variant: "destructive",
-          duration: 7000,
-        });
-        if (result.details) {
-            console.error("API Error Details:", result.details);
-        }
+        toast({ title: "Error Updating Subscription", description: result.error || result.message || "An error occurred.", variant: "destructive" });
       }
     } catch (error: any) {
-      toast({
-        title: "Client-Side Error",
-        description: error.message || "Failed to send request.",
-        variant: "destructive",
-      });
+      toast({ title: "Client-Side Error", description: error.message || "Failed to send request.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const onDeleteSubmit: SubmitHandler<DeleteUserFormData> = async (data) => {
+    setIsDeleting(true);
+    try {
+      const idToken = await currentUser!.getIdToken(true);
+      const response = await fetch('/api/admin/delete-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}`},
+          body: JSON.stringify({ email: data.deleteUserEmail }),
+      });
+      const result = await response.json();
+      if (response.ok) {
+          toast({ title: "User Deleted", description: result.message });
+          deleteForm.reset();
+      } else {
+          toast({ title: "Deletion Failed", description: result.error || "An unknown error occurred.", variant: "destructive" });
+      }
+    } catch (error: any) {
+        toast({ title: "Client-Side Error", description: error.message, variant: "destructive" });
+    } finally {
+        setIsDeleting(false);
     }
   };
   
@@ -134,153 +146,62 @@ export default function AdminPage() {
     <div className="space-y-8">
       <Card className="max-w-2xl mx-auto shadow-xl">
         <CardHeader>
-          <CardTitle className="font-headline text-2xl text-primary flex items-center">
-            <UserCog className="mr-3 h-7 w-7" /> Admin - User Subscription Management
-          </CardTitle>
-          <CardDescription className="font-body">
-            Update subscription details for a specific user by their email address.
-          </CardDescription>
+          <CardTitle className="font-headline text-2xl text-primary flex items-center"><UserCog className="mr-3 h-7 w-7" /> Admin - User Subscription Management</CardTitle>
+          <CardDescription className="font-body">Update subscription details for a specific user by their email address.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Alert variant="destructive" className="mb-6">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle className="font-headline">Important: Admin Action</AlertTitle>
-            <AlertDescription className="font-body">
-              Changes made here directly modify user data and subscription status. Proceed with caution.
-              These changes bypass standard Stripe webhook flows for immediate effect.
-            </AlertDescription>
-          </Alert>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <Alert variant="destructive" className="mb-6"><AlertTriangle className="h-4 w-4" /><AlertTitle className="font-headline">Important: Admin Action</AlertTitle><AlertDescription className="font-body">Changes made here directly modify user data. Proceed with caution.</AlertDescription></Alert>
+          <form onSubmit={updateForm.handleSubmit(onUpdateSubmit)} className="space-y-6">
             <div>
               <Label htmlFor="targetUserEmail" className="font-body">Target User Email Address</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="targetUserEmail"
-                  {...register("targetUserEmail")}
-                  placeholder="Enter the email address of the user"
-                  className="font-body pl-10"
-                  disabled={isSubmitting}
-                  type="email"
-                />
-              </div>
-              {errors.targetUserEmail && <p className="text-sm text-destructive mt-1 font-body">{errors.targetUserEmail.message}</p>}
+              <div className="relative"><Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input id="targetUserEmail" {...updateForm.register("targetUserEmail")} placeholder="Enter user's email" className="font-body pl-10" disabled={isSubmitting} type="email"/></div>
+              {updateForm.formState.errors.targetUserEmail && <p className="text-sm text-destructive mt-1 font-body">{updateForm.formState.errors.targetUserEmail.message}</p>}
             </div>
-
             <div>
               <Label htmlFor="newTier" className="font-body">New Subscription Tier</Label>
-              <Controller
-                name="newTier"
-                control={control}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
-                    <SelectTrigger className="font-body">
-                      <SelectValue placeholder="Select new tier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(["free", "pro", "trialing", "trial_expired"] as SubscriptionTier[]).map(tier => (
-                        <SelectItem key={tier} value={tier} className="font-body">
-                          {tier.charAt(0).toUpperCase() + tier.slice(1).replace('_', ' ')}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.newTier && <p className="text-sm text-destructive mt-1 font-body">{errors.newTier.message}</p>}
+              <Controller name="newTier" control={updateForm.control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}><SelectTrigger className="font-body"><SelectValue placeholder="Select new tier" /></SelectTrigger><SelectContent>{(["free", "pro", "trialing", "trial_expired"] as SubscriptionTier[]).map(tier => (<SelectItem key={tier} value={tier} className="font-body">{tier.charAt(0).toUpperCase() + tier.slice(1).replace('_', ' ')}</SelectItem>))}</SelectContent></Select>)} />
+              {updateForm.formState.errors.newTier && <p className="text-sm text-destructive mt-1 font-body">{updateForm.formState.errors.newTier.message}</p>}
             </div>
-
             <div>
               <Label htmlFor="newStatus" className="font-body">New Status (Optional)</Label>
-              <Input
-                id="newStatus"
-                {...register("newStatus")}
-                placeholder="e.g., active, trialing, canceled"
-                className="font-body"
-                disabled={isSubmitting}
-              />
+              <Input id="newStatus" {...updateForm.register("newStatus")} placeholder="e.g., active, trialing, canceled" className="font-body" disabled={isSubmitting}/>
               <p className="text-xs text-muted-foreground mt-1 font-body">Usually corresponds to Stripe's subscription status.</p>
-              {errors.newStatus && <p className="text-sm text-destructive mt-1 font-body">{errors.newStatus.message}</p>}
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <Label htmlFor="newTrialEndsAt" className="font-body">New Trial Ends At (Optional)</Label>
-                    <Controller
-                        name="newTrialEndsAt"
-                        control={control}
-                        render={({ field }) => (
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <Button
-                                variant={"outline"}
-                                className={cn(
-                                "w-full justify-start text-left font-normal font-body",
-                                !field.value && "text-muted-foreground"
-                                )}
-                                disabled={isSubmitting}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value ? format(field.value, "PPP") : <span>Pick a date (or leave blank)</span>}
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                            <Calendar
-                                mode="single"
-                                selected={field.value || undefined}
-                                onSelect={(date) => field.onChange(date || null)}
-                                initialFocus
-                                disabled={isSubmitting}
-                            />
-                            </PopoverContent>
-                        </Popover>
-                        )}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1 font-body">Set to clear or update trial end date.</p>
-                    {errors.newTrialEndsAt && <p className="text-sm text-destructive mt-1 font-body">{errors.newTrialEndsAt.message}</p>}
+                    <Controller name="newTrialEndsAt" control={updateForm.control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal font-body", !field.value && "text-muted-foreground")} disabled={isSubmitting}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value || undefined} onSelect={(date) => field.onChange(date || null)} initialFocus disabled={isSubmitting}/></PopoverContent></Popover>)} />
                 </div>
                 <div>
                     <Label htmlFor="newCurrentPeriodEnd" className="font-body">New Current Period End (Optional)</Label>
-                     <Controller
-                        name="newCurrentPeriodEnd"
-                        control={control}
-                        render={({ field }) => (
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <Button
-                                variant={"outline"}
-                                className={cn(
-                                "w-full justify-start text-left font-normal font-body",
-                                !field.value && "text-muted-foreground"
-                                )}
-                                disabled={isSubmitting}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value ? format(field.value, "PPP") : <span>Pick a date (or leave blank)</span>}
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                            <Calendar
-                                mode="single"
-                                selected={field.value || undefined}
-                                onSelect={(date) => field.onChange(date || null)}
-                                initialFocus
-                                disabled={isSubmitting}
-                            />
-                            </PopoverContent>
-                        </Popover>
-                        )}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1 font-body">Set to update subscription renewal/end date.</p>
-                    {errors.newCurrentPeriodEnd && <p className="text-sm text-destructive mt-1 font-body">{errors.newCurrentPeriodEnd.message}</p>}
+                     <Controller name="newCurrentPeriodEnd" control={updateForm.control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal font-body", !field.value && "text-muted-foreground")} disabled={isSubmitting}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value || undefined} onSelect={(date) => field.onChange(date || null)} initialFocus disabled={isSubmitting} /></PopoverContent></Popover>)} />
                 </div>
             </div>
-            
-            <Button type="submit" className="w-full font-body bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-              {isSubmitting ? 'Updating...' : 'Update User Subscription'}
-            </Button>
+            <Button type="submit" className="w-full font-body bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}{isSubmitting ? 'Updating...' : 'Update Subscription'}</Button>
           </form>
+        </CardContent>
+      </Card>
+      
+      <Card className="max-w-2xl mx-auto shadow-xl border-destructive">
+        <CardHeader>
+          <CardTitle className="font-headline text-2xl text-destructive flex items-center"><UserX className="mr-3 h-7 w-7" /> Admin - Delete User</CardTitle>
+          <CardDescription className="font-body">Permanently delete a user from Authentication and Firestore.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive" className="mb-6"><AlertTriangle className="h-4 w-4" /><AlertTitle className="font-headline">DANGER ZONE</AlertTitle><AlertDescription className="font-body">This action is irreversible. The user and all their data will be permanently deleted.</AlertDescription></Alert>
+            <form onSubmit={deleteForm.handleSubmit(onDeleteSubmit)} className="space-y-4">
+              <div>
+                <Label htmlFor="deleteUserEmail" className="font-body">User Email to Delete</Label>
+                <div className="relative"><Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input id="deleteUserEmail" {...deleteForm.register("deleteUserEmail")} placeholder="Enter email of the user to delete" className="font-body pl-10" disabled={isDeleting} type="email"/></div>
+                {deleteForm.formState.errors.deleteUserEmail && <p className="text-sm text-destructive mt-1 font-body">{deleteForm.formState.errors.deleteUserEmail.message}</p>}
+              </div>
+              <div>
+                <Label htmlFor="confirmationText" className="font-body">Type "DELETE" to confirm</Label>
+                <Input id="confirmationText" {...deleteForm.register("confirmationText")} placeholder='Type DELETE here' disabled={isDeleting}/>
+                {deleteForm.formState.errors.confirmationText && <p className="text-sm text-destructive mt-1 font-body">{deleteForm.formState.errors.confirmationText.message}</p>}
+              </div>
+              <Button type="submit" variant="destructive" className="w-full font-body" disabled={isDeleting}>{isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash2 className="mr-2 h-4 w-4" />}{isDeleting ? 'Deleting User...' : 'Delete User Permanently'}</Button>
+            </form>
         </CardContent>
       </Card>
     </div>
