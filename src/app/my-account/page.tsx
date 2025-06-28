@@ -3,13 +3,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase';
 import { updateProfile, updateEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { format, parseISO, isFuture } from 'date-fns';
+import { fetchUserPreferences } from '@/lib/api-client';
 
 import type { UserProfile } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,8 +29,6 @@ export default function MyAccountPage() {
   const { user, isAuthLoading } = useAuth();
   const { setSubscriptionDetails, hasProAccess, subscriptionTier, stripeCustomerId, trialEndsAt } = useSubscription();
 
-  const [userProfile, setUserProfile] = useState<Partial<UserProfile>>({});
-  const [isLoadingPrefs, setIsLoadingPrefs] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
@@ -37,6 +37,13 @@ export default function MyAccountPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  const { data: userProfile, error: profileError, isLoading: isLoadingPrefs } = useQuery<Partial<UserProfile>>({
+    queryKey: ['userPreferences', user?.uid],
+    queryFn: fetchUserPreferences,
+    enabled: !!user && !isAuthLoading,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
   useEffect(() => {
     if (!isAuthLoading && !user) {
       router.push('/login');
@@ -44,38 +51,14 @@ export default function MyAccountPage() {
   }, [isAuthLoading, user, router]);
 
   useEffect(() => {
-    if (user) {
-      setIsLoadingPrefs(true);
-      const userDocRef = doc(db, "users", user.uid);
-      getDoc(userDocRef).then(docSnap => {
-        if (docSnap.exists()) {
-          const profileData = docSnap.data() as UserProfile;
-          setUserProfile(profileData);
-          setSubscriptionDetails(
-            profileData.subscriptionTier || 'free', 
-            profileData.stripeCustomerId || null,
-            profileData.trialEndsAt || null
-          );
-        } else {
-          console.warn("No Firestore profile document found for user:", user.uid);
-          setUserProfile({ email: user.email, displayName: user.displayName });
-          setSubscriptionDetails('free', null, null); 
-        }
-      }).catch(error => {
-        console.error("Error fetching user profile from Firestore:", error);
-        toast({ 
-          title: "Error Loading Profile", 
-          description: `Could not load your profile data. Please try refreshing.`,
-          variant: "destructive",
-        });
-      }).finally(() => {
-        setIsLoadingPrefs(false);
-      });
-    } else if (!isAuthLoading) {
-        setIsLoadingPrefs(false);
+    if (userProfile) {
+      setSubscriptionDetails(
+        userProfile.subscriptionTier || 'free', 
+        userProfile.stripeCustomerId || null,
+        userProfile.trialEndsAt || null
+      );
     }
-  }, [user, isAuthLoading, setSubscriptionDetails, toast]);
-
+  }, [userProfile, setSubscriptionDetails]);
 
   const handleLogout = async () => {
     try {
@@ -119,13 +102,7 @@ export default function MyAccountPage() {
       };
       await setDoc(userDocRef, firestoreProfileData, { merge: true });
 
-      const updatedUserDoc = await getDoc(userDocRef);
-      if(updatedUserDoc.exists()){
-          setUserProfile(updatedUserDoc.data());
-      }
-      if (auth.currentUser) {
-        await auth.currentUser.reload();
-      }
+      if (auth.currentUser) await auth.currentUser.reload();
       
       toast({
         title: "Profile Updated",
@@ -228,23 +205,30 @@ export default function MyAccountPage() {
     );
   }
 
-  if (!user) {
+  if (!user || profileError) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
-        <p>Redirecting to login...</p>
+        <Alert variant="destructive" className="max-w-md">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error Loading Account</AlertTitle>
+            <AlertDescription>
+                {profileError ? profileError.message : "You must be logged in to view this page."}
+            </AlertDescription>
+            <Button variant="secondary" onClick={() => router.push('/login')} className="mt-4">Go to Login</Button>
+        </Alert>
       </div>
     );
   }
 
   const initialProfileDataForEdit: EditProfileFormData = {
-    displayName: user?.displayName || userProfile.displayName || '',
-    email: userProfile.email || user?.email || '',
-    city: userProfile.city || '',
-    state: userProfile.state || '',
-    country: userProfile.country || '',
+    displayName: userProfile?.displayName || user?.displayName || '',
+    email: userProfile?.email || user?.email || '',
+    city: userProfile?.city || '',
+    state: userProfile?.state || '',
+    country: userProfile?.country || '',
   };
   
-  const displayUserName = user?.displayName || userProfile.displayName || 'User';
+  const displayUserName = userProfile?.displayName || user.displayName || 'User';
   const isTrialActive = subscriptionTier === 'trialing' && trialEndsAt && isFuture(parseISO(trialEndsAt));
   const hasTrialExpired = subscriptionTier === 'trial_expired' || (subscriptionTier === 'trialing' && trialEndsAt && !isFuture(parseISO(trialEndsAt)));
   const isAdminUser = user?.email === ADMIN_EMAIL;
@@ -287,23 +271,23 @@ export default function MyAccountPage() {
             
             <p className="font-body text-sm flex items-center">
                 <User className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>Display Name:</strong>&nbsp;{user?.displayName || userProfile.displayName || '[Not Set]'}
+                <strong>Display Name:</strong>&nbsp;{userProfile?.displayName || user.displayName || '[Not Set]'}
             </p>
             <p className="font-body text-sm flex items-center">
                 <Mail className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>Email:</strong>&nbsp;{user?.email || userProfile.email || '[Not Set]'}
+                <strong>Email:</strong>&nbsp;{userProfile?.email || user.email || '[Not Set]'}
             </p>
             <p className="font-body text-sm flex items-center">
                 <MapPin className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>City:</strong>&nbsp;{userProfile.city || '[Not Provided]'}
+                <strong>City:</strong>&nbsp;{userProfile?.city || '[Not Provided]'}
             </p>
             <p className="font-body text-sm flex items-center">
                 <Building className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>State / Region:</strong>&nbsp;{userProfile.state || '[Not Provided]'}
+                <strong>State / Region:</strong>&nbsp;{userProfile?.state || '[Not Provided]'}
             </p>
              <p className="font-body text-sm flex items-center">
                 <Globe className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>Country:</strong>&nbsp;{userProfile.country || '[Not Provided]'}
+                <strong>Country:</strong>&nbsp;{userProfile?.country || '[Not Provided]'}
             </p>
           </div>
 
