@@ -1,5 +1,6 @@
 
 import admin from 'firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
 
 interface FirebaseAdminInstances {
   firestore: admin.firestore.Firestore;
@@ -19,8 +20,9 @@ function initializeFirebaseAdmin(): FirebaseAdminInstances | FirebaseAdminError 
   // If the app is already initialized, return the existing instances.
   if (admin.apps.length) {
     console.log("[Firebase Admin] Re-using existing initialized app.");
+    const db = getFirestore(undefined, 'kamperhubv2');
     return {
-      firestore: admin.firestore(),
+      firestore: db,
       auth: admin.auth(),
       error: null,
     };
@@ -54,9 +56,11 @@ function initializeFirebaseAdmin(): FirebaseAdminInstances | FirebaseAdminError 
       credential: admin.credential.cert(serviceAccount),
     });
 
-    console.log("[Firebase Admin] SDK initialized successfully.");
+    const db = getFirestore(undefined, 'kamperhubv2');
+
+    console.log("[Firebase Admin] SDK initialized successfully for database 'kamperhubv2'.");
     return {
-      firestore: admin.firestore(),
+      firestore: db,
       auth: admin.auth(),
       error: null,
     };
