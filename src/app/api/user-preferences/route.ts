@@ -119,7 +119,7 @@ export async function GET(req: NextRequest) {
         subscriptionTier: 'free',
         stripeCustomerId: null,
         trialEndsAt: null,
-        createdAt: authUser.metadata.creationTime,
+        createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
