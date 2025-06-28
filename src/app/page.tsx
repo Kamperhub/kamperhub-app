@@ -7,10 +7,7 @@ import type { NavItem } from '@/lib/navigation';
 import { navItems as defaultNavItems } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Home as HomeIcon, Loader2, LayoutDashboard, AlertTriangle } from 'lucide-react';
+import { Home as HomeIcon, Loader2, LayoutDashboard, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
@@ -22,53 +19,29 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from '@/hooks/useAuth';
 
-interface SortableNavItemProps {
-  id: string;
-  item: NavItem;
-  isMobile: boolean;
-}
-
-function SortableNavItem({ id, item, isMobile }: SortableNavItemProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    zIndex: isDragging ? 10 : undefined,
-    opacity: isDragging ? 0.8 : 1,
-  };
-
+function NavItemCard({ item }: { item: NavItem }) {
   return (
-    <div ref={setNodeRef} style={style} className="touch-manipulation h-full">
-      <Link href={item.href} className="block h-full no-underline group">
-        <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <CardHeader className="pb-3 flex-row items-start justify-between space-y-0">
-              <div className="space-y-1">
-                  <CardTitle className="font-headline text-xl text-primary flex items-center">
-                      <item.icon className="w-6 h-6 mr-3 text-primary" />
-                      {item.label}
-                  </CardTitle>
-                  <CardDescription className="font-body text-sm text-muted-foreground line-clamp-3">
-                      {item.description}
-                  </CardDescription>
-              </div>
-              {!isMobile && (
-                  <div {...attributes} {...listeners} className="cursor-grab p-2 text-muted-foreground hover:text-foreground">
-                      <GripVertical className="h-5 w-5" />
-                  </div>
-              )}
-          </CardHeader>
-          <CardContent className="flex-grow flex flex-col justify-between pt-0">
-            <div
-              className="h-32 w-full bg-muted/30 rounded-md flex items-center justify-center my-2 overflow-hidden"
-              data-ai-hint={item.keywords}
-            >
-              <item.icon className="w-16 h-16 text-accent opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
-      </Link>
-    </div>
+    <Link href={item.href} className="block h-full no-underline group">
+      <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
+        <CardHeader className="pb-3">
+            <CardTitle className="font-headline text-xl text-primary flex items-center">
+                <item.icon className="w-6 h-6 mr-3 text-primary" />
+                {item.label}
+            </CardTitle>
+            <CardDescription className="font-body text-sm text-muted-foreground line-clamp-3">
+                {item.description}
+            </CardDescription>
+        </CardHeader>
+        <CardContent className="flex-grow flex flex-col justify-between pt-0">
+          <div
+            className="h-32 w-full bg-muted/30 rounded-md flex items-center justify-center my-2 overflow-hidden"
+            data-ai-hint={item.keywords}
+          >
+            <item.icon className="w-16 h-16 text-accent opacity-50" />
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 
@@ -114,43 +87,25 @@ const FirebaseErrorState = ({ error }: { error: string }) => (
 
 export default function DashboardPage() {
   const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>(defaultNavItems);
-  const [isMobileView, setIsMobileView] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   const { user, isAuthLoading } = useAuth();
   const router = useRouter();
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
+  
   const { data: userPrefs, error: prefsError, isLoading: isLoadingPrefs } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
     queryFn: fetchUserPreferences,
     enabled: !!user && !isAuthLoading,
     retry: (failureCount, error) => {
-      // Don't retry for certain fatal errors that won't resolve.
       if (error.message.includes("500") || error.message.includes("crash")) {
         return false;
       }
-      return failureCount < 2; // Retry up to 2 times for other errors
+      return failureCount < 2;
     },
-  });
-
-  const updateUserPrefsMutation = useMutation({
-    mutationFn: updateUserPreferences,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Could Not Save Layout", description: error.message, variant: "destructive" });
-    }
   });
   
   useEffect(() => {
     setIsMounted(true);
-    const handleResize = () => setIsMobileView(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    handleResize();
-    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
@@ -180,30 +135,7 @@ export default function DashboardPage() {
       setOrderedNavItems(mainPageNavItems);
     }
   }, [userPrefs]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
-
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      const newOrder = arrayMove(orderedNavItems, 
-        orderedNavItems.findIndex((item) => item.href === active.id),
-        orderedNavItems.findIndex((item) => item.href === over.id)
-      );
-      
-      setOrderedNavItems(newOrder); 
-      
-      const newLayoutHrefs = newOrder.map(item => item.href);
-      updateUserPrefsMutation.mutate({ dashboardLayout: newLayoutHrefs });
-    }
-  }, [orderedNavItems, updateUserPrefsMutation]); 
-
+  
   if (firebaseInitializationError) {
       return <FirebaseErrorState error={firebaseInitializationError} />;
   }
@@ -243,15 +175,11 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={isMobileView ? undefined : handleDragEnd}>
-        <SortableContext items={orderedNavItems.map(item => item.href)} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {orderedNavItems.map((item) => (
-              <SortableNavItem key={item.href} id={item.href} item={item} isMobile={isMobileView} />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {orderedNavItems.map((item) => (
+          <NavItemCard key={item.href} item={item} />
+        ))}
+      </div>
     </div>
   );
 }
