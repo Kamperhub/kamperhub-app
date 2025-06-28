@@ -125,9 +125,20 @@ export async function GET(req: NextRequest) {
     });
   } catch (err: any) {
     console.error('Error in user-preferences GET handler for UID:', uid, 'Error:', err);
+    let errorMessage = 'Failed to process user preferences on the server.';
+    let statusCode = 500;
+
+    // Check for the specific "NOT_FOUND" error from Firestore
+    if (err.code === 5 || (err.message && err.message.includes('NOT_FOUND'))) {
+        errorMessage = 'Database Not Found or Inaccessible';
+        const projectId = admin.apps[0]?.options.projectId || 'unknown';
+        const details = `The server connected to Firebase Project ID "${projectId}" but could not find the Firestore database. This usually means the database has not been created in the Firebase console for this project. Please go to the Firebase Console, select your project, and ensure you have created a Firestore Database. Refer to Step 6 in FIREBASE_SETUP_CHECKLIST.md.`;
+        return NextResponse.json({ error: errorMessage, details: details }, { status: 404 });
+    }
+
     return NextResponse.json(
-      { error: 'Failed to process user preferences on the server.', details: err.message },
-      { status: 500 }
+      { error: errorMessage, details: err.message },
+      { status: statusCode }
     );
   }
 }
