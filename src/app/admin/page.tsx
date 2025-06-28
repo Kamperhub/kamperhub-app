@@ -49,7 +49,7 @@ export default function AdminPage() {
   const { data: allUsers = [], isLoading: isLoadingUsers, error: usersError } = useQuery({
     queryKey: ['allUsers', currentUser?.uid],
     queryFn: fetchAllUsers,
-    enabled: !!currentUser && currentUser.email === ADMIN_EMAIL,
+    enabled: !!currentUser && currentUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase(),
   });
 
   const deleteUserMutation = useMutation({
@@ -90,7 +90,7 @@ export default function AdminPage() {
   });
 
   useEffect(() => {
-    if (!isAuthLoading && (!currentUser || currentUser.email !== ADMIN_EMAIL)) {
+    if (!isAuthLoading && (!currentUser || currentUser.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase())) {
       router.push('/login');
     }
   }, [currentUser, isAuthLoading, router]);
@@ -135,7 +135,7 @@ export default function AdminPage() {
     );
   }
 
-  if (!currentUser || currentUser.email !== ADMIN_EMAIL) {
+  if (!currentUser || currentUser.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-center p-6">
         <ShieldAlert className="h-16 w-16 text-destructive mb-4" />
