@@ -16,7 +16,7 @@ import { fetchUserPreferences } from '@/lib/api-client';
 import type { UserProfile } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, CalendarClock, UserCog, AlertTriangle } from 'lucide-react';
+import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, CalendarClock, UserCog, AlertTriangle, RotateCw } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -38,11 +38,12 @@ export default function MyAccountPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const { data: userProfile, error: profileError, isLoading: isLoadingPrefs } = useQuery<Partial<UserProfile>>({
+  const { data: userProfile, error: profileError, isLoading: isLoadingPrefs, refetch } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
     queryFn: fetchUserPreferences,
     enabled: !!user && !isAuthLoading,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Always fetch fresh data on mount
+    retry: 1, // Only retry automatically once
   });
 
   useEffect(() => {
@@ -207,17 +208,39 @@ export default function MyAccountPage() {
     );
   }
 
-  if (!user || profileError) {
+  if (!user) {
+    // This case is handled by the useEffect redirect, but as a fallback:
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
         <Alert variant="destructive" className="max-w-md text-center">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle className="font-headline">Error Loading Account</AlertTitle>
+            <AlertTitle className="font-headline">Not Logged In</AlertTitle>
             <AlertDescription className="font-body mt-2">
-                {profileError ? profileError.message : "You must be logged in to view this page."}
+                You must be logged in to view this page.
             </AlertDescription>
             <Button variant="secondary" onClick={() => router.push('/login')} className="mt-4 font-body">
                 Go to Login
+            </Button>
+        </Alert>
+      </div>
+    );
+  }
+  
+  if (profileError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
+        <Alert variant="destructive" className="max-w-md text-center">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle className="font-headline">Error Loading Account Details</AlertTitle>
+            <AlertDescription className="font-body mt-2">
+                <p>There was a problem fetching your profile from the server.</p>
+                <pre className="mt-2 text-xs bg-destructive-foreground/10 p-2 rounded-md font-mono text-left whitespace-pre-wrap">
+                  {profileError.message}
+                </pre>
+            </AlertDescription>
+            <Button onClick={() => refetch()} className="mt-4 font-body">
+                <RotateCw className="mr-2 h-4 w-4" />
+                Retry
             </Button>
         </Alert>
       </div>
