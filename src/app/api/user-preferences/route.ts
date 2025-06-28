@@ -1,11 +1,9 @@
 
 export const runtime = 'nodejs';
-// src/app/api/user-preferences/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
 import { z, ZodError } from 'zod';
-import type { auth as adminAuth } from 'firebase-admin';
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
@@ -109,13 +107,19 @@ export async function GET(req: NextRequest) {
     const userDocRef = firestore.collection('users').doc(uid);
     let userDocSnap = await userDocRef.get();
 
-    // If the user profile does not exist, create it. This is the "self-healing" part.
+    // Self-healing: If the user profile does not exist in Firestore, create it.
     if (!userDocSnap.exists) {
-      console.warn(`User profile for UID ${uid} not found. Creating a default profile.`);
+      console.warn(`User profile for UID ${uid} not found in Firestore. Attempting to create one.`);
       
-      const authUser = await auth.getUser(uid);
+      let authUser;
+      try {
+        authUser = await auth.getUser(uid);
+      } catch (authError: any) {
+        console.error(`CRITICAL: Failed to get auth user for UID ${uid} during self-healing.`, authError);
+        return NextResponse.json({ error: 'User exists in auth but could not be fetched for profile creation.', details: authError.message }, { status: 500 });
+      }
+
       const isKamperHubAdmin = authUser.email === ADMIN_EMAIL;
-      
       const trialEndDate = new Date();
       trialEndDate.setDate(trialEndDate.getDate() + 7);
 
@@ -128,7 +132,7 @@ export async function GET(req: NextRequest) {
         city: 'Not Set',
         state: 'Not Set',
         country: 'Not Set',
-        subscriptionTier: 'trialing', // Start all new users on a trial
+        subscriptionTier: 'trialing',
         stripeCustomerId: null,
         trialEndsAt: trialEndDate.toISOString(),
         createdAt: new Date().toISOString(),
@@ -137,10 +141,8 @@ export async function GET(req: NextRequest) {
       };
 
       await userDocRef.set(newUserProfile);
-      console.log(`Default profile with placeholder data created for UID ${uid}. Admin status: ${isKamperHubAdmin}`);
-
-      // Re-fetch the document to ensure we return what's in the DB.
-      userDocSnap = await userDocRef.get();
+      console.log(`Default profile created for UID ${uid}.`);
+      userDocSnap = await userDocRef.get(); // Re-fetch the newly created document
     }
 
     const userData = userDocSnap.data() || {};
@@ -152,16 +154,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (err: any) {
     console.error('Error in user-preferences GET handler for UID:', uid, 'Error:', err);
-     if (err.code === 5 /* NOT_FOUND */) {
-        return NextResponse.json(
-          { 
-            error: 'Database Not Found', 
-            details: `Your application is correctly configured, but the Firestore database for project '${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'kamperhub-s4hc2'}' has not been created yet. Please go to the Firebase Console, select your project, and click 'Firestore Database' to create one.`,
-            critical: true // Add a flag for the UI
-          },
-          { status: 500 }
-        );
-    }
     return NextResponse.json(
       { error: 'Failed to process user preferences on the server.', details: err.message },
       { status: 500 }
@@ -182,12 +174,11 @@ export async function PUT(req: NextRequest) {
     const parsedData = userPreferencesUpdateSchema.parse(body);
 
     const userDocRef = firestore.collection('users').doc(uid);
-    const updateData: { [key: string]: any } = { // Use a more generic type for Firestore update
+    const updateData: { [key: string]: any } = {
       ...parsedData,
       updatedAt: new Date().toISOString(),
     };
     
-    // Remove undefined fields to avoid issues with Firestore
     Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
     await userDocRef.set(updateData, { merge: true });
