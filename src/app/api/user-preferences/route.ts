@@ -152,6 +152,16 @@ export async function GET(req: NextRequest) {
     });
   } catch (err: any) {
     console.error('Error in user-preferences GET handler for UID:', uid, 'Error:', err);
+     if (err.code === 5 /* NOT_FOUND */) {
+        return NextResponse.json(
+          { 
+            error: 'Database Not Found', 
+            details: `Your application is correctly configured, but the Firestore database for project '${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'kamperhub-s4hc2'}' has not been created yet. Please go to the Firebase Console, select your project, and click 'Firestore Database' to create one.`,
+            critical: true // Add a flag for the UI
+          },
+          { status: 500 }
+        );
+    }
     return NextResponse.json(
       { error: 'Failed to process user preferences on the server.', details: err.message },
       { status: 500 }
@@ -203,5 +213,3 @@ export async function PUT(req: NextRequest) {
     );
   }
 }
-
-    

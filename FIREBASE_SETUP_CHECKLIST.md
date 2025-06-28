@@ -59,19 +59,19 @@ Now, find your keys in the Firebase and Stripe dashboards and paste them into th
 
 ---
 
-### Step 3: CRITICAL - Verify Firestore Database Exists
+### Step 3: CRITICAL - Create the Firestore Database
 
-The most common error (`5 NOT_FOUND`) happens because the Firestore database hasn't been created yet.
+The most common server error is `5 NOT_FOUND`. This error means your environment variables are **correct**, but the Firestore database has not been created in your project yet. You must do this manually.
 
 1.  Go to the [Firebase Console](https://console.firebase.google.com/) and select your project.
 2.  In the left-hand navigation under "Build", click on **Firestore Database**.
-3.  If you see a "Create database" button, **you must create one**.
+3.  If you see a large "Create database" button, **you must create one**.
     *   Click **"Create database"**.
-    *   Choose **"Start in test mode"** (you can secure it later).
+    *   Choose **"Start in test mode"** (you can secure it later with `firestore.rules`).
     *   Choose a location (e.g., `us-central` or one near you).
     *   Click **Enable**.
 
-If a database already exists, you can skip this step.
+If a database already exists, you can skip this step. This is a one-time setup for your project.
 
 ---
 
