@@ -16,7 +16,6 @@ export async function GET() {
     
     // App Check Config
     NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY: process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY ? 'Set' : 'Not Set',
-    NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN: process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN ? 'Set' : 'Not Set',
     
     // Server-side Firebase Config
     GOOGLE_APPLICATION_CREDENTIALS_JSON: process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON ? 'Set' : 'Not Set',
@@ -33,6 +32,9 @@ export async function GET() {
   // Safely check the admin credentials without trying to initialize the whole SDK
   let adminSDKStatus = 'Not Checked';
   const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  let serverProjectId = 'Not found in credentials';
+  let clientProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set';
+  let projectIdsMatch = 'Cannot determine';
 
   if (serviceAccountJsonString) {
     try {
@@ -43,6 +45,7 @@ export async function GET() {
       }
       
       const parsedJson = JSON.parse(jsonString);
+      serverProjectId = parsedJson.project_id || 'Not found in credentials';
 
       if (parsedJson.project_id && parsedJson.private_key && parsedJson.client_email) {
         adminSDKStatus = 'Set and appears to be valid JSON with key fields present.';
@@ -56,12 +59,19 @@ export async function GET() {
     adminSDKStatus = 'Error: The GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is missing.';
   }
 
+  if (serverProjectId !== 'Not found in credentials' && clientProjectId !== 'Not Set') {
+      projectIdsMatch = serverProjectId === clientProjectId ? 'Yes' : 'NO - MISMATCH DETECTED';
+  }
+
 
   return NextResponse.json({
     message: "This endpoint checks the status of environment variables on the server. 'Set' means the variable is present. 'Not Set' means it is missing. If a NEXT_PUBLIC_ variable is 'Not Set' here, it will also be missing on the client.",
     status: {
         ...envVars,
         FIREBASE_ADMIN_SDK_STATUS: adminSDKStatus,
+        SERVER_SIDE_PROJECT_ID: serverProjectId,
+        CLIENT_SIDE_PROJECT_ID: clientProjectId,
+        PROJECT_IDS_MATCH: projectIdsMatch,
     }
   });
 }

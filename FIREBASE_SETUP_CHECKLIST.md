@@ -52,24 +52,30 @@ Now, find your keys in the Firebase and Stripe dashboards and paste them into th
     *   Look for the "Firebase SDK snippet" and select the **Config** option.
     *   Copy each value (`apiKey`, `authDomain`, `projectId`, etc.) and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file.
 
-2.  **App Check Keys (`NEXT_PUBLIC_RECAPTCHA_*`)**
-    *   Go to the [Google Cloud Console](https://console.cloud.google.com/), find **reCAPTCHA Enterprise** and create a site key. Paste it as the `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY`.
-    *   When you first run the app, check the browser's developer console for an "App Check debug token" message. If it appears, copy that token and paste it as the `NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN`.
-
-3.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
+2.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
     *   Go to **Project settings > Service accounts** in the Firebase Console.
     *   Click "Generate new private key". A JSON file will download.
     *   Open the downloaded file, copy the **entire JSON content**, and paste it inside the single quotes for `GOOGLE_APPLICATION_CREDENTIALS_JSON`. **It must all be on one line.**
 
-4.  **Stripe Keys**
-    *   Go to your [Stripe Developer Dashboard](https://dashboard.stripe.com/test/apikeys).
-    *   Copy your "Secret key" and paste it as `STRIPE_SECRET_KEY`.
-    *   Go to the "Webhooks" tab, find your webhook endpoint, and copy the "Signing secret". Paste it as `STRIPE_WEBHOOK_SECRET`.
-    *   Go to the "Products" tab, click on your "Pro Plan" product, and copy the "API ID" for the price. Paste it as `STRIPE_PRO_PRICE_ID`.
+---
+
+### Step 3: CRITICAL - Verify Firestore Database Exists
+
+The most common error (`5 NOT_FOUND`) happens because the Firestore database hasn't been created yet.
+
+1.  Go to the [Firebase Console](https://console.firebase.google.com/) and select your project.
+2.  In the left-hand navigation under "Build", click on **Firestore Database**.
+3.  If you see a "Create database" button, **you must create one**.
+    *   Click **"Create database"**.
+    *   Choose **"Start in test mode"** (you can secure it later).
+    *   Choose a location (e.g., `us-central` or one near you).
+    *   Click **Enable**.
+
+If a database already exists, you can skip this step.
 
 ---
 
-### Step 3: **CRITICAL** - Restart Your Server
+### Step 4: CRITICAL - Restart Your Server
 
 After **ANY** change to your `.env.local` file, you **MUST** restart your development server. The server only reads this file when it first starts.
 
@@ -79,13 +85,13 @@ After **ANY** change to your `.env.local` file, you **MUST** restart your develo
 
 ---
 
-### Step 4: Verify Your Setup (Troubleshooting)
+### Step 5: Verify Your Setup (Troubleshooting)
 
-If you are still having issues, you can use the built-in diagnostic tool.
+After restarting your server, you can use the built-in diagnostic tool to confirm everything is set up correctly.
 
-1.  After restarting your server, go to the following URL in your browser:
-    `[YOUR_APP_URL]/api/debug/env`
-2.  This will show a JSON response indicating the status ("Set" or "Not Set") of each required environment variable.
-3.  If a variable shows as "Not Set", please double-check its name in `.env.local` and ensure you have restarted the server.
+1.  Go to the following URL in your browser:
+    `[YOUR_APP_URL]/api/debug/env` (e.g., http://localhost:8081/api/debug/env)
+2.  This will show a JSON response indicating the status of each required environment variable.
+3.  **Check the `PROJECT_IDS_MATCH` field.** If it says `"NO - MISMATCH DETECTED"`, it means the Project ID in your `GOOGLE_APPLICATION_CREDENTIALS_JSON` does not match your `NEXT_PUBLIC_FIREBASE_PROJECT_ID`. Ensure you generated the service account key from the correct Firebase project.
 
 > **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
