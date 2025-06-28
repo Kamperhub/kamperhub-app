@@ -1,3 +1,4 @@
+
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 
@@ -14,18 +15,32 @@ interface FirebaseAdminError {
   error: Error;
 }
 
-// This self-invoking function initializes the admin SDK ONCE when the module is first imported.
-// This is a more robust pattern than initializing on every request.
-const adminInstances: FirebaseAdminInstances | FirebaseAdminError = (() => {
-  if (admin.apps.length > 0) {
-    console.log("[Firebase Admin] Re-using existing initialized app.");
-    return {
-      firestore: getFirestore(),
-      auth: admin.auth(),
-      error: null
-    };
+// This will hold the initialized instances so we don't re-initialize on every call.
+let adminInstances: FirebaseAdminInstances | FirebaseAdminError | undefined;
+
+/**
+ * Initializes the Firebase Admin SDK on the first call, then reuses the connection.
+ * This "lazy initialization" is safer as it doesn't run at the module's top level,
+ * preventing server crashes if there's an issue with the environment variables.
+ */
+function initializeAdmin(): FirebaseAdminInstances | FirebaseAdminError {
+  // If we've already initialized (successfully or with an error), return the stored result.
+  if (adminInstances) {
+    return adminInstances;
   }
 
+  // If there are already apps, it means another part of the system initialized. We can just use it.
+  if (admin.apps.length > 0) {
+    console.log("[Firebase Admin] Re-using existing initialized app.");
+    adminInstances = {
+      firestore: getFirestore(),
+      auth: admin.auth(),
+      error: null,
+    };
+    return adminInstances;
+  }
+
+  // First time initialization
   try {
     const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
 
@@ -51,32 +66,35 @@ const adminInstances: FirebaseAdminInstances | FirebaseAdminError = (() => {
     console.log("[Firebase Admin] Initializing with Project ID from service account:", serviceAccount.project_id);
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      // This is the critical line to ensure the SDK targets the correct project database.
       projectId: serviceAccount.project_id,
     });
 
-    console.log("[Firebase Admin] SDK initialized successfully.");
-    return {
+    console.log("[Firebase Admin] SDK initialized successfully on demand.");
+    adminInstances = {
       firestore: getFirestore(),
       auth: admin.auth(),
       error: null,
     };
   } catch (e: any) {
     const errorSnippet = (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON || "undefined").substring(0, 75).replace(/\s/g, '');
-    const errorMessage = `Failed to initialize Firebase Admin SDK. Please check your GOOGLE_APPLICATION_CREDENTIALS_JSON. It may be malformed or for the wrong project. Server sees: "${errorSnippet}...". Original error: ${e.message}`;
+    const errorMessage = `Failed to initialize Firebase Admin SDK. Please check your GOOGLE_APPLICATION_CREDENTIALS_JSON. It may be malformed. Server sees: "${errorSnippet}...". Original error: ${e.message}`;
     console.error(`[Firebase Admin] ${errorMessage}`);
-    return {
+    adminInstances = {
       firestore: undefined,
       auth: undefined,
       error: new Error(errorMessage),
     };
   }
-})();
+  
+  return adminInstances;
+}
 
 /**
  * Gets the initialized Firebase Admin instances (firestore, auth) or an error object.
- * This function now simply returns the result of the one-time initialization.
+ * This function ensures initialization happens only once.
  */
 export function getFirebaseAdmin(): FirebaseAdminInstances | FirebaseAdminError {
-  return adminInstances;
+  // If adminInstances hasn't been created yet, this call will create it.
+  // Subsequent calls will return the already-created instances.
+  return initializeAdmin();
 }
