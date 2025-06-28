@@ -35,6 +35,7 @@ export async function GET() {
   let serverProjectId = 'Not found in credentials';
   let clientProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set';
   let projectIdsMatch = 'Cannot determine';
+  let projectMatchDetails = 'Checking...';
 
   if (serviceAccountJsonString) {
     try {
@@ -50,17 +51,24 @@ export async function GET() {
       if (parsedJson.project_id && parsedJson.private_key && parsedJson.client_email) {
         adminSDKStatus = 'Set and appears to be valid JSON with key fields present.';
       } else {
-        adminSDKStatus = 'Error: The JSON is valid, but it is missing required fields like project_id, private_key, or client_email. Please ensure you have copied the entire service account file content.';
+        adminSDKStatus = 'CRITICAL ERROR: The JSON is valid, but it is missing required fields like project_id, private_key, or client_email. Please ensure you have copied the entire service account file content.';
       }
     } catch (e: any) {
       adminSDKStatus = `CRITICAL ERROR: The GOOGLE_APPLICATION_CREDENTIALS_JSON is set, but it is NOT valid JSON. This is the most common cause of server errors. Please ensure it is copied correctly and on a single line. Parser error: ${e.message}`;
     }
   } else {
-    adminSDKStatus = 'Error: The GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is missing.';
+    adminSDKStatus = 'CRITICAL ERROR: The GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is missing.';
   }
 
   if (serverProjectId !== 'Not found in credentials' && clientProjectId !== 'Not Set') {
-      projectIdsMatch = serverProjectId === clientProjectId ? 'Yes' : 'NO - MISMATCH DETECTED';
+      projectIdsMatch = serverProjectId === clientProjectId ? 'Yes - OK' : 'NO - MISMATCH DETECTED';
+      if (projectIdsMatch.startsWith('NO')) {
+        projectMatchDetails = `The server key is for project '${serverProjectId}' but the client is configured for project '${clientProjectId}'. These MUST match. Please get all keys from the same project.`;
+      } else {
+        projectMatchDetails = `Both server and client are correctly configured for project '${clientProjectId}'.`;
+      }
+  } else {
+     projectMatchDetails = "Could not verify project match because at least one Project ID is missing from your .env.local file.";
   }
 
 
@@ -72,6 +80,7 @@ export async function GET() {
         SERVER_SIDE_PROJECT_ID: serverProjectId,
         CLIENT_SIDE_PROJECT_ID: clientProjectId,
         PROJECT_IDS_MATCH: projectIdsMatch,
+        PROJECT_MATCH_DETAILS: projectMatchDetails,
     }
   });
 }

@@ -41,37 +41,32 @@ All your secret keys will live in a special file that is NOT committed to versio
 
 ---
 
-### Step 2: Populate Your Environment File
+### Step 2: Find the CORRECT Firebase Project
 
-Now, find your keys in the Firebase and Stripe dashboards and paste them into the `.env.local` file, replacing the placeholders.
+This is the most critical step. If you have multiple Firebase projects, you must get the keys from the **one that contains your Firestore database** (e.g., `kamperhubv2`).
 
-1.  **Firebase Client Keys (`NEXT_PUBLIC_FIREBASE_*`)**
-    *   Go to the [Firebase Console](https://console.firebase.google.com/).
-    *   Navigate to **Project settings** (click the gear icon ⚙️).
-    *   In the **General** tab, under "Your apps", find your web app.
-    *   Look for the "Firebase SDK snippet" and select the **Config** option.
-    *   Copy each value (`apiKey`, `authDomain`, `projectId`, etc.) and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file.
-
-2.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
-    *   Go to **Project settings > Service accounts** in the Firebase Console.
-    *   Click "Generate new private key". A JSON file will download.
-    *   Open the downloaded file, copy the **entire JSON content**, and paste it inside the single quotes for `GOOGLE_APPLICATION_CREDENTIALS_JSON`. **It must all be on one line.**
+1.  Go to the [Firebase Console](https://console.firebase.google.com/).
+2.  In the project list, find the project that holds your `kamperhubv2` database.
+3.  Click the gear icon ⚙️ next to **Project Overview** and select **Project settings**.
+4.  The **Project ID** is listed on this General settings page (e.g., `kamperhubv2-prod-abcdef`). **This is the Project ID you must use for all subsequent steps.**
 
 ---
 
-### Step 3: CRITICAL - Create the Firestore Database
+### Step 3: Populate Your Environment File
 
-The most common server error is `5 NOT_FOUND`. This error means your environment variables are **correct**, but the Firestore database has not been created in your project yet. You must do this manually.
+Now, using the **correct project** from Step 2, find your keys and paste them into the `.env.local` file.
 
-1.  Go to the [Firebase Console](https://console.firebase.google.com/) and select your project.
-2.  In the left-hand navigation under "Build", click on **Firestore Database**.
-3.  If you see a large "Create database" button, **you must create one**.
-    *   Click **"Create database"**.
-    *   Choose **"Start in test mode"** (you can secure it later with `firestore.rules`).
-    *   Choose a location (e.g., `us-central` or one near you).
-    *   Click **Enable**.
+1.  **Firebase Client Keys (`NEXT_PUBLIC_FIREBASE_*`)**
+    *   In Project settings, under "Your apps", find your web app.
+    *   Look for the "Firebase SDK snippet" and select the **Config** option.
+    *   Copy each value (`apiKey`, `authDomain`, `projectId`, etc.) and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file.
+    *   **Verify that `NEXT_PUBLIC_FIREBASE_PROJECT_ID` matches the Project ID from Step 2.**
 
-If a database already exists, you can skip this step. This is a one-time setup for your project.
+2.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
+    *   In Project settings, go to the **Service accounts** tab.
+    *   Click "Generate new private key". A JSON file will download.
+    *   Open the downloaded file, copy the **entire JSON content**, and paste it inside the single quotes for `GOOGLE_APPLICATION_CREDENTIALS_JSON`. **It must all be on one line.**
+    *   **The `project_id` field inside this JSON file must also match the Project ID from Step 2.**
 
 ---
 
@@ -92,6 +87,23 @@ After restarting your server, you can use the built-in diagnostic tool to confir
 1.  Go to the following URL in your browser:
     `[YOUR_APP_URL]/api/debug/env` (e.g., http://localhost:8081/api/debug/env)
 2.  This will show a JSON response indicating the status of each required environment variable.
-3.  **Check the `PROJECT_IDS_MATCH` field.** If it says `"NO - MISMATCH DETECTED"`, it means the Project ID in your `GOOGLE_APPLICATION_CREDENTIALS_JSON` does not match your `NEXT_PUBLIC_FIREBASE_PROJECT_ID`. Ensure you generated the service account key from the correct Firebase project.
+3.  **Check the `PROJECT_IDS_MATCH` and `PROJECT_MATCH_DETAILS` fields.** If it says `"NO - MISMATCH DETECTED"`, it means the Project ID in your `GOOGLE_APPLICATION_CREDENTIALS_JSON` does not match your `NEXT_PUBLIC_FIREBASE_PROJECT_ID`. Go back to Step 2 and ensure you generated all keys from the same Firebase project.
+4.  **If `PROJECT_IDS_MATCH` is "Yes - OK" but you still have errors**, it means the configuration is correct, but your project is missing a required service. Proceed to Step 6.
+
+---
+
+### Step 6: CRITICAL - Ensure Firestore Database Exists
+
+The most common server error is `5 NOT_FOUND`. This error means your environment variables are **correct**, but the Firestore database has not been created in your project yet. You must do this manually.
+
+1.  Go to the [Firebase Console](https://console.firebase.google.com/) and select your project.
+2.  In the left-hand navigation under "Build", click on **Firestore Database**.
+3.  If you see a large "Create database" button, **you must create one**.
+    *   Click **"Create database"**.
+    *   Choose **"Start in test mode"** (you can secure it later with `firestore.rules`).
+    *   Choose a location (e.g., `us-central` or one near you).
+    *   Click **Enable**.
+
+If a database already exists (you see "Data", "Rules", "Indexes" tabs), you can skip this step. This is a one-time setup for your project.
 
 > **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
