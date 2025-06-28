@@ -67,7 +67,6 @@ export default function LoginPage() {
       });
 
       router.push('/'); 
-      router.refresh(); 
     } catch (error: any) {
       const authError = error as AuthError;
       let toastMessage = 'An unexpected error occurred during login. Please try again.'; 

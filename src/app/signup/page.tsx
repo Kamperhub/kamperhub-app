@@ -112,8 +112,6 @@ export default function SignupPage() {
       });
       
       router.push('/'); 
-      router.refresh();
-
     } catch (authError: any) {
       const error = authError as AuthError;
       let toastMessage = 'An unexpected error occurred during sign up. Please try again.'; 
