@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
 import { z, ZodError } from 'zod';
+import admin from 'firebase-admin';
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
