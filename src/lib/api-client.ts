@@ -14,80 +14,77 @@ import type { FuelLogEntry, MaintenanceTask } from '@/types/service';
 
 // ---- Generic Fetcher ----
 async function apiFetch(url: string, options: RequestInit = {}) {
-  const user = auth.currentUser;
-  if (!user) {
-    throw new Error('User not authenticated. Cannot make API call.');
-  }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000); // 8-second timeout
 
-  const headers = new Headers(options.headers || {});
-
-  // Get Auth token and add to headers
-  const authToken = await user.getIdToken(true);
-  headers.set('Authorization', `Bearer ${authToken}`);
-
-  // Only get and add App Check token if App Check is initialized
-  if (appCheck) {
-    try {
-      // Create a promise that rejects in 5 seconds
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('App Check token retrieval timed out after 5 seconds.')), 5000)
-      );
-      // Race the getToken promise against the timeout
-      const appCheckTokenResponse = await Promise.race([
-        getToken(appCheck, /* forceRefresh= */ false),
-        timeoutPromise
-      ]);
-      headers.set('X-Firebase-AppCheck', appCheckTokenResponse.token);
-    } catch (err: any) {
-      // This is now a non-fatal error. The app will proceed without the token.
-      // This prevents the entire app from hanging if App Check is misconfigured or network is slow.
-      console.warn("App Check getToken() failed or timed out. This is often expected in local development. Proceeding without App Check token.", err);
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('User not authenticated. Cannot make API call.');
     }
-  }
-  
-  if (options.body) {
-    headers.set('Content-Type', 'application/json');
-  }
 
-  const response = await fetch(url, { ...options, headers });
+    const headers = new Headers(options.headers || {});
 
-  if (!response.ok) {
-    // Improved error handling to provide more specific feedback.
-    let errorInfo = `Request to ${url} failed with status ${response.status}.`;
-    
-    try {
-      const errorText = await response.text();
-      // Try to parse as JSON first
+    const authToken = await user.getIdToken(true);
+    headers.set('Authorization', `Bearer ${authToken}`);
+
+    if (appCheck) {
       try {
-        const errorData = JSON.parse(errorText);
-        const errorMessage = errorData.error || errorData.message || 'No specific error message provided in the JSON response.';
-        const errorDetails = errorData.details ? ` Details: ${JSON.stringify(errorData.details, null, 2)}` : '';
-        errorInfo = `${errorMessage}${errorDetails}`;
-      } catch (jsonError) {
-        // If parsing as JSON fails, it's likely HTML or plain text.
-        if (errorText.toLowerCase().includes('<html')) {
-           errorInfo = `Server returned an HTML error page, which usually indicates a critical backend crash. Status: ${response.status}. Please check the server-side logs for the full error stack trace.`;
-        } else if (errorText) {
-           errorInfo = `Server returned a non-JSON response. Status: ${response.status}. Response body: ${errorText.substring(0, 500)}`;
-        } else {
-           errorInfo = `Request failed with status ${response.status} and an empty response body. This often indicates a server-side problem.`;
-        }
+        const appCheckTokenResponse = await getToken(appCheck, false);
+        headers.set('X-Firebase-AppCheck', appCheckTokenResponse.token);
+      } catch (err: any) {
+        console.warn("App Check getToken() failed. Proceeding without App Check token.", err);
       }
-    } catch (e) {
-      // This catch block is for if response.text() itself fails, which is rare.
-      errorInfo = `Request failed with status ${response.status}. Could not read a response body.`;
+    }
+    
+    if (options.body) {
+      headers.set('Content-Type', 'application/json');
     }
 
-    console.error("API Fetch Error Details:", errorInfo);
-    throw new Error(errorInfo);
-  }
+    const response = await fetch(url, { ...options, headers, signal: controller.signal });
 
-  const contentType = response.headers.get("content-type");
-  if (contentType && contentType.indexOf("application/json") !== -1) {
-    const text = await response.text();
-    return text ? JSON.parse(text) : null;
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      let errorInfo = `Request to ${url} failed with status ${response.status}.`;
+      
+      try {
+        const errorText = await response.text();
+        try {
+          const errorData = JSON.parse(errorText);
+          const errorMessage = errorData.error || errorData.message || 'No specific error message provided.';
+          const errorDetails = errorData.details ? ` Details: ${JSON.stringify(errorData.details, null, 2)}` : '';
+          errorInfo = `${errorMessage}${errorDetails}`;
+        } catch (jsonError) {
+          if (errorText.toLowerCase().includes('<html')) {
+             errorInfo = `Server returned an HTML error page, which indicates a critical backend crash. Status: ${response.status}. Check server logs.`;
+          } else {
+             errorInfo = `Server returned a non-JSON response. Status: ${response.status}. Body: ${errorText.substring(0, 500)}`;
+          }
+        }
+      } catch (e) {
+        errorInfo = `Request failed with status ${response.status}. Could not read response body.`;
+      }
+
+      console.error("API Fetch Error Details:", errorInfo);
+      throw new Error(errorInfo);
+    }
+
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.indexOf("application/json") !== -1) {
+      const text = await response.text();
+      return text ? JSON.parse(text) : null;
+    }
+    return;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error(`API Fetch Error: Request to ${url} timed out after 8 seconds.`);
+      throw new Error(`The request to the server timed out. This could be due to a server-side problem. Please try again.`);
+    }
+    // Re-throw other errors
+    throw error;
   }
-  return; 
 }
 
 // ---- Vehicle API Functions ----
@@ -146,3 +143,5 @@ export const deleteMaintenanceTask = (id: string): Promise<{ message: string }> 
 
 // ---- Admin API Functions ----
 export const fetchAllUsers = (): Promise<{uid: string, email: string | undefined}[]> => apiFetch('/api/admin/list-users');
+
+    

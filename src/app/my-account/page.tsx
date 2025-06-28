@@ -7,11 +7,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { auth, db } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { updateProfile, updateEmail } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
 import { format, parseISO, isFuture } from 'date-fns';
-import { fetchUserPreferences } from '@/lib/api-client';
+import { fetchUserPreferences, updateUserPreferences } from '@/lib/api-client';
 
 import type { UserProfile } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,12 +37,13 @@ export default function MyAccountPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const { data: userProfile, error: profileError, isLoading: isLoadingPrefs, refetch } = useQuery<Partial<UserProfile>>({
+  const { data: userProfile, error: profileError, isLoading: isLoadingPrefs, refetch, isError } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
     queryFn: fetchUserPreferences,
     enabled: !!user && !isAuthLoading,
-    staleTime: 0, // Always fetch fresh data on mount
-    retry: 1, // Only retry automatically once
+    staleTime: 0, 
+    gcTime: 0,
+    retry: 1, 
   });
 
   useEffect(() => {
@@ -89,20 +89,16 @@ export default function MyAccountPage() {
       if (data.email.toLowerCase() !== (user.email?.toLowerCase() || '')) {
         authPromises.push(updateEmail(user, data.email));
       }
-      if (authPromises.length > 0) {
-        await Promise.all(authPromises);
-      }
       
-      const userDocRef = doc(db, "users", user.uid);
-      const firestoreProfileData: Partial<UserProfile> = {
+      await Promise.all(authPromises);
+      
+      await updateUserPreferences({
         displayName: data.displayName,
         email: data.email,
         city: data.city,
         state: data.state,
         country: data.country,
-        updatedAt: new Date().toISOString(),
-      };
-      await setDoc(userDocRef, firestoreProfileData, { merge: true });
+      });
 
       if (auth.currentUser) await auth.currentUser.reload();
       
@@ -111,7 +107,7 @@ export default function MyAccountPage() {
         description: "Your account details have been successfully saved.",
       });
       setIsEditProfileOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['userPreferences', user.uid] }); // Invalidate query to refetch
+      await queryClient.invalidateQueries({ queryKey: ['userPreferences', user.uid] });
 
     } catch (error: any) {
       let errorMessage = "An unexpected error occurred while saving your profile.";
@@ -208,7 +204,28 @@ export default function MyAccountPage() {
     );
   }
 
-  if (!user) {
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
+        <Alert variant="destructive" className="max-w-md text-center">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle className="font-headline">Error Loading Account Details</AlertTitle>
+            <AlertDescription className="font-body mt-2">
+                <p>There was a problem fetching your profile from the server. This can happen if the server configuration is incomplete.</p>
+                <pre className="mt-2 text-xs bg-destructive-foreground/10 p-2 rounded-md font-mono text-left whitespace-pre-wrap">
+                  {profileError.message}
+                </pre>
+            </AlertDescription>
+            <Button onClick={() => refetch()} className="mt-4 font-body">
+                <RotateCw className="mr-2 h-4 w-4" />
+                Retry
+            </Button>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (!user || !userProfile) {
     // This case is handled by the useEffect redirect, but as a fallback:
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
@@ -226,27 +243,6 @@ export default function MyAccountPage() {
     );
   }
   
-  if (profileError) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
-        <Alert variant="destructive" className="max-w-md text-center">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle className="font-headline">Error Loading Account Details</AlertTitle>
-            <AlertDescription className="font-body mt-2">
-                <p>There was a problem fetching your profile from the server.</p>
-                <pre className="mt-2 text-xs bg-destructive-foreground/10 p-2 rounded-md font-mono text-left whitespace-pre-wrap">
-                  {profileError.message}
-                </pre>
-            </AlertDescription>
-            <Button onClick={() => refetch()} className="mt-4 font-body">
-                <RotateCw className="mr-2 h-4 w-4" />
-                Retry
-            </Button>
-        </Alert>
-      </div>
-    );
-  }
-
   const initialProfileDataForEdit: EditProfileFormData = {
     displayName: userProfile?.displayName || user?.displayName || '',
     email: userProfile?.email || user?.email || '',
@@ -414,3 +410,5 @@ export default function MyAccountPage() {
     </div>
   );
 }
+
+    

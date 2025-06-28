@@ -86,10 +86,8 @@ const userPreferencesUpdateSchema = z
       .nullable()
       .optional(),
     caravanDefaultChecklists: z.any().optional(),
-    // Allow profile fields to be updated here too
     displayName: z.string().optional(),
-    firstName: z.string().optional(),
-    lastName: z.string().optional(),
+    email: z.string().email().optional(),
     city: z.string().optional(),
     state: z.string().optional(),
     country: z.string().optional(),
@@ -153,9 +151,9 @@ export async function GET(req: NextRequest) {
       headers: { 'Cache-Control': 'no-store' }
     });
   } catch (err: any) {
-    console.error('Error fetching/creating user preferences for UID:', uid, 'Error:', err);
+    console.error('Error in user-preferences GET handler for UID:', uid, 'Error:', err);
     return NextResponse.json(
-      { error: 'Failed to process user preferences.', details: err.message },
+      { error: 'Failed to process user preferences on the server.', details: err.message },
       { status: 500 }
     );
   }
@@ -174,10 +172,13 @@ export async function PUT(req: NextRequest) {
     const parsedData = userPreferencesUpdateSchema.parse(body);
 
     const userDocRef = firestore.collection('users').doc(uid);
-    const updateData: Partial<UserProfile> = {
+    const updateData: { [key: string]: any } = { // Use a more generic type for Firestore update
       ...parsedData,
       updatedAt: new Date().toISOString(),
     };
+    
+    // Remove undefined fields to avoid issues with Firestore
+    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
     await userDocRef.set(updateData, { merge: true });
 
@@ -202,3 +203,5 @@ export async function PUT(req: NextRequest) {
     );
   }
 }
+
+    
