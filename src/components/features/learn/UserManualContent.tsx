@@ -224,7 +224,7 @@ export function UserManualContent() {
                 <li>
                   <strong>Subscription Model:</strong>
                   <ul className="list-circle pl-5 space-y-1 mt-1">
-                    <li><strong>Automatic 7-Day Pro Trial:</strong> Upon signing up, you automatically receive a 7-day free trial of all Pro features (like unlimited vehicles). No payment details are required to start this trial. Your trial end date is shown on the "My Account" page.</li>
+                    <li><strong>Pro Trial:</strong> Upon signing up, you automatically receive a trial of all Pro features (like unlimited vehicles). No payment details are required to start this trial. Your subscription status is shown on the "My Account" page.</li>
                     <li><strong>Subscribing to Pro:</strong> To continue using Pro features after your trial, or to subscribe at any time, click the "Upgrade to KamperHub Pro" button. This will securely redirect you to Stripe to enter your payment details and start a paid subscription.</li>
                     <li><strong>Free Tier:</strong> If you do not subscribe to Pro after your trial, your account will revert to the free tier, and access to Pro-specific features will be restricted.</li>
                   </ul>

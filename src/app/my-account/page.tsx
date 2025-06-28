@@ -324,7 +324,7 @@ export default function MyAccountPage() {
                 <Info className="h-4 w-4 text-blue-600" />
                 <AlertTitle className="font-headline text-blue-700">Pro Trial Active!</AlertTitle>
                 <AlertDescription className="font-body text-blue-600">
-                  You are currently on a 7-day Pro trial. Subscribe now to keep Pro features after your trial.
+                  You are currently on a trial. Subscribe now to keep Pro features after your trial.
                 </AlertDescription>
               </Alert>
             )}

@@ -1,4 +1,3 @@
-
 // src/types/auth.ts
 
 import type { CaravanDefaultChecklistSet } from './checklist';
@@ -15,7 +14,7 @@ export interface UserProfile {
   country: string | null;
   subscriptionTier: SubscriptionTier;
   stripeCustomerId: string | null;
-  stripeSubscriptionId?: string | null; 
+  stripeSubscriptionId?: string | null;
   createdAt: string; // ISO Date string or Firestore Timestamp
   updatedAt?: string; // ISO Date string or Firestore Timestamp
   isAdmin?: boolean;
@@ -41,7 +40,6 @@ export interface MockAuthSession {
   city?: string | null;
   state?: string | null;
   country?: string | null;
-  trialEndsAt?: string | null;
 }
 
 // This interface was for the old mock user registry.
@@ -57,4 +55,4 @@ export interface MockUserRegistryEntry {
   country?: string;
 }
 
-export type SubscriptionTier = 'free' | 'pro' | 'trialing' | 'trial_expired';
+export type SubscriptionTier = 'free' | 'pro' | 'trialing';

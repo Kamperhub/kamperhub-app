@@ -6,7 +6,7 @@ import { z, ZodError } from 'zod';
 
 const updateSubscriptionSchema = z.object({
   targetUserEmail: z.string().email("Target User Email is required and must be a valid email."),
-  newTier: z.enum(["free", "pro", "trialing", "trial_expired"]),
+  newTier: z.enum(["free", "pro", "trialing"]),
 });
 
 const ADMIN_EMAIL = 'info@kamperhub.com';

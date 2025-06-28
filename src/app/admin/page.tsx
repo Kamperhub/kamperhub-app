@@ -24,7 +24,7 @@ const ADMIN_EMAIL = 'info@kamperhub.com';
 
 const updateSubscriptionFormSchema = z.object({
   targetUserEmail: z.string().email("Please enter a valid email address for the target user."),
-  newTier: z.enum(["free", "pro", "trialing", "trial_expired"], {
+  newTier: z.enum(["free", "pro", "trialing"], {
     required_error: "New subscription tier is required.",
   }),
 });
@@ -175,7 +175,7 @@ export default function AdminPage() {
             </div>
             <div>
               <Label htmlFor="newTier" className="font-body">New Subscription Tier</Label>
-              <Controller name="newTier" control={updateForm.control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}><SelectTrigger className="font-body"><SelectValue placeholder="Select new tier" /></SelectTrigger><SelectContent>{(["free", "pro", "trialing", "trial_expired"] as SubscriptionTier[]).map(tier => (<SelectItem key={tier} value={tier} className="font-body">{tier.charAt(0).toUpperCase() + tier.slice(1).replace('_', ' ')}</SelectItem>))}</SelectContent></Select>)} />
+              <Controller name="newTier" control={updateForm.control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}><SelectTrigger className="font-body"><SelectValue placeholder="Select new tier" /></SelectTrigger><SelectContent>{(["free", "pro", "trialing"] as SubscriptionTier[]).map(tier => (<SelectItem key={tier} value={tier} className="font-body">{tier.charAt(0).toUpperCase() + tier.slice(1).replace('_', ' ')}</SelectItem>))}</SelectContent></Select>)} />
               {updateForm.formState.errors.newTier && <p className="text-sm text-destructive mt-1 font-body">{updateForm.formState.errors.newTier.message}</p>}
             </div>
             <Button type="submit" className="w-full font-body bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}{isSubmitting ? 'Updating...' : 'Update Subscription'}</Button>

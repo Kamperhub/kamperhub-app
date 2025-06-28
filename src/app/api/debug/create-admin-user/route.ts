@@ -54,7 +54,6 @@ export async function GET(req: NextRequest) {
       country: 'Australia',
       subscriptionTier: 'pro',
       stripeCustomerId: null,
-      trialEndsAt: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isAdmin: true,
