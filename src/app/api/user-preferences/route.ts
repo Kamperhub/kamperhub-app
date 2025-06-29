@@ -1,9 +1,9 @@
 
-export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
 import { z, ZodError } from 'zod';
+import type admin from 'firebase-admin';
 
 // Firestore-safe serialization
 const firestoreTimestampReplacer = (key: any, value: any) => {

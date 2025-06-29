@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
+    // Only apply Content-Security-Policy headers in production
+    if (process.env.NODE_ENV !== 'production') {
+      return [];
+    }
+  
     const cspHeader = [
       "default-src 'self'",
       // Scripts

@@ -147,8 +147,8 @@ const listUserTripsTool = ai.defineTool(
     outputSchema: z.array(z.string()).describe("A list of trip names.").nullable(),
   },
   async ({ userId }) => {
-    const { firestore } = getFirebaseAdmin();
-    if (!firestore) return null;
+    const { firestore, error } = getFirebaseAdmin();
+    if (error || !firestore) return null;
     try {
       const tripsRef = firestore.collection('users').doc(userId).collection('trips');
       const snapshot = await tripsRef.get();
@@ -182,8 +182,8 @@ const findUserTripTool = ai.defineTool(
     }).nullable(),
   },
   async ({ userId, tripName }) => {
-    const { firestore } = getFirebaseAdmin();
-    if (!firestore) return null;
+    const { firestore, error } = getFirebaseAdmin();
+    if (error || !firestore) return null;
     try {
       const tripsRef = firestore.collection('users').doc(userId).collection('trips');
       const snapshot = await tripsRef.get();
@@ -231,8 +231,8 @@ const addExpenseToTripTool = ai.defineTool(
     outputSchema: z.string().describe("A confirmation message indicating success or failure."),
   },
   async ({ userId, tripId, amount, categoryName, description, expenseDate }) => {
-    const { firestore } = getFirebaseAdmin();
-    if (!firestore) return 'Error: Database service is not available.';
+    const { firestore, error } = getFirebaseAdmin();
+    if (error || !firestore) return 'Error: Database service is not available.';
     
     const tripRef = firestore.collection('users').doc(userId).collection('trips').doc(tripId);
     

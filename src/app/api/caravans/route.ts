@@ -21,7 +21,7 @@ const sanitizeData = (data: any) => {
 
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
-  if (error) {
+  if (error || !auth || !firestore) {
     return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
   }
 
