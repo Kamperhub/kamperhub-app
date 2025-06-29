@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { NavItem } from '@/lib/navigation';
 import { navItems as defaultNavItems } from '@/lib/navigation';
@@ -18,11 +18,15 @@ import type { UserProfile } from '@/types/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from '@/hooks/useAuth';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 
 function NavItemCard({ item }: { item: NavItem }) {
   return (
-    <Link href={item.href} className="block h-full no-underline group">
-      <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
+    <Link href={item.href} className="block h-full no-underline group" draggable="false">
+      <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-grab active:cursor-grabbing">
         <CardHeader className="pb-3">
             <CardTitle className="font-headline text-xl text-primary flex items-center">
                 <item.icon className="w-6 h-6 mr-3 text-primary" />
@@ -42,6 +46,30 @@ function NavItemCard({ item }: { item: NavItem }) {
         </CardContent>
       </Card>
     </Link>
+  );
+}
+
+function SortableNavItemCard({ item }: { item: NavItem }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.href });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition: transition || 'none',
+    zIndex: isDragging ? 10 : 'auto',
+    opacity: isDragging ? 0.8 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <NavItemCard item={item} />
+    </div>
   );
 }
 
@@ -91,16 +119,29 @@ export default function DashboardPage() {
 
   const { user, isAuthLoading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const { data: userPrefs, error: prefsError, isLoading: isLoadingPrefs } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
     queryFn: fetchUserPreferences,
     enabled: !!user && !isAuthLoading,
-    retry: (failureCount, error) => {
+    retry: (failureCount, error: Error) => {
       if (error.message.includes("500") || error.message.includes("crash")) {
         return false;
       }
       return failureCount < 2;
+    },
+  });
+
+  const updateUserPrefsMutation = useMutation({
+    mutationFn: (layout: string[]) => updateUserPreferences({ dashboardLayout: layout }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
+      toast({ title: "Layout Saved", description: "Your dashboard layout has been saved." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error Saving Layout", description: error.message, variant: "destructive" });
     },
   });
   
@@ -136,6 +177,33 @@ export default function DashboardPage() {
     }
   }, [userPrefs]);
   
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 10, // User must drag for 10px before drag starts, preventing accidental drags on click
+      },
+    })
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setOrderedNavItems((items) => {
+        const oldIndex = items.findIndex(item => item.href === active.id);
+        const newIndex = items.findIndex(item => item.href === over.id);
+        const newOrder = arrayMove(items, oldIndex, newIndex);
+        
+        // Persist the new order
+        const newLayoutHrefs = newOrder.map(item => item.href);
+        updateUserPrefsMutation.mutate(newLayoutHrefs);
+
+        return newOrder;
+      });
+    }
+  }, [updateUserPrefsMutation]);
+
+  const navItemHrefs = useMemo(() => orderedNavItems.map(item => item.href), [orderedNavItems]);
+
   if (firebaseInitializationError) {
       return <FirebaseErrorState error={firebaseInitializationError} />;
   }
@@ -184,11 +252,19 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {orderedNavItems.map((item) => (
-          <NavItemCard key={item.href} item={item} />
-        ))}
-      </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={navItemHrefs} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {orderedNavItems.map((item) => (
+              <SortableNavItemCard key={item.href} item={item} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }
