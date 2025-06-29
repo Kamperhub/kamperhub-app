@@ -1,12 +1,15 @@
 import admin from 'firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
 
 // This function safely initializes the Firebase Admin SDK.
 // It ensures that initialization only happens once.
 export function getFirebaseAdmin() {
-  if (admin.apps.length > 0 && admin.apps[0]) {
+  const app = admin.apps.length > 0 && admin.apps[0] ? admin.apps[0] : undefined;
+
+  if (app) {
     return {
-      auth: admin.auth(),
-      firestore: admin.firestore(),
+      auth: admin.auth(app),
+      firestore: getFirestore(app, 'kamperhubv2'),
       error: null
     };
   }
@@ -30,15 +33,15 @@ export function getFirebaseAdmin() {
       serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
     }
 
-    admin.initializeApp({
+    const newApp = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
 
     console.log(`[Firebase Admin] SDK initialized successfully for project: ${serviceAccount.project_id}`);
 
     return {
-      auth: admin.auth(),
-      firestore: admin.firestore(),
+      auth: admin.auth(newApp),
+      firestore: getFirestore(newApp, 'kamperhubv2'),
       error: null
     };
 
