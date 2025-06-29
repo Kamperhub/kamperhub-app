@@ -205,7 +205,7 @@ export default function MyAccountPage() {
 
   if (isError) {
     // This is the improved error display
-    const isProjectMismatchError = profileError.message.includes("5 NOT_FOUND");
+    const isProjectMismatchError = profileError.message.includes("5 NOT_FOUND") || profileError.message.includes("Database Not Found");
     const isProfileMissingError = profileError.message.includes("User profile not found");
 
     return (
@@ -218,8 +218,9 @@ export default function MyAccountPage() {
             <AlertDescription className="font-body mt-2 space-y-3">
                 {isProjectMismatchError ? (
                   <>
-                    <p className="font-bold">Your app is connecting to the wrong Firebase project.</p>
-                    <p>This is the final configuration issue to solve. Please open the <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file in your project and carefully follow ALL steps. The checklist has been updated to help you find the correct keys from your <code className="bg-destructive-foreground/20 px-1 rounded-sm">kamperhubv2</code> project and verify them.</p>
+                    <p className="font-bold">Your app is connecting to the wrong Firebase project, or the project has no database.</p>
+                    <p>The server connected to Firebase successfully but could not find the database. This is a configuration issue in your <code className="bg-destructive-foreground/20 px-1 rounded-sm">.env.local</code> file.</p>
+                    <p>Please open the <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file in your project and carefully follow ALL steps. The checklist has been updated to help you find the correct keys from your <code className="bg-destructive-foreground/20 px-1 rounded-sm">kamperhubv2</code> project and verify them.</p>
                   </>
                 ) : isProfileMissingError ? (
                   <>
