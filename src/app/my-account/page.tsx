@@ -206,14 +206,26 @@ export default function MyAccountPage() {
   if (isError) {
     const isDbNotFoundError = profileError.message.includes("Database Not Found");
     const isMismatchError = profileError.message.includes("MISMATCH DETECTED");
-
+    const isProfileNotFoundError = profileError.message.includes("User profile not found");
+    
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
         <Alert variant="destructive" className="max-w-2xl text-left">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle className="font-headline">Error Loading Account Details</AlertTitle>
             <AlertDescription className="font-body mt-2 space-y-3">
-                {isMismatchError ? (
+                {isProfileNotFoundError ? (
+                     <div>
+                        <p className="font-bold">This is a data integrity issue, not a code problem.</p>
+                        <p>Your user exists in Firebase Authentication, but the corresponding profile document is missing from the Firestore database. This prevents your account details from loading.</p>
+                        <p className="mt-2"><strong>Solution:</strong> Visit the special debug URL below. This one-time action will create your admin profile document in the database, which should resolve this error.</p>
+                         <div className="mt-2">
+                             <a href="/api/debug/create-admin-user" target="_blank" className="font-mono bg-destructive-foreground/20 px-2 py-1 rounded-sm text-destructive-foreground hover:underline">
+                                /api/debug/create-admin-user
+                             </a>
+                         </div>
+                    </div>
+                ) : isMismatchError ? (
                     <div>
                         <p className="font-bold">This is a project configuration issue, not a code problem.</p>
                         <p>The error message indicates that your server is configured for a different Firebase project than your client-side app. This is the most common setup issue.</p>

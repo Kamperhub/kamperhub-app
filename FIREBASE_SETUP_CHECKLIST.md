@@ -1,4 +1,3 @@
-
 # Firebase & Backend Setup Checklist
 
 > [!CAUTION]
@@ -107,4 +106,17 @@ The most common server error after a correct setup is `5 NOT_FOUND`. This error 
 
 If a database already exists (you see "Data", "Rules", "Indexes" tabs), you can skip this step. This is a one-time setup for your project.
 
+---
+
+### Step 7: Resolve Login Issues (If Necessary)
+
+If after all the above steps you can log in but see an error on the "My Account" page about a missing profile, use this special one-time tool.
+
+1.  Make sure you are logged into the application.
+2.  Open the following URL in a new tab:
+    `[YOUR_APP_URL]/api/debug/create-admin-user` (e.g., http://localhost:8081/api/debug/create-admin-user)
+3.  This will create your admin user profile document in the database the server is connected to. It will either show a success message or a final, specific error.
+4.  After running it successfully, go back to the "My Account" page and refresh.
+
 > **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
+
