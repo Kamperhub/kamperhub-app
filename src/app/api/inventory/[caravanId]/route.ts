@@ -1,4 +1,3 @@
-
 // src/app/api/inventory/[caravanId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -94,6 +93,7 @@ export async function PUT(req: NextRequest, { params }: { params: { caravanId: s
 
   try {
     const body = await req.json();
+    // The body is expected to be the array of items directly
     const parsedData = updateInventorySchema.parse({ items: body });
 
     const inventoryDocRef = firestore.collection('users').doc(uid).collection('inventories').doc(caravanId);
