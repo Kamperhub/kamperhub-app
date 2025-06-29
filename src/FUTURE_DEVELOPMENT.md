@@ -46,6 +46,34 @@ This document tracks the development priorities, future features, and completed 
 
 This section tracks potential new features and enhancements for future consideration.
 
+### High-Impact Performance Overhaul
+Based on industry best practices for Firebase and Next.js, this multi-phase plan will significantly improve the application's loading speed and responsiveness.
+
+**Phase 1: Server-Side Data Fetching (Core Strategy)**
+*   **The Problem:** Data-heavy pages currently show loading skeletons while the client fetches data, causing a noticeable delay.
+*   **The Solution:** Implement server-side data fetching using Next.js Server Components.
+    1.  **Pre-fetch Data on the Server:** When a page like `/vehicles` or `/inventory` is requested, the server will gather all necessary data from Firestore in a single, efficient operation.
+    2.  **Eliminate Initial Loading States:** The page will be sent to the browser with data already included, making content appear almost instantly and improving the perceived performance.
+    3.  **Retain Dynamic Updates:** The application will continue using TanStack Query for dynamic client-side updates after the initial fast load.
+
+**Phase 2: Advanced Caching & CDN Optimization**
+*   **The Problem:** While Firebase Hosting's CDN is automatic, we can optimize it further.
+*   **The Solution:** Implement custom `Cache-Control` headers in `next.config.js`.
+    1.  **Immutable Caching:** Set long-duration cache headers for static assets that have hashed names (e.g., JS/CSS chunks), telling browsers and the CDN to cache them for up to a year.
+    2.  **Stale-While-Revalidate:** For server-rendered pages, use `stale-while-revalidate` headers to serve cached content instantly while fetching fresh data in the background.
+
+**Phase 3: Frontend Asset Optimization**
+*   **The Problem:** Large images and initial JavaScript bundles can slow down rendering.
+*   **The Solution:** Ensure rigorous adherence to frontend best practices.
+    1.  **Image Optimization:** Ensure every `next/image` component has explicit `width`, `height`, and `priority` props where appropriate to prevent layout shift and optimize loading.
+    2.  **Component-Level Code Splitting:** Continue using `next/dynamic` to lazy-load large components (like the Trip Planner map) that are not critical for the initial page view.
+
+**Phase 4: Backend & Genkit Flow Optimization**
+*   **The Problem:** Serverless functions (like Genkit flows) can experience "cold starts," causing delays in AI-powered features.
+*   **The Solution:** Optimize backend function performance.
+    1.  **Dependency Pruning:** Review Genkit flows to ensure they only import the exact modules needed for their specific task, reducing cold start times.
+    2.  **Minimum Instances (Future Scaling):** As traffic grows, for latency-sensitive functions like the chatbot, configure a minimum number of instances in `apphosting.yaml` to keep them "warm" and ready for instant responses.
+
 ### Core Functionality Enhancements
 
 *   **Multi-Stop Trip Planning:**
