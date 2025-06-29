@@ -67,6 +67,7 @@ export async function GET(req: NextRequest, { params }: { params: { caravanId: s
     const inventoryDocSnap = await inventoryDocRef.get();
 
     if (!inventoryDocSnap.exists()) {
+      // If no inventory exists for this caravan, return an empty array, which is a valid state.
       return NextResponse.json({ items: [] }, { status: 200 });
     }
     
@@ -93,11 +94,13 @@ export async function PUT(req: NextRequest, { params }: { params: { caravanId: s
 
   try {
     const body = await req.json();
-    // The body is expected to be the array of items directly
+    // The body is expected to be the array of items directly.
+    // We wrap it in an object to match the updateInventorySchema.
     const parsedData = updateInventorySchema.parse({ items: body });
 
     const inventoryDocRef = firestore.collection('users').doc(uid).collection('inventories').doc(caravanId);
     
+    // Set the entire document with the new items array.
     await inventoryDocRef.set({ items: parsedData.items });
     
     const sanitizedItems = sanitizeData(parsedData.items);
