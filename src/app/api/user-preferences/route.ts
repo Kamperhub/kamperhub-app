@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
           error: 'User profile not found.',
           details: `A profile for the authenticated user (UID: ${uid}) does not exist in the Firestore 'users' collection. This indicates a data integrity problem that may require creating the user profile document.`
         },
-        { status: 500 } // CHANGED: Was 404, which causes Next.js to serve an HTML page instead of the JSON error. 500 is more appropriate for a server data integrity issue.
+        { status: 500 }
       );
     }
 
@@ -101,9 +101,14 @@ export async function GET(req: NextRequest) {
 
     // Check for the specific "NOT_FOUND" error from Firestore
     if (err.code === 5 || (err.message && err.message.includes('NOT_FOUND'))) {
-        errorMessage = 'Database Not Found or Inaccessible';
-        const details = `The server connected to Firebase but could not find the Firestore database. This usually means the database has not been created in the Firebase console for this project. Please go to the Firebase Console, select your project, and ensure you have created a Firestore Database. Refer to Step 6 in FIREBASE_SETUP_CHECKLIST.md.`;
-        // Use a 500 status code for a server-side dependency failure, not 404.
+        errorMessage = 'Database Not Found or Project ID Mismatch';
+        const details = `The server successfully connected to Firebase, but it could not find a Firestore database. Since you've confirmed a database already exists, this most likely means the server is connecting to the WRONG Firebase project.
+
+This is a configuration issue in your .env.local file.
+
+To fix this, go to [YOUR_APP_URL]/api/debug/env and check the 'PROJECT_IDS_MATCH' field. It will likely say "NO - MISMATCH DETECTED" and tell you which project IDs are conflicting.
+
+Ensure the 'project_id' inside your GOOGLE_APPLICATION_CREDENTIALS_JSON matches your NEXT_PUBLIC_FIREBASE_PROJECT_ID. All keys in .env.local must be from the same project.`;
         return NextResponse.json({ error: errorMessage, details: details }, { status: 500 });
     }
 
