@@ -100,8 +100,12 @@ export async function GET(req: NextRequest) {
     // Check for the specific "NOT_FOUND" error from Firestore (code 5)
     if (err.code === 5) {
         const clientProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set';
-        const errorMessage = `Database Not Found or Inaccessible`;
-        const details = `The server connected to Firebase successfully for project '${clientProjectId}', but could not find the Firestore database. This usually means the database has not been created in the Firebase console for this project. Please go to the Firebase Console, select your project, and ensure you have created a Firestore Database. Refer to Step 6 in FIREBASE_SETUP_CHECKLIST.md.`;
+        const errorMessage = `Database Not Found in Project '${clientProjectId}'`;
+        const details = `The server connected to Firebase project '${clientProjectId}' successfully, but it could not find a Firestore database.
+
+This usually means one of two things:
+1. A Firestore database has not been created in the '${clientProjectId}' project. Please go to the Firebase Console and create one. (See Step 6 in FIREBASE_SETUP_CHECKLIST.md)
+2. You intended to connect to a different project (like 'kamperhubv2') that already has your database. If so, you must update ALL Firebase keys in your .env.local file to use the keys from that project. The diagnostic tool at /api/debug/env can help confirm this.`;
         
         return NextResponse.json({ error: errorMessage, details: details }, { status: 500 });
     }
