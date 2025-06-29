@@ -23,6 +23,12 @@ export function getFirebaseAdmin() {
     
     const serviceAccount = JSON.parse(jsonString);
 
+    // FIX: The private key in .env files often has its newlines escaped.
+    // This line replaces the literal `\\n` with actual newline characters.
+    if (serviceAccount.private_key) {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    }
+
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
