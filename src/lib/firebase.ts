@@ -42,8 +42,10 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     // Initialize Firebase if config is valid
     app = getApps().length ? getApp() : initializeApp(firebaseConfig as FirebaseOptions);
     auth = getAuth(app);
-    db = getFirestore(app);
+    db = getFirestore(app, 'kamperhubv2'); 
+
     console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}`);
+    console.log(`[Firebase Client] Firestore connected to database: kamperhubv2`); // Added for clarity
 
     // Initialize other services only on the client-side
     if (typeof window !== 'undefined') {
