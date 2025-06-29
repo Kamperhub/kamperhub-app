@@ -81,9 +81,9 @@ export async function GET(req: NextRequest) {
        return NextResponse.json(
         { 
           error: 'User profile not found.',
-          details: `A profile for the authenticated user (UID: ${uid}) does not exist in the Firestore 'users' collection.`
+          details: `A profile for the authenticated user (UID: ${uid}) does not exist in the Firestore 'users' collection. This indicates a data integrity problem that may require creating the user profile document.`
         },
-        { status: 404 }
+        { status: 500 } // CHANGED: Was 404, which causes Next.js to serve an HTML page instead of the JSON error. 500 is more appropriate for a server data integrity issue.
       );
     }
 
