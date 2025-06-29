@@ -3,7 +3,7 @@ import admin from 'firebase-admin';
 // This function safely initializes the Firebase Admin SDK.
 // It ensures that initialization only happens once.
 export function getFirebaseAdmin() {
-  if (admin.apps.length > 0) {
+  if (admin.apps.length > 0 && admin.apps[0]) {
     return { auth: admin.auth(), firestore: admin.firestore(), error: null };
   }
 
@@ -31,8 +31,3 @@ export function getFirebaseAdmin() {
     return { auth: null, firestore: null, error };
   }
 }
-
-// We are now using getFirebaseAdmin() in API routes, so these direct exports are deprecated for new usage.
-// They are kept here temporarily to avoid breaking other routes until they are refactored.
-const { auth, firestore } = getFirebaseAdmin();
-export { firestore, auth };

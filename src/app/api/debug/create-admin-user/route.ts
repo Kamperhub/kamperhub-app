@@ -1,12 +1,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, firestore } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
 
 const ADMIN_UID = 'YKsb0Vzq13cMBAv2Ql8iyDFpbj42'; // This is your correct Authentication UID.
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export async function GET(req: NextRequest) {
+  const { auth, firestore, error: adminError } = getFirebaseAdmin();
+  if (adminError || !auth || !firestore) {
+    return NextResponse.json({ error: 'Server configuration error.', details: adminError?.message }, { status: 503 });
+  }
+  
   try {
     const userDocRef = firestore.collection('users').doc(ADMIN_UID);
     const docSnap = await userDocRef.get();

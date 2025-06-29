@@ -1,7 +1,7 @@
 
 export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, firestore } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
 import { z, ZodError } from 'zod';
 
@@ -23,7 +23,7 @@ const sanitizeData = (data: any) => {
   }
 };
 
-async function getUserIdFromRequest(req: NextRequest): Promise<string | null> {
+async function getUserIdFromRequest(req: NextRequest, auth: admin.auth.Auth): Promise<string | null> {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
         return null;
@@ -63,10 +63,15 @@ const userPreferencesUpdateSchema = z
 
 // GET user preferences
 export async function GET(req: NextRequest) {
-    const uid = await getUserIdFromRequest(req);
-    if (!uid) {
-        return NextResponse.json({ error: 'Unauthorized: Invalid or missing token.' }, { status: 401 });
-    }
+  const { auth, firestore, error: adminError } = getFirebaseAdmin();
+  if (adminError || !auth || !firestore) {
+    return NextResponse.json({ error: 'Server configuration error.', details: adminError?.message }, { status: 503 });
+  }
+
+  const uid = await getUserIdFromRequest(req, auth);
+  if (!uid) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid or missing token.' }, { status: 401 });
+  }
 
   try {
     const userDocRef = firestore.collection('users').doc(uid);
@@ -110,10 +115,15 @@ export async function GET(req: NextRequest) {
 
 // PUT (update) user preferences
 export async function PUT(req: NextRequest) {
-  const uid = await getUserIdFromRequest(req);
-    if (!uid) {
-        return NextResponse.json({ error: 'Unauthorized: Invalid or missing token.' }, { status: 401 });
-    }
+  const { auth, firestore, error: adminError } = getFirebaseAdmin();
+  if (adminError || !auth || !firestore) {
+    return NextResponse.json({ error: 'Server configuration error.', details: adminError?.message }, { status: 503 });
+  }
+
+  const uid = await getUserIdFromRequest(req, auth);
+  if (!uid) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid or missing token.' }, { status: 401 });
+  }
 
   try {
     const body = await req.json();
