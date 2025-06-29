@@ -14,6 +14,7 @@ export function getFirebaseAdmin() {
       throw new Error("FATAL: GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is not set. The server cannot connect to Firebase services.");
     }
 
+    // FIX: Replace escaped newlines before parsing to prevent JSON errors.
     const serviceAccount = JSON.parse(serviceAccountJsonString.replace(/\\n/g, '\n'));
 
     admin.initializeApp({
