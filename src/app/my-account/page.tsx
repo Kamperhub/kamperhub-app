@@ -204,49 +204,38 @@ export default function MyAccountPage() {
   }
 
   if (isError) {
-    const isDbNotFoundError = profileError.message.includes("Database Not Found");
-    const isMismatchError = profileError.message.includes("MISMATCH DETECTED");
-    const isProfileNotFoundError = profileError.message.includes("User profile not found");
-    
+    // This is the improved error display
+    const isProjectMismatchError = profileError.message.includes("5 NOT_FOUND");
+    const isProfileMissingError = profileError.message.includes("User profile not found");
+
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] px-4">
         <Alert variant="destructive" className="max-w-2xl text-left">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle className="font-headline">Error Loading Account Details</AlertTitle>
+            <AlertTitle className="font-headline">
+              {isProjectMismatchError ? "Critical Configuration Error" : "Error Loading Account Details"}
+            </AlertTitle>
             <AlertDescription className="font-body mt-2 space-y-3">
-                {isProfileNotFoundError ? (
-                     <div>
-                        <p className="font-bold">This is a data integrity issue, not a code problem.</p>
-                        <p>Your user exists in Firebase Authentication, but the corresponding profile document is missing from the Firestore database. This prevents your account details from loading.</p>
-                        <p className="mt-2"><strong>Solution:</strong> Visit the special debug URL below. This one-time action will create your admin profile document in the database, which should resolve this error.</p>
-                         <div className="mt-2">
-                             <a href="/api/debug/create-admin-user" target="_blank" className="font-mono bg-destructive-foreground/20 px-2 py-1 rounded-sm text-destructive-foreground hover:underline">
-                                /api/debug/create-admin-user
-                             </a>
-                         </div>
-                    </div>
-                ) : isMismatchError ? (
-                    <div>
-                        <p className="font-bold">This is a project configuration issue, not a code problem.</p>
-                        <p>The error message indicates that your server is configured for a different Firebase project than your client-side app. This is the most common setup issue.</p>
-                        <p className="mt-2"><strong>Solution:</strong> Please open the <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file in the root of your project and carefully follow the instructions to ensure **ALL** your keys in <code className="bg-destructive-foreground/20 px-1 rounded-sm">.env.local</code> are from your desired <code className="bg-destructive-foreground/20 px-1 rounded-sm">kamperhubv2</code> project.</p>
-                    </div>
-                ) : isDbNotFoundError ? (
-                    <div>
-                        <p className="font-bold">This is a project configuration issue, not a code problem.</p>
-                        <p>The error message indicates that your server is connecting to a Firebase project that does not have a Firestore database enabled. Since you have an existing database, this almost certainly means your server is configured for the wrong project.</p>
-                        <p className="mt-2"><strong>Solution:</strong> Please open the <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file in the root of your project and carefully follow the instructions to ensure **ALL** your keys in <code className="bg-destructive-foreground/20 px-1 rounded-sm">.env.local</code> are from your desired <code className="bg-destructive-foreground/20 px-1 rounded-sm">kamperhubv2</code> project.</p>
-                    </div>
+                {isProjectMismatchError ? (
+                  <>
+                    <p className="font-bold">Your app is connecting to the wrong Firebase project.</p>
+                    <p>This is the final configuration issue to solve. Please open the <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file in your project and carefully follow ALL steps. The checklist has been updated to help you find the correct keys from your <code className="bg-destructive-foreground/20 px-1 rounded-sm">kamperhubv2</code> project and verify them.</p>
+                  </>
+                ) : isProfileMissingError ? (
+                  <>
+                    <p className="font-bold">Your user profile doesn't exist in the database yet.</p>
+                    <p>This can happen after setting up your environment for the first time. Please use the one-time tool to create your admin profile. Refer to **Step 7** in the updated <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file for instructions.</p>
+                  </>
                 ) : (
-                    <p>There was a problem fetching your profile from the server.</p>
+                  <p>There was a problem fetching your profile from the server.</p>
                 )}
-                 <pre className="mt-2 text-xs bg-destructive-foreground/10 p-2 rounded-md font-mono whitespace-pre-wrap">
-                      {profileError.message}
-                 </pre>
+                <pre className="mt-2 text-xs bg-destructive-foreground/10 p-2 rounded-md font-mono whitespace-pre-wrap">
+                      Error: {profileError.message}
+                </pre>
             </AlertDescription>
             <Button onClick={() => refetch()} className="mt-4 font-body">
                 <RotateCw className="mr-2 h-4 w-4" />
-                Retry
+                Retry After Fixing
             </Button>
         </Alert>
       </div>

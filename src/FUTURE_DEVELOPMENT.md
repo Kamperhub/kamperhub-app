@@ -6,8 +6,15 @@ This document tracks the development priorities, future features, and completed 
 
 ## **Current Priorities**
 
-### 1. New Feature Development
-*   **Objective:** Implement new, high-value features on the stable server-based infrastructure.
+### 1. Stability & Bug Fixing
+*   **Objective:** Resolve persistent data loading and authentication issues to ensure a stable and reliable user experience on the new server-based infrastructure.
+*   **Key Areas:**
+    *   Investigate and fix errors preventing vehicle, caravan, and WDH data from loading on the `/vehicles` page.
+    *   Address any remaining `Unauthorized: Invalid ID token` or `client is offline` errors.
+    *   Ensure all user preferences and settings load correctly for all user types (including admin).
+
+### 2. New Feature Development
+*   **Objective:** Begin implementing new, high-value features now that the core data migration is complete.
 *   **Next Up:**
     *   **Fuel Log & Maintenance Tracker:** Build the user interface for logging fuel and tracking vehicle/caravan maintenance tasks. The backend APIs for this are already in place.
     *   **AI-Powered Packing Assistant:** Create a Genkit flow to help users generate packing lists based on trip details.

@@ -102,31 +102,10 @@ export async function GET(req: NextRequest) {
     let errorDetails = err.message;
 
     // Check for the specific "NOT_FOUND" error from Firestore (code 5)
+    // This is the most likely error if the database doesn't exist in the project
     if (err.code === 5) {
-        const clientProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set';
-        
-        let serverProjectId = 'Not found in credentials';
-        const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-        if (serviceAccountJsonString) {
-            try {
-                let jsonString = serviceAccountJsonString.trim();
-                if ((jsonString.startsWith("'") && jsonString.endsWith("'")) || (jsonString.startsWith('"') && jsonString.endsWith('"'))) {
-                    jsonString = jsonString.substring(1, jsonString.length - 1);
-                }
-                const parsedJson = JSON.parse(jsonString);
-                serverProjectId = parsedJson.project_id || 'Not found in credentials';
-            } catch (e: any) {
-                // Ignore parsing errors here, they are handled elsewhere
-            }
-        }
-
-        if (serverProjectId !== 'Not found in credentials' && clientProjectId !== 'Not Set' && serverProjectId !== clientProjectId) {
-            errorInfo = 'Firebase Project Mismatch';
-            errorDetails = `CRITICAL MISMATCH DETECTED: Your server is configured for project '${serverProjectId}' but your client-side app is configured for project '${clientProjectId}'. These MUST match. All keys in your .env.local file must come from the same Firebase project. Please see FIREBASE_SETUP_CHECKLIST.md.`;
-        } else {
-            errorInfo = `Database Not Found or Inaccessible`;
-            errorDetails = `The server connected to Firebase but could not find the Firestore database. This usually means the database has not been created in the Firebase console for this project. Please go to the Firebase Console, select your project, and ensure you have created a Firestore Database. Refer to Step 6 in FIREBASE_SETUP_CHECKLIST.md.`;
-        }
+        errorInfo = `Database Not Found or Inaccessible`;
+        errorDetails = `The server connected to Firebase but could not find the Firestore database. This usually means the database has not been created in the Firebase console for this project. Please go to the Firebase Console, select your project, and ensure you have created a Firestore Database. Refer to Step 6 in FIREBASE_SETUP_CHECKLIST.md.`;
     }
     
     return NextResponse.json(

@@ -119,4 +119,3 @@ If after all the above steps you can log in but see an error on the "My Account"
 4.  After running it successfully, go back to the "My Account" page and refresh.
 
 > **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
-
