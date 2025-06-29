@@ -103,7 +103,8 @@ export async function GET(req: NextRequest) {
     if (err.code === 5 || (err.message && err.message.includes('NOT_FOUND'))) {
         errorMessage = 'Database Not Found or Inaccessible';
         const details = `The server connected to Firebase but could not find the Firestore database. This usually means the database has not been created in the Firebase console for this project. Please go to the Firebase Console, select your project, and ensure you have created a Firestore Database. Refer to Step 6 in FIREBASE_SETUP_CHECKLIST.md.`;
-        return NextResponse.json({ error: errorMessage, details: details }, { status: 404 });
+        // Use a 500 status code for a server-side dependency failure, not 404.
+        return NextResponse.json({ error: errorMessage, details: details }, { status: 500 });
     }
 
     return NextResponse.json(
