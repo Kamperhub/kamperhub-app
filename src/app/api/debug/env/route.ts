@@ -61,11 +61,12 @@ export async function GET() {
   }
 
   if (serverProjectId !== 'Not found in credentials' && clientProjectId !== 'Not Set') {
-      projectIdsMatch = serverProjectId === clientProjectId ? 'Yes - OK' : 'NO - MISMATCH DETECTED';
-      if (projectIdsMatch.startsWith('NO')) {
-        projectMatchDetails = `The server key is for project '${serverProjectId}' but the client is configured for project '${clientProjectId}'. These MUST match. Please get all keys from the same project.`;
+      if (serverProjectId === clientProjectId) {
+        projectIdsMatch = 'Yes - OK';
+        projectMatchDetails = `Both server and client are correctly configured for project '${clientProjectId}'. If you are still seeing 'Database Not Found' errors, it means you have not yet created a Firestore database in this project. Please go to the Firebase Console for project '${clientProjectId}' and create one (see Step 6 of FIREBASE_SETUP_CHECKLIST.md).`;
       } else {
-        projectMatchDetails = `Both server and client are correctly configured for project '${clientProjectId}'.`;
+        projectIdsMatch = 'NO - MISMATCH DETECTED';
+        projectMatchDetails = `CRITICAL MISMATCH: Your server is configured for project '${serverProjectId}' but your client is configured for project '${clientProjectId}'. These MUST match. All keys in your .env.local file must come from the same Firebase project.`;
       }
   } else {
      projectMatchDetails = "Could not verify project match because at least one Project ID is missing from your .env.local file.";
