@@ -1,3 +1,4 @@
+
 import admin from 'firebase-admin';
 
 // This function safely initializes the Firebase Admin SDK.
@@ -14,9 +15,13 @@ export function getFirebaseAdmin() {
       throw new Error("FATAL: GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is not set. The server cannot connect to Firebase services.");
     }
 
-    // The JSON string from the environment variable should be parsed directly.
-    // The .replace() call was incorrect and caused parsing errors.
-    const serviceAccount = JSON.parse(serviceAccountJsonString);
+    // Safely trim and remove quotes from the env variable string before parsing.
+    let jsonString = serviceAccountJsonString.trim();
+    if ((jsonString.startsWith("'") && jsonString.endsWith("'")) || (jsonString.startsWith('"') && jsonString.endsWith('"'))) {
+        jsonString = jsonString.substring(1, jsonString.length - 1);
+    }
+    
+    const serviceAccount = JSON.parse(jsonString);
 
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
