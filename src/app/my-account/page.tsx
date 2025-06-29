@@ -204,16 +204,28 @@ export default function MyAccountPage() {
   }
 
   if (isError) {
+    const isDbNotFoundError = profileError.message.includes("Database Not Found");
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
-        <Alert variant="destructive" className="max-w-md text-center">
+        <Alert variant="destructive" className="max-w-2xl text-left">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle className="font-headline">Error Loading Account Details</AlertTitle>
-            <AlertDescription className="font-body mt-2">
-                <p>There was a problem fetching your profile from the server. This can happen if the server configuration is incomplete.</p>
-                <pre className="mt-2 text-xs bg-destructive-foreground/10 p-2 rounded-md font-mono text-left whitespace-pre-wrap">
-                  {profileError.message}
-                </pre>
+            <AlertDescription className="font-body mt-2 space-y-3">
+                <p>There was a problem fetching your profile from the server.</p>
+                {isDbNotFoundError ? (
+                    <div>
+                        <p className="font-bold">This is a project configuration issue, not a code problem.</p>
+                        <p>The error message indicates that your server is connecting to a Firebase project that does not have a Firestore database enabled. Since you have an existing database, this almost certainly means your server is configured for the wrong project.</p>
+                        <p className="mt-2"><strong>Solution:</strong> Please open the <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file in the root of your project and carefully follow the instructions to ensure **ALL** your keys in <code className="bg-destructive-foreground/20 px-1 rounded-sm">.env.local</code> are from your desired <code className="bg-destructive-foreground/20 px-1 rounded-sm">kamperhubv2</code> project.</p>
+                        <pre className="mt-2 text-xs bg-destructive-foreground/10 p-2 rounded-md font-mono whitespace-pre-wrap">
+                          {profileError.message}
+                        </pre>
+                    </div>
+                ) : (
+                    <pre className="mt-2 text-xs bg-destructive-foreground/10 p-2 rounded-md font-mono whitespace-pre-wrap">
+                      {profileError.message}
+                    </pre>
+                )}
             </AlertDescription>
             <Button onClick={() => refetch()} className="mt-4 font-body">
                 <RotateCw className="mr-2 h-4 w-4" />
