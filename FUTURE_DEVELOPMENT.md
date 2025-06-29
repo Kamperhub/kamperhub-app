@@ -48,6 +48,18 @@ This section tracks potential new features and enhancements for future considera
 
 ### Core Functionality Enhancements
 
+*   **Performance Optimization: Server-Side Data Fetching:**
+    *   **The Problem:** Currently, data-heavy pages (like "Vehicles", "Inventory") show loading skeletons while the client-side fetches data, leading to perceived slowness.
+    *   **The Solution:** Implement server-side data fetching using Next.js Server Components.
+        1.  **Pre-fetch Data on the Server:** When a page is requested, the server will gather all necessary data (vehicles, caravans, WDHs, etc.) in a single, efficient operation.
+        2.  **Eliminate Initial Loading Skeletons:** The page will be sent to the browser with the data already included, making content appear instantly.
+        3.  **Retain Dynamic Updates:** The application will still use TanStack Query for dynamic updates and mutations after the initial fast load.
+    *   **Example Implementation (for `/vehicles` page):**
+        *   Convert `src/app/vehicles/page.tsx` to a Server Component.
+        *   Fetch all vehicle, caravan, and WDH data directly on the server within this component.
+        *   Pass the pre-fetched data as props to the `VehicleManager`, `CaravanManager`, and `WDHManager` components.
+        *   Update those client components to use the pre-fetched data for their initial display, removing their individual loading states.
+
 *   **Multi-Stop Trip Planning:**
     *   Allow users to add multiple intermediate waypoints to their trips in the Trip Planner.
     *   Display the full multi-stop route on the map.
@@ -91,4 +103,3 @@ This section tracks potential new features and enhancements for future considera
 
 *   **Travel Journaling & Photo Gallery per Trip:**
     *   Within the Trip Log, allow users to add daily journal entries and upload/link a few photos for each trip to capture memories.
-
