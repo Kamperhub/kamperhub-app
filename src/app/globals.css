@@ -5,100 +5,102 @@
 
 @layer base {
   :root {
-    --background: 48 50% 95%; /* Ivory White (from logo) */
-    --foreground: 0 0% 7.5%; /* Charcoal (from logo text) - Made 50% darker */
+    --background: 45 56% 96%; /* #FAF8F1 */
+    --foreground: 240 10% 3.9%;
 
-    --card: 48 50% 95%;
-    --card-foreground: 0 0% 7.5%; /* Made 50% darker */
-
-    --popover: 48 50% 95%;
-    --popover-foreground: 0 0% 7.5%; /* Made 50% darker */
-
-    --primary: 170 35% 48%; /* Teal (from logo caravan) */
-    --primary-foreground: 0 0% 98%; /* Off-white (for text on primary) */
-
-    --secondary: 170 30% 65%; /* Lighter/Muted Teal */
-    --secondary-foreground: 0 0% 7.5%; /* Dark text on secondary - Made 50% darker */
-
-    --muted: 48 30% 90%; /* Lighter Ivory/Beige */
-    --muted-foreground: 0 0% 17.5%; /* Mid-Gray for text on muted - Made 50% darker */
-
-    --accent: 27 90% 58%; /* Orange (from logo caravan/pin) */
-    --accent-foreground: 0 0% 98%; /* Off-white (for text on accent) */
-
+    --card: 45 56% 96%;
+    --card-foreground: 240 10% 3.9%;
+ 
+    --popover: 45 56% 96%;
+    --popover-foreground: 240 10% 3.9%;
+ 
+    --primary: 136 29% 30%; /* #386641 */
+    --primary-foreground: 60 9.1% 97.8%;
+ 
+    --secondary: 136 20% 60%;
+    --secondary-foreground: 240 10% 3.9%;
+ 
+    --muted: 45 30% 92%;
+    --muted-foreground: 240 5.9% 10%;
+ 
+    --accent: 359 45% 51%; /* #BC4749 */
+    --accent-foreground: 60 9.1% 97.8%;
+ 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 60 9.1% 97.8%;
 
-    --border: 48 30% 85%; /* Slightly darker than muted */
-    --input: 48 30% 92%; /* Slightly lighter than muted */
-    --ring: 170 35% 48%; /* Teal for focus rings */
+    --border: 45 20% 88%;
+    --input: 45 20% 90%;
+    --ring: 136 29% 30%;
+ 
+    --radius: 0.5rem;
 
-    /* Sidebar Colors to match new branding */
-    --sidebar-background: 48 50% 92%; /* Slightly darker Ivory */
-    --sidebar-foreground: 170 35% 45%; /* Primary Teal (slightly darker for sidebar text) */
-    --sidebar-primary: 27 90% 58%;    /* Accent Orange */
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 170 35% 55%;    /* Slightly darker Teal for sidebar accent */
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 48 30% 80%;     /* Slightly darker border for sidebar */
-    --sidebar-ring: 27 90% 58%;       /* Accent Orange for sidebar ring */
+    /* Custom sidebar colors to match new theme */
+    --sidebar-background: 45 50% 94%; /* Slightly darker beige */
+    --sidebar-foreground: 136 29% 25%; /* Darker forest green */
+    --sidebar-primary: 359 45% 51%;    /* Accent Orange */
+    --sidebar-primary-foreground: 60 9.1% 97.8%;
+    --sidebar-accent: 136 29% 40%;    /* Mid forest green */
+    --sidebar-accent-foreground: 60 9.1% 97.8%;
+    --sidebar-border: 45 30% 85%;
+    --sidebar-ring: 359 45% 51%;
   }
-
+ 
   .dark {
-    /* Dark Theme Adjustments - trying to keep the spirit of the new brand */
-    --background: 220 15% 10%; /* Dark Blue-Gray */
-    --foreground: 48 50% 90%; /* Light Ivory */
+    --background: 240 10% 3.9%;
+    --foreground: 60 9.1% 97.8%;
+ 
+    --card: 240 10% 3.9%;
+    --card-foreground: 60 9.1% 97.8%;
+ 
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 60 9.1% 97.8%;
+ 
+    --primary: 136 35% 70%; /* Lighter green for dark mode */
+    --primary-foreground: 136 29% 15%;
+ 
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 60 9.1% 97.8%;
+ 
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+ 
+    --accent: 359 55% 61%; /* Lighter orange for dark mode */
+    --accent-foreground: 60 9.1% 97.8%;
+ 
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 60 9.1% 97.8%;
+ 
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 136 35% 70%;
 
-    --card: 220 15% 12%;
-    --card-foreground: 48 50% 90%;
-
-    --popover: 220 15% 10%;
-    --popover-foreground: 48 50% 90%;
-
-    --primary: 170 40% 55%; /* Brighter Teal */
-    --primary-foreground: 0 0% 98%;
-
-    --secondary: 170 35% 40%; /* Darker Muted Teal */
-    --secondary-foreground: 48 50% 85%;
-
-    --muted: 220 15% 20%; /* Darker Muted Gray-Blue */
-    --muted-foreground: 48 30% 60%;
-
-    --accent: 27 85% 65%; /* Brighter Orange */
-    --accent-foreground: 0 0% 98%;
-
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 220 15% 25%;
-    --input: 220 15% 22%;
-    --ring: 170 40% 55%; /* Brighter Teal for focus rings */
-
-    --sidebar-background: 220 15% 12%;
-    --sidebar-foreground: 170 40% 60%;
-    --sidebar-primary: 27 85% 65%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 170 40% 50%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 220 15% 28%;
-    --sidebar-ring: 27 85% 65%;
+    /* Custom sidebar colors for dark theme */
+    --sidebar-background: 240 10% 5%;
+    --sidebar-foreground: 136 30% 75%;
+    --sidebar-primary: 359 55% 61%;
+    --sidebar-primary-foreground: 60 9.1% 97.8%;
+    --sidebar-accent: 136 30% 55%;
+    --sidebar-accent-foreground: 60 9.1% 97.8%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 359 55% 61%;
   }
 }
-
+ 
 @layer base {
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
-    @apply font-body; /* Apply default body font */
+    @apply font-body;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-headline; /* Apply headline font to headings */
+    @apply font-headline;
   }
 }
 
 /* Ensure Google Places Autocomplete suggestions appear above ShadCN Dialog */
 .pac-container {
-  z-index: 1051 !important; /* Needs to be higher than dialog (z-50 for content/overlay) */
+  z-index: 1051 !important;
 }

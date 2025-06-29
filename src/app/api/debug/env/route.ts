@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 
 // Note: We are deliberately NOT importing from firebase-admin here to make this endpoint
