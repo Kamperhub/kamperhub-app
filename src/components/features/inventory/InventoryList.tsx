@@ -1,12 +1,10 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { InventoryItem, CaravanWeightData } from '@/types/inventory';
-import type { StoredCaravan } from '@/types/caravan';
+import type { StoredCaravan, WDHFormData } from '@/types/caravan';
 import type { StoredVehicle } from '@/types/vehicle';
-import type { StoredWDH } from '@/types/wdh';
 import type { UserProfile } from '@/types/auth';
 import type { Occupant } from '@/types/tripplanner';
 import { Button } from '@/components/ui/button';
@@ -28,7 +26,7 @@ import type { User as FirebaseUser } from 'firebase/auth';
 interface InventoryListClientProps {
   activeCaravan: StoredCaravan | null;
   activeVehicle: StoredVehicle | null;
-  activeWdh: StoredWDH | null;
+  wdh: WDHFormData | null | undefined;
   userPreferences: Partial<UserProfile> | null;
   occupants?: Occupant[];
 }
@@ -64,7 +62,7 @@ const DonutChartCustomLabel = ({ viewBox, value, limit, unit, name }: { viewBox?
 };
 
 
-export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPreferences, occupants = [] }: InventoryListClientProps) {
+export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferences, occupants = [] }: InventoryListClientProps) {
   const queryClient = useQueryClient();
   const user = auth.currentUser;
   const { toast } = useToast();
@@ -178,8 +176,8 @@ export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPre
   const currentGCM = currentCaravanMass + (activeVehicle?.gvm || 0);
   const isGCMOverLimit = vehicleGCM > 0 && activeVehicle?.gvm && currentGCM > vehicleGCM;
 
-  const wdhMaxCapacity = activeWdh?.maxCapacityKg ?? 0;
-  const wdhMinCapacity = activeWdh?.minCapacityKg ?? null;
+  const wdhMaxCapacity = wdh?.maxCapacityKg ?? 0;
+  const wdhMinCapacity = wdh?.minCapacityKg ?? null;
   const isTowballOverWdhMax = wdhMaxCapacity > 0 && estimatedTowballDownload > wdhMaxCapacity;
   const isTowballUnderWdhMin = wdhMinCapacity !== null && wdhMinCapacity > 0 && estimatedTowballDownload < wdhMinCapacity;
 
@@ -325,7 +323,7 @@ export function InventoryList({ activeCaravan, activeVehicle, activeWdh, userPre
               </Card>
             )}
             {activeVehicle && (<Card><CardHeader><CardTitle>Vehicle Towing</CardTitle></CardHeader><CardContent><Alert variant={isOverMaxTowCapacity ? 'destructive' : 'default'}><AlertTitle>Towed Mass: {currentCaravanMass.toFixed(1)}kg / {vehicleMaxTowCapacity.toFixed(0)}kg</AlertTitle><AlertDescription>{isOverMaxTowCapacity ? 'OVER LIMIT!' : 'OK'}</AlertDescription></Alert></CardContent></Card>)}
-            {activeWdh && (
+            {wdh && (
               <Card>
                 <CardHeader><CardTitle>WDH Compatibility</CardTitle></CardHeader>
                 <CardContent>

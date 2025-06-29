@@ -1,4 +1,3 @@
-
 // src/types/auth.ts
 
 import type { CaravanDefaultChecklistSet } from './checklist';
@@ -24,7 +23,6 @@ export interface UserProfile {
   // User Preferences
   activeVehicleId?: string | null;
   activeCaravanId?: string | null;
-  activeWdhId?: string | null;
   dashboardLayout?: string[] | null;
   caravanWaterLevels?: Record<string, Record<string, number>> | null; // { [caravanId]: { [tankId]: level } }
   caravanDefaultChecklists?: Record<string, CaravanDefaultChecklistSet> | null; // { [caravanId]: ChecklistSet }

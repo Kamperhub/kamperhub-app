@@ -1,3 +1,12 @@
+export interface WDHFormData {
+  name: string;
+  type: string;
+  maxCapacityKg: number;
+  minCapacityKg?: number | null;
+  hasIntegratedSwayControl: boolean;
+  swayControlType?: string | null;
+  notes?: string | null;
+}
 
 export interface StorageLocation {
   id: string;
@@ -36,7 +45,6 @@ export interface CaravanFormData {
   gtm: number; 
   maxTowballDownload: number;
   numberOfAxles: number;
-  associatedWdhId?: string | null; 
   overallLength?: number | null;
   bodyLength?: number | null;
   overallHeight?: number | null;
@@ -45,6 +53,7 @@ export interface CaravanFormData {
   storageLocations?: StorageLocation[];
   waterTanks?: WaterTank[];
   diagrams?: CaravanDiagram[];
+  wdh?: WDHFormData | null;
 }
 
 export interface StoredCaravan extends CaravanFormData {

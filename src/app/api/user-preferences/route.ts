@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
@@ -43,7 +42,6 @@ const userPreferencesUpdateSchema = z
   .object({
     activeVehicleId: z.string().nullable().optional(),
     activeCaravanId: z.string().nullable().optional(),
-    activeWdhId: z.string().nullable().optional(),
     dashboardLayout: z.array(z.string()).nullable().optional(),
     caravanWaterLevels: z
       .record(z.record(z.number().min(0)))

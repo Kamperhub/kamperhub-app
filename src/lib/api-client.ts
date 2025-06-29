@@ -1,11 +1,9 @@
-
 'use client';
 
 import { auth, appCheck } from './firebase';
 import { getToken } from 'firebase/app-check';
 import type { StoredVehicle, VehicleFormData } from '@/types/vehicle';
 import type { StoredCaravan, CaravanFormData } from '@/types/caravan';
-import type { StoredWDH, WDHFormData } from '@/types/wdh';
 import type { InventoryItem } from '@/types/inventory';
 import type { LoggedTrip, TripPlannerFormValues } from '@/types/tripplanner';
 import type { BookingEntry } from '@/types/booking';
@@ -98,12 +96,6 @@ export const fetchCaravans = (): Promise<StoredCaravan[]> => apiFetch('/api/cara
 export const createCaravan = (data: CaravanFormData): Promise<StoredCaravan> => apiFetch('/api/caravans', { method: 'POST', body: JSON.stringify(data) });
 export const updateCaravan = (data: StoredCaravan): Promise<{ caravan: StoredCaravan }> => apiFetch('/api/caravans', { method: 'PUT', body: JSON.stringify(data) });
 export const deleteCaravan = (id: string): Promise<{ message: string }> => apiFetch('/api/caravans', { method: 'DELETE', body: JSON.stringify({ id }) });
-
-// ---- WDH API Functions ----
-export const fetchWdhs = (): Promise<StoredWDH[]> => apiFetch('/api/wdhs');
-export const createWdh = (data: WDHFormData): Promise<StoredWDH> => apiFetch('/api/wdhs', { method: 'POST', body: JSON.stringify(data) });
-export const updateWdh = (data: StoredWDH): Promise<{ wdh: StoredWDH }> => apiFetch('/api/wdhs', { method: 'PUT', body: JSON.stringify(data) });
-export const deleteWdh = (id: string): Promise<{ message: string }> => apiFetch('/api/wdhs', { method: 'DELETE', body: JSON.stringify({ id }) });
 
 // ---- Inventory API Functions ----
 export const fetchInventory = (caravanId: string): Promise<{ items: InventoryItem[] }> => apiFetch(`/api/inventory/${caravanId}`);

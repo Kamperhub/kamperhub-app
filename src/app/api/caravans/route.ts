@@ -1,4 +1,3 @@
-
 // src/app/api/caravans/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -68,6 +67,25 @@ const caravanDiagramSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
+const wdhSchema = z.object({
+  name: z.string().min(1, "WDH Name/Model is required"),
+  type: z.string().min(1, "WDH Type is required"),
+  maxCapacityKg: z.coerce.number().positive("Max Capacity must be a positive number"),
+  minCapacityKg: z.coerce.number().min(0).optional().nullable(),
+  hasIntegratedSwayControl: z.boolean().default(false),
+  swayControlType: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+}).refine(data => {
+  if (data.minCapacityKg != null && data.maxCapacityKg != null && data.minCapacityKg > data.maxCapacityKg) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Min capacity cannot be greater than max capacity.",
+  path: ["minCapacityKg"],
+});
+
+
 // Zod schema for creating a new caravan
 const createCaravanSchema = z.object({
   make: z.string().min(1, "Make is required"),
@@ -78,7 +96,7 @@ const createCaravanSchema = z.object({
   gtm: z.coerce.number().positive(),
   maxTowballDownload: z.coerce.number().positive(),
   numberOfAxles: z.coerce.number().int().min(1),
-  associatedWdhId: z.string().optional().nullable(),
+  wdh: wdhSchema.nullable().optional(),
   overallLength: z.coerce.number().optional().nullable(),
   bodyLength: z.coerce.number().optional().nullable(),
   overallHeight: z.coerce.number().optional().nullable(),
@@ -126,6 +144,7 @@ export async function POST(req: NextRequest) {
       storageLocations: parsedData.storageLocations || [],
       waterTanks: parsedData.waterTanks || [],
       diagrams: parsedData.diagrams || [],
+      wdh: parsedData.wdh || null,
     };
     
     await newCaravanRef.set(newCaravan);

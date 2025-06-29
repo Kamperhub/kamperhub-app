@@ -1,11 +1,9 @@
-
 "use client"; 
 
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { StoredCaravan } from '@/types/caravan'; 
 import type { StoredVehicle } from '@/types/vehicle';
-import type { StoredWDH } from '@/types/wdh';
 import type { UserProfile } from '@/types/auth';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -17,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { fetchUserPreferences, fetchCaravans, fetchVehicles, fetchWdhs, fetchTrips } from '@/lib/api-client';
+import { fetchUserPreferences, fetchCaravans, fetchVehicles, fetchTrips } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 
 const InventoryListClient = dynamic(
@@ -59,12 +57,6 @@ export default function InventoryPage() {
     queryFn: fetchVehicles,
     enabled: !!user,
   });
-
-  const { data: allWdhs = [], isLoading: isLoadingWdhs, error: wdhsError } = useQuery<StoredWDH[]>({
-    queryKey: ['wdhs', user?.uid],
-    queryFn: fetchWdhs,
-    enabled: !!user,
-  });
   
   const { data: allTrips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery<LoggedTrip[]>({
     queryKey: ['trips', user?.uid],
@@ -76,16 +68,15 @@ export default function InventoryPage() {
 
   const activeCaravanId = userPrefs?.activeCaravanId;
   const activeVehicleId = userPrefs?.activeVehicleId;
-  const activeWdhId = userPrefs?.activeWdhId;
 
   const activeCaravan = activeCaravanId ? allCaravans.find(c => c.id === activeCaravanId) : null;
   const activeVehicle = activeVehicleId ? allVehicles.find(v => v.id === activeVehicleId) : null;
-  const activeWdh = activeWdhId ? allWdhs.find(w => w.id === activeWdhId) : null;
+  const activeWdh = activeCaravan?.wdh;
   
   const selectedTrip = useMemo(() => allTrips.find(trip => trip.id === selectedTripId), [allTrips, selectedTripId]);
   
-  const isLoading = isAuthLoading || isLoadingPrefs || isLoadingCaravans || isLoadingVehicles || isLoadingWdhs || isLoadingTrips;
-  const queryError = prefsError || caravansError || vehiclesError || wdhsError || tripsError;
+  const isLoading = isAuthLoading || isLoadingPrefs || isLoadingCaravans || isLoadingVehicles || isLoadingTrips;
+  const queryError = prefsError || caravansError || vehiclesError || tripsError;
 
   const getDescriptiveText = () => {
     let text = "Track your caravan's load, manage items, and stay compliant with weight limits. Calculations consider active caravan, tow vehicle, and WDH specifications if selected. Water tank levels also contribute to the total weight.";
@@ -209,7 +200,7 @@ export default function InventoryPage() {
       <InventoryListClient 
         activeCaravan={activeCaravan}
         activeVehicle={activeVehicle}
-        activeWdh={activeWdh}
+        wdh={activeWdh}
         userPreferences={userPrefs}
         occupants={selectedTrip?.occupants}
       />
