@@ -150,10 +150,19 @@ export default function DashboardPage() {
         <Alert variant="destructive" className="mb-6">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle className="font-headline">Error Loading Dashboard Data</AlertTitle>
-          <AlertDescription className="font-body">
-             <p>We couldn't load your personalized dashboard settings. This often happens if the server-side configuration is not set up correctly.</p>
-             <p className="font-mono text-xs mt-2">Error details: {prefsError.message}</p>
-             <p className="mt-2">Please check the environment variable status and ensure your <code className="bg-destructive-foreground/20 px-1 rounded-sm">GOOGLE_APPLICATION_CREDENTIALS_JSON</code> in <code className="bg-destructive-foreground/20 px-1 rounded-sm">.env.local</code> is correct and on a single line.</p>
+          <AlertDescription className="font-body space-y-2">
+             <p>We couldn't load your personalized dashboard settings. The server reported the following issue:</p>
+             <pre className="mt-2 text-xs bg-destructive-foreground/10 p-2 rounded-md font-mono whitespace-pre-wrap">
+              {prefsError.message}
+             </pre>
+             {(prefsError.message.includes('Database Not Found') || prefsError.message.includes('Could not find the database')) ? (
+                <div className="mt-4 border-t border-destructive-foreground/20 pt-2">
+                    <p className="font-bold">This is an environment setup issue, not a code problem.</p>
+                    <p>Please follow the updated instructions in <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code>, especially <strong>Step 5</strong>, which guides you to use the built-in diagnostic tool to verify your project setup.</p>
+                </div>
+            ) : (
+                <p className="mt-2">Please check your server-side configuration in <code className="bg-destructive-foreground/20 px-1 rounded-sm">.env.local</code>.</p>
+            )}
           </AlertDescription>
         </Alert>
       )}
