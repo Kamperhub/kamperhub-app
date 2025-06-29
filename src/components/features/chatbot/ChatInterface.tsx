@@ -8,11 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Send, User, Bot, FileText } from 'lucide-react';
+import { Send, User, Bot, FileText, Info } from 'lucide-react';
 import Link from 'next/link';
 import { YouTubeEmbed } from '@/components/features/learn/YouTubeEmbed';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
@@ -94,6 +95,13 @@ export function ChatInterface() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-350px)] max-h-[500px] bg-card shadow-lg rounded-lg border">
+      <Alert variant="default" className="border-0 border-b rounded-none bg-muted/30">
+        <Info className="h-4 w-4" />
+        <AlertTitle className="font-headline text-sm">Example Actions</AlertTitle>
+        <AlertDescription className="font-body text-xs">
+          Try asking: "What trips do I have?" or "Add an expense of $50 for fuel to my Fraser Island trip".
+        </AlertDescription>
+      </Alert>
       <ScrollArea className="flex-grow p-4 space-y-4" ref={scrollAreaRef}>
         {messages.map(msg => (
           <div key={msg.id} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
@@ -106,7 +114,7 @@ export function ChatInterface() {
               className={`max-w-[70%] p-3 rounded-lg ${
                 msg.sender === 'user' 
                   ? 'bg-primary text-primary-foreground' 
-                  : 'bg-muted text-muted-foreground' // Changed this line
+                  : 'bg-muted text-muted-foreground'
               }`}
             >
               <p className="text-sm font-body whitespace-pre-wrap">{msg.text}</p>
@@ -121,7 +129,6 @@ export function ChatInterface() {
                            return <div className="mt-1"><YouTubeEmbed videoId={videoId} title="Suggested Video" /></div>;
                         }
                       } catch (e) { /* invalid URL */ }
-                      // Fallback to link if embed fails
                       return <Link href={msg.youtubeLink} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline text-sm font-body">{msg.youtubeLink}</Link>;
                    })()}
                 </div>
@@ -174,7 +181,7 @@ export function ChatInterface() {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about caravanning or add an expense..."
+          placeholder="Ask a question or give a command..."
           className="flex-grow font-body"
           onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSendMessage()}
           disabled={isLoading}

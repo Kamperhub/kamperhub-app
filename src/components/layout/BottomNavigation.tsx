@@ -16,16 +16,10 @@ export function BottomNavigation() {
       <div className="container mx-auto px-2 sm:px-4">
         <ul className="flex justify-around items-center h-16">
           {bottomNavItems.map((item) => {
-            // The "Dashboard" item in nav links to /dashboard-details.
-            // It should be active if path is / (main dashboard) OR /dashboard-details.
-            const isDashboardItem = item.href === '/dashboard-details';
-            
-            let isActive;
-            if (isDashboardItem) {
-              isActive = (pathname === '/' || pathname === '/dashboard-details');
-            } else {
-              isActive = pathname === item.href;
-            }
+            const isDashboardLink = item.href === '/dashboard-details';
+            const isActive = isDashboardLink
+              ? pathname === '/' || pathname === '/dashboard-details'
+              : pathname === item.href;
               
             return (
               <li key={item.label} className="flex-1 text-center">
@@ -40,7 +34,7 @@ export function BottomNavigation() {
                 >
                   <item.icon 
                     className={cn("w-7 h-7", isActive ? "text-accent" : "text-accent opacity-50")} 
-                    strokeWidth={2.5} // Added strokeWidth for bolder icons
+                    strokeWidth={2.5}
                   />
                   <span className="sr-only">{item.label}</span>
                 </Link>

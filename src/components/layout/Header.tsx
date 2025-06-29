@@ -67,9 +67,9 @@ export function Header() {
           ) : user ? (
             <>
               <Link href="/my-account" passHref>
-                <Button variant="ghost" className="p-0 sm:px-3 sm:py-2 hover:bg-primary/80 flex items-center">
-                  <UserCircle className="h-6 w-6 sm:mr-2" />
-                  <span className="hidden sm:inline font-body text-sm">{user.displayName || user.email}</span>
+                <Button variant="ghost" className="p-0 sm:px-3 sm:py-2 hover:bg-primary/80 flex items-center max-w-[150px] sm:max-w-[200px]">
+                  <UserCircle className="h-6 w-6 sm:mr-2 flex-shrink-0" />
+                  <span className="hidden sm:inline font-body text-sm truncate">{user.displayName || user.email}</span>
                 </Button>
               </Link>
               <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Log Out" className="p-0 hover:bg-primary/80">
