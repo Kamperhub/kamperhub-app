@@ -11,7 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const PackingListGeneratorInputSchema = z.object({
+const PackingListGeneratorInputSchema = z.object({
   destination: z.string().describe('The primary destination of the trip (e.g., "Cairns, QLD", "Tasmanian Coast").'),
   durationInDays: z.number().int().positive().describe('The total number of days for the trip.'),
   numberOfAdults: z.number().int().min(0).describe('The number of adults on the trip.'),
@@ -20,7 +20,7 @@ export const PackingListGeneratorInputSchema = z.object({
 });
 export type PackingListGeneratorInput = z.infer<typeof PackingListGeneratorInputSchema>;
 
-export const PackingListGeneratorOutputSchema = z.object({
+const PackingListGeneratorOutputSchema = z.object({
   packingList: z.array(z.object({
     category: z.string().describe("A logical packing category (e.g., 'Clothing', 'Toiletries', 'Kitchen Supplies', 'Entertainment', 'Safety & First Aid')."),
     items: z.array(z.object({
