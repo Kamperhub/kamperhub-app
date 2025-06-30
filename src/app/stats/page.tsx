@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Home, Route as RouteIcon, CalendarDays, CheckCircle, Trophy, TrendingUp, AlertCircle, BarChart3, Loader2 } from 'lucide-react';
+import { Home, Route as RouteIcon, CalendarDays, CheckCircle, Trophy, TrendingUp, AlertCircle, BarChart3, Loader2, Wallet, Fuel as FuelIcon, Banknote, Crown } from 'lucide-react';
 import { parseISO, differenceInCalendarDays, isValid } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
@@ -24,6 +24,12 @@ interface TripStats {
   averageDurationPerTrip: number; // in days
   longestTripByDistance: LoggedTrip | null;
   longestTripByDuration: LoggedTrip | null;
+  // New financial and fuel stats
+  totalExpenditure: number;
+  totalBudgeted: number;
+  totalFuelCost: number;
+  averageCostPerKm: number;
+  tripWithHighestSpend: { name: string; totalSpend: number } | null;
 }
 
 export default function StatsPage() {
@@ -48,6 +54,7 @@ export default function StatsPage() {
         totalTrips: 0, totalKilometers: 0, totalDaysOnRoad: 0, completedTrips: 0,
         averageDistancePerTrip: 0, averageDurationPerTrip: 0,
         longestTripByDistance: null, longestTripByDuration: null,
+        totalExpenditure: 0, totalBudgeted: 0, totalFuelCost: 0, averageCostPerKm: 0, tripWithHighestSpend: null,
       };
     }
 
@@ -58,9 +65,16 @@ export default function StatsPage() {
     let longestTripByDist: LoggedTrip | null = null;
     let longestDur = 0;
     let longestTripByDur: LoggedTrip | null = null;
+    let totalExpenditure = 0;
+    let totalBudgeted = 0;
+    let totalFuelCost = 0;
+    let highestSpend = -1;
+    let tripWithHighestSpend: { name: string; totalSpend: number } | null = null;
 
     loggedTrips.forEach(trip => {
-      totalKilometers += trip.routeDetails?.distanceValue / 1000 || 0;
+      const tripDistanceKm = trip.routeDetails?.distanceValue / 1000 || 0;
+      totalKilometers += tripDistanceKm;
+
       if (trip.isCompleted) {
         completedTrips++;
       }
@@ -78,26 +92,48 @@ export default function StatsPage() {
         totalDaysOnRoad += durationDays;
       }
 
-      const currentDistance = trip.routeDetails?.distanceValue / 1000 || 0;
-      if (currentDistance > longestDist) {
-        longestDist = currentDistance;
+      if (tripDistanceKm > longestDist) {
+        longestDist = tripDistanceKm;
         longestTripByDist = trip;
       }
       if (durationDays > longestDur) {
         longestDur = durationDays;
         longestTripByDur = trip;
       }
+      
+      const tripTotalSpend = trip.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
+      totalExpenditure += tripTotalSpend;
+
+      if (tripTotalSpend > highestSpend) {
+        highestSpend = tripTotalSpend;
+        tripWithHighestSpend = { name: trip.name, totalSpend: tripTotalSpend };
+      }
+
+      totalBudgeted += trip.budget?.reduce((sum, cat) => sum + cat.budgetedAmount, 0) || 0;
+      
+      const fuelCategoryId = trip.budget?.find(cat => cat.name.toLowerCase() === 'fuel')?.id;
+      if (fuelCategoryId) {
+        const tripFuelSpend = trip.expenses?.filter(e => e.categoryId === fuelCategoryId).reduce((sum, exp) => sum + exp.amount, 0) || 0;
+        totalFuelCost += tripFuelSpend;
+      }
     });
+    
+    const averageCostPerKm = totalKilometers > 0 ? totalExpenditure / totalKilometers : 0;
 
     return {
       totalTrips: loggedTrips.length,
-      totalKilometers: totalKilometers,
-      totalDaysOnRoad: totalDaysOnRoad,
-      completedTrips: completedTrips,
+      totalKilometers,
+      totalDaysOnRoad,
+      completedTrips,
       averageDistancePerTrip: loggedTrips.length > 0 ? totalKilometers / loggedTrips.length : 0,
       averageDurationPerTrip: loggedTrips.length > 0 ? totalDaysOnRoad / loggedTrips.length : 0,
       longestTripByDistance: longestTripByDist,
       longestTripByDuration: longestTripByDur,
+      totalExpenditure,
+      totalBudgeted,
+      totalFuelCost,
+      averageCostPerKm,
+      tripWithHighestSpend,
     };
   }, [loggedTrips]);
 
@@ -124,9 +160,8 @@ export default function StatsPage() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="ml-3 font-body text-lg">Loading trip stats from server...</p>
         </div>
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-[120px]" />)}
-        </div>
+        <Skeleton className="h-[120px]" />
+        <Skeleton className="h-[120px]" />
         <Skeleton className="h-[200px] mt-6" />
       </div>
     );
@@ -190,8 +225,18 @@ export default function StatsPage() {
         <StatCard title="Avg. Distance / Trip" value={stats.averageDistancePerTrip.toFixed(0)} unit="km" icon={RouteIcon} />
         <StatCard title="Avg. Duration / Trip" value={stats.averageDurationPerTrip.toFixed(1)} unit="days" icon={CalendarDays} />
       </div>
+
+      <div className="pt-6">
+        <h2 className="text-2xl font-headline text-primary mb-4">Financial & Fuel Overview</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard title="Total Expenditure" value={`$${stats.totalExpenditure.toFixed(2)}`} icon={Wallet} description="Sum of all logged expenses" />
+          <StatCard title="Total Fuel Cost" value={`$${stats.totalFuelCost.toFixed(2)}`} icon={FuelIcon} description="Sum of all 'Fuel' category expenses" />
+          <StatCard title="Total Budgeted" value={`$${stats.totalBudgeted.toFixed(2)}`} icon={Banknote} description="Sum of all trip budgets" />
+          <StatCard title="Avg. Cost / km" value={`$${stats.averageCostPerKm.toFixed(2)}`} icon={RouteIcon} description="Total spend divided by total km" />
+        </div>
+      </div>
       
-      { (stats.longestTripByDistance || stats.longestTripByDuration) &&
+      { (stats.longestTripByDistance || stats.longestTripByDuration || stats.tripWithHighestSpend) &&
         <div className="pt-6">
             <h2 className="text-2xl font-headline text-primary mb-4">Trip Records</h2>
             <Card>
@@ -204,24 +249,32 @@ export default function StatsPage() {
             </CardHeader>
             <CardContent className="space-y-3 pl-16">
                 {stats.longestTripByDistance && (
-                <div>
-                    <h3 className="text-md font-semibold font-body text-foreground">Longest Trip by Distance:</h3>
-                    <p className="text-sm text-muted-foreground font-body">
-                    "{stats.longestTripByDistance.name}" - {stats.longestTripByDistance.routeDetails.distance} ({stats.longestTripByDistance.routeDetails.duration})
-                    </p>
-                </div>
+                  <div>
+                      <h3 className="text-md font-semibold font-body text-foreground">Longest Trip by Distance:</h3>
+                      <p className="text-sm text-muted-foreground font-body">
+                      "{stats.longestTripByDistance.name}" - {stats.longestTripByDistance.routeDetails.distance} ({stats.longestTripByDistance.routeDetails.duration})
+                      </p>
+                  </div>
                 )}
                 {stats.longestTripByDuration && (
-                <div>
-                    <h3 className="text-md font-semibold font-body text-foreground">Longest Trip by Duration:</h3>
-                    <p className="text-sm text-muted-foreground font-body">
-                    "{stats.longestTripByDuration.name}" - 
-                    {stats.longestTripByDuration.plannedStartDate && stats.longestTripByDuration.plannedEndDate && isValid(parseISO(stats.longestTripByDuration.plannedEndDate)) && isValid(parseISO(stats.longestTripByDuration.plannedStartDate)) ? 
-                        `${differenceInCalendarDays(parseISO(stats.longestTripByDuration.plannedEndDate), parseISO(stats.longestTripByDuration.plannedStartDate)) + 1} days`
-                        : "Duration details incomplete"
-                    }
-                    </p>
-                </div>
+                  <div>
+                      <h3 className="text-md font-semibold font-body text-foreground">Longest Trip by Duration:</h3>
+                      <p className="text-sm text-muted-foreground font-body">
+                      "{stats.longestTripByDuration.name}" - 
+                      {stats.longestTripByDuration.plannedStartDate && stats.longestTripByDuration.plannedEndDate && isValid(parseISO(stats.longestTripByDuration.plannedEndDate)) && isValid(parseISO(stats.longestTripByDuration.plannedStartDate)) ? 
+                          `${differenceInCalendarDays(parseISO(stats.longestTripByDuration.plannedEndDate), parseISO(stats.longestTripByDuration.plannedStartDate)) + 1} days`
+                          : "Duration details incomplete"
+                      }
+                      </p>
+                  </div>
+                )}
+                {stats.tripWithHighestSpend && (
+                    <div>
+                      <h3 className="text-md font-semibold font-body text-foreground">Trip with Highest Spend:</h3>
+                      <p className="text-sm text-muted-foreground font-body">
+                        "{stats.tripWithHighestSpend.name}" - ${stats.tripWithHighestSpend.totalSpend.toFixed(2)}
+                      </p>
+                    </div>
                 )}
             </CardContent>
             </Card>
@@ -230,5 +283,3 @@ export default function StatsPage() {
     </div>
   );
 }
-
-  
