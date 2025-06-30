@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 
 const ArticleGeneratorInputSchema = z.object({
   topic: z.string().describe('The specific caravanning topic for the article.'),
