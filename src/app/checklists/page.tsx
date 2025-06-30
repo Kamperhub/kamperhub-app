@@ -205,7 +205,9 @@ export default function ChecklistsPage() {
       <Tabs value={managementMode} onValueChange={(value) => setManagementMode(value as ManagementMode)} className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-6">
           <TabsTrigger value="trip" className="font-body"><Route className="mr-2 h-4 w-4" />Manage Trip Checklists</TabsTrigger>
-          <TabsTrigger value="caravanDefault" className="font-body"><Home className="mr-2 h-4 w-4" />Manage Caravan Defaults</TabsTrigger>
+          <TabsTrigger value="caravanDefault" className="font-body" disabled={storedCaravans.length === 0}>
+            <Home className="mr-2 h-4 w-4" />Manage Caravan Defaults
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="trip">
