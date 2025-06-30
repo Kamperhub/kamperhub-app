@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    allowedDevOrigins: ['https://*.cloudworkstations.dev'],
+  },
   async headers() {
     // Only apply Content-Security-Policy headers in production
     if (process.env.NODE_ENV !== 'production') {
