@@ -45,7 +45,7 @@ export function TermsOfServiceContent() {
         <p>To the maximum extent permitted by law:</p>
         <ul className="list-disc pl-5 space-y-1">
           <li>KamperHub is provided “as is” and “as available” without warranties of any kind.</li>
-          <li>We do not guarantee the accuracy, reliability, or availability of the Service.</li>
+          <li>We do not guarantee the accuracy, reliability, or availability of the Service. KamperHub is intended as a guide only and should not be relied upon for safety-critical decisions. Always verify information such as weights, dimensions, and campsite details with official sources.</li>
           <li>We are not liable for any indirect, incidental, or consequential damages, including loss of data, revenue, or business arising out of or related to your use of the Service.</li>
         </ul>
         <p>Your sole remedy is to stop using KamperHub.</p>
