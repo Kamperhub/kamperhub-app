@@ -25,7 +25,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
-import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Trash2, PlusCircle, Users, AlertTriangle, XCircle, Edit3, Car, Settings, ChevronLeft } from 'lucide-react';
+import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Trash2, PlusCircle, Users, AlertTriangle, XCircle, Edit3, Car, Settings } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from "date-fns";
@@ -95,6 +95,8 @@ export default function TripPlannerPage() {
   const [tripBudget, setTripBudget] = useState<BudgetCategory[]>([]);
   const [tripExpenses, setTripExpenses] = useState<Expense[]>([]);
   const [tripOccupants, setTripOccupants] = useState<Occupant[]>([]);
+  const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
+
 
   const { data: userPrefs } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
@@ -448,16 +450,6 @@ export default function TripPlannerPage() {
             <TabsTrigger value="budget" className="font-body"><Edit className="mr-2 h-4 w-4"/>Budget</TabsTrigger>
             <TabsTrigger value="expenses" className="font-body"><DollarSign className="mr-2 h-4 w-4"/>Expenses</TabsTrigger>
           </TabsList>
-          <Button
-            onClick={handleOpenSaveTripDialog}
-            variant="default"
-            size="lg"
-            className="w-full md:w-auto font-body bg-primary hover:bg-primary/90 text-primary-foreground text-lg py-6 hidden md:flex"
-            disabled={!routeDetails || createTripMutation.isPending || updateTripMutation.isPending}
-          >
-            {(createTripMutation.isPending || updateTripMutation.isPending) ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-            {activeTrip ? 'Update Trip Details' : 'Save Full Trip'}
-          </Button>
         </div>
 
         <TabsContent value="itinerary" className="mt-6">
@@ -474,12 +466,29 @@ export default function TripPlannerPage() {
                     <div>
                       <Label htmlFor="dateRange" className="font-body">Planned Date Range</Label>
                       <Controller name="dateRange" control={control} render={({ field }) => (
-                          <Popover><PopoverTrigger asChild>
+                          <Popover open={isDatePopoverOpen} onOpenChange={setIsDatePopoverOpen}>
+                            <PopoverTrigger asChild>
                               <Button id="dateRange" variant={"outline"} className={cn("w-full justify-start text-left font-normal font-body", !field.value?.from && "text-muted-foreground")}>
                                 <CalendarDays className="mr-2 h-4 w-4" />
                                 {field.value?.from ? (field.value.to ? `${format(field.value.from, "LLL dd, yyyy")} - ${format(field.value.to, "LLL dd, yyyy")}` : format(field.value.from, "LLL dd, yyyy")) : <span>Pick a date range</span>}
                               </Button>
-                          </PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={field.value?.from} selected={field.value as DateRange | undefined} onSelect={field.onChange} numberOfMonths={2} /></PopoverContent></Popover>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar 
+                                initialFocus 
+                                mode="range" 
+                                defaultMonth={field.value?.from} 
+                                selected={field.value as DateRange | undefined} 
+                                onSelect={(range) => {
+                                  field.onChange(range);
+                                  if (range?.from && range?.to) {
+                                    setIsDatePopoverOpen(false);
+                                  }
+                                }}
+                                numberOfMonths={2} 
+                              />
+                            </PopoverContent>
+                          </Popover>
                       )} />
                     </div>
                     <div>
@@ -522,21 +531,18 @@ export default function TripPlannerPage() {
                     <OccupantManager occupants={tripOccupants} onUpdate={handleOccupantsUpdate} disabled={!routeDetails && !activeTrip} />
                 </CardContent>
               </Card>
-              
+               <Button
+                  onClick={handleOpenSaveTripDialog}
+                  variant="default"
+                  size="lg"
+                  className="w-full font-body bg-primary hover:bg-primary/90 text-primary-foreground text-lg py-6"
+                  disabled={!routeDetails || createTripMutation.isPending || updateTripMutation.isPending}
+              >
+                  {(createTripMutation.isPending || updateTripMutation.isPending) ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                  {activeTrip ? 'Update Trip Details' : 'Save Full Trip'}
+              </Button>
             </div>
             <div className="md:col-span-2 space-y-6">
-              <div className="block md:hidden">
-                <Button
-                    onClick={handleOpenSaveTripDialog}
-                    variant="default"
-                    size="lg"
-                    className="w-full font-body bg-primary hover:bg-primary/90 text-primary-foreground text-lg py-6"
-                    disabled={!routeDetails || createTripMutation.isPending || updateTripMutation.isPending}
-                >
-                    {(createTripMutation.isPending || updateTripMutation.isPending) ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                    {activeTrip ? 'Update Trip Details' : 'Save Full Trip'}
-                </Button>
-              </div>
               <Card><CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="font-headline flex items-center"><MapPin className="mr-2 h-6 w-6 text-primary" /> Route Map</CardTitle>
               </CardHeader><CardContent className="p-0"><div style={{ height: mapHeight }} className="bg-muted rounded-b-lg overflow-hidden relative">
