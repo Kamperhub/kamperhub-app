@@ -103,7 +103,7 @@ const weatherPackingSuggesterFlow = ai.defineFlow(
             }
         } else if (errorMessage.includes("failed to parse schema") || errorMessage.includes("output_schema")) {
           errorMessageForUser = "The AI returned a response in an unexpected format. This can happen, please try again.";
-        } else if (error.message) {
+        } else {
             errorMessageForUser = error.message;
         }
       }

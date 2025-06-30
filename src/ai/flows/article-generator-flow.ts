@@ -106,7 +106,7 @@ const articleGeneratorFlow = ai.defineFlow(
             }
         } else if (errorMessage.includes("failed to parse schema") || errorMessage.includes("output_schema")) {
           errorMessageForUser = "The AI returned a response in an unexpected format. This can sometimes happen, please try again.";
-        } else if (error.message) { // Use the original error message if it's not one of the known types
+        } else {
           errorMessageForUser = error.message;
         }
       }
