@@ -365,10 +365,9 @@ export default function MyAccountPage() {
                   Manage your payment methods, view invoices, or update/cancel your subscription.
                 </p>
                 <Button
-                    variant="outline"
-                    className="mt-2 font-body w-full sm:w-auto"
                     onClick={handleManageSubscription}
                     disabled={isRedirectingToPortal}
+                    className="mt-2 w-full font-body bg-accent hover:bg-accent/90 text-accent-foreground"
                 >
                   {isRedirectingToPortal ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ExternalLink className="mr-2 h-4 w-4" />}
                   Manage Subscription in Stripe
