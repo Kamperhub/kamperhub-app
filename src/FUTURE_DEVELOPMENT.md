@@ -14,16 +14,17 @@ This document tracks the development priorities, future features, and completed 
 
 ### 2. In Progress
 *   **AI-Powered Packing Assistant:**
-    *   **Status:** Initial version complete, but encountering persistent AI generation errors. This feature is **parked** until the underlying API access issues can be resolved.
+    *   **Status:** Partially implemented. Core packing list generation is working. Weather-based suggestions have been added but use AI's general knowledge instead of a live API. The feature is parked until underlying AI API access issues can be fully resolved.
     *   **Features Implemented:**
         *   New "Trip Packing" page added to navigation.
         *   Genkit flow created to generate packing lists based on trip details (destination, duration, activities, passenger count).
-        *   UI allows users to select a trip, generate a list, and manage items (add, edit, delete, check-off).
+        *   Genkit flow added to generate weather-based packing suggestions based on typical climate.
+        *   UI allows users to select a trip, generate a list, receive weather suggestions, and manage items (add, edit, delete, check-off).
     *   **Next Steps (Once unblocked):**
-        *   Resolve AI generation errors.
+        *   Resolve any remaining AI generation errors.
+        *   **Integrate with a real weather API:** Replace the AI's general climate knowledge with calls to a real-time weather service to provide more accurate forecasts.
         *   Implement saving/loading of packing lists to Firestore.
         *   Add reusable packing templates.
-        *   Integrate with weather APIs for smarter suggestions.
         *   Explore collaborative packing features.
         *   Integrate a messaging service to send packing lists to other people.
 

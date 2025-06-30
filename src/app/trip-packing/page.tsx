@@ -14,7 +14,8 @@ import {
   updatePackingList, 
   deletePackingList 
 } from '@/lib/api-client';
-import { generatePackingList } from '@/ai/flows/packing-list-generator-flow';
+import { generatePackingList } from '@/ai/flows/packing-list-generator-flow.ts';
+import { generateWeatherPackingSuggestions, type WeatherPackingSuggesterOutput } from '@/ai/flows/weather-packing-suggester-flow';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -27,9 +28,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Luggage, AlertTriangle, Wand2, Info, Loader2, Route, Calendar, Users, Edit3, Trash2, PlusCircle, RefreshCw } from 'lucide-react';
+import { Luggage, AlertTriangle, Wand2, Info, Loader2, Route, Calendar, Users, Edit3, Trash2, PlusCircle, RefreshCw, CloudRainWind } from 'lucide-react';
 
-// New structured activity options
 const activityOptions = [
   {
     category: 'Coastal & Water',
@@ -61,8 +61,8 @@ export default function TripPackingPage() {
   
   const [selectedTripId, setSelectedTripId] = useState<string>('');
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
-  
   const [editingItemState, setEditingItemState] = useState<{ categoryId: string; item: PackingListItem } | null>(null);
+  const [weatherSuggestions, setWeatherSuggestions] = useState<WeatherPackingSuggesterOutput | null>(null);
 
   const { data: trips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery<LoggedTrip[]>({
     queryKey: ['trips', user?.uid],
@@ -115,36 +115,65 @@ export default function TripPackingPage() {
     },
     onError: (error: Error) => toast({ title: 'Clear Failed', description: error.message, variant: 'destructive' }),
   });
+  
+  const weatherSuggestMutation = useMutation({
+    mutationFn: generateWeatherPackingSuggestions,
+    onSuccess: (data) => {
+        setWeatherSuggestions(data);
+        toast({ title: 'Weather Suggestions Ready!' });
+    },
+    onError: (error: Error) => toast({ title: 'Suggestion Failed', description: error.message, variant: 'destructive' }),
+  });
 
   const handleGenerateList = () => {
-    if (!selectedTrip) {
-      toast({ title: 'Please select a trip first.', variant: 'destructive' });
-      return;
-    }
+    if (!selectedTrip) return;
     const durationInDays = selectedTrip.plannedStartDate && selectedTrip.plannedEndDate 
       ? differenceInDays(parseISO(selectedTrip.plannedEndDate), parseISO(selectedTrip.plannedStartDate)) + 1
       : 1;
-
     const adults = selectedTrip.occupants?.filter(o => !o.description.toLowerCase().includes('child')).length || 1;
     const children = selectedTrip.occupants?.filter(o => o.description.toLowerCase().includes('child')).length || 0;
-
     generateListMutation.mutate({
-      destination: selectedTrip.endLocationDisplay,
-      durationInDays,
-      numberOfAdults: adults,
-      numberOfChildren: children,
+      destination: selectedTrip.endLocationDisplay, durationInDays, numberOfAdults: adults, numberOfChildren: children,
       activities: selectedActivities.join(', ') || 'General touring and relaxation',
     });
   };
 
   const handleClearAndRegenerate = () => {
-    if (window.confirm("Are you sure you want to clear this list and generate a new one? All current items and progress will be lost.")) {
-      deleteListMutation.mutate(undefined, {
-        onSuccess: () => {
-          handleGenerateList();
-        }
-      });
+    if (window.confirm("Are you sure? This will clear the current list and generate a new one.")) {
+      deleteListMutation.mutate(undefined, { onSuccess: () => handleGenerateList() });
     }
+  };
+
+  const handleGetWeatherSuggestions = () => {
+    if (!selectedTrip || !selectedTrip.plannedStartDate) {
+        toast({ title: 'Cannot Get Suggestions', description: 'Please select a trip with a start date.', variant: 'destructive' });
+        return;
+    }
+    const durationInDays = selectedTrip.plannedStartDate && selectedTrip.plannedEndDate 
+        ? differenceInDays(parseISO(selectedTrip.plannedEndDate), parseISO(selectedTrip.plannedStartDate)) + 1 : 1;
+    const tripMonth = format(parseISO(selectedTrip.plannedStartDate), 'MMMM');
+    weatherSuggestMutation.mutate({ destination: selectedTrip.endLocationDisplay, tripMonth, durationInDays });
+  };
+  
+  const handleAddSuggestedItem = (itemToAdd: { itemName: string; notes?: string }) => {
+    const categoryName = "Weather Suggested";
+    const newList = [...packingList];
+    let category = newList.find(c => c.name === categoryName);
+    const newItem: PackingListItem = {
+      id: `item_weather_${Date.now()}`, name: itemToAdd.itemName, quantity: 1, packed: false, notes: itemToAdd.notes,
+    };
+    if (category) {
+      if (!category.items.some(i => i.name.toLowerCase() === newItem.name.toLowerCase())) {
+        category.items.push(newItem);
+      } else {
+        toast({ title: "Item already exists", description: `"${itemToAdd.itemName}" is already in your list.` });
+        return;
+      }
+    } else {
+      newList.push({ id: `cat_weather_${Date.now()}`, name: categoryName, items: [newItem] });
+    }
+    handleListChange(newList);
+    toast({ title: "Item Added", description: `"${itemToAdd.itemName}" was added to your list.` });
   };
 
   const handleListChange = useCallback((newList: PackingListCategory[]) => {
@@ -152,72 +181,34 @@ export default function TripPackingPage() {
   }, [updateListMutation]);
 
   const handleTogglePacked = (categoryId: string, itemId: string) => {
-    const newList = packingList.map(category => {
-      if (category.id === categoryId) {
-        return {
-          ...category,
-          items: category.items.map(item => 
-            item.id === itemId ? { ...item, packed: !item.packed } : item
-          ),
-        };
-      }
-      return category;
-    });
+    const newList = packingList.map(c => c.id === categoryId ? { ...c, items: c.items.map(i => i.id === itemId ? { ...i, packed: !i.packed } : i) } : c);
     handleListChange(newList);
   };
 
   const handleUpdateItem = (categoryId: string, updatedItem: PackingListItem) => {
-    const newList = packingList.map(category => {
-        if (category.id === categoryId) {
-            return {
-                ...category,
-                items: category.items.map(item => item.id === updatedItem.id ? updatedItem : item)
-            };
-        }
-        return category;
-    });
+    const newList = packingList.map(c => c.id === categoryId ? { ...c, items: c.items.map(i => i.id === updatedItem.id ? updatedItem : i) } : c);
     handleListChange(newList);
     setEditingItemState(null);
   };
 
   const handleDeleteItem = (categoryId: string, itemId: string) => {
-    if (window.confirm("Are you sure you want to delete this item?")) {
-      const newList = packingList.map(category => {
-          if(category.id === categoryId) {
-              return { ...category, items: category.items.filter(item => item.id !== itemId) };
-          }
-          return category;
-      }).filter(category => category.items.length > 0);
+    if (window.confirm("Are you sure?")) {
+      const newList = packingList.map(c => c.id === categoryId ? { ...c, items: c.items.filter(i => i.id !== itemId) } : c).filter(c => c.items.length > 0);
       handleListChange(newList);
     }
   };
   
   const handleAddItem = (categoryId: string) => {
-    const newItem: PackingListItem = {
-      id: `item_manual_${Date.now()}`,
-      name: 'New Item',
-      quantity: 1,
-      packed: false,
-      notes: ''
-    };
-    const newList = packingList.map(category => {
-      if(category.id === categoryId) {
-        return { ...category, items: [...category.items, newItem]};
-      }
-      return category;
-    });
+    const newItem: PackingListItem = { id: `item_manual_${Date.now()}`, name: 'New Item', quantity: 1, packed: false, notes: '' };
+    const newList = packingList.map(c => c.id === categoryId ? { ...c, items: [...c.items, newItem] } : c);
     handleListChange(newList);
   };
 
   const handleActivityChange = (activity: string) => {
-    setSelectedActivities(prev =>
-      prev.includes(activity)
-        ? prev.filter(a => a !== activity)
-        : [...prev, activity]
-    );
+    setSelectedActivities(prev => prev.includes(activity) ? prev.filter(a => a !== activity) : [...prev, activity]);
   };
   
-  const anyMutationLoading = generateListMutation.isPending || updateListMutation.isPending || deleteListMutation.isPending;
+  const anyMutationLoading = generateListMutation.isPending || updateListMutation.isPending || deleteListMutation.isPending || weatherSuggestMutation.isPending;
 
   if (isLoadingTrips) return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-48 w-full" /></div>;
   if (tripsError) return <Alert variant="destructive"><AlertTitle>Error Loading Trips</AlertTitle><AlertDescription>{tripsError.message}</AlertDescription></Alert>;
@@ -225,31 +216,20 @@ export default function TripPackingPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-headline mb-2 text-primary flex items-center">
-          <Luggage className="mr-3 h-8 w-8" /> Trip Packing Assistant
-        </h1>
-        <p className="text-muted-foreground font-body mb-6">
-          Select a trip and let our AI assistant generate a personalized packing list for you. Your lists are now saved automatically.
-        </p>
+        <h1 className="text-3xl font-headline mb-2 text-primary flex items-center"><Luggage className="mr-3 h-8 w-8" /> Trip Packing Assistant</h1>
+        <p className="text-muted-foreground font-body mb-6">Select a trip, get AI-powered suggestions, and manage your personalized packing list.</p>
       </div>
       
       <Card>
-        <CardHeader>
-          <CardTitle>1. Select Your Trip</CardTitle>
-          <CardDescription>Choose a saved trip to generate or view a packing list for.</CardDescription>
-        </CardHeader>
+        <CardHeader><CardTitle>1. Select Your Trip</CardTitle><CardDescription>Choose a saved trip to generate or view a packing list for.</CardDescription></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="trip-select">Saved Trip</Label>
-            <Select onValueChange={setSelectedTripId} value={selectedTripId}>
-              <SelectTrigger id="trip-select"><SelectValue placeholder="Choose a trip..." /></SelectTrigger>
-              <SelectContent>{trips.map(trip => <SelectItem key={trip.id} value={trip.id}>{trip.name}</SelectItem>)}</SelectContent>
-            </Select>
+            <Select onValueChange={setSelectedTripId} value={selectedTripId}><SelectTrigger id="trip-select"><SelectValue placeholder="Choose a trip..." /></SelectTrigger><SelectContent>{trips.map(trip => <SelectItem key={trip.id} value={trip.id}>{trip.name}</SelectItem>)}</SelectContent></Select>
           </div>
           {selectedTrip && (
             <Alert variant="default" className="bg-secondary/30 border-secondary/50">
-                <Info className="h-4 w-4" />
-                <AlertTitle className="font-headline text-foreground">{selectedTrip.name}</AlertTitle>
+                <Info className="h-4 w-4" /><AlertTitle className="font-headline text-foreground">{selectedTrip.name}</AlertTitle>
                 <AlertDescription className="text-xs space-y-1">
                   <p className="flex items-center"><Route className="h-3 w-3 mr-1.5" />{selectedTrip.startLocationDisplay} to {selectedTrip.endLocationDisplay}</p>
                   <p className="flex items-center"><Calendar className="h-3 w-3 mr-1.5" />{selectedTrip.plannedStartDate ? format(parseISO(selectedTrip.plannedStartDate), "PP") : 'Date TBD'}</p>
@@ -261,10 +241,7 @@ export default function TripPackingPage() {
       </Card>
       
        <Card>
-        <CardHeader>
-          <CardTitle>2. Plan Activities (Optional)</CardTitle>
-          <CardDescription>Select the types of activities you're planning for more tailored suggestions.</CardDescription>
-        </CardHeader>
+        <CardHeader><CardTitle>2. Plan Activities (Optional)</CardTitle><CardDescription>Select planned activities for more tailored packing suggestions.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-4">
             {activityOptions.map(group => (
@@ -273,95 +250,105 @@ export default function TripPackingPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {group.activities.map(activity => (
                     <div key={activity} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`activity-${activity.replace(/\s+/g, '-')}`}
-                        checked={selectedActivities.includes(activity)}
-                        onCheckedChange={() => handleActivityChange(activity)}
-                      />
-                      <Label
-                        htmlFor={`activity-${activity.replace(/\s+/g, '-')}`}
-                        className="text-sm font-normal cursor-pointer"
-                      >
-                        {activity}
-                      </Label>
+                      <Checkbox id={`activity-${activity.replace(/\s+/g, '-')}`} checked={selectedActivities.includes(activity)} onCheckedChange={() => handleActivityChange(activity)}/>
+                      <Label htmlFor={`activity-${activity.replace(/\s+/g, '-')}`} className="text-sm font-normal cursor-pointer">{activity}</Label>
                     </div>
                   ))}
                 </div>
               </div>
             ))}
           </div>
-          {packingList.length === 0 ? (
-            <Button onClick={handleGenerateList} disabled={!selectedTripId || anyMutationLoading} className="mt-4">
-              {generateListMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-              Generate Packing List
-            </Button>
-          ) : (
-             <Button onClick={handleClearAndRegenerate} variant="destructive" disabled={!selectedTripId || anyMutationLoading} className="mt-4">
-              {deleteListMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-              Clear & Regenerate List
-            </Button>
-          )}
         </CardContent>
       </Card>
 
-      {isLoadingPackingList && <Card><CardContent className="pt-6"><Skeleton className="h-64 w-full" /></CardContent></Card>}
-      {packingListError && <Alert variant="destructive"><AlertTitle>Error Loading List</AlertTitle><AlertDescription>{packingListError.message}</AlertDescription></Alert>}
-      
-      {!isLoadingPackingList && packingList.length > 0 && (
+      <Card>
+        <CardHeader><CardTitle className="flex items-center"><CloudRainWind className="mr-2 h-5 w-5"/>3. Get Weather-Based Suggestions</CardTitle><CardDescription>Based on your destination and trip month, get AI-powered weather tips.</CardDescription></CardHeader>
+        <CardContent>
+            <Button onClick={handleGetWeatherSuggestions} disabled={!selectedTripId || !selectedTrip?.plannedStartDate || anyMutationLoading}>
+                {weatherSuggestMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                Get Weather Suggestions
+            </Button>
+            {weatherSuggestions && (
+                <div className="mt-4 space-y-4">
+                    <Alert variant="default" className="bg-blue-50 border-blue-200">
+                        <Info className="h-4 w-4" /><AlertTitle className="font-headline">Typical Weather Summary</AlertTitle>
+                        <AlertDescription>{weatherSuggestions.weatherSummary}</AlertDescription>
+                    </Alert>
+                    <div className="space-y-2">
+                        {weatherSuggestions.suggestedItems.map(item => (
+                            <div key={item.itemName} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                                <div>
+                                    <p className="font-semibold">{item.itemName}</p>
+                                    <p className="text-xs text-muted-foreground">{item.notes}</p>
+                                </div>
+                                <Button size="sm" variant="outline" onClick={() => handleAddSuggestedItem(item)} disabled={anyMutationLoading}><PlusCircle className="mr-2 h-4 w-4"/>Add to List</Button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </CardContent>
+      </Card>
+
+      {isLoadingPackingList ? <Card><CardContent className="pt-6"><Skeleton className="h-64 w-full" /></CardContent></Card> :
+       packingListError ? <Alert variant="destructive"><AlertTitle>Error Loading List</AlertTitle><AlertDescription>{packingListError.message}</AlertDescription></Alert> :
+       selectedTripId ? (
         <Card>
           <CardHeader>
-            <CardTitle>3. Your Packing List</CardTitle>
-            <CardDescription>Check off items as you pack them. Changes are saved automatically.</CardDescription>
+            <div className="flex justify-between items-center">
+                <div>
+                    <CardTitle>4. Your Packing List</CardTitle>
+                    <CardDescription>Check off items as you pack. Changes are saved automatically.</CardDescription>
+                </div>
+                 {packingList.length === 0 ? (
+                    <Button onClick={handleGenerateList} disabled={anyMutationLoading}><Wand2 className="mr-2 h-4 w-4" />Generate List</Button>
+                ) : (
+                    <Button onClick={handleClearAndRegenerate} variant="destructive" disabled={anyMutationLoading}><RefreshCw className="mr-2 h-4 w-4" />Clear & Regenerate</Button>
+                )}
+            </div>
           </CardHeader>
           <CardContent>
-            <Accordion type="multiple" defaultValue={packingList.map(c => c.id)} className="w-full">
-              {packingList.map(category => (
-                <AccordionItem value={category.id} key={category.id}>
-                  <AccordionTrigger className="font-headline text-lg">{category.name}</AccordionTrigger>
-                  <AccordionContent className="space-y-2">
-                    {category.items.map(item => (
-                      <div key={item.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
-                        <div className="flex items-center gap-3">
-                          <Checkbox id={item.id} checked={item.packed} onCheckedChange={() => handleTogglePacked(category.id, item.id)} disabled={anyMutationLoading}/>
-                          <div className="grid gap-0.5">
-                            <Label htmlFor={item.id} className={`text-base ${item.packed ? 'line-through text-muted-foreground' : ''}`}>
-                              {item.name} <span className="text-muted-foreground">({item.quantity})</span>
-                            </Label>
-                            {item.notes && <p className="text-xs text-muted-foreground">{item.notes}</p>}
-                          </div>
+            {packingList.length > 0 && (
+                <Accordion type="multiple" defaultValue={packingList.map(c => c.id)} className="w-full">
+                {packingList.map(category => (
+                    <AccordionItem value={category.id} key={category.id}>
+                    <AccordionTrigger className="font-headline text-lg">{category.name}</AccordionTrigger>
+                    <AccordionContent className="space-y-2">
+                        {category.items.map(item => (
+                        <div key={item.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
+                            <div className="flex items-center gap-3">
+                            <Checkbox id={item.id} checked={item.packed} onCheckedChange={() => handleTogglePacked(category.id, item.id)} disabled={anyMutationLoading}/>
+                            <div className="grid gap-0.5">
+                                <Label htmlFor={item.id} className={`text-base ${item.packed ? 'line-through text-muted-foreground' : ''}`}>
+                                {item.name} <span className="text-muted-foreground">({item.quantity})</span>
+                                </Label>
+                                {item.notes && <p className="text-xs text-muted-foreground">{item.notes}</p>}
+                            </div>
+                            </div>
+                            <div className="flex items-center">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingItemState({ categoryId: category.id, item })} disabled={anyMutationLoading}><Edit3 className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteItem(category.id, item.id)} disabled={anyMutationLoading}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </div>
                         </div>
-                        <div className="flex items-center">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingItemState({ categoryId: category.id, item })} disabled={anyMutationLoading}><Edit3 className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteItem(category.id, item.id)} disabled={anyMutationLoading}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                        </div>
-                      </div>
-                    ))}
-                    <Button variant="outline" size="sm" className="mt-2" onClick={() => handleAddItem(category.id)} disabled={anyMutationLoading}><PlusCircle className="mr-2 h-4 w-4"/>Add Item</Button>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+                        ))}
+                        <Button variant="outline" size="sm" className="mt-2" onClick={() => handleAddItem(category.id)} disabled={anyMutationLoading}><PlusCircle className="mr-2 h-4 w-4"/>Add Item</Button>
+                    </AccordionContent>
+                    </AccordionItem>
+                ))}
+                </Accordion>
+            )}
           </CardContent>
         </Card>
-      )}
+       ) : null
+      }
 
-      {editingItemState && (
-        <EditItemDialog
-          isOpen={!!editingItemState}
-          onClose={() => setEditingItemState(null)}
-          itemState={editingItemState}
-          onSave={handleUpdateItem}
-        />
-      )}
+      {editingItemState && (<EditItemDialog isOpen={!!editingItemState} onClose={() => setEditingItemState(null)} itemState={editingItemState} onSave={handleUpdateItem}/>)}
     </div>
   );
 }
 
-// Edit Item Dialog Component
 interface EditItemDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  itemState: { categoryId: string; item: PackingListItem };
+  isOpen: boolean; onClose: () => void; itemState: { categoryId: string; item: PackingListItem };
   onSave: (categoryId: string, item: PackingListItem) => void;
 }
 
@@ -369,35 +356,17 @@ function EditItemDialog({ isOpen, onClose, itemState, onSave }: EditItemDialogPr
   const [name, setName] = useState(itemState.item.name);
   const [quantity, setQuantity] = useState(itemState.item.quantity);
   const [notes, setNotes] = useState(itemState.item.notes || '');
-
-  const handleSave = () => {
-    onSave(itemState.categoryId, { ...itemState.item, name, quantity, notes });
-  };
-  
+  const handleSave = () => { onSave(itemState.categoryId, { ...itemState.item, name, quantity, notes }); };
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Edit Item</DialogTitle>
-        </DialogHeader>
+        <DialogHeader><DialogTitle>Edit Item</DialogTitle></DialogHeader>
         <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="edit-name">Item Name</Label>
-            <Input id="edit-name" value={name} onChange={e => setName(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-quantity">Quantity</Label>
-            <Input id="edit-quantity" type="number" value={quantity} onChange={e => setQuantity(Number(e.target.value))} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-notes">Notes</Label>
-            <Textarea id="edit-notes" value={notes} onChange={e => setNotes(e.target.value)} />
-          </div>
+          <div className="space-y-2"><Label htmlFor="edit-name">Item Name</Label><Input id="edit-name" value={name} onChange={e => setName(e.target.value)} /></div>
+          <div className="space-y-2"><Label htmlFor="edit-quantity">Quantity</Label><Input id="edit-quantity" type="number" value={quantity} onChange={e => setQuantity(Number(e.target.value))} /></div>
+          <div className="space-y-2"><Label htmlFor="edit-notes">Notes</Label><Textarea id="edit-notes" value={notes} onChange={e => setNotes(e.target.value)} /></div>
         </div>
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave}>Save Changes</Button>
-        </div>
+        <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={handleSave}>Save Changes</Button></div>
       </DialogContent>
     </Dialog>
   );
