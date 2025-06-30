@@ -310,7 +310,7 @@ export default function SignupPage() {
                   <Link href="/learn?tab=tos" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                     Terms of Service and Privacy Policy
                   </Link>
-                  *.
+                  *. I understand that this app is a guide and should not be solely relied upon.
                 </Label>
               </div>
               {errors.agreeToTerms && <p className="text-xs text-destructive font-body mt-1 pl-7">{errors.agreeToTerms.message}</p>}
