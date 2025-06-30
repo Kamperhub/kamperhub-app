@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
@@ -16,9 +17,9 @@ const sanitizeData = (data: any) => {
   try {
     const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
     return JSON.parse(jsonString);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in sanitizeData:', error);
-    return {};
+    throw new Error(`Failed to serialize user data: ${error.message}`);
   }
 };
 
@@ -81,12 +82,23 @@ export async function GET(req: NextRequest) {
           error: 'User profile not found.',
           details: `A profile for the authenticated user (UID: ${uid}) does not exist in the Firestore 'users' collection. This indicates a data integrity problem that may require creating the user profile document.`
         },
-        { status: 500 }
+        { status: 404 } // Use 404 for resource not found
       );
     }
 
     const userData = userDocSnap.data() || {};
-    const serializableData = sanitizeData(userData);
+    
+    // Add specific try/catch for serialization to prevent crashes
+    let serializableData;
+    try {
+        serializableData = sanitizeData(userData);
+    } catch (serializationError: any) {
+        console.error('CRITICAL: Failed to serialize user profile data for UID:', uid, 'Error:', serializationError);
+        return NextResponse.json(
+            { error: 'Server Error: Could not process user profile data.', details: serializationError.message },
+            { status: 500 }
+        );
+    }
 
     return NextResponse.json(serializableData, {
       status: 200,
@@ -95,12 +107,9 @@ export async function GET(req: NextRequest) {
   } catch (err: any) {
     console.error('Error in user-preferences GET handler for UID:', uid, 'Error:', err);
     
-    // Default error for other issues
     let errorInfo = 'Failed to process user preferences on the server.';
     let errorDetails = err.message;
 
-    // Check for the specific "NOT_FOUND" error from Firestore (code 5)
-    // This is the most likely error if the database doesn't exist in the project
     if (err.code === 5) {
         errorInfo = `Database Not Found or Inaccessible`;
         errorDetails = `The server connected to Firebase but could not find the Firestore database. This usually means the database has not been created in the Firebase console for this project. Please go to the Firebase Console, select your project, and ensure you have created a Firestore Database. Refer to Step 6 in FIREBASE_SETUP_CHECKLIST.md.`;
