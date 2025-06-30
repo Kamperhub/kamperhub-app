@@ -280,7 +280,7 @@ export default function DashboardPage() {
         </div>
       </div>
       
-      <div className="text-center my-6 flex justify-center items-center gap-4">
+      <div className="my-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4">
         <StartTripDialog>
             <Button size="lg" className="h-14 px-10 text-xl font-headline bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg animate-pulse">
                 <Rocket className="mr-3 h-6 w-6" />
