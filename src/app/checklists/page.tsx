@@ -90,6 +90,14 @@ export default function ChecklistsPage() {
     return allCaravanDefaultChecklists[selectedCaravanIdForDefaults] || null;
   }, [managementMode, selectedCaravanIdForDefaults, allCaravanDefaultChecklists]);
   
+  const checklistSource = useMemo(() => {
+    if (!selectedTrip) return null;
+    if (selectedTrip.activeCaravanNameAtTimeOfCreation) {
+        return `Based on: ${selectedTrip.activeCaravanNameAtTimeOfCreation} defaults`;
+    }
+    return 'Based on: Global Template';
+  }, [selectedTrip]);
+
   // --- Mutations ---
   const updateTripMutation = useMutation({
     mutationFn: updateTrip,
@@ -195,8 +203,8 @@ export default function ChecklistsPage() {
           <AlertDescription className="font-body text-accent-foreground/90 space-y-1">
             <p>Checklist data is now stored on the server for access across your devices.</p>
             <ul className="list-disc pl-5">
-              <li><strong>Trip-Specific Checklists:</strong> Created when you save a trip, modifications here only affect this specific trip.</li>
-              <li><strong>Caravan Default Checklists:</strong> Define a default template for each caravan, used for new trips planned with that caravan.</li>
+              <li><strong>Trip-Specific Checklists:</strong> When you save a trip, a checklist is created based on your active caravan's default (or a global template if none is set). Modifications here only affect this specific trip.</li>
+              <li><strong>Caravan Default Checklists:</strong> Define a default template for each of your caravans.</li>
             </ul>
           </AlertDescription>
         </Alert>
@@ -238,6 +246,7 @@ export default function ChecklistsPage() {
               <Alert variant="default" className="mb-6 bg-secondary/30 border-secondary/50">
                 <ListChecks className="h-4 w-4 text-foreground" />
                 <AlertTitle className="font-headline font-bold text-foreground">Checklists for Trip: {currentTripChecklistSet.tripName}</AlertTitle>
+                <AlertDescription className="text-xs text-muted-foreground">{checklistSource}</AlertDescription>
               </Alert>
               <Tabs defaultValue="preDeparture" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 gap-2 mb-4 bg-background p-0">

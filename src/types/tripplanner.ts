@@ -63,6 +63,9 @@ export interface LoggedTrip {
   
   // New field for occupants
   occupants?: Occupant[];
+
+  activeCaravanIdAtTimeOfCreation?: string | null;
+  activeCaravanNameAtTimeOfCreation?: string | null;
 }
 
 // Key for localStorage
