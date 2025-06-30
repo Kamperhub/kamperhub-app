@@ -100,6 +100,8 @@ export default function MyAccountPage() {
       
       await updateUserPreferences({
         displayName: data.displayName,
+        firstName: data.firstName,
+        lastName: data.lastName,
         email: data.email,
         city: data.city,
         state: data.state,
@@ -272,13 +274,16 @@ export default function MyAccountPage() {
   
   const initialProfileDataForEdit: EditProfileFormData = {
     displayName: userProfile?.displayName || user?.displayName || '',
+    firstName: userProfile?.firstName || '',
+    lastName: userProfile?.lastName || '',
     email: userProfile?.email || user?.email || '',
     city: userProfile?.city || '',
     state: userProfile?.state || '',
     country: userProfile?.country || '',
   };
   
-  const displayUserName = userProfile?.displayName || user.displayName || 'User';
+  const fullName = [userProfile?.firstName, userProfile?.lastName].filter(Boolean).join(' ');
+  const welcomeName = fullName || userProfile?.displayName || user.displayName || 'User';
   const isAdminUser = user?.email === ADMIN_EMAIL;
 
   return (
@@ -287,7 +292,7 @@ export default function MyAccountPage() {
         <CardHeader className="text-center">
           <UserCircle className="h-20 w-20 text-primary mx-auto mb-3" />
           <CardTitle className="font-headline text-3xl text-primary">
-            Welcome, {displayUserName}!
+            Welcome, {welcomeName}!
           </CardTitle>
           <CardDescription className="font-body text-lg">
             Manage your account details and subscription.
@@ -319,7 +324,15 @@ export default function MyAccountPage() {
             
             <p className="font-body text-sm flex items-center">
                 <User className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>Display Name:</strong>&nbsp;{userProfile?.displayName || user.displayName || '[Not Set]'}
+                <strong>First Name:</strong>&nbsp;{userProfile?.firstName || '[Not Set]'}
+            </p>
+             <p className="font-body text-sm flex items-center">
+                <User className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
+                <strong>Last Name:</strong>&nbsp;{userProfile?.lastName || '[Not Set]'}
+            </p>
+            <p className="font-body text-sm flex items-center">
+                <UserCircle className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
+                <strong>Username:</strong>&nbsp;{userProfile?.displayName || '[Not Set]'}
             </p>
             <p className="font-body text-sm flex items-center">
                 <Mail className="h-4 w-4 mr-2 text-primary/80 opacity-70" />

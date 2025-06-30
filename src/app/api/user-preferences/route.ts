@@ -50,6 +50,8 @@ const userPreferencesUpdateSchema = z
       .optional(),
     caravanDefaultChecklists: z.any().optional(),
     displayName: z.string().optional(),
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
     email: z.string().email().optional(),
     city: z.string().optional(),
     state: z.string().optional(),
