@@ -493,12 +493,12 @@ export default function TripPlannerPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="fuelEfficiency" className="font-body">Fuel Efficiency (L/100km)</Label>
+                        <Label htmlFor="fuelEfficiency" className="font-body">Fuel (L/100km)</Label>
                         <Controller name="fuelEfficiency" control={control} render={({ field }) => (<Input id="fuelEfficiency" type="number" step="0.1" {...field} value={field.value ?? ''} className="font-body" />)} />
                         {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
                       </div>
                       <div>
-                        <Label htmlFor="fuelPrice" className="font-body">Fuel Price ($/L)</Label>
+                        <Label htmlFor="fuelPrice" className="font-body">Price ($/L)</Label>
                         <Controller name="fuelPrice" control={control} render={({ field }) => (<Input id="fuelPrice" type="number" step="0.01" {...field} value={field.value ?? ''} className="font-body" />)} />
                         {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
                       </div>
@@ -535,7 +535,7 @@ export default function TripPlannerPage() {
               </Card>
             </div>
             <div className="md:col-span-2 space-y-6">
-               <Button
+              <Button
                   onClick={handleOpenSaveTripDialog}
                   variant="default"
                   size="lg"
@@ -714,4 +714,5 @@ function OccupantManager({ occupants, onUpdate, disabled }: { occupants: Occupan
     
 
     
+
 
