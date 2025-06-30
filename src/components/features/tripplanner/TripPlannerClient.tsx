@@ -24,7 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
-import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Trash2, PlusCircle, Users, AlertTriangle, XCircle } from 'lucide-react';
+import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Trash2, PlusCircle, Users, AlertTriangle, XCircle, Edit3 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from "date-fns";
@@ -543,23 +543,45 @@ export function TripPlannerClient() {
 function OccupantManager({ occupants, onUpdate, disabled }: { occupants: Occupant[], onUpdate: (newOccupants: Occupant[]) => void, disabled?: boolean }) {
     const [description, setDescription] = useState('');
     const [weight, setWeight] = useState('');
+    const [editingOccupantId, setEditingOccupantId] = useState<string | null>(null);
     const { toast } = useToast();
 
-    const handleAddOccupant = (e: React.FormEvent) => {
+    const handleEditClick = (occupant: Occupant) => {
+        setEditingOccupantId(occupant.id);
+        setDescription(occupant.description);
+        setWeight(String(occupant.weight));
+    };
+
+    const handleCancelEdit = () => {
+        setEditingOccupantId(null);
+        setDescription('');
+        setWeight('');
+    };
+
+    const handleSaveOccupant = (e: React.FormEvent) => {
         e.preventDefault();
         const weightValue = parseFloat(weight);
         if (!description.trim() || isNaN(weightValue) || weightValue <= 0) {
             toast({ title: "Invalid Input", description: "Please provide a valid description and positive weight.", variant: "destructive" });
             return;
         }
-        const newOccupant: Occupant = {
-            id: Date.now().toString(),
-            description: description.trim(),
-            weight: weightValue,
-        };
-        onUpdate([...occupants, newOccupant]);
-        setDescription('');
-        setWeight('');
+
+        if (editingOccupantId) {
+            const updatedOccupants = occupants.map(occ =>
+                occ.id === editingOccupantId ? { ...occ, description: description.trim(), weight: weightValue } : occ
+            );
+            onUpdate(updatedOccupants);
+            toast({ title: "Occupant Updated" });
+        } else {
+            const newOccupant: Occupant = {
+                id: Date.now().toString(),
+                description: description.trim(),
+                weight: weightValue,
+            };
+            onUpdate([...occupants, newOccupant]);
+            toast({ title: "Occupant Added" });
+        }
+        handleCancelEdit();
     };
 
     const handleDeleteOccupant = (id: string) => {
@@ -570,7 +592,8 @@ function OccupantManager({ occupants, onUpdate, disabled }: { occupants: Occupan
 
     return (
         <div className="space-y-4">
-            <form onSubmit={handleAddOccupant} className="space-y-2">
+            <form onSubmit={handleSaveOccupant} className="space-y-2 p-3 border rounded-md bg-muted/20">
+                 <h4 className="font-semibold text-sm">{editingOccupantId ? 'Edit Occupant' : 'Add New Occupant'}</h4>
                 <div className="grid grid-cols-2 gap-2">
                     <div>
                         <Label htmlFor="occ-desc" className="text-xs">Description</Label>
@@ -581,17 +604,30 @@ function OccupantManager({ occupants, onUpdate, disabled }: { occupants: Occupan
                         <Input id="occ-weight" type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="e.g., 75" disabled={disabled} />
                     </div>
                 </div>
-                <Button type="submit" size="sm" className="w-full" disabled={disabled}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Occupant
-                </Button>
+                <div className="flex gap-2">
+                    {editingOccupantId && (
+                        <Button type="button" size="sm" variant="outline" className="w-full" onClick={handleCancelEdit} disabled={disabled}>
+                            Cancel
+                        </Button>
+                    )}
+                    <Button type="submit" size="sm" className="w-full" disabled={disabled}>
+                        {editingOccupantId ? <Save className="mr-2 h-4 w-4" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                        {editingOccupantId ? 'Update Occupant' : 'Add Occupant'}
+                    </Button>
+                </div>
             </form>
             <div className="space-y-2">
                 {occupants.map(occ => (
                     <div key={occ.id} className="flex items-center justify-between bg-muted/50 p-2 rounded-md">
                         <span className="text-sm">{occ.description} - {occ.weight}kg</span>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDeleteOccupant(occ.id)} disabled={disabled}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <div className="flex items-center">
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditClick(occ)} disabled={disabled}>
+                                <Edit3 className="h-4 w-4 text-blue-600" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDeleteOccupant(occ.id)} disabled={disabled}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </div>
                     </div>
                 ))}
             </div>
@@ -600,5 +636,5 @@ function OccupantManager({ occupants, onUpdate, disabled }: { occupants: Occupan
     )
 }
 
-
+    
     
