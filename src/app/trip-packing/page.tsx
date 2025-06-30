@@ -40,6 +40,10 @@ const activityOptions = [
     activities: ['Bushwalking/Hiking', 'National Park Exploration', 'Bird Watching', 'Mountain Biking', '4WD Off-roading'],
   },
   {
+    category: 'Alpine & Winter',
+    activities: ['Alpine Hiking', 'Skiing/Snowboarding', 'Snow Play'],
+  },
+  {
     category: 'Relaxation & Leisure',
     activities: ['Relaxing at Camp', 'Reading', 'Photography', 'Campfires', 'Local Market Visits'],
   },
