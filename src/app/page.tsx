@@ -7,7 +7,7 @@ import type { NavItem } from '@/lib/navigation';
 import { navItems as defaultNavItems } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Home as HomeIcon, Loader2, LayoutDashboard, AlertTriangle, Rocket } from 'lucide-react';
+import { Home as HomeIcon, Loader2, LayoutDashboard, AlertTriangle, Rocket, CornerDownLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
@@ -23,6 +23,7 @@ import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@d
 import { CSS } from '@dnd-kit/utilities';
 import { NavigationContext } from '@/components/layout/AppShell';
 import { StartTripDialog } from '@/components/features/dashboard/StartTripDialog';
+import { ReturnTripDialog } from '@/components/features/dashboard/ReturnTripDialog';
 
 
 function NavItemCard({ item }: { item: NavItem }) {
@@ -269,13 +270,19 @@ export default function DashboardPage() {
         </div>
       </div>
       
-      <div className="text-center my-6">
+      <div className="text-center my-6 flex justify-center items-center gap-4">
         <StartTripDialog>
             <Button size="lg" className="h-14 px-10 text-xl font-headline bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg animate-pulse">
                 <Rocket className="mr-3 h-6 w-6" />
                 Start a Trip!
             </Button>
         </StartTripDialog>
+        <ReturnTripDialog>
+            <Button size="lg" variant="outline" className="h-14 px-10 text-xl font-headline shadow-lg">
+                <CornerDownLeft className="mr-3 h-6 w-6" />
+                Plan Return
+            </Button>
+        </ReturnTripDialog>
       </div>
 
       <DndContext
