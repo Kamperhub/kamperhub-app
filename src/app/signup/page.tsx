@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase'; 
-import { createUserWithEmailAndPassword, updateProfile, type User as FirebaseUser, type AuthError } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, type User as FirebaseUser, type AuthError, deleteUser } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { UserPlus, Mail, User, KeyRound, MapPin, Building, Globe, Loader2, CheckSquare } from 'lucide-react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
@@ -87,13 +87,17 @@ export default function SignupPage() {
     let newFirebaseUser: FirebaseUser | null = null;
 
     try {
+      // 1. Create user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       newFirebaseUser = userCredential.user;
+      
+      // 2. Update Firebase Auth profile (e.g., with display name)
       await updateProfile(newFirebaseUser, { displayName: username });
       
       const trialEndDate = new Date();
       trialEndDate.setDate(trialEndDate.getDate() + 7);
 
+      // 3. Prepare the user profile document for Firestore
       const userProfileData: Omit<UserProfile, 'activeVehicleId' | 'activeCaravanId' | 'activeWdhId' | 'dashboardLayout' | 'caravanWaterLevels' | 'caravanDefaultChecklists' | 'updatedAt' | 'isAdmin'> = {
         uid: newFirebaseUser.uid,
         email: newFirebaseUser.email, 
@@ -110,8 +114,10 @@ export default function SignupPage() {
         trialEndsAt: trialEndDate.toISOString(),
       };
 
+      // 4. Create the user profile document in Firestore
       await setDoc(doc(db, "users", newFirebaseUser.uid), userProfileData);
       
+      // 5. Success! Show toast and redirect.
       toast({
         title: 'Account Created & Trial Started!',
         description: `Welcome, ${username}! You now have a 7-day free trial of KamperHub Pro features.`,
@@ -119,23 +125,43 @@ export default function SignupPage() {
       });
       
       router.push('/'); 
-    } catch (authError: any) {
-      const error = authError as AuthError;
-      let toastMessage = 'An unexpected error occurred during sign up. Please try again.'; 
-      if (error.code) {
-        switch (error.code) {
+    } catch (error: any) {
+      let toastMessage = 'An unexpected error occurred. Please try again.';
+      const authError = error as AuthError;
+
+      // Handle specific Firebase Auth errors
+      if (authError.code) {
+        switch (authError.code) {
           case 'auth/email-already-in-use':
             toastMessage = 'This email address is already in use by another account.';
+            newFirebaseUser = null; // Don't try to delete a user that wasn't created
             break;
           default:
-            toastMessage = error.message || 'An unknown sign-up error occurred.';
+            toastMessage = `An error occurred during signup: ${authError.message}`;
             break;
         }
-      } else if (error.message) {
-        toastMessage = error.message;
+      } else {
+        // This block likely runs if setDoc to Firestore fails
+        toastMessage = `Could not save your profile to the database. Please try signing up again. Error: ${error.message}`;
       }
-      toast({ title: 'Sign Up Failed', description: toastMessage, variant: 'destructive' });
-      console.error("Firebase Auth Signup Error:", error); 
+
+      // Cleanup: If an Auth user was created but the process failed later (e.g., Firestore write failed),
+      // delete the orphaned user to allow them to try signing up again with the same email.
+      if (newFirebaseUser) {
+        await deleteUser(newFirebaseUser).catch(deleteError => {
+          console.error("Failed to delete orphaned user during signup rollback:", deleteError);
+          // Append to the error message if cleanup fails, so user knows to contact support
+          toastMessage += " Failed to clean up temporary user. Please contact support if you cannot sign up.";
+        });
+      }
+
+      toast({
+        title: 'Sign Up Failed',
+        description: toastMessage,
+        variant: 'destructive',
+        duration: 9000,
+      });
+
     } finally {
       setIsLoading(false);
     }

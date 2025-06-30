@@ -186,6 +186,7 @@ export default function MyAccountPage() {
   };
   
   const isLoading = isAuthLoading || isProfileLoading;
+  const isAdminUser = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   if (isLoading) {
     return (
@@ -216,8 +217,12 @@ export default function MyAccountPage() {
                   </>
                 ) : isProfileMissingError ? (
                   <>
-                    <p className="font-bold">Your user profile doesn't exist in the database yet.</p>
-                    <p>This can happen after setting up your environment for the first time. Please use the one-time tool to create your admin profile. Refer to **Step 7** in the updated <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file for instructions.</p>
+                    <p className="font-bold">Your user profile could not be found in the database.</p>
+                    {isAdminUser ? (
+                         <p className="mt-2">As you are the admin, this can happen after setting up your environment. Please use the one-time tool to create your admin profile. Refer to **Step 7** in the updated <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file for instructions.</p>
+                    ) : (
+                         <p className="mt-2">This can happen if your signup was interrupted. Please try logging out and signing up again. If the problem persists, please contact support.</p>
+                    )}
                   </>
                 ) : (
                   <p>There was a problem fetching your profile from the server.</p>
@@ -261,7 +266,6 @@ export default function MyAccountPage() {
   
   const fullName = [userProfile?.firstName, userProfile?.lastName].filter(Boolean).join(' ');
   const welcomeName = fullName || userProfile?.displayName || user.displayName || 'User';
-  const isAdminUser = user?.email === ADMIN_EMAIL;
 
   return (
     <div className="space-y-8">
