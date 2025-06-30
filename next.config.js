@@ -1,3 +1,4 @@
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
@@ -9,7 +10,7 @@ const nextConfig = {
     const cspHeader = [
       "default-src 'self'",
       // Scripts
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://www.gstatic.com https://js.stripe.com https://hooks.stripe.com https://billing.stripe.com https://*.cloudworkstations.googleusercontent.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://www.gstatic.com https://*.stripe.com https://*.cloudworkstations.googleusercontent.com",
       // Styles
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       // Images
@@ -17,11 +18,11 @@ const nextConfig = {
       // Fonts
       "font-src 'self' https://fonts.gstatic.com",
       // Connections
-      "connect-src 'self' https://*.googleapis.com wss://*.cloudworkstations.dev https://api.stripe.com https://hooks.stripe.com https://billing.stripe.com https://*.cloudworkstations.googleusercontent.com",
+      "connect-src 'self' https://*.googleapis.com wss://*.cloudworkstations.dev https://*.stripe.com https://*.cloudworkstations.googleusercontent.com",
       // Workers
       "worker-src 'self' blob: *.cloudworkstations.googleusercontent.com",
       // Frames
-      "frame-src 'self' https://www.google.com https://js.stripe.com https://hooks.stripe.com https://billing.stripe.com https://www.youtube.com https://*.cloudworkstations.googleusercontent.com",
+      "frame-src 'self' https://www.google.com https://*.stripe.com https://www.youtube.com https://*.cloudworkstations.googleusercontent.com",
       // Others
       "object-src 'none'",
       "base-uri 'self'",
