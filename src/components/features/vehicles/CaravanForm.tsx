@@ -139,18 +139,21 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
   });
 
   const numberOfAxles = watch("numberOfAxles");
-  const watchedAtm = watch("atm");
-  const watchedTareMass = watch("tareMass");
   const hasWdh = watch("hasWdh");
   const hasIntegratedSway = watch("wdh.hasIntegratedSwayControl");
+  
+  const watchedStorageLocations = watch("storageLocations");
+  const watchedWaterTanks = watch("waterTanks");
+  const watchedAtm = watch("atm");
+  const watchedTareMass = watch("tareMass");
 
   const potentialGrossPayload = useMemo(() => {
     const atm = Number(watchedAtm);
     const tare = Number(watchedTareMass);
-    if (!isNaN(atm) && !isNaN(tare) && atm > 0 && tare > 0 && atm >= tare) {
+    if (!isNaN(atm) && !isNaN(tare) && atm > tare) {
       return atm - tare;
     }
-    return null;
+    return 0;
   }, [watchedAtm, watchedTareMass]);
   
   useEffect(() => {
@@ -247,7 +250,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
           {errors.maxTowballDownload && <p className="text-sm text-destructive font-body mt-1">{errors.maxTowballDownload.message}</p>}
         </div>
       </div>
-       {potentialGrossPayload !== null && (
+       {potentialGrossPayload > 0 && (
         <Alert variant="default" className="mt-2 bg-primary/10 border-primary/30">
           <Info className="h-4 w-4 text-primary" />
           <AlertTitle className="font-body text-primary">Calculated Gross Payload</AlertTitle>
@@ -361,110 +364,141 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
       <Separator className="my-6" />
       <h3 className="text-lg font-medium font-headline text-primary">Storage Locations</h3>
       <div className="space-y-4">
-        {storageLocationFields.map((field, index) => (
-          <div key={field.id} className="p-4 border rounded-md space-y-3 bg-muted/30">
-            <div className="flex justify-between items-center">
-                <Label className="font-body font-medium">Location {index + 1}</Label>
-                <Button type="button" variant="ghost" onClick={() => removeStorageLocation(index)} className="text-destructive hover:bg-destructive/10 self-end sm:col-start-2 sm:justify-self-end p-2">
-                    <Trash2 className="h-4 w-4 mr-1" /> Remove
-                </Button>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                    <Label htmlFor={`storageLocations.${index}.name`} className="text-xs font-body">Name*</Label>
-                    <Input 
-                        {...register(`storageLocations.${index}.name`)} 
-                        placeholder="e.g., Front Boot, Kitchen Cupboard"
-                        className="font-body bg-background"
-                    />
-                    {errors.storageLocations?.[index]?.name && <p className="text-sm text-destructive font-body mt-1">{errors.storageLocations[index]?.name?.message}</p>}
-                </div>
-                 <div>
-                    <Label htmlFor={`storageLocations.${index}.maxWeightCapacityKg`} className="text-xs font-body">Max Capacity (kg) (Optional)</Label>
-                    <Input 
-                        {...register(`storageLocations.${index}.maxWeightCapacityKg`)} 
-                        type="number" 
-                        placeholder="e.g., 50"
-                        className="font-body bg-background"
-                    />
-                    {errors.storageLocations?.[index]?.maxWeightCapacityKg && <p className="text-sm text-destructive font-body mt-1">{errors.storageLocations[index]?.maxWeightCapacityKg?.message}</p>}
-                </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor={`storageLocations.${index}.longitudinalPosition`} className="text-xs font-body">Longitudinal Position*</Label>
-                <Controller
-                  name={`storageLocations.${index}.longitudinalPosition`}
-                  control={control}
-                  render={({ field: controllerField }) => (
-                    <Select onValueChange={controllerField.onChange} defaultValue={controllerField.value}>
-                      <SelectTrigger className="font-body bg-background"><SelectValue placeholder="Select longitudinal position" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="front-of-axles">Front of Axle(s)</SelectItem>
-                        <SelectItem value="over-axles">Over Axle(s)</SelectItem>
-                        <SelectItem value="rear-of-axles">Rear of Axle(s)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {errors.storageLocations?.[index]?.longitudinalPosition && <p className="text-sm text-destructive font-body mt-1">{errors.storageLocations[index]?.longitudinalPosition?.message}</p>}
+        {storageLocationFields.map((field, index) => {
+          const payloadAllocatedElsewhere = useMemo(() => {
+              const storageElsewhere = (watchedStorageLocations || []).reduce((sum, loc, i) => {
+                  if (i === index) return sum; // Don't count the current location
+                  const capacity = Number(loc.maxWeightCapacityKg);
+                  return sum + (isNaN(capacity) ? 0 : capacity);
+              }, 0);
+
+              const waterCapacity = (watchedWaterTanks || []).reduce((sum, tank) => {
+                  const capacity = Number(tank.capacityLiters); // 1L of water is ~1kg
+                  return sum + (isNaN(capacity) ? 0 : capacity);
+              }, 0);
+              
+              const gasBottleWeight = 18; // Assume 2 x 9kg bottles as a standard estimate
+
+              return storageElsewhere + waterCapacity + gasBottleWeight;
+          }, [watchedStorageLocations, watchedWaterTanks, index]);
+
+          const remainingPayloadForThisLocation = potentialGrossPayload - payloadAllocatedElsewhere;
+          
+          return (
+            <div key={field.id} className="p-4 border rounded-md space-y-3 bg-muted/30">
+              <div className="flex justify-between items-center">
+                  <Label className="font-body font-medium">Location {index + 1}</Label>
+                  <Button type="button" variant="ghost" onClick={() => removeStorageLocation(index)} className="text-destructive hover:bg-destructive/10 self-end sm:col-start-2 sm:justify-self-end p-2">
+                      <Trash2 className="h-4 w-4 mr-1" /> Remove
+                  </Button>
               </div>
-              <div>
-                <Label htmlFor={`storageLocations.${index}.lateralPosition`} className="text-xs font-body">Lateral Position*</Label>
-                 <Controller
-                  name={`storageLocations.${index}.lateralPosition`}
-                  control={control}
-                  render={({ field: controllerField }) => (
-                    <Select onValueChange={controllerField.onChange} defaultValue={controllerField.value}>
-                      <SelectTrigger className="font-body bg-background"><SelectValue placeholder="Select lateral position" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="left">Left</SelectItem>
-                        <SelectItem value="center">Center</SelectItem>
-                        <SelectItem value="right">Right</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {errors.storageLocations?.[index]?.lateralPosition && <p className="text-sm text-destructive font-body mt-1">{errors.storageLocations[index]?.lateralPosition?.message}</p>}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                      <Label htmlFor={`storageLocations.${index}.name`} className="text-xs font-body">Name*</Label>
+                      <Input 
+                          {...register(`storageLocations.${index}.name`)} 
+                          placeholder="e.g., Front Boot, Kitchen Cupboard"
+                          className="font-body bg-background"
+                      />
+                      {errors.storageLocations?.[index]?.name && <p className="text-sm text-destructive font-body mt-1">{errors.storageLocations[index]?.name?.message}</p>}
+                  </div>
+                   <div>
+                      <Label htmlFor={`storageLocations.${index}.maxWeightCapacityKg`} className="text-xs font-body">Max Capacity (kg) (Optional)</Label>
+                      <Input 
+                          {...register(`storageLocations.${index}.maxWeightCapacityKg`)} 
+                          type="number" 
+                          placeholder="e.g., 50"
+                          className="font-body bg-background"
+                      />
+                      {errors.storageLocations?.[index]?.maxWeightCapacityKg && <p className="text-sm text-destructive font-body mt-1">{errors.storageLocations[index]?.maxWeightCapacityKg?.message}</p>}
+                      {potentialGrossPayload > 0 && (
+                          <Alert variant="default" className="mt-2 text-xs p-2 bg-background">
+                              <Info className="h-3 w-3" />
+                              <AlertDescription>
+                                  Suggestion: You have ~<strong>{Math.max(0, remainingPayloadForThisLocation).toFixed(0)} kg</strong> of payload remaining to allocate.
+                                  <br />
+                                  <span className="text-muted-foreground">(Total Payload: {potentialGrossPayload.toFixed(0)}kg, minus other allocated storage, water, and an estimated 18kg for gas).</span>
+                              </AlertDescription>
+                          </Alert>
+                      )}
+                  </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor={`storageLocations.${index}.longitudinalPosition`} className="text-xs font-body">Longitudinal Position*</Label>
+                  <Controller
+                    name={`storageLocations.${index}.longitudinalPosition`}
+                    control={control}
+                    render={({ field: controllerField }) => (
+                      <Select onValueChange={controllerField.onChange} defaultValue={controllerField.value}>
+                        <SelectTrigger className="font-body bg-background"><SelectValue placeholder="Select longitudinal position" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="front-of-axles">Front of Axle(s)</SelectItem>
+                          <SelectItem value="over-axles">Over Axle(s)</SelectItem>
+                          <SelectItem value="rear-of-axles">Rear of Axle(s)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.storageLocations?.[index]?.longitudinalPosition && <p className="text-sm text-destructive font-body mt-1">{errors.storageLocations[index]?.longitudinalPosition?.message}</p>}
+                </div>
+                <div>
+                  <Label htmlFor={`storageLocations.${index}.lateralPosition`} className="text-xs font-body">Lateral Position*</Label>
+                   <Controller
+                    name={`storageLocations.${index}.lateralPosition`}
+                    control={control}
+                    render={({ field: controllerField }) => (
+                      <Select onValueChange={controllerField.onChange} defaultValue={controllerField.value}>
+                        <SelectTrigger className="font-body bg-background"><SelectValue placeholder="Select lateral position" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="left">Left</SelectItem>
+                          <SelectItem value="center">Center</SelectItem>
+                          <SelectItem value="right">Right</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.storageLocations?.[index]?.lateralPosition && <p className="text-sm text-destructive font-body mt-1">{errors.storageLocations[index]?.lateralPosition?.message}</p>}
+                </div>
+              </div>
+               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                      <Label htmlFor={`storageLocations.${index}.distanceFromAxleCenterMm`} className="text-xs font-body">Dist. from Axle Center (mm) (Opt.)</Label>
+                      <Input 
+                          {...register(`storageLocations.${index}.distanceFromAxleCenterMm`)} 
+                          type="number" 
+                          placeholder="e.g., 1500 (front), -1000 (rear)"
+                          className="font-body bg-background"
+                      />
+                      <p className="text-xs text-muted-foreground font-body mt-0.5">Relative to axle(s) center. +ve towards hitch.</p>
+                      {errors.storageLocations?.[index]?.distanceFromAxleCenterMm && <p className="text-sm text-destructive font-body mt-1">{errors.storageLocations[index]?.distanceFromAxleCenterMm?.message}</p>}
+                  </div>
+                   <div>
+                      <Label htmlFor={`storageLocations.${index}.distanceFromCenterlineMm`} className="text-xs font-body">Dist. from Centerline (mm) (Opt.)</Label>
+                      <Input 
+                          {...register(`storageLocations.${index}.distanceFromCenterlineMm`)} 
+                          type="number" 
+                          placeholder="e.g., -300 (left), 300 (right)"
+                          className="font-body bg-background"
+                      />
+                       <p className="text-xs text-muted-foreground font-body mt-0.5">Relative to van centerline. +ve right.</p>
+                      {errors.storageLocations?.[index]?.distanceFromCenterlineMm && <p className="text-sm text-destructive font-body mt-1">{errors.storageLocations[index]?.distanceFromCenterlineMm?.message}</p>}
+                  </div>
+                   <div>
+                      <Label htmlFor={`storageLocations.${index}.heightFromGroundMm`} className="text-xs font-body">Height from Ground (mm) (Opt.)</Label>
+                      <Input 
+                          {...register(`storageLocations.${index}.heightFromGroundMm`)} 
+                          type="number" 
+                          placeholder="e.g., 500"
+                          className="font-body bg-background"
+                      />
+                       <p className="text-xs text-muted-foreground font-body mt-0.5">Est. center of mass height for location.</p>
+                      {errors.storageLocations?.[index]?.heightFromGroundMm && <p className="text-sm text-destructive font-body mt-1">{errors.storageLocations[index]?.heightFromGroundMm?.message}</p>}
+                  </div>
               </div>
             </div>
-             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                    <Label htmlFor={`storageLocations.${index}.distanceFromAxleCenterMm`} className="text-xs font-body">Dist. from Axle Center (mm) (Opt.)</Label>
-                    <Input 
-                        {...register(`storageLocations.${index}.distanceFromAxleCenterMm`)} 
-                        type="number" 
-                        placeholder="e.g., 1500 (front), -1000 (rear)"
-                        className="font-body bg-background"
-                    />
-                    <p className="text-xs text-muted-foreground font-body mt-0.5">Relative to axle(s) center. +ve towards hitch.</p>
-                    {errors.storageLocations?.[index]?.distanceFromAxleCenterMm && <p className="text-sm text-destructive font-body mt-1">{errors.storageLocations[index]?.distanceFromAxleCenterMm?.message}</p>}
-                </div>
-                 <div>
-                    <Label htmlFor={`storageLocations.${index}.distanceFromCenterlineMm`} className="text-xs font-body">Dist. from Centerline (mm) (Opt.)</Label>
-                    <Input 
-                        {...register(`storageLocations.${index}.distanceFromCenterlineMm`)} 
-                        type="number" 
-                        placeholder="e.g., -300 (left), 300 (right)"
-                        className="font-body bg-background"
-                    />
-                     <p className="text-xs text-muted-foreground font-body mt-0.5">Relative to van centerline. +ve right.</p>
-                    {errors.storageLocations?.[index]?.distanceFromCenterlineMm && <p className="text-sm text-destructive font-body mt-1">{errors.storageLocations[index]?.distanceFromCenterlineMm?.message}</p>}
-                </div>
-                 <div>
-                    <Label htmlFor={`storageLocations.${index}.heightFromGroundMm`} className="text-xs font-body">Height from Ground (mm) (Opt.)</Label>
-                    <Input 
-                        {...register(`storageLocations.${index}.heightFromGroundMm`)} 
-                        type="number" 
-                        placeholder="e.g., 500"
-                        className="font-body bg-background"
-                    />
-                     <p className="text-xs text-muted-foreground font-body mt-0.5">Est. center of mass height for location.</p>
-                    {errors.storageLocations?.[index]?.heightFromGroundMm && <p className="text-sm text-destructive font-body mt-1">{errors.storageLocations[index]?.heightFromGroundMm?.message}</p>}
-                </div>
-            </div>
-          </div>
-        ))}
+          )
+        })}
         <Button 
             type="button" 
             variant="outline" 
@@ -568,7 +602,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
                 />
                 <p className="text-xs text-muted-foreground font-body mt-0.5">Relative to axle(s) center. +ve towards hitch.</p>
                 {errors.waterTanks?.[index]?.distanceFromAxleCenterMm && <p className="text-sm text-destructive font-body mt-1">{errors.waterTanks[index]?.distanceFromAxleCenterMm?.message}</p>}
-            </div>
+              </div>
           </div>
         ))}
         <Button 
