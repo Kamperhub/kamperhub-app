@@ -30,6 +30,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PlusCircle, Edit, Trash2, Car, Info, Loader2, CalendarIcon, Route } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ToastAction } from '@/components/ui/toast';
 
 
 const fuelLogFormSchema = z.object({
@@ -94,14 +95,15 @@ export function FuelLogClient() {
   }, [editingLog, isFormOpen, setValue, reset]);
 
   const saveMutation = useMutation({
-    mutationFn: (data: { logData: Omit<FuelLogEntry, 'litres' | 'timestamp'> | Omit<FuelLogEntry, 'litres'> }) => {
+    mutationFn: (data: { logData: { id?: string; date: Date; totalCost: number; pricePerLitre: number; vehicleId: string; odometer: number; location?: string | undefined; notes?: string | undefined; assignedTripId?: string | null | undefined; } }) => {
         const { date, ...restData } = data.logData;
         const logDataForApi = {
             ...restData,
-            date: typeof date === 'string' ? date : date.toISOString(),
+            date: date.toISOString(),
+            litres: data.logData.totalCost / data.logData.pricePerLitre, // Calculate litres here
         };
 
-        if ('id' in logDataForApi) {
+        if ('id' in logDataForApi && logDataForApi.id) {
             return updateFuelLog(logDataForApi as FuelLogEntry);
         }
         return createFuelLog(logDataForApi as Omit<FuelLogEntry, 'id' | 'timestamp'>);
@@ -131,13 +133,11 @@ export function FuelLogClient() {
 
         toast({
           title: "Missing 'Fuel' Category",
-          description: (
-            <div>
-              <p>The selected trip doesn't have a 'Fuel' budget category. Please add one to assign this expense.</p>
-              <Button variant="link" className="p-0 h-auto mt-2 text-destructive-foreground hover:underline font-bold" onClick={handleRecallAndGo}>
-                Click here to add it now.
-              </Button>
-            </div>
+          description: "The selected trip doesn't have a 'Fuel' budget category. Please add one to assign this expense.",
+          action: (
+            <ToastAction altText="Add Category" onClick={handleRecallAndGo}>
+              Add Category
+            </ToastAction>
           ),
           variant: "destructive",
           duration: 10000,
@@ -227,7 +227,7 @@ export function FuelLogClient() {
                             {errors.totalCost && <p className="text-destructive text-sm mt-1">{errors.totalCost.message}</p>}
                         </div>
                         <div>
-                            <Label htmlFor="pricePerLitre">Price / Litre</Label>
+                            <Label htmlFor="pricePerLitre">Price / litre</Label>
                             <Input id="pricePerLitre" type="number" step="0.001" {...register('pricePerLitre')} />
                             {errors.pricePerLitre && <p className="text-destructive text-sm mt-1">{errors.pricePerLitre.message}</p>}
                         </div>
@@ -300,7 +300,7 @@ export function FuelLogClient() {
                         <TableHead>Trip</TableHead>
                         <TableHead>Odometer</TableHead>
                         <TableHead className="text-right">Litres</TableHead>
-                        <TableHead className="text-right">$/Litre</TableHead>
+                        <TableHead className="text-right">$/litre</TableHead>
                         <TableHead className="text-right">Total</TableHead>
                         <TableHead>Actions</TableHead>
                     </TableRow>
