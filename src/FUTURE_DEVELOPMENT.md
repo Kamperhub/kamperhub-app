@@ -24,6 +24,7 @@ This document tracks the development priorities, future features, and completed 
         *   Add reusable packing templates.
         *   Integrate with weather APIs for smarter suggestions.
         *   Explore collaborative packing features.
+        *   Integrate a messaging service to send packing lists to other people.
 
 ---
 
