@@ -156,6 +156,22 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
     return 0;
   }, [watchedAtm, watchedTareMass]);
   
+  const totalAllocatedWeight = useMemo(() => {
+    const storage = (watchedStorageLocations || []).reduce((sum, loc) => {
+        const capacity = Number(loc.maxWeightCapacityKg);
+        return sum + (isNaN(capacity) ? 0 : capacity);
+    }, 0);
+
+    const water = (watchedWaterTanks || []).reduce((sum, tank) => {
+        const capacity = Number(tank.capacityLiters); // 1L of water is ~1kg
+        return sum + (isNaN(capacity) ? 0 : capacity);
+    }, 0);
+    
+    const gas = 18; // Assume 2 x 9kg bottles as a standard estimate
+
+    return { storage, water, gas, total: storage + water + gas };
+  }, [watchedStorageLocations, watchedWaterTanks]);
+  
   useEffect(() => {
     const currentDefaultValues = initialData 
     ? { ...defaultFormValues, ...initialData, hasWdh: !!initialData.wdh } 
@@ -365,25 +381,11 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
       <h3 className="text-lg font-medium font-headline text-primary">Storage Locations</h3>
       <div className="space-y-4">
         {storageLocationFields.map((field, index) => {
-          const payloadAllocatedElsewhere = useMemo(() => {
-              const storageElsewhere = (watchedStorageLocations || []).reduce((sum, loc, i) => {
-                  if (i === index) return sum; // Don't count the current location
-                  const capacity = Number(loc.maxWeightCapacityKg);
-                  return sum + (isNaN(capacity) ? 0 : capacity);
-              }, 0);
-
-              const waterCapacity = (watchedWaterTanks || []).reduce((sum, tank) => {
-                  const capacity = Number(tank.capacityLiters); // 1L of water is ~1kg
-                  return sum + (isNaN(capacity) ? 0 : capacity);
-              }, 0);
-              
-              const gasBottleWeight = 18; // Assume 2 x 9kg bottles as a standard estimate
-
-              return storageElsewhere + waterCapacity + gasBottleWeight;
-          }, [watchedStorageLocations, watchedWaterTanks, index]);
-
+          const currentItemCapacity = Number(watchedStorageLocations?.[index]?.maxWeightCapacityKg) || 0;
+          const otherAllocatedStorage = totalAllocatedWeight.storage - currentItemCapacity;
+          const payloadAllocatedElsewhere = otherAllocatedStorage + totalAllocatedWeight.water + totalAllocatedWeight.gas;
           const remainingPayloadForThisLocation = potentialGrossPayload - payloadAllocatedElsewhere;
-          
+
           return (
             <div key={field.id} className="p-4 border rounded-md space-y-3 bg-muted/30">
               <div className="flex justify-between items-center">
@@ -417,7 +419,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
                               <AlertDescription>
                                   Suggestion: You have ~<strong>{Math.max(0, remainingPayloadForThisLocation).toFixed(0)} kg</strong> of payload remaining to allocate.
                                   <br />
-                                  <span className="text-muted-foreground">(Total Payload: {potentialGrossPayload.toFixed(0)}kg, minus other allocated storage, water, and an estimated 18kg for gas).</span>
+                                  <span className="text-muted-foreground">(Total: {potentialGrossPayload.toFixed(0)}kg, minus other storage, water, & ~18kg gas).</span>
                               </AlertDescription>
                           </Alert>
                       )}
@@ -497,7 +499,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
                   </div>
               </div>
             </div>
-          )
+          );
         })}
         <Button 
             type="button" 
