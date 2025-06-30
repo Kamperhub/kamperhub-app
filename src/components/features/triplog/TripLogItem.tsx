@@ -85,7 +85,7 @@ export function TripLogItem({ trip, onDelete, onRecall, onAddToCalendar, onStart
             onClick={() => onStartTrip(trip.id)} 
             className={`font-body ${trip.isCompleted ? '' : 'bg-green-600 hover:bg-green-700 text-white'}`}
         >
-          <PlayCircle className="mr-2 h-4 w-4" /> {trip.isCompleted ? "View Checklists" : "Start Trip to Open Checklists"}
+          <PlayCircle className="mr-2 h-4 w-4" /> {trip.isCompleted ? "View Checklists" : "Start Trip"}
         </Button>
         
         {trip.isCompleted ? (
@@ -93,7 +93,7 @@ export function TripLogItem({ trip, onDelete, onRecall, onAddToCalendar, onStart
                 <RotateCcw className="mr-2 h-4 w-4" /> Reopen Trip
             </Button>
         ) : (
-            <Button variant="secondary" size="sm" onClick={() => onToggleComplete(trip.id)} className="font-body">
+            <Button variant="outline" size="sm" onClick={() => onToggleComplete(trip.id)} className="font-body">
                 <CheckSquare className="mr-2 h-4 w-4" /> Mark Completed
             </Button>
         )}
