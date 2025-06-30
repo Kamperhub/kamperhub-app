@@ -8,20 +8,20 @@ const nextConfig = {
   
     const cspHeader = [
       "default-src 'self'",
-      // Scripts
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://www.gstatic.com https://*.stripe.com https://*.cloudworkstations.googleusercontent.com",
+      // Scripts - Add js.stripe.com for Stripe.js and the wildcard as a fallback.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://www.gstatic.com https://js.stripe.com https://*.stripe.com https://*.cloudworkstations.googleusercontent.com",
       // Styles
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       // Images
       "img-src 'self' data: https://placehold.co https://firebasestorage.googleapis.com https://maps.gstatic.com https://maps.googleapis.com *.googleusercontent.com",
       // Fonts
       "font-src 'self' https://fonts.gstatic.com",
-      // Connections
-      "connect-src 'self' https://*.googleapis.com wss://*.cloudworkstations.dev https://*.stripe.com https://*.cloudworkstations.googleusercontent.com",
+      // Connections - Add api.stripe.com and the wildcard for any other connections.
+      "connect-src 'self' https://*.googleapis.com wss://*.cloudworkstations.dev https://api.stripe.com https://*.stripe.com https://*.cloudworkstations.googleusercontent.com",
       // Workers
       "worker-src 'self' blob: *.cloudworkstations.googleusercontent.com",
-      // Frames
-      "frame-src 'self' https://www.google.com https://*.stripe.com https://www.youtube.com https://*.cloudworkstations.googleusercontent.com",
+      // Frames - Add billing.stripe.com for the customer portal and the wildcard as a fallback.
+      "frame-src 'self' https://www.google.com https://billing.stripe.com https://*.stripe.com https://www.youtube.com https://*.cloudworkstations.googleusercontent.com",
       // Others
       "object-src 'none'",
       "base-uri 'self'",
