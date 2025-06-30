@@ -97,6 +97,8 @@ const createCaravanSchema = z.object({
   maxTowballDownload: z.coerce.number().positive(),
   numberOfAxles: z.coerce.number().int().min(1),
   axleGroupRating: z.coerce.number().positive("Axle Group Rating must be positive"),
+  numberOfGasBottles: z.coerce.number().int().min(0).optional().nullable(),
+  gasBottleCapacityKg: z.coerce.number().min(0).optional().nullable(),
   tyreSize: z.string().optional().nullable(),
   tyreLoadRating: z.coerce.number().optional().nullable(),
   tyreSpeedRating: z.string().optional().nullable(),
@@ -150,6 +152,8 @@ export async function POST(req: NextRequest) {
       waterTanks: parsedData.waterTanks || [],
       diagrams: parsedData.diagrams || [],
       wdh: parsedData.wdh || null,
+      numberOfGasBottles: parsedData.numberOfGasBottles || null,
+      gasBottleCapacityKg: parsedData.gasBottleCapacityKg || null,
     };
     
     await newCaravanRef.set(newCaravan);

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, XCircle, PlusCircle, Trash2, Droplet, Info, FileText, Disc } from 'lucide-react';
+import { Save, XCircle, PlusCircle, Trash2, Droplet, Info, FileText, Disc, Flame } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
@@ -72,6 +72,8 @@ const caravanSchema = z.object({
   maxTowballDownload: z.coerce.number().positive("Max Towball Download must be positive"),
   numberOfAxles: z.coerce.number().int().min(1, "Must have at least 1 axle").max(4, "Number of axles seems high (max 4)"),
   axleGroupRating: z.coerce.number().positive("Axle Group Rating must be positive"),
+  numberOfGasBottles: z.coerce.number().int().min(0, "Must be a non-negative number.").optional().nullable(),
+  gasBottleCapacityKg: z.coerce.number().min(0, "Capacity must be non-negative.").optional().nullable(),
   tyreSize: z.string().optional().nullable(),
   tyreLoadRating: z.coerce.number().min(0).optional().nullable(),
   tyreSpeedRating: z.string().optional().nullable(),
@@ -110,6 +112,8 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
     maxTowballDownload: 0,
     numberOfAxles: 1,
     axleGroupRating: 0,
+    numberOfGasBottles: 2,
+    gasBottleCapacityKg: 9,
     tyreSize: null,
     tyreLoadRating: null,
     tyreSpeedRating: null,
@@ -152,35 +156,35 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
   const hasWdh = watch("hasWdh");
   const hasIntegratedSway = watch("wdh.hasIntegratedSwayControl");
   
-  const watchedStorageLocations = watch("storageLocations");
-  const watchedWaterTanks = watch("waterTanks");
-  const watchedAtm = watch("atm");
-  const watchedTareMass = watch("tareMass");
+  const watchedForm = watch();
 
-  const potentialGrossPayload = useMemo(() => {
-    const atm = Number(watchedAtm);
-    const tare = Number(watchedTareMass);
-    if (!isNaN(atm) && !isNaN(tare) && atm > tare) {
-      return atm - tare;
-    }
-    return 0;
-  }, [watchedAtm, watchedTareMass]);
-  
-  const totalAllocatedWeight = useMemo(() => {
-    const storage = (watchedStorageLocations || []).reduce((sum, loc) => {
+  const { potentialGrossPayload, totalAllocatedWeight } = useMemo(() => {
+    const atm = Number(watchedForm.atm);
+    const tare = Number(watchedForm.tareMass);
+    const payload = (!isNaN(atm) && !isNaN(tare) && atm > tare) ? atm - tare : 0;
+
+    const storage = (watchedForm.storageLocations || []).reduce((sum, loc) => {
         const capacity = Number(loc.maxWeightCapacityKg);
         return sum + (isNaN(capacity) ? 0 : capacity);
     }, 0);
 
-    const water = (watchedWaterTanks || []).reduce((sum, tank) => {
-        const capacity = Number(tank.capacityLiters); // 1L of water is ~1kg
+    const water = (watchedForm.waterTanks || []).reduce((sum, tank) => {
+        const capacity = Number(tank.capacityLiters);
         return sum + (isNaN(capacity) ? 0 : capacity);
     }, 0);
     
-    const gas = 18; // Assume 2 x 9kg bottles as a standard estimate
+    const numBottles = Number(watchedForm.numberOfGasBottles);
+    const bottleCapacity = Number(watchedForm.gasBottleCapacityKg);
+    const gas = (!isNaN(numBottles) && !isNaN(bottleCapacity) && numBottles > 0 && bottleCapacity > 0)
+        ? numBottles * bottleCapacity
+        : 0;
 
-    return { storage, water, gas, total: storage + water + gas };
-  }, [watchedStorageLocations, watchedWaterTanks]);
+    return { 
+      potentialGrossPayload: payload, 
+      totalAllocatedWeight: { storage, water, gas, total: storage + water + gas }
+    };
+  }, [watchedForm]);
+
   
   useEffect(() => {
     const currentDefaultValues = initialData 
@@ -203,6 +207,8 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
       overallHeight: data.overallHeight ? Number(data.overallHeight) : null,
       hitchToAxleCenterDistance: data.hitchToAxleCenterDistance ? Number(data.hitchToAxleCenterDistance) : null,
       interAxleSpacing: data.interAxleSpacing ? Number(data.interAxleSpacing) : null,
+      numberOfGasBottles: data.numberOfGasBottles ? Number(data.numberOfGasBottles) : null,
+      gasBottleCapacityKg: data.gasBottleCapacityKg ? Number(data.gasBottleCapacityKg) : null,
       storageLocations: data.storageLocations?.map(loc => ({
         ...loc,
         distanceFromAxleCenterMm: loc.distanceFromAxleCenterMm ? Number(loc.distanceFromAxleCenterMm) : null,
@@ -287,12 +293,22 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
       )}
 
       {/* Axle & Tyre Specifications */}
-      <h3 className="text-lg font-medium font-headline text-primary pt-2">Axle & Tyre Specifications</h3>
+      <h3 className="text-lg font-medium font-headline text-primary pt-2">Axle, Gas & Tyre Specifications</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="axleGroupRating" className="font-body">Axle Group Rating (kg)</Label>
           <Input id="axleGroupRating" type="number" {...register("axleGroupRating")} placeholder="e.g., 2400" className="font-body" />
           {errors.axleGroupRating && <p className="text-sm text-destructive font-body mt-1">{errors.axleGroupRating.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="numberOfGasBottles" className="font-body">Number of Gas Bottles</Label>
+          <Input id="numberOfGasBottles" type="number" {...register("numberOfGasBottles")} placeholder="e.g., 2" className="font-body" />
+          {errors.numberOfGasBottles && <p className="text-sm text-destructive font-body mt-1">{errors.numberOfGasBottles.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="gasBottleCapacityKg" className="font-body">Capacity per Gas Bottle (kg)</Label>
+          <Input id="gasBottleCapacityKg" type="number" {...register("gasBottleCapacityKg")} placeholder="e.g., 9" className="font-body" />
+          {errors.gasBottleCapacityKg && <p className="text-sm text-destructive font-body mt-1">{errors.gasBottleCapacityKg.message}</p>}
         </div>
         <div>
           <Label htmlFor="tyreSize" className="font-body">Tyre Size (Optional)</Label>
@@ -420,7 +436,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
       <h3 className="text-lg font-medium font-headline text-primary">Storage Locations</h3>
       <div className="space-y-4">
         {storageLocationFields.map((field, index) => {
-          const currentItemCapacity = Number(watchedStorageLocations?.[index]?.maxWeightCapacityKg) || 0;
+          const currentItemCapacity = Number(watchedForm.storageLocations?.[index]?.maxWeightCapacityKg) || 0;
           const otherAllocatedStorage = totalAllocatedWeight.storage - currentItemCapacity;
           const payloadAllocatedElsewhere = otherAllocatedStorage + totalAllocatedWeight.water + totalAllocatedWeight.gas;
           const remainingPayloadForThisLocation = potentialGrossPayload - payloadAllocatedElsewhere;
@@ -458,7 +474,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
                               <AlertDescription>
                                   Suggestion: You have ~<strong>{Math.max(0, remainingPayloadForThisLocation).toFixed(0)} kg</strong> of payload remaining to allocate.
                                   <br />
-                                  <span className="text-muted-foreground">(Total: {potentialGrossPayload.toFixed(0)}kg, minus other storage, water, & ~18kg gas).</span>
+                                  <span className="text-muted-foreground">(Total: {potentialGrossPayload.toFixed(0)}kg, minus other storage, water, & gas).</span>
                               </AlertDescription>
                           </Alert>
                       )}

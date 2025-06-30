@@ -46,6 +46,8 @@ export interface CaravanFormData {
   maxTowballDownload: number;
   numberOfAxles: number;
   axleGroupRating: number;
+  numberOfGasBottles?: number | null;
+  gasBottleCapacityKg?: number | null;
   tyreSize?: string | null;
   tyreLoadRating?: number | null;
   tyreSpeedRating?: string | null;
