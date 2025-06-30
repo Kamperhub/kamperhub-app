@@ -1,12 +1,11 @@
 
 "use client";
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useForm, type SubmitHandler, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { CaravanFormData, StorageLocation, WaterTank, CaravanDiagram } from '@/types/caravan';
-import type { StoredWDH } from '@/types/wdh';
+import type { CaravanFormData, StorageLocation, WaterTank, CaravanDiagram, WDHFormData } from '@/types/caravan';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +14,7 @@ import { Save, XCircle, PlusCircle, Trash2, Droplet, Info, FileText } from 'luci
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const storageLocationSchema = z.object({
   id: z.string(),
@@ -44,6 +44,24 @@ const caravanDiagramSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
+const wdhSchema = z.object({
+  name: z.string().min(1, "WDH Name/Model is required"),
+  type: z.string().min(1, "WDH Type is required (e.g., Round Bar, Trunnion)"),
+  maxCapacityKg: z.coerce.number().positive("Max Tow Ball Capacity must be a positive number"),
+  minCapacityKg: z.coerce.number().min(0, "Min Tow Ball Capacity cannot be negative").optional().nullable(),
+  hasIntegratedSwayControl: z.boolean().default(false),
+  swayControlType: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+}).refine(data => {
+  if (data.minCapacityKg != null && data.maxCapacityKg != null && data.minCapacityKg > data.maxCapacityKg) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Min Tow Ball Capacity cannot be greater than Max Capacity.",
+  path: ["minCapacityKg"],
+});
+
 const caravanSchema = z.object({
   make: z.string().min(1, "Make is required"),
   model: z.string().min(1, "Model is required"),
@@ -53,7 +71,6 @@ const caravanSchema = z.object({
   gtm: z.coerce.number().positive("GTM must be positive"),
   maxTowballDownload: z.coerce.number().positive("Max Towball Download must be positive"),
   numberOfAxles: z.coerce.number().int().min(1, "Must have at least 1 axle").max(4, "Number of axles seems high (max 4)"),
-  associatedWdhId: z.string().nullable().optional(),
   overallLength: z.coerce.number().min(1, "Overall length must be positive (mm)").optional().nullable(),
   bodyLength: z.coerce.number().min(1, "Body length must be positive (mm)").optional().nullable(),
   overallHeight: z.coerce.number().min(1, "Overall height must be positive (mm)").optional().nullable(),
@@ -62,30 +79,23 @@ const caravanSchema = z.object({
   storageLocations: z.array(storageLocationSchema).optional(),
   waterTanks: z.array(waterTankSchema).optional(),
   diagrams: z.array(caravanDiagramSchema).optional(),
-}).refine(data => {
-    if (data.bodyLength && data.overallLength && data.bodyLength > data.overallLength) {
-        return false;
-    }
-    return true;
-}, {
-    message: "Body length cannot be greater than overall length.",
-    path: ["bodyLength"],
-}).refine(data => data.atm >= data.tareMass, {
-  message: "ATM must be greater than or equal to Tare Mass.",
-  path: ["atm"],
+  wdh: wdhSchema.nullable().optional(),
 });
+
+
+// Add hasWdh to form data type for UI control, but it won't be in the final saved data
+type CaravanFormInternalData = CaravanFormData & { hasWdh: boolean };
 
 interface CaravanFormProps {
   initialData?: CaravanFormData;
   onSave: (data: CaravanFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
-  availableWdhs: StoredWDH[];
 }
 
-export function CaravanForm({ initialData, onSave, onCancel, isLoading, availableWdhs }: CaravanFormProps) {
+export function CaravanForm({ initialData, onSave, onCancel, isLoading }: CaravanFormProps) {
   
-  const defaultFormValues: CaravanFormData = {
+  const defaultFormValues: CaravanFormInternalData = {
     make: '',
     model: '',
     year: new Date().getFullYear(),
@@ -94,7 +104,6 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading, availabl
     gtm: 0,
     maxTowballDownload: 0,
     numberOfAxles: 1,
-    associatedWdhId: null,
     overallLength: null,
     bodyLength: null,
     overallHeight: null,
@@ -103,12 +112,14 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading, availabl
     storageLocations: [],
     waterTanks: [],
     diagrams: [],
+    wdh: null,
+    hasWdh: false,
   };
   
-  const { control, register, handleSubmit, formState: { errors }, reset, watch } = useForm<CaravanFormData>({
-    resolver: zodResolver(caravanSchema),
+  const { control, register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<CaravanFormInternalData>({
+    resolver: zodResolver(caravanSchema.extend({ hasWdh: z.boolean() })),
     defaultValues: initialData 
-      ? { ...defaultFormValues, ...initialData, storageLocations: initialData.storageLocations || [], waterTanks: initialData.waterTanks || [], diagrams: initialData.diagrams || [] } 
+      ? { ...defaultFormValues, ...initialData, hasWdh: !!initialData.wdh } 
       : defaultFormValues,
   });
 
@@ -130,6 +141,8 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading, availabl
   const numberOfAxles = watch("numberOfAxles");
   const watchedAtm = watch("atm");
   const watchedTareMass = watch("tareMass");
+  const hasWdh = watch("hasWdh");
+  const hasIntegratedSway = watch("wdh.hasIntegratedSwayControl");
 
   const potentialGrossPayload = useMemo(() => {
     const atm = Number(watchedAtm);
@@ -142,14 +155,20 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading, availabl
   
   useEffect(() => {
     const currentDefaultValues = initialData 
-    ? { ...defaultFormValues, ...initialData, storageLocations: initialData.storageLocations || [], waterTanks: initialData.waterTanks || [], diagrams: initialData.diagrams || [], associatedWdhId: initialData.associatedWdhId || null } 
+    ? { ...defaultFormValues, ...initialData, hasWdh: !!initialData.wdh } 
     : defaultFormValues;
     reset(currentDefaultValues);
   }, [initialData, reset]);
 
-  const onSubmit: SubmitHandler<CaravanFormData> = (data) => {
+  const onSubmit: SubmitHandler<CaravanFormInternalData> = (data) => {
+    const { hasWdh: hasWdhUIFlag, ...caravanDataToSave } = data;
+    
+    if (!hasWdhUIFlag) {
+        caravanDataToSave.wdh = null;
+    }
+
     const processedData: CaravanFormData = {
-      ...data,
+      ...caravanDataToSave,
       overallLength: data.overallLength ? Number(data.overallLength) : null,
       bodyLength: data.bodyLength ? Number(data.bodyLength) : null,
       overallHeight: data.overallHeight ? Number(data.overallHeight) : null,
@@ -271,34 +290,71 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading, availabl
         </div>
       )}
 
-      {/* WDH Association */}
-      <h3 className="text-lg font-medium font-headline text-primary pt-2">WDH Association (Optional)</h3>
-       <div>
-        <Controller
-            name="associatedWdhId"
+      {/* WDH Section */}
+      <Separator />
+      <div className="space-y-2">
+        <div className="flex items-center space-x-2">
+          <Controller
+            name="hasWdh"
             control={control}
             render={({ field }) => (
-              <Select
-                onValueChange={(value) => field.onChange(value === "none" ? null : value)}
-                value={field.value || "none"}
-                disabled={availableWdhs.length === 0}
-              >
-                <SelectTrigger className="font-body">
-                  <SelectValue placeholder="Select an associated WDH" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {availableWdhs.map(wdh => (
-                    <SelectItem key={wdh.id} value={wdh.id}>
-                      {wdh.name} ({wdh.type})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Checkbox
+                  id="hasWdh"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
             )}
-          />
-        {availableWdhs.length === 0 && <p className="text-xs text-muted-foreground font-body mt-1">No WDHs added yet. Add one in the WDH section first.</p>}
-        {errors.associatedWdhId && <p className="text-sm text-destructive font-body mt-1">{errors.associatedWdhId.message}</p>}
+           />
+          <Label htmlFor="hasWdh" className="font-body font-medium text-lg text-primary">A Weight Distribution Hitch is used with this caravan</Label>
+        </div>
+        {hasWdh && (
+            <div className="p-4 border rounded-md bg-muted/30 space-y-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="wdhName" className="font-body">Name / Model</Label>
+                      <Input id="wdhName" {...register("wdh.name")} placeholder="e.g., Eaz-Lift Recurve R3" className="font-body bg-background" />
+                      {errors.wdh?.name && <p className="text-sm text-destructive font-body mt-1">{errors.wdh.name.message}</p>}
+                    </div>
+                    <div>
+                      <Label htmlFor="wdhType" className="font-body">Type</Label>
+                      <Input id="wdhType" {...register("wdh.type")} placeholder="e.g., Round Bar, Trunnion" className="font-body bg-background" />
+                      {errors.wdh?.type && <p className="text-sm text-destructive font-body mt-1">{errors.wdh.type.message}</p>}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="wdhMax" className="font-body">Max Tow Ball Capacity (kg)</Label>
+                      <Input id="wdhMax" type="number" {...register("wdh.maxCapacityKg")} placeholder="e.g., 350" className="font-body bg-background" />
+                      {errors.wdh?.maxCapacityKg && <p className="text-sm text-destructive font-body mt-1">{errors.wdh.maxCapacityKg.message}</p>}
+                    </div>
+                    <div>
+                      <Label htmlFor="wdhMin" className="font-body">Min Tow Ball Capacity (kg) (Optional)</Label>
+                      <Input id="wdhMin" type="number" {...register("wdh.minCapacityKg")} placeholder="e.g., 150" className="font-body bg-background" />
+                      {errors.wdh?.minCapacityKg && <p className="text-sm text-destructive font-body mt-1">{errors.wdh.minCapacityKg.message}</p>}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                       <Controller
+                        name="wdh.hasIntegratedSwayControl"
+                        control={control}
+                        render={({ field }) => <Checkbox id="hasSway" checked={field.value} onCheckedChange={field.onChange} />}
+                      />
+                      <Label htmlFor="hasSway" className="font-body">Has Integrated Sway Control?</Label>
+                    </div>
+                  </div>
+                  {!hasIntegratedSway && (
+                    <div>
+                      <Label htmlFor="swayType" className="font-body">Separate Sway Control Type (Optional)</Label>
+                      <Input id="swayType" {...register("wdh.swayControlType")} placeholder="e.g., Friction Bar" className="font-body bg-background" />
+                    </div>
+                  )}
+                  <div>
+                    <Label htmlFor="wdhNotes" className="font-body">Notes (Optional)</Label>
+                    <Textarea id="wdhNotes" {...register("wdh.notes")} placeholder="e.g., Number of chain links used..." className="font-body bg-background" />
+                  </div>
+            </div>
+        )}
       </div>
 
       {/* Storage Locations */}
@@ -549,12 +605,12 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading, availabl
               <div>
                 <Label htmlFor={`diagrams.${index}.url`} className="text-xs font-body">Image/Document URL*</Label>
                 <Input {...register(`diagrams.${index}.url`)} placeholder="https://example.com/diagram.jpg" className="font-body bg-background" />
-                {errors.diagrams?.[index]?.url && <p className="text-sm text-destructive mt-1">{errors.diagrams[index]?.url?.message}</p>}
+                {errors.diagrams?.[index]?.url && <p className="text-sm text-destructive font-body mt-1">{errors.diagrams[index]?.url?.message}</p>}
               </div>
               <div>
                 <Label htmlFor={`diagrams.${index}.notes`} className="text-xs font-body">Notes (Optional)</Label>
                 <Textarea {...register(`diagrams.${index}.notes`)} placeholder="e.g., Highlights the 12V fuse box location." className="font-body bg-background" />
-                {errors.diagrams?.[index]?.notes && <p className="text-sm text-destructive mt-1">{errors.diagrams[index]?.notes?.message}</p>}
+                {errors.diagrams?.[index]?.notes && <p className="text-sm text-destructive font-body mt-1">{errors.diagrams[index]?.notes?.message}</p>}
               </div>
             </div>
           </div>

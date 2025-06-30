@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { StoredCaravan, CaravanFormData, StorageLocation, WaterTank } from '@/types/caravan';
+import type { StoredCaravan, CaravanFormData } from '@/types/caravan';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { CaravanForm } from './CaravanForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Link2 as LinkIcon, Ruler, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Droplet, Weight, Axe, Loader2, FileText } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, Link2 as LinkIcon, Ruler, PackagePlus, MapPin, Droplet, Weight, Axe, Loader2, FileText } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -20,13 +20,11 @@ import {
   createCaravan, 
   updateCaravan, 
   deleteCaravan,
-  fetchWdhs,
   fetchUserPreferences,
   updateUserPreferences
 } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 import type { UserProfile } from '@/types/auth';
-import type { StoredWDH } from '@/types/wdh';
 import { useSubscription } from '@/hooks/useSubscription';
 import Link from 'next/link';
 
@@ -48,12 +46,6 @@ export function CaravanManager() {
   const { data: caravans = [], isLoading: isLoadingCaravans, error: caravansError } = useQuery<StoredCaravan[]>({
     queryKey: ['caravans', user?.uid],
     queryFn: fetchCaravans,
-    enabled: !!user && !isAuthLoading,
-  });
-
-  const { data: allWdhs = [] } = useQuery<StoredWDH[]>({
-    queryKey: ['wdhs', user?.uid],
-    queryFn: fetchWdhs,
     enabled: !!user && !isAuthLoading,
   });
 
@@ -91,6 +83,7 @@ export function CaravanManager() {
     onSuccess: (_, caravanId) => {
       queryClient.invalidateQueries({ queryKey: ['caravans', user?.uid] });
       if (activeCaravanId === caravanId) {
+        updateUserPreferences({ activeCaravanId: null, activeWdhId: null });
         queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
       }
       toast({ title: "Caravan Deleted" });
@@ -103,19 +96,12 @@ export function CaravanManager() {
 
   const setActiveCaravanMutation = useMutation({
     mutationFn: (caravanId: string) => {
-      const caravan = caravans.find(c => c.id === caravanId);
-      const associatedWdhId = caravan?.associatedWdhId || null;
-      return updateUserPreferences({ activeCaravanId: caravanId, activeWdhId: associatedWdhId });
+      return updateUserPreferences({ activeCaravanId: caravanId });
     },
     onSuccess: (_, caravanId) => {
       queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
       const caravan = caravans.find(c => c.id === caravanId);
       let toastMessage = `${caravan?.make} ${caravan?.model} is now active.`;
-       if (caravan?.associatedWdhId) {
-          toastMessage += ` Associated WDH activated.`;
-       } else {
-          toastMessage += ` No WDH associated.`
-       }
       toast({ title: "Active Caravan Set", description: toastMessage });
     },
     onError: (error: Error) => {
@@ -151,12 +137,6 @@ export function CaravanManager() {
   const handleOpenFormForNew = () => {
     setEditingCaravan(null);
     setIsFormOpen(true);
-  };
-
-  const getWdhNameById = (wdhId: string | null | undefined) => {
-    if (!wdhId) return null;
-    const wdh = allWdhs.find(w => w.id === wdhId);
-    return wdh ? wdh.name : `WDH (ID not found)`;
   };
 
   const formatDimension = (value: number | null | undefined, unit: string = 'mm') => {
@@ -227,7 +207,6 @@ export function CaravanManager() {
                     onSave={handleSaveCaravan}
                     onCancel={() => { setIsFormOpen(false); setEditingCaravan(null); }}
                     isLoading={saveCaravanMutation.isPending}
-                    availableWdhs={allWdhs}
                   />
                 </ScrollArea>
               </DialogContent>
@@ -254,7 +233,7 @@ export function CaravanManager() {
                       <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> GTM: {caravan.gtm}kg</span>
                       <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Towball: {caravan.maxTowballDownload}kg</span>
                       <span className="flex items-center"><Axe className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Axles: {typeof caravan.numberOfAxles === 'number' ? caravan.numberOfAxles : 'N/A'}</span>
-                      {caravan.associatedWdhId && getWdhNameById(caravan.associatedWdhId) && <span className="flex items-center col-span-full sm:col-span-1 md:col-span-1"><LinkIcon className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> WDH: {getWdhNameById(caravan.associatedWdhId)}</span>}
+                      {caravan.wdh && <span className="flex items-center col-span-full sm:col-span-1 md:col-span-1"><LinkIcon className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> WDH: {caravan.wdh.name}</span>}
                     </div>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center self-start sm:self-auto flex-shrink-0 mt-2 sm:mt-0">

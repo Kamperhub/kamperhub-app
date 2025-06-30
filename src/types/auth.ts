@@ -23,6 +23,7 @@ export interface UserProfile {
   // User Preferences
   activeVehicleId?: string | null;
   activeCaravanId?: string | null;
+  activeWdhId?: string | null; // This is now obsolete but kept for graceful data migration if needed
   dashboardLayout?: string[] | null;
   caravanWaterLevels?: Record<string, Record<string, number>> | null; // { [caravanId]: { [tankId]: level } }
   caravanDefaultChecklists?: Record<string, CaravanDefaultChecklistSet> | null; // { [caravanId]: ChecklistSet }
