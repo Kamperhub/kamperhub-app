@@ -109,13 +109,11 @@ export async function POST(req: NextRequest) {
     case 'invoice.payment_succeeded':
       const invoice = event.data.object as Stripe.Invoice;
       if (invoice.subscription && invoice.customer) {
-        const subId = invoice.subscription as string;
-        
         try {
-          const subscriptionFromInvoice = await stripe.subscriptions.retrieve(subId);
+          const subscriptionFromInvoice = await stripe.subscriptions.retrieve(invoice.subscription as string);
           
           const usersRef = firestore.collection('users');
-          const snapshot = await usersRef.where('stripeSubscriptionId', '==', subId).limit(1).get();
+          const snapshot = await usersRef.where('stripeCustomerId', '==', invoice.customer as string).limit(1).get();
 
           if (!snapshot.empty) {
             const userDoc = snapshot.docs[0];
@@ -129,12 +127,13 @@ export async function POST(req: NextRequest) {
 
             const userProfileUpdate: Partial<UserProfile> = {
               subscriptionTier: newTier, 
+              stripeSubscriptionId: subscriptionFromInvoice.id, // Ensure subscription ID is up-to-date
               trialEndsAt: subscriptionFromInvoice.trial_end ? new Date(subscriptionFromInvoice.trial_end * 1000).toISOString() : null,
               updatedAt: new Date().toISOString(),
             };
             await userDoc.ref.set(userProfileUpdate, { merge: true });
           } else {
-            console.warn(`Webhook Warning: No user found with stripeSubscriptionId ${subId} for invoice.payment_succeeded event ${invoice.id}. This might be expected if checkout.session.completed handled initial setup.`);
+            console.warn(`Webhook Warning: No user found with stripeCustomerId ${invoice.customer as string} for invoice.payment_succeeded event ${invoice.id}.`);
           }
         } catch (dbOrStripeError: any) {
            console.error(`Webhook Error updating Firestore from invoice.payment_succeeded ${invoice.id}:`, dbOrStripeError.message);
@@ -145,13 +144,12 @@ export async function POST(req: NextRequest) {
 
     case 'invoice.payment_failed':
       const failedInvoice = event.data.object as Stripe.Invoice;
-      if (failedInvoice.subscription) {
+      if (failedInvoice.subscription && failedInvoice.customer) {
          try {
-          const subId = failedInvoice.subscription as string;
-          const subscriptionDetails = await stripe.subscriptions.retrieve(subId); 
+          const subscriptionDetails = await stripe.subscriptions.retrieve(failedInvoice.subscription as string); 
 
           const usersRef = firestore.collection('users');
-          const snapshot = await usersRef.where('stripeSubscriptionId', '==', subId).limit(1).get();
+          const snapshot = await usersRef.where('stripeCustomerId', '==', failedInvoice.customer as string).limit(1).get();
           if (!snapshot.empty) {
             const userDoc = snapshot.docs[0];
 
@@ -169,7 +167,7 @@ export async function POST(req: NextRequest) {
             };
             await userDoc.ref.set(userProfileUpdate, { merge: true });
           } else {
-             console.warn(`Webhook Warning: No user found with stripeSubscriptionId ${subId} for invoice.payment_failed event.`);
+             console.warn(`Webhook Warning: No user found with stripeCustomerId ${failedInvoice.customer as string} for invoice.payment_failed event.`);
           }
         } catch (dbOrStripeError: any) {
            console.error(`Webhook Error updating Firestore from failed_invoice ${failedInvoice.id}:`, dbOrStripeError.message);
@@ -182,10 +180,7 @@ export async function POST(req: NextRequest) {
       const updatedSubscription = event.data.object as Stripe.Subscription;
       try {
         const usersRef = firestore.collection('users');
-        const queryField = updatedSubscription.id.startsWith('sub_') ? 'stripeSubscriptionId' : 'stripeCustomerId';
-        const queryValue = updatedSubscription.id.startsWith('sub_') ? updatedSubscription.id : (updatedSubscription.customer as string);
-
-        const snapshot = await usersRef.where(queryField, '==', queryValue).limit(1).get();
+        const snapshot = await usersRef.where('stripeCustomerId', '==', updatedSubscription.customer as string).limit(1).get();
         
         if (!snapshot.empty) {
             const userDoc = snapshot.docs[0];
@@ -205,7 +200,7 @@ export async function POST(req: NextRequest) {
             
             await userDoc.ref.set(userProfileUpdate, { merge: true });
         } else {
-            console.warn(`Webhook Warning: No user found with ${queryField} ${queryValue} for subscription.updated event.`);
+            console.warn(`Webhook Warning: No user found with stripeCustomerId ${updatedSubscription.customer as string} for subscription.updated event.`);
         }
       } catch (dbOrStripeError: any) {
            console.error(`Webhook Error updating Firestore from subscription.updated ${updatedSubscription.id}:`, dbOrStripeError.message);
@@ -217,7 +212,7 @@ export async function POST(req: NextRequest) {
       const deletedSubscription = event.data.object as Stripe.Subscription;
       try {
         const usersRef = firestore.collection('users');
-        const snapshot = await usersRef.where('stripeSubscriptionId', '==', deletedSubscription.id).limit(1).get();
+        const snapshot = await usersRef.where('stripeCustomerId', '==', deletedSubscription.customer as string).limit(1).get();
         if (!snapshot.empty) {
             const userDoc = snapshot.docs[0];
             const userProfileUpdate: Partial<UserProfile> = { 
@@ -228,7 +223,7 @@ export async function POST(req: NextRequest) {
             };
             await userDoc.ref.set(userProfileUpdate, { merge: true });
         } else {
-            console.warn(`Webhook Warning: No user found for deleted stripeSubscriptionId ${deletedSubscription.id}.`);
+            console.warn(`Webhook Warning: No user found for deleted stripeCustomerId ${deletedSubscription.customer as string}.`);
         }
       } catch (dbOrStripeError: any) {
            console.error(`Webhook Error updating Firestore from subscription.deleted ${deletedSubscription.id}:`, dbOrStripeError.message);
