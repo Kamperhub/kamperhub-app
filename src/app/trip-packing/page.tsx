@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useContext } from 'react';
+import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +17,7 @@ import {
 } from '@/lib/api-client';
 import { generatePackingList } from '@/ai/flows/packing-list-generator-flow.ts';
 import { generateWeatherPackingSuggestions, type WeatherPackingSuggesterOutput } from '@/ai/flows/weather-packing-suggester-flow';
+import { NavigationContext } from '@/components/layout/AppShell';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -28,7 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Luggage, AlertTriangle, Wand2, Info, Loader2, Route, Calendar, Users, Edit3, Trash2, PlusCircle, RefreshCw, CloudRainWind } from 'lucide-react';
+import { Luggage, AlertTriangle, Wand2, Info, Loader2, Route, Calendar, Users, Edit3, Trash2, PlusCircle, RefreshCw, CloudRainWind, ChevronLeft } from 'lucide-react';
 
 const activityOptions = [
   {
@@ -58,6 +60,7 @@ export default function TripPackingPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navContext = useContext(NavigationContext);
   
   const [selectedTripId, setSelectedTripId] = useState<string>('');
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
@@ -124,6 +127,10 @@ export default function TripPackingPage() {
     },
     onError: (error: Error) => toast({ title: 'Suggestion Failed', description: error.message, variant: 'destructive' }),
   });
+
+  const handleNavigation = () => {
+    navContext?.setIsNavigating(true);
+  };
 
   const handleGenerateList = () => {
     if (!selectedTrip) return;
@@ -215,6 +222,13 @@ export default function TripPackingPage() {
 
   return (
     <div className="space-y-8">
+       <Button asChild variant="link" className="p-0 h-auto font-body text-muted-foreground hover:text-primary -ml-1">
+        <Link href="/trip-manager" onClick={handleNavigation}>
+          <ChevronLeft className="mr-1 h-4 w-4" />
+          Return to Trip Manager
+        </Link>
+      </Button>
+
       <div>
         <h1 className="text-3xl font-headline mb-2 text-primary flex items-center"><Luggage className="mr-3 h-8 w-8" /> Trip Packing Assistant</h1>
         <p className="text-muted-foreground font-body mb-6">Select a trip, get AI-powered suggestions, and manage your personalized packing list.</p>

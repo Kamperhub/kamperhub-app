@@ -1,12 +1,17 @@
 
 "use client"; 
 
+import Link from 'next/link';
+import { useContext } from 'react';
 import dynamic from 'next/dynamic';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, Map, Edit, DollarSign } from 'lucide-react';
+import { AlertTriangle, Map, Edit, DollarSign, ChevronLeft } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from '@/components/ui/button';
+import { NavigationContext } from '@/components/layout/AppShell';
+
 
 const TripPlannerLoadingSkeleton = () => (
   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -57,9 +62,19 @@ const TripPlannerClient = dynamic(
 
 export default function TripExpensePlannerPage() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const navContext = useContext(NavigationContext);
+  const handleNavigation = () => {
+    navContext?.setIsNavigating(true);
+  };
 
   return (
     <div className="space-y-8">
+       <Button asChild variant="link" className="p-0 h-auto font-body text-muted-foreground hover:text-primary -ml-1">
+        <Link href="/trip-manager" onClick={handleNavigation}>
+          <ChevronLeft className="mr-1 h-4 w-4" />
+          Return to Trip Manager
+        </Link>
+      </Button>
       <div>
         <h1 className="text-3xl font-headline mb-2 text-primary">Trip & Expense Planner</h1>
         <p className="text-muted-foreground font-body mb-6">

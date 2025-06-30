@@ -1,25 +1,33 @@
 
 "use client";
 
-import { useCallback } from 'react';
+import { useCallback, useContext } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import { TripLogItem } from '@/components/features/triplog/TripLogItem';
 import { useToast } from '@/hooks/use-toast';
-import { History, Info, Loader2 } from 'lucide-react';
+import { History, Info, Loader2, ChevronLeft } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { format, parseISO, addDays } from 'date-fns';
 import { fetchTrips, deleteTrip, updateTrip } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { NavigationContext } from '@/components/layout/AppShell';
 
 export default function TripLogPage() {
   const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isAuthLoading } = useAuth();
+  const navContext = useContext(NavigationContext);
+
+  const handleNavigation = () => {
+    navContext?.setIsNavigating(true);
+  };
 
   const { data: loggedTrips = [], isLoading, error } = useQuery<LoggedTrip[]>({
     queryKey: ['trips', user?.uid],
@@ -115,6 +123,13 @@ export default function TripLogPage() {
 
   return (
     <div className="space-y-8">
+      <Button asChild variant="link" className="p-0 h-auto font-body text-muted-foreground hover:text-primary -ml-1">
+        <Link href="/trip-manager" onClick={handleNavigation}>
+          <ChevronLeft className="mr-1 h-4 w-4" />
+          Return to Trip Manager
+        </Link>
+      </Button>
+
       <div>
         <h1 className="text-3xl font-headline mb-2 text-primary flex items-center">
           <History className="mr-3 h-8 w-8" /> Trip Log
