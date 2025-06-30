@@ -1,5 +1,7 @@
 
 'use server';
+import {z} from 'zod';
+import {ai} from '@/ai/genkit';
 /**
  * @fileOverview AI agent for generating packing lists for caravanning trips.
  *
@@ -7,9 +9,6 @@
  * - PackingListGeneratorInput - The input type for the list generation.
  * - PackingListGeneratorOutput - The output type for the list generation.
  */
-
-import {ai} from '@/ai/genkit';
-import {z} from 'zod';
 
 const PackingListGeneratorInputSchema = z.object({
   destination: z.string().describe('The primary destination of the trip (e.g., "Cairns, QLD", "Tasmanian Coast").'),
@@ -22,7 +21,7 @@ export type PackingListGeneratorInput = z.infer<typeof PackingListGeneratorInput
 
 const PackingListGeneratorOutputSchema = z.object({
   packingList: z.array(z.object({
-    category: z.string().describe("A logical packing category (e.g., 'Clothing', 'Toiletries', 'Kitchen Supplies', 'Entertainment', 'Safety & First Aid')."),
+    category: z.string().describe("A logical packing category. For personal items, this MUST be passenger-specific (e.g., 'Clothing - Adult 1', 'Toiletries - Child 1'). For shared items, use general categories (e.g., 'Kitchen Supplies')."),
     items: z.array(z.object({
       itemName: z.string().describe("The name of the individual item to pack."),
       quantity: z.number().int().positive().describe("A suggested quantity for the item, considering the trip duration and number of people."),
@@ -49,12 +48,14 @@ const prompt = ai.definePrompt({
 *   **Planned Activities:** {{{activities}}}
 
 **Instructions:**
-1.  **Generate a Categorized List:** Create a structured packing list divided into logical categories (e.g., Clothing, Toiletries, Kitchen Supplies, Safety, Documents, Kids' Gear, etc.).
-2.  **Suggest Quantities:** For each item, suggest a reasonable quantity based on the trip duration and number of passengers. For clothing, estimate per person.
-3.  **Be Context-Aware:** Tailor suggestions to the destination and activities. If the destination is tropical, suggest light clothing and insect repellent. If activities include hiking, suggest hiking boots.
-4.  **Add Helpful Notes:** Include brief, useful notes for items where appropriate (e.g., for clothing, "Pack layers for variable weather").
-5.  **Be Comprehensive:** Include general caravanning essentials like chocks, hoses, and power leads, but place them in a suitable category like 'Caravan Essentials'.
-6.  **Output Format:** You MUST generate the output in the structured JSON format defined by the output schema. Ensure all fields are correctly populated.
+1.  **Generate a Categorized List:** Create a structured packing list divided into logical categories.
+2.  **IMPORTANT - Per-Passenger Categories:** For personal items like 'Clothing', 'Medication', and 'Toiletries', you MUST create separate, distinct categories for each individual passenger. For example, if there are 2 adults and 1 child, you should generate categories like "Clothing (Adult 1)", "Toiletries (Adult 1)", "Clothing (Adult 2)", "Clothing (Child 1)". Do not group personal items for all passengers into one category.
+3.  **Shared Items:** For items that are shared among everyone, use general categories like 'Kitchen Supplies', 'Caravan Essentials', 'Safety & First Aid', and 'Entertainment'.
+4.  **Suggest Quantities:** For each item, suggest a reasonable quantity based on the trip duration and the number of people it's for.
+5.  **Be Context-Aware:** Tailor suggestions to the destination and activities. If the destination is tropical, suggest light clothing. If activities include hiking, suggest hiking boots.
+6.  **Add Helpful Notes:** Include brief, useful notes where appropriate (e.g., for clothing, "Pack layers for variable weather").
+7.  **Be Comprehensive:** Include general caravanning essentials like chocks, hoses, and power leads, but place them in the 'Caravan Essentials' category.
+8.  **Output Format:** You MUST generate the output in the structured JSON format defined by the output schema. Ensure all fields are correctly populated.
 
 Generate the packing list now.
 `,
@@ -69,9 +70,9 @@ const packingListGeneratorFlow = ai.defineFlow(
   async (input) => {
     try {
       const {output} = await prompt(input);
-      if (!output) {
-        console.warn('PackingListGeneratorFlow: AI model returned null output. This might be due to schema mismatch or other non-fatal errors from the model.');
-        throw new Error('The AI returned an empty response. This can sometimes happen, please try again.');
+      if (!output || !output.packingList || output.packingList.length === 0) {
+        console.warn('PackingListGeneratorFlow: AI model returned null or empty output. This might be due to schema mismatch or other non-fatal errors from the model.');
+        throw new Error('The AI returned an empty or invalid response. This can sometimes happen, please try again.');
       }
       return output;
     } catch (error: any) {
@@ -90,7 +91,7 @@ const packingListGeneratorFlow = ai.defineFlow(
           errorMessageForUser = "There is an issue with the AI service configuration. Please contact support.";
         } else if (errorMessage.includes("failed to parse schema") || errorMessage.includes("output_schema")) {
           errorMessageForUser = "The AI returned a response in an unexpected format. This can sometimes happen, please try again.";
-        } else if (error.message) { // Use the original error message if it's not one of the known types
+        } else if (error.message) {
             errorMessageForUser = error.message;
         }
       }
