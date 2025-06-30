@@ -198,7 +198,6 @@ export default function MyAccountPage() {
   }
 
   if (profileError) {
-    const isProjectMismatchError = profileError.message.includes("5 NOT_FOUND") || profileError.message.includes("Database Not Found");
     const isProfileMissingError = profileError.message.includes("User profile not found");
 
     return (
@@ -206,16 +205,10 @@ export default function MyAccountPage() {
         <Alert variant="destructive" className="max-w-2xl text-left">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle className="font-headline">
-              {isProjectMismatchError ? "Critical Configuration Error" : isProfileMissingError ? "User Profile Missing" : "Error Loading Account Details"}
+              {isProfileMissingError ? "User Profile Missing" : "Error Loading Account Details"}
             </AlertTitle>
             <AlertDescription className="font-body mt-2 space-y-3">
-                {isProjectMismatchError ? (
-                  <>
-                    <p className="font-bold">Your app is connecting to the wrong Firebase project, or the project has no database.</p>
-                    <p>The server connected to Firebase successfully but could not find the database. This is a configuration issue in your <code className="bg-destructive-foreground/20 px-1 rounded-sm">.env.local</code> file.</p>
-                    <p>Please open the <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file in your project and carefully follow ALL steps. The checklist has been updated to help you find the correct keys from your <code className="bg-destructive-foreground/20 px-1 rounded-sm">kamperhubv2</code> project and verify them.</p>
-                  </>
-                ) : isProfileMissingError ? (
+                {isProfileMissingError ? (
                   <>
                     <p className="font-bold">Your user profile could not be found in the database.</p>
                     {isAdminUser ? (

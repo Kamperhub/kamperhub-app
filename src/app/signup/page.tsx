@@ -142,7 +142,7 @@ export default function SignupPage() {
         }
       } else {
         // This block likely runs if setDoc to Firestore fails
-        toastMessage = `Could not save your profile to the database. Please try signing up again. Error: ${error.message}`;
+        toastMessage = `Could not save your profile to the database. This might be due to a network issue or database permissions. Error: ${error.message}`;
       }
 
       // Cleanup: If an Auth user was created but the process failed later (e.g., Firestore write failed),

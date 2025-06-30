@@ -1,27 +1,23 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    function isAdmin() {
-      // Check if the requesting user's profile document has the isAdmin flag set to true.
-      // This requires the user to be authenticated.
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-    }
-
-    // Users can read/write their own data subcollections, or an admin can access any of them.
-    match /users/{userId}/{document=**} {
-      allow read, write: if isOwner(userId) || isAdmin();
-    }
-    
-    // Allow any authenticated user to create their own user document upon signup.
-    // They cannot create documents for other users.
+    // Users can only read and write to their own user document.
+    // This rule allows a user to create their document during signup,
+    // and read/update it later.
     match /users/{userId} {
-      allow create: if isOwner(userId);
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Admins can read all user data for the admin panel
+    match /users/{userId} {
+      allow get, list: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    // Users can read and write to all their own subcollections (vehicles, caravans, etc.)
+    match /users/{userId}/{collection}/{docId} {
+      allow read, write, delete: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
