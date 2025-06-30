@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format, parseISO } from 'date-fns';
@@ -34,7 +34,6 @@ const fuelLogFormSchema = z.object({
   odometer: z.coerce.number().positive("Odometer must be a positive number."),
   liters: z.coerce.number().positive("Liters must be a positive number."),
   pricePerLiter: z.coerce.number().positive("Price per liter must be positive."),
-  totalCost: z.coerce.number().positive("Total cost must be positive."),
   location: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -72,17 +71,16 @@ export function FuelLogClient() {
         setValue('odometer', editingLog.odometer);
         setValue('liters', editingLog.liters);
         setValue('pricePerLiter', editingLog.pricePerLiter);
-        setValue('totalCost', editingLog.totalCost);
         setValue('location', editingLog.location);
         setValue('notes', editingLog.notes);
       } else {
-        reset({ date: new Date(), odometer: undefined, liters: undefined, pricePerLiter: undefined, totalCost: undefined, location: '', notes: '' });
+        reset({ date: new Date(), odometer: undefined, liters: undefined, pricePerLiter: undefined, location: '', notes: '' });
       }
     }
   }, [editingLog, isFormOpen, setValue, reset]);
 
   const saveMutation = useMutation({
-    mutationFn: (data: { vehicleId: string; logData: FuelLogEntry | Omit<FuelLogEntry, 'id' | 'timestamp'> }) => {
+    mutationFn: (data: { vehicleId: string; logData: FuelLogEntry | Omit<FuelLogEntry, 'id' | 'timestamp' | 'totalCost'> & { totalCost: number } }) => {
       if ('id' in data.logData) {
         return updateFuelLog(data.logData as FuelLogEntry);
       }
@@ -108,8 +106,12 @@ export function FuelLogClient() {
 
   const handleSaveLog: SubmitHandler<FuelLogFormData> = (data) => {
     if (!selectedVehicleId) return;
+
+    const totalCost = data.liters * data.pricePerLiter;
+
     const logData = {
         ...data,
+        totalCost,
         vehicleId: selectedVehicleId,
         date: data.date.toISOString(),
     };
@@ -168,21 +170,16 @@ export function FuelLogClient() {
                             {errors.odometer && <p className="text-destructive text-sm mt-1">{errors.odometer.message}</p>}
                         </div>
                     </div>
-                     <div className="grid grid-cols-3 gap-4">
+                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <Label htmlFor="liters">Liters</Label>
                             <Input id="liters" type="number" step="0.01" {...register('liters')} />
                             {errors.liters && <p className="text-destructive text-sm mt-1">{errors.liters.message}</p>}
                         </div>
                         <div>
-                            <Label htmlFor="pricePerLiter">$/Liter</Label>
+                            <Label htmlFor="pricePerLiter">Price / Liter</Label>
                             <Input id="pricePerLiter" type="number" step="0.001" {...register('pricePerLiter')} />
                             {errors.pricePerLiter && <p className="text-destructive text-sm mt-1">{errors.pricePerLiter.message}</p>}
-                        </div>
-                         <div>
-                            <Label htmlFor="totalCost">Total Cost</Label>
-                            <Input id="totalCost" type="number" step="0.01" {...register('totalCost')} />
-                            {errors.totalCost && <p className="text-destructive text-sm mt-1">{errors.totalCost.message}</p>}
                         </div>
                     </div>
                      <div>
