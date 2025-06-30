@@ -222,7 +222,9 @@ export function TripPlannerClient() {
     }
 
     setIsLoading(true);
-    clearPlanner(false);
+    setRouteDetails(null);
+    setFuelEstimate(null);
+    setDirectionsResponse(null);
     setError(null);
     
     try {
@@ -241,7 +243,21 @@ export function TripPlannerClient() {
 
         if (distanceValue > 0 && data.fuelEfficiency > 0) {
           const fuelNeeded = (distanceValue / 1000 / 100) * data.fuelEfficiency;
-          setFuelEstimate({ fuelNeeded: `${fuelNeeded.toFixed(1)} L`, estimatedCost: `$${(fuelNeeded * data.fuelPrice).toFixed(2)}` });
+          const estimatedCost = fuelNeeded * data.fuelPrice;
+          setFuelEstimate({ fuelNeeded: `${fuelNeeded.toFixed(1)} L`, estimatedCost: `$${estimatedCost.toFixed(2)}` });
+
+          setTripBudget(prevBudget => {
+            const newBudget = [...prevBudget];
+            const fuelCategoryName = "Fuel";
+            const existingFuelCategoryIndex = newBudget.findIndex(cat => cat.name.toLowerCase() === fuelCategoryName.toLowerCase());
+
+            if (existingFuelCategoryIndex > -1) {
+              newBudget[existingFuelCategoryIndex] = { ...newBudget[existingFuelCategoryIndex], budgetedAmount: estimatedCost };
+            } else {
+              newBudget.push({ id: `fuel_${Date.now()}`, name: fuelCategoryName, budgetedAmount: estimatedCost });
+            }
+            return newBudget;
+          });
         }
       } else { setError("No routes found."); }
     } catch (e: any) { setError(`Error calculating route: ${e.message || 'Unknown error'}`); } 
@@ -328,28 +344,6 @@ export function TripPlannerClient() {
       packDown: createChecklistCopyForTrip(sourceChecklistSet.packDown, tempTripId, 'pk'),
     };
     
-    let finalBudget = [...tripBudget];
-    if (fuelEstimate?.estimatedCost) {
-      const fuelCostValue = parseFloat(fuelEstimate.estimatedCost.replace('$', ''));
-      if (!isNaN(fuelCostValue) && fuelCostValue > 0) {
-        const fuelCategoryName = "Fuel";
-        const existingFuelCategoryIndex = finalBudget.findIndex(cat => cat.name.toLowerCase() === fuelCategoryName.toLowerCase());
-
-        if (existingFuelCategoryIndex !== -1) {
-          finalBudget[existingFuelCategoryIndex] = {
-            ...finalBudget[existingFuelCategoryIndex],
-            budgetedAmount: fuelCostValue
-          };
-        } else {
-          finalBudget.push({
-            id: `fuel_${Date.now()}`,
-            name: fuelCategoryName,
-            budgetedAmount: fuelCostValue
-          });
-        }
-      }
-    }
-    
     const currentFormData = getValues();
     const tripData: Omit<LoggedTrip, 'id' | 'timestamp'> = {
       name: pendingTripName.trim(),
@@ -363,7 +357,7 @@ export function TripPlannerClient() {
       plannedEndDate: currentFormData.dateRange?.to?.toISOString() || null,
       notes: pendingTripNotes.trim() || undefined,
       checklists: newTripChecklistSet,
-      budget: finalBudget,
+      budget: tripBudget,
       expenses: tripExpenses,
       occupants: tripOccupants,
     };
