@@ -1,13 +1,21 @@
+
 "use client";
 
+import { useContext } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { navItems } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import { Backpack } from 'lucide-react';
+import { NavigationContext } from './AppShell';
 
 export function BottomNavigation() {
   const pathname = usePathname();
+  const navContext = useContext(NavigationContext);
+
+  const handleNavigation = () => {
+    navContext?.setIsNavigating(true);
+  };
 
   // The main dashboard nav items are too numerous for a bottom bar.
   // We'll define a specific, smaller set here.
@@ -49,6 +57,7 @@ export function BottomNavigation() {
               <li key={item.label} className="flex-1 text-center">
                 <Link
                   href={item.href}
+                  onClick={handleNavigation}
                   className={cn(
                     "flex flex-col items-center justify-center p-2 rounded-md transition-colors h-full",
                     isActive ? "text-accent" : "text-accent/50 hover:text-accent", 

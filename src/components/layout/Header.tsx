@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from 'react';
+import React, { useContext } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Home, UserCircle, LogIn, LogOut, MessageSquare, Loader2 } from 'lucide-react';
@@ -10,11 +10,17 @@ import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { NavigationContext } from './AppShell';
 
 export function Header() {
   const { user, isAuthLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const navContext = useContext(NavigationContext);
+
+  const handleNavigation = () => {
+    navContext?.setIsNavigating(true);
+  };
 
   const handleLogout = async () => {
     try {
@@ -37,7 +43,7 @@ export function Header() {
   return (
     <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-40">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between h-[68px]">
-        <Link href="/" className="flex items-center">
+        <Link href="/" className="flex items-center" onClick={handleNavigation}>
           <Image
             src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.firebasestorage.app/o/Kamper%20Social%20Media%20Banner.jpg?alt=media&token=1050fb50-5c13-4f03-8cad-d80954cf9072"
             alt="KamperHub Banner Logo"
@@ -51,13 +57,13 @@ export function Header() {
 
         <div className="flex items-center gap-2 sm:gap-3">
           <Link href="/" passHref>
-            <Button variant="ghost" size="icon" aria-label="Go to Homepage" className="p-0 hover:bg-primary/80">
+            <Button variant="ghost" size="icon" aria-label="Go to Homepage" className="p-0 hover:bg-primary/80" onClick={handleNavigation}>
               <Home className="h-7 w-7" />
             </Button>
           </Link>
 
           <Link href="/chatbot" passHref>
-            <Button variant="ghost" size="icon" aria-label="AI Chatbot" className="p-0 hover:bg-primary/80">
+            <Button variant="ghost" size="icon" aria-label="AI Chatbot" className="p-0 hover:bg-primary/80" onClick={handleNavigation}>
               <MessageSquare className="h-6 w-6" />
             </Button>
           </Link>
@@ -67,7 +73,7 @@ export function Header() {
           ) : user ? (
             <>
               <Link href="/my-account" passHref>
-                <Button variant="ghost" className="p-0 sm:px-3 sm:py-2 hover:bg-primary/80 flex items-center max-w-[150px] sm:max-w-[200px]">
+                <Button variant="ghost" className="p-0 sm:px-3 sm:py-2 hover:bg-primary/80 flex items-center max-w-[150px] sm:max-w-[200px]" onClick={handleNavigation}>
                   <UserCircle className="h-6 w-6 sm:mr-2 flex-shrink-0" />
                   <span className="hidden sm:inline font-body text-sm truncate">{user.displayName || user.email}</span>
                 </Button>
@@ -78,7 +84,7 @@ export function Header() {
             </>
           ) : (
             <Link href="/login" passHref>
-              <Button variant="ghost" className="p-0 sm:px-3 sm:py-2 hover:bg-primary/80 flex items-center">
+              <Button variant="ghost" className="p-0 sm:px-3 sm:py-2 hover:bg-primary/80 flex items-center" onClick={handleNavigation}>
                 <LogIn className="h-6 w-6 sm:mr-2" />
                 <span className="hidden sm:inline font-body text-sm">Log In / Sign Up</span>
               </Button>

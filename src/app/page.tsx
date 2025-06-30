@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useContext } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { NavItem } from '@/lib/navigation';
 import { navItems as defaultNavItems } from '@/lib/navigation';
@@ -21,11 +21,17 @@ import { useAuth } from '@/hooks/useAuth';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { NavigationContext } from '@/components/layout/AppShell';
 
 
 function NavItemCard({ item }: { item: NavItem }) {
+  const navContext = useContext(NavigationContext);
+  const handleNavigation = () => {
+    navContext?.setIsNavigating(true);
+  };
+
   return (
-    <Link href={item.href} className="block h-full no-underline group" draggable="false">
+    <Link href={item.href} className="block h-full no-underline group" draggable="false" onClick={handleNavigation}>
       <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-grab active:cursor-grabbing">
         <CardHeader className="pb-3">
             <CardTitle className="font-headline text-xl text-primary flex items-center">
