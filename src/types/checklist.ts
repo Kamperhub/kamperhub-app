@@ -15,6 +15,7 @@ export const initialChecklists: Readonly<Record<ChecklistCategory, readonly Chec
     { id: 'global_pd3_tpl', text: 'Connect safety chains and breakaway cable', completed: false },
     { id: 'global_pd4_tpl', text: 'Check lights and indicators', completed: false },
     { id: 'global_pd5_tpl', text: 'Water tanks filled/empty as desired', completed: false },
+    { id: 'global_pd6_tpl', text: 'Test caravan brakes functionality', completed: false },
   ],
   campsiteSetup: [
     { id: 'global_cs1_tpl', text: 'Level caravan', completed: false },

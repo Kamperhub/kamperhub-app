@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { VehicleForm } from './VehicleForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, Weight, Axe, Car, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Ruler, Backpack, Loader2, Disc } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, Weight, Axe, Car, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Ruler, Backpack, Loader2, Disc, Settings } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -275,31 +275,37 @@ export function VehicleManager() {
                     </div>
                   </div>
                 </div>
-                {vehicle.storageLocations && vehicle.storageLocations.length > 0 && (
-                  <CardFooter className="p-0 pt-3 mt-3 border-t w-full">
+                <CardFooter className="p-0 pt-3 mt-3 border-t flex flex-col items-start space-y-3">
+                  {vehicle.brakeControllerNotes && (
                     <div className="w-full">
-                      <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center">
-                        <PackagePlus className="w-4 h-4 mr-2 text-primary"/>Storage Locations:
-                      </h4>
-                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
-                        {vehicle.storageLocations.map(loc => (
-                          <div key={loc.id} className="p-3 border rounded-lg bg-card shadow-sm">
-                            <h5 className="font-semibold font-body text-base flex items-center mb-1 text-primary">
-                              <MapPin className="w-4 h-4 mr-2 text-accent" /> {loc.name}
-                            </h5>
-                            <div className="space-y-0.5 text-xs font-body text-muted-foreground">
-                              <p><strong className="text-foreground/80">Position:</strong> {formatPositionText(loc)}</p>
-                              <p><strong className="text-foreground/80">Max Capacity:</strong> {formatDimension(loc.maxWeightCapacityKg, 'kg')}</p>
-                              <p className="flex items-center"><ArrowLeftRight className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Dist. from Rear Axle:</strong>&nbsp;{formatDimension(loc.distanceFromRearAxleMm)}</p>
-                              <p className="flex items-center"><ArrowUpDown className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Dist. from Centerline:</strong>&nbsp;{formatDimension(loc.distanceFromCenterlineMm)}</p>
-                              <p className="flex items-center"><Ruler className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Height from Ground:</strong>&nbsp;{formatDimension(loc.heightFromGroundMm)}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      <h4 className="text-sm font-semibold font-body mb-1 flex items-center"><Settings className="w-4 h-4 mr-2 text-primary"/>Brake Controller Notes:</h4>
+                      <p className="text-xs font-body text-muted-foreground whitespace-pre-wrap pl-6">{vehicle.brakeControllerNotes}</p>
                     </div>
-                  </CardFooter>
+                  )}
+                  {vehicle.storageLocations && vehicle.storageLocations.length > 0 && (
+                  <div className="w-full">
+                    <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center">
+                      <PackagePlus className="w-4 h-4 mr-2 text-primary"/>Storage Locations:
+                    </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+                      {vehicle.storageLocations.map(loc => (
+                        <div key={loc.id} className="p-3 border rounded-lg bg-card shadow-sm">
+                          <h5 className="font-semibold font-body text-base flex items-center mb-1 text-primary">
+                            <MapPin className="w-4 h-4 mr-2 text-accent" /> {loc.name}
+                          </h5>
+                          <div className="space-y-0.5 text-xs font-body text-muted-foreground">
+                            <p><strong className="text-foreground/80">Position:</strong> {formatPositionText(loc)}</p>
+                            <p><strong className="text-foreground/80">Max Capacity:</strong> {formatDimension(loc.maxWeightCapacityKg, 'kg')}</p>
+                            <p className="flex items-center"><ArrowLeftRight className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Dist. from Rear Axle:</strong>&nbsp;{formatDimension(loc.distanceFromRearAxleMm)}</p>
+                            <p className="flex items-center"><ArrowUpDown className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Dist. from Centerline:</strong>&nbsp;{formatDimension(loc.distanceFromCenterlineMm)}</p>
+                            <p className="flex items-center"><Ruler className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Height from Ground:</strong>&nbsp;{formatDimension(loc.heightFromGroundMm)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
+                </CardFooter>
               </Card>
             )
           })}

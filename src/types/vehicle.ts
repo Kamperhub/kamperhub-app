@@ -26,6 +26,7 @@ export interface VehicleFormData {
   recommendedTyrePressureUnladenPsi?: number | null; // Pressure when not towing
   recommendedTyrePressureLadenPsi?: number | null; // Pressure when towing/loaded
   storageLocations?: VehicleStorageLocation[];
+  brakeControllerNotes?: string | null; // New field for brake controller settings
 }
 
 export interface StoredVehicle extends VehicleFormData {

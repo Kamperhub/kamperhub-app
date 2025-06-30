@@ -268,6 +268,42 @@ export const staticCaravanningArticles: AiGeneratedArticle[] = [
     conclusion: "Understanding and managing your towing weights isn't just about ticking boxes; it's fundamental to safe, legal, and enjoyable caravanning. By taking the time to learn the terminology, know your limits, and pack responsibly, you're investing in the safety of yourself, your passengers, and other road users. Use tools like KamperHub's inventory manager to estimate your load, but always confirm with a weighbridge for peace of mind. Happy and safe travels!"
   },
   {
+    topic: "Brake Controller Setup Guide",
+    title: "Braking with Confidence: A Simple Guide to Your Electric Brake Controller",
+    introduction: "Your electric brake controller is one of the most important safety devices in your rig. It translates you pressing the brake pedal in your car into braking force for your caravan. A correctly calibrated controller ensures smooth, synchronized braking, preventing the caravan from pushing your vehicle or locking up its own wheels. This guide will help you understand and log your optimal settings.",
+    sections: [
+      {
+        heading: "Understanding the 'Gain' Setting",
+        content: "The 'Gain' or 'Power' setting on your controller (usually a number from 1 to 10) determines how much power is sent to the caravan's brakes. A low gain means gentle braking; a high gain means aggressive braking. The goal is to find a setting where the caravan brakes firmly but doesn't lock up its wheels."
+      },
+      {
+        heading: "Finding Your Baseline Setting",
+        content: "Find a safe, flat, and empty area (like a quiet industrial road or large car park). Drive at about 40 km/h (25 mph). While moving, manually activate the caravan brakes using the slide or button on your controller (do NOT press the vehicle's brake pedal). If the caravan's brakes lock up, the gain is too high. If you feel almost no braking from the caravan, it's too low. Adjust the gain until you feel a firm, smooth pull from the caravan just before the wheels lock up. This is your baseline setting."
+      },
+      {
+        heading: "Adjusting for Conditions",
+        content: "Your ideal gain setting isn't 'set and forget'. You may need to adjust it based on load and conditions:\n\n*   **Heavier Load:** A fully loaded caravan may require a slightly higher gain setting.\n*   **Wet or Gravel Roads:** You may need to decrease the gain to prevent the caravan's wheels from locking up on slippery surfaces.\n\nIt's good practice to log these different settings. In KamperHub, you can use the 'Brake Controller Notes' section in your vehicle's profile to jot down settings like 'Gain: 6.0 (Empty van, dry)', 'Gain: 7.5 (Fully loaded, dry)', 'Gain: 5.0 (Wet roads)'."
+      }
+    ],
+    conclusion: "Taking a few minutes to correctly set your brake controller before a trip is a crucial safety step. It ensures your entire rig brakes as a single, predictable unit. Always start with a manual test and don't be afraid to make small adjustments as your load or the weather changes. A well-calibrated controller provides peace of mind on every journey."
+  },
+  {
+    topic: "Emergency Towing Procedures",
+    title: "Handling On-Road Emergencies: Caravan Sway and Tyre Blowouts",
+    introduction: "While we all hope for smooth journeys, knowing how to react in a towing emergency can be the difference between a scary moment and a disaster. Two of the most critical situations are caravan sway and a tyre blowout. The correct reactions are often counter-intuitive, so it's vital to learn them before you need them.",
+    sections: [
+      {
+        heading: "What To Do If Your Caravan Starts to Sway",
+        content: "Caravan sway (or 'snaking') is a terrifying side-to-side oscillation that can quickly escalate out of control. Your instinct will be to slam on the vehicle's brakes - **DO NOT DO THIS**.\n\n1.  **Stay Calm and Keep the Steering Wheel Straight:** Do not try to steer out of the sway. Fight the instinct to turn the wheel.\n2.  **Ease Your Foot OFF the Accelerator:** Gently reduce speed without braking.\n3.  **Manually Apply the CARAVAN Brakes:** Use the manual override (the slide or button) on your electric brake controller. This applies only the caravan's brakes, which pulls the caravan back in line behind the vehicle and straightens out the rig.\n4.  **Do NOT apply the vehicle's brakes:** Braking the tow vehicle can make the sway worse, causing the caravan to 'jackknife'.\n5.  **Pull Over Safely:** Once the sway is under control and you have slowed down, pull over to a safe location to check your load distribution, tyre pressures, and determine the cause."
+      },
+      {
+        heading: "What To Do If You Have a Tyre Blowout",
+        content: "A sudden bang followed by a lurch or pull from the rig indicates a tyre blowout on either the tow vehicle or the caravan.\n\n1.  **Grip the Steering Wheel Firmly:** Keep a firm, two-handed grip to maintain control.\n2.  **Do NOT Brake Suddenly:** Just like with sway, avoid the instinct to slam on the brakes. This can cause a loss of control.\n3.  **Accelerate Slightly (Briefly):** This may feel wrong, but a brief, gentle acceleration can help to straighten the rig and pull you through the initial drag from the blown tyre.\n4.  **Ease Off the Accelerator and Coast:** Gradually slow down, letting the vehicle's drag and engine braking reduce your speed.\n5.  **Pull Over to a Safe Area:** Signal and move to the shoulder or a safe area, well off the road. Brake gently only when you are at a very low speed."
+      }
+    ],
+    conclusion: "In any emergency, the key is to avoid sudden, panicked inputs to your steering or brakes. Smooth, deliberate actions are essential. Knowing these procedures can help you stay in control during a critical moment on the road."
+  },
+  {
     topic: "Dealing with Flat Tyres or Blowouts",
     title: "Dealing with Flat Tyres or Blowouts",
     introduction: placeholderContent,
@@ -387,4 +423,3 @@ export const staticCaravanningArticles: AiGeneratedArticle[] = [
     conclusion: placeholderContent
   }
 ];
-

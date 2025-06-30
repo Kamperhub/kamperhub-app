@@ -10,9 +10,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, XCircle, PlusCircle, Trash2, Info, Weight, Fuel, Ruler, Disc } from 'lucide-react';
+import { Save, XCircle, PlusCircle, Trash2, Info, Weight, Fuel, Ruler, Disc, Settings } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
 
 const vehicleStorageLocationSchema = z.object({
   id: z.string(),
@@ -41,6 +42,7 @@ const vehicleSchema = z.object({
   recommendedTyrePressureUnladenPsi: z.coerce.number().min(0).optional().nullable(),
   recommendedTyrePressureLadenPsi: z.coerce.number().min(0).optional().nullable(),
   storageLocations: z.array(vehicleStorageLocationSchema).optional(),
+  brakeControllerNotes: z.string().optional().nullable(),
 }).refine(data => {
   if (data.kerbWeight && data.gvm && data.kerbWeight > data.gvm) {
     return false;
@@ -76,6 +78,7 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
     recommendedTyrePressureUnladenPsi: null,
     recommendedTyrePressureLadenPsi: null,
     storageLocations: [],
+    brakeControllerNotes: null,
   };
 
   const { control, register, handleSubmit, formState: { errors }, reset, watch } = useForm<VehicleFormData>({
@@ -244,6 +247,12 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
             {errors.recommendedTyrePressureLadenPsi && <p className="text-sm text-destructive font-body mt-1">{errors.recommendedTyrePressureLadenPsi.message}</p>}
           </div>
         </div>
+      </div>
+      
+      <div className="p-4 border rounded-md space-y-4 bg-muted/30">
+        <h3 className="text-lg font-medium font-headline text-primary flex items-center"><Settings className="mr-2 h-5 w-5"/> Brake Controller Notes (Optional)</h3>
+        <Textarea id="brakeControllerNotes" {...register("brakeControllerNotes")} placeholder="e.g., Gain: 6.5 for dry roads, 5.0 for wet. Boost level: 2." className="font-body bg-background" />
+        {errors.brakeControllerNotes && <p className="text-sm text-destructive font-body mt-1">{errors.brakeControllerNotes.message}</p>}
       </div>
 
       <Separator />

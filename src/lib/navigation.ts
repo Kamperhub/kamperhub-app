@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Wrench } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -34,11 +34,11 @@ export const navItems: NavItem[] = [
     keywords: 'camping gear'
   },
   {
-    href: '/learn',
-    label: 'Support & Learn',
-    icon: BookOpen,
-    description: "Access helpful articles, video guides, and the user manual to master your caravanning adventures.",
-    keywords: 'support guide manual'
+    href: '/service-log',
+    label: 'Service Log',
+    icon: Wrench,
+    description: "Log fuel fill-ups and track maintenance tasks for your vehicles and caravans to stay on top of servicing.",
+    keywords: 'fuel maintenance service'
   },
   {
     href: '/trip-expense-planner',
@@ -67,6 +67,13 @@ export const navItems: NavItem[] = [
     icon: BedDouble,
     description: "Log your campsite and accommodation bookings. Keep track of your stays and find new places to explore.",
     keywords: 'campsite booking'
+  },
+  {
+    href: '/learn',
+    label: 'Support & Learn',
+    icon: BookOpen,
+    description: "Access helpful articles, video guides, and the user manual to master your caravanning adventures.",
+    keywords: 'support guide manual'
   },
   {
     href: '/contact',
