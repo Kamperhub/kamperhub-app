@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Suitcase } from 'lucide-react';
+import { Backpack } from 'lucide-react';
 import { tripManagerItems, type NavItem } from '@/lib/navigation'; 
 
 export default function TripManagerPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-center">
-        <Suitcase className="mr-3 h-8 w-8 text-primary" />
+        <Backpack className="mr-3 h-8 w-8 text-primary" />
         <h1 className="text-3xl font-headline text-primary">Trip Manager</h1>
       </div>
       <p className="font-body text-lg text-muted-foreground">

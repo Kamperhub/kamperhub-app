@@ -4,11 +4,21 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { navItems } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
+import { Backpack } from 'lucide-react';
 
 export function BottomNavigation() {
   const pathname = usePathname();
 
-  const bottomNavItems = navItems;
+  // The main dashboard nav items are too numerous for a bottom bar.
+  // We'll define a specific, smaller set here.
+  const bottomNavItems = [
+    navItems.find(item => item.href === '/dashboard-details'),
+    navItems.find(item => item.href === '/vehicles'),
+    navItems.find(item => item.href === '/trip-manager'),
+    navItems.find(item => item.href === '/inventory'),
+    navItems.find(item => item.href === '/my-account'),
+  ].filter(Boolean) as (typeof navItems);
+
 
   // New logic: Define which paths belong to the Trip Manager group
   const tripManagerPaths = ['/trip-manager', '/trip-expense-planner', '/triplog', '/trip-packing'];
@@ -18,6 +28,8 @@ export function BottomNavigation() {
       <div className="container mx-auto px-2 sm:px-4">
         <ul className="flex justify-around items-center h-16">
           {bottomNavItems.map((item) => {
+            if (!item) return null; // Should not happen with the filter, but good for safety
+            
             const isDashboardLink = item.href === '/dashboard-details';
             const isTripManagerLink = item.href === '/trip-manager';
             
@@ -30,6 +42,9 @@ export function BottomNavigation() {
               isActive = pathname === item.href;
             }
               
+            // Use Backpack icon specifically for Trip Manager in the bottom nav
+            const IconComponent = isTripManagerLink ? Backpack : item.icon;
+
             return (
               <li key={item.label} className="flex-1 text-center">
                 <Link
@@ -41,7 +56,7 @@ export function BottomNavigation() {
                   aria-current={isActive ? "page" : undefined}
                   title={item.label}
                 >
-                  <item.icon 
+                  <IconComponent 
                     className={cn("w-7 h-7", isActive ? "text-accent" : "text-accent opacity-50")} 
                     strokeWidth={2.5}
                   />
