@@ -26,8 +26,8 @@ import { NavigationContext } from '@/components/layout/AppShell';
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export default function MyAccountPage() {
-  const { user, isAuthLoading } = useAuth();
-  const { setSubscriptionDetails, hasProAccess, subscriptionTier, stripeCustomerId, isTrialActive, trialEndsAt } = useSubscription();
+  const { user, isAuthLoading, userProfile, isProfileLoading, profileError } = useAuth();
+  const { hasProAccess, subscriptionTier, stripeCustomerId, isTrialActive, trialEndsAt } = useSubscription();
   const queryClient = useQueryClient();
   const navContext = useContext(NavigationContext);
 
@@ -39,30 +39,11 @@ export default function MyAccountPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const { data: userProfile, error: profileError, isLoading: isLoadingPrefs, refetch, isError } = useQuery<Partial<UserProfile>>({
-    queryKey: ['userPreferences', user?.uid],
-    queryFn: fetchUserPreferences,
-    enabled: !!user && !isAuthLoading,
-    staleTime: 0, 
-    gcTime: 0,
-    retry: 1, 
-  });
-
   useEffect(() => {
     if (!isAuthLoading && !user) {
       router.push('/login');
     }
   }, [isAuthLoading, user, router]);
-
-  useEffect(() => {
-    if (userProfile) {
-      setSubscriptionDetails(
-        userProfile.subscriptionTier || 'free', 
-        userProfile.stripeCustomerId || null,
-        userProfile.trialEndsAt || null
-      );
-    }
-  }, [userProfile, setSubscriptionDetails]);
 
   const handleNavigation = () => {
     navContext?.setIsNavigating(true);
@@ -115,7 +96,7 @@ export default function MyAccountPage() {
         description: "Your account details have been successfully saved.",
       });
       setIsEditProfileOpen(false);
-      await queryClient.invalidateQueries({ queryKey: ['userPreferences', user.uid] });
+      await queryClient.invalidateQueries({ queryKey: ['userProfile', user.uid] });
 
     } catch (error: any) {
       let errorMessage = "An unexpected error occurred while saving your profile.";
@@ -204,7 +185,7 @@ export default function MyAccountPage() {
     }
   };
   
-  const isLoading = isAuthLoading || isLoadingPrefs;
+  const isLoading = isAuthLoading || isProfileLoading;
 
   if (isLoading) {
     return (
@@ -215,7 +196,7 @@ export default function MyAccountPage() {
     );
   }
 
-  if (isError) {
+  if (profileError) {
     const isProjectMismatchError = profileError.message.includes("5 NOT_FOUND") || profileError.message.includes("Database Not Found");
     const isProfileMissingError = profileError.message.includes("User profile not found");
 
@@ -245,10 +226,6 @@ export default function MyAccountPage() {
                       Error: {profileError.message}
                 </pre>
             </AlertDescription>
-            <Button onClick={() => refetch()} className="mt-4 font-body">
-                <RotateCw className="mr-2 h-4 w-4" />
-                Retry After Fixing
-            </Button>
         </Alert>
       </div>
     );

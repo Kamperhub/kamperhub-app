@@ -30,13 +30,13 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <QueryProvider>
-          <AuthProvider>
-            <SubscriptionProvider>
+          <SubscriptionProvider>
+            <AuthProvider>
               <AppShell>
                 {children}
               </AppShell>
-            </SubscriptionProvider>
-          </AuthProvider>
+            </AuthProvider>
+          </SubscriptionProvider>
         </QueryProvider>
         <Toaster />
       </body>
