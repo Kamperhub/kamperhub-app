@@ -1,6 +1,7 @@
+
 "use client"; 
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useContext } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { StoredCaravan } from '@/types/caravan'; 
 import type { StoredVehicle } from '@/types/vehicle';
@@ -17,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fetchUserPreferences, fetchCaravans, fetchVehicles, fetchTrips } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
+import { NavigationContext } from '@/components/layout/AppShell';
 
 const InventoryListClient = dynamic(
   () => import('@/components/features/inventory/InventoryList').then(mod => mod.InventoryList),
@@ -39,6 +41,7 @@ const InventoryListClient = dynamic(
 
 export default function InventoryPage() {
   const { user, isAuthLoading } = useAuth();
+  const navContext = useContext(NavigationContext);
 
   const { data: userPrefs, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
@@ -77,6 +80,10 @@ export default function InventoryPage() {
   
   const isLoading = isAuthLoading || isLoadingPrefs || isLoadingCaravans || isLoadingVehicles || isLoadingTrips;
   const queryError = prefsError || caravansError || vehiclesError || tripsError;
+
+  const handleNavigation = () => {
+    navContext?.setIsNavigating(true);
+  };
 
   const getDescriptiveText = () => {
     let text = "Track your caravan's load, manage items, and stay compliant with weight limits. Calculations consider active caravan, tow vehicle, and WDH specifications if selected. Water tank levels also contribute to the total weight.";
@@ -138,7 +145,7 @@ export default function InventoryPage() {
           <AlertTitle className="font-headline text-foreground">Active Caravan Required</AlertTitle>
           <AlertDescription className="font-body text-muted-foreground">
             Please add a caravan and set it as active in the 'Vehicles' section to manage its inventory and see accurate weight calculations.
-            <Link href="/vehicles" passHref>
+            <Link href="/vehicles" passHref onClick={handleNavigation}>
               <Button variant="link" className="p-0 h-auto ml-1 text-foreground hover:underline font-body">Go to Vehicles</Button>
             </Link>
           </AlertDescription>
@@ -150,7 +157,7 @@ export default function InventoryPage() {
           <AlertTitle className="font-headline text-foreground">Active Tow Vehicle Recommended</AlertTitle>
           <AlertDescription className="font-body text-muted-foreground">
             For full towing compliance checks, please add a tow vehicle and set it as active in 'Vehicles'.
-            <Link href="/vehicles" passHref>
+            <Link href="/vehicles" passHref onClick={handleNavigation}>
               <Button variant="link" className="p-0 h-auto ml-1 text-foreground hover:underline font-body">Go to Vehicles</Button>
             </Link>
           </AlertDescription>

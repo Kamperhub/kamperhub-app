@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { EditProfileForm, type EditProfileFormData } from '@/components/features/account/EditProfileForm';
+import { NavigationContext } from '@/components/layout/AppShell';
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
@@ -28,6 +29,7 @@ export default function MyAccountPage() {
   const { user, isAuthLoading } = useAuth();
   const { setSubscriptionDetails, hasProAccess, subscriptionTier, stripeCustomerId, isTrialActive, trialEndsAt } = useSubscription();
   const queryClient = useQueryClient();
+  const navContext = useContext(NavigationContext);
 
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -61,6 +63,10 @@ export default function MyAccountPage() {
       );
     }
   }, [userProfile, setSubscriptionDetails]);
+
+  const handleNavigation = () => {
+    navContext?.setIsNavigating(true);
+  };
 
   const handleLogout = async () => {
     try {
@@ -397,7 +403,7 @@ export default function MyAccountPage() {
           </div>
 
           {isAdminUser && (
-            <Link href="/admin" passHref>
+            <Link href="/admin" passHref onClick={handleNavigation}>
               <Button variant="secondary" className="w-full font-body mt-2 mb-2">
                 <UserCog className="mr-2 h-4 w-4" /> Admin Only - Manage Users
               </Button>

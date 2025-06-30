@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { z } from 'zod';
 import type { UserProfile } from '@/types/auth';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
+import { NavigationContext } from '@/components/layout/AppShell';
 
 const signupSchema = z.object({
   firstName: z.string().min(1, "First Name is required"),
@@ -68,12 +69,17 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, isAuthLoading } = useAuth();
+  const navContext = useContext(NavigationContext);
 
   useEffect(() => {
     if (!isAuthLoading && user) {
       router.push('/');
     }
   }, [user, isAuthLoading, router]);
+
+  const handleNavigation = () => {
+    navContext?.setIsNavigating(true);
+  };
 
   const handleSignup: SubmitHandler<SignupFormData> = async (data) => {
     setIsLoading(true);
@@ -314,7 +320,7 @@ export default function SignupPage() {
           </form>
           <p className="text-sm text-center text-muted-foreground mt-4 font-body">
             Already have an account?{' '}
-            <Link href="/login" className="font-medium text-primary hover:underline">
+            <Link href="/login" className="font-medium text-primary hover:underline" onClick={handleNavigation}>
               Log In
             </Link>
           </p>

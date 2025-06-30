@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
+import { NavigationContext } from '@/components/layout/AppShell';
 
 export default function LoginPage() {
   const [email, setEmail] = useState(''); 
@@ -31,6 +32,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, isAuthLoading } = useAuth();
+  const navContext = useContext(NavigationContext);
 
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
@@ -41,6 +43,10 @@ export default function LoginPage() {
       router.push('/');
     }
   }, [user, isAuthLoading, router]);
+
+  const handleNavigation = () => {
+    navContext?.setIsNavigating(true);
+  };
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -231,7 +237,7 @@ export default function LoginPage() {
           </form>
           <p className="text-sm text-center text-muted-foreground mt-6 font-body">
             Don't have an account?{' '}
-            <Link href="/signup" className="font-medium text-primary hover:underline">
+            <Link href="/signup" className="font-medium text-primary hover:underline" onClick={handleNavigation}>
               Sign Up
             </Link>
           </p>

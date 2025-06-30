@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useContext } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { fetchTrips } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
+import { NavigationContext } from '@/components/layout/AppShell';
 
 interface TripStats {
   totalTrips: number;
@@ -27,6 +28,7 @@ interface TripStats {
 
 export default function StatsPage() {
   const { user, isAuthLoading } = useAuth();
+  const navContext = useContext(NavigationContext);
 
   const { data: loggedTrips = [], isLoading: isLoadingTrips, error } = useQuery<LoggedTrip[]>({
     queryKey: ['trips', user?.uid],
@@ -35,6 +37,10 @@ export default function StatsPage() {
   });
 
   const isLoading = isAuthLoading || isLoadingTrips;
+  
+  const handleNavigation = () => {
+    navContext?.setIsNavigating(true);
+  };
 
   const stats: TripStats | null = useMemo(() => {
     if (!loggedTrips || loggedTrips.length === 0) {
@@ -155,7 +161,7 @@ export default function StatsPage() {
                     It looks like you haven't logged any trips. <br/>Start planning your adventures to see your stats here!
                 </p>
                 <Link href="/trip-expense-planner" passHref>
-                    <Button className="font-body bg-accent text-accent-foreground hover:bg-accent/90">
+                    <Button className="font-body bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleNavigation}>
                         <RouteIcon className="mr-2 h-4 w-4" /> Plan Your First Trip
                     </Button>
                 </Link>

@@ -5,8 +5,15 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { LayoutDashboard } from 'lucide-react';
 import { dashboardDetailItems, type NavItem } from '@/lib/navigation'; 
+import { useContext } from 'react';
+import { NavigationContext } from '@/components/layout/AppShell';
 
 export default function DashboardDetailsPage() {
+  const navContext = useContext(NavigationContext);
+  const handleNavigation = () => {
+    navContext?.setIsNavigating(true);
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center">
@@ -18,7 +25,7 @@ export default function DashboardDetailsPage() {
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {dashboardDetailItems.map((item: NavItem) => (
-          <Link key={item.href} href={item.href} className="block h-full no-underline group">
+          <Link key={item.href} href={item.href} className="block h-full no-underline group" onClick={handleNavigation}>
             <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardHeader className="pb-4">
                 <CardTitle className="font-headline text-xl text-primary flex items-center">

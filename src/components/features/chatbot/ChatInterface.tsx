@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useContext } from 'react';
 import type { ChatMessage } from '@/types/chatbot';
 import { caravanSupportChatbot, type CaravanSupportChatbotInput, type CaravanSupportChatbotOutput } from '@/ai/flows/caravan-support-chatbot';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { NavigationContext } from '@/components/layout/AppShell';
 
 
 export function ChatInterface() {
@@ -25,12 +26,17 @@ export function ChatInterface() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { toast } = useToast();
+  const navContext = useContext(NavigationContext);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [messages]);
+
+  const handleNavigation = () => {
+    navContext?.setIsNavigating(true);
+  };
 
   const handleSendMessage = async () => {
     if (!input.trim()) return;
@@ -145,7 +151,7 @@ export function ChatInterface() {
                     <p className="text-xs font-body text-foreground">
                       "{msg.relatedArticleTitle}"
                     </p>
-                    <Link href="/learn" passHref>
+                    <Link href="/learn" passHref onClick={handleNavigation}>
                         <Button variant="link" size="sm" className="text-xs p-0 h-auto mt-1 text-accent hover:underline">
                             Go to Support Center
                         </Button>

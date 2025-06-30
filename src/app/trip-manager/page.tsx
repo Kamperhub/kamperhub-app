@@ -1,11 +1,19 @@
+
 "use client";
 
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Backpack } from 'lucide-react';
 import { tripManagerItems, type NavItem } from '@/lib/navigation'; 
+import { useContext } from 'react';
+import { NavigationContext } from '@/components/layout/AppShell';
 
 export default function TripManagerPage() {
+  const navContext = useContext(NavigationContext);
+  const handleNavigation = () => {
+    navContext?.setIsNavigating(true);
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center">
@@ -17,7 +25,7 @@ export default function TripManagerPage() {
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {tripManagerItems.map((item: NavItem) => (
-          <Link key={item.href} href={item.href} className="block h-full no-underline group">
+          <Link key={item.href} href={item.href} className="block h-full no-underline group" onClick={handleNavigation}>
             <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardHeader className="pb-4">
                 <CardTitle className="font-headline text-xl text-primary flex items-center">
