@@ -395,16 +395,6 @@ export function TripPlannerClient() {
             <TabsTrigger value="budget" className="font-body"><Edit className="mr-2 h-4 w-4"/>Budget</TabsTrigger>
             <TabsTrigger value="expenses" className="font-body"><DollarSign className="mr-2 h-4 w-4"/>Expenses</TabsTrigger>
           </TabsList>
-          <Button
-              onClick={handleOpenSaveTripDialog}
-              variant="default"
-              size="sm"
-              className="font-body bg-primary hover:bg-primary/90 text-primary-foreground"
-              disabled={!routeDetails || createTripMutation.isPending || updateTripMutation.isPending}
-          >
-              {(createTripMutation.isPending || updateTripMutation.isPending) ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-              {activeTrip ? 'Update Trip' : 'Save Trip'}
-          </Button>
         </div>
 
         <TabsContent value="itinerary" className="mt-6">
@@ -469,6 +459,16 @@ export function TripPlannerClient() {
                     <OccupantManager occupants={tripOccupants} onUpdate={handleOccupantsUpdate} disabled={!routeDetails && !activeTrip} />
                 </CardContent>
               </Card>
+              <Button
+                  onClick={handleOpenSaveTripDialog}
+                  variant="default"
+                  size="lg"
+                  className="w-full font-body bg-primary hover:bg-primary/90 text-primary-foreground text-lg py-6"
+                  disabled={!routeDetails || createTripMutation.isPending || updateTripMutation.isPending}
+              >
+                  {(createTripMutation.isPending || updateTripMutation.isPending) ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                  {activeTrip ? 'Update Trip Details' : 'Save Full Trip'}
+              </Button>
             </div>
             <div className="md:col-span-2 space-y-6">
               <Card><CardHeader className="flex flex-row items-center justify-between">
