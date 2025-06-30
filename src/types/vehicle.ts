@@ -18,7 +18,7 @@ export interface VehicleFormData {
   gcm: number; // Gross Combined Mass
   maxTowCapacity: number;
   maxTowballMass: number;
-  fuelEfficiency: number; // L/100km
+  fuelEfficiency: number; // Litres/100km
   kerbWeight?: number | null; // Weight of the vehicle with a full tank of fuel, without occupants or cargo
   frontAxleLimit?: number | null; // Max permissible load on the front axle
   rearAxleLimit?: number | null; // Max permissible load on the rear axle

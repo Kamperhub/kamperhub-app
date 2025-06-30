@@ -1,3 +1,4 @@
+
 // src/app/api/caravans/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -54,7 +55,7 @@ const waterTankSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Tank name is required"),
   type: z.enum(['fresh', 'grey', 'black']),
-  capacityLiters: z.coerce.number().positive(),
+  capacityLitres: z.coerce.number().positive(),
   longitudinalPosition: z.enum(['front-of-axles', 'over-axles', 'rear-of-axles']),
   lateralPosition: z.enum(['left', 'center', 'right']),
   distanceFromAxleCenterMm: z.coerce.number().optional().nullable(),

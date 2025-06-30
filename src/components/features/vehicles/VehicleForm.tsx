@@ -34,7 +34,7 @@ const vehicleSchema = z.object({
   gcm: z.coerce.number().positive("GCM must be positive"),
   maxTowCapacity: z.coerce.number().positive("Max Towing Capacity must be positive"),
   maxTowballMass: z.coerce.number().positive("Max Towball Mass must be positive"),
-  fuelEfficiency: z.coerce.number().min(0.1, "Fuel efficiency must be positive (L/100km)").max(100, "Fuel efficiency seems too high (max 100 L/100km)"),
+  fuelEfficiency: z.coerce.number().min(0.1, "Fuel efficiency must be positive (Litres/100km)").max(100, "Fuel efficiency seems too high (max 100 Litres/100km)"),
   kerbWeight: z.coerce.number().min(1, "Kerb Weight must be a positive number").optional().nullable(),
   frontAxleLimit: z.coerce.number().min(1, "Front Axle Limit must be a positive number").optional().nullable(),
   rearAxleLimit: z.coerce.number().min(1, "Rear Axle Limit must be a positive number").optional().nullable(),
@@ -231,7 +231,7 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
             {errors.wheelbase && <p className="text-sm text-destructive font-body mt-1">{errors.wheelbase.message}</p>}
           </div>
           <div>
-            <Label htmlFor="fuelEfficiency" className="font-body">Fuel Efficiency (L/100km)</Label>
+            <Label htmlFor="fuelEfficiency" className="font-body">Fuel Efficiency (Litres/100km)</Label>
             <Input id="fuelEfficiency" type="number" step="0.1" {...register("fuelEfficiency")} placeholder="e.g., 12.5" className="font-body" />
             <p className="text-xs text-muted-foreground font-body mt-1">Avg. combined efficiency.</p>
             {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}

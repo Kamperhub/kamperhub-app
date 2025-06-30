@@ -23,7 +23,7 @@ export interface WaterTank {
   id: string;
   name: string; 
   type: 'fresh' | 'grey' | 'black';
-  capacityLiters: number;
+  capacityLitres: number;
   longitudinalPosition: 'front-of-axles' | 'over-axles' | 'rear-of-axles';
   lateralPosition: 'left' | 'center' | 'right';
   distanceFromAxleCenterMm?: number | null;

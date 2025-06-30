@@ -7,8 +7,8 @@ export interface TripPlannerFormValues {
   startLocation: string;
   endLocation: string;
   waypoints?: string[]; // For user input of waypoint addresses
-  fuelEfficiency: number; // L/100km
-  fuelPrice: number; // Price per liter
+  fuelEfficiency: number; // Litres/100km
+  fuelPrice: number; // Price per litre
   dateRange?: DateRange | null;
 }
 

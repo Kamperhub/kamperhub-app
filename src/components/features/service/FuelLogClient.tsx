@@ -32,8 +32,8 @@ import { cn } from '@/lib/utils';
 const fuelLogFormSchema = z.object({
   date: z.date({ required_error: "A date is required." }),
   odometer: z.coerce.number().positive("Odometer must be a positive number."),
-  liters: z.coerce.number().positive("Liters must be a positive number."),
-  pricePerLiter: z.coerce.number().positive("Price per liter must be positive."),
+  litres: z.coerce.number().positive("Litres must be a positive number."),
+  pricePerLitre: z.coerce.number().positive("Price per litre must be positive."),
   location: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -69,12 +69,12 @@ export function FuelLogClient() {
       if (editingLog) {
         setValue('date', parseISO(editingLog.date));
         setValue('odometer', editingLog.odometer);
-        setValue('liters', editingLog.liters);
-        setValue('pricePerLiter', editingLog.pricePerLiter);
+        setValue('litres', editingLog.litres);
+        setValue('pricePerLitre', editingLog.pricePerLitre);
         setValue('location', editingLog.location);
         setValue('notes', editingLog.notes);
       } else {
-        reset({ date: new Date(), odometer: undefined, liters: undefined, pricePerLiter: undefined, location: '', notes: '' });
+        reset({ date: new Date(), odometer: undefined, litres: undefined, pricePerLitre: undefined, location: '', notes: '' });
       }
     }
   }, [editingLog, isFormOpen, setValue, reset]);
@@ -107,7 +107,7 @@ export function FuelLogClient() {
   const handleSaveLog: SubmitHandler<FuelLogFormData> = (data) => {
     if (!selectedVehicleId) return;
 
-    const totalCost = data.liters * data.pricePerLiter;
+    const totalCost = data.litres * data.pricePerLitre;
 
     const logData = {
         ...data,
@@ -172,14 +172,14 @@ export function FuelLogClient() {
                     </div>
                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <Label htmlFor="liters">Liters</Label>
-                            <Input id="liters" type="number" step="0.01" {...register('liters')} />
-                            {errors.liters && <p className="text-destructive text-sm mt-1">{errors.liters.message}</p>}
+                            <Label htmlFor="litres">Litres</Label>
+                            <Input id="litres" type="number" step="0.01" {...register('litres')} />
+                            {errors.litres && <p className="text-destructive text-sm mt-1">{errors.litres.message}</p>}
                         </div>
                         <div>
-                            <Label htmlFor="pricePerLiter">Price / Liter</Label>
-                            <Input id="pricePerLiter" type="number" step="0.001" {...register('pricePerLiter')} />
-                            {errors.pricePerLiter && <p className="text-destructive text-sm mt-1">{errors.pricePerLiter.message}</p>}
+                            <Label htmlFor="pricePerLitre">Price / Litre</Label>
+                            <Input id="pricePerLitre" type="number" step="0.001" {...register('pricePerLitre')} />
+                            {errors.pricePerLitre && <p className="text-destructive text-sm mt-1">{errors.pricePerLitre.message}</p>}
                         </div>
                     </div>
                      <div>
@@ -231,8 +231,8 @@ export function FuelLogClient() {
                     <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Odometer</TableHead>
-                        <TableHead className="text-right">Liters</TableHead>
-                        <TableHead className="text-right">$/L</TableHead>
+                        <TableHead className="text-right">Litres</TableHead>
+                        <TableHead className="text-right">$/Litre</TableHead>
                         <TableHead className="text-right">Total</TableHead>
                         <TableHead>Actions</TableHead>
                     </TableRow>
@@ -242,8 +242,8 @@ export function FuelLogClient() {
                         <TableRow key={log.id}>
                             <TableCell>{format(parseISO(log.date), 'PP')}</TableCell>
                             <TableCell>{log.odometer} km</TableCell>
-                            <TableCell className="text-right">{log.liters.toFixed(2)}</TableCell>
-                            <TableCell className="text-right">${log.pricePerLiter.toFixed(3)}</TableCell>
+                            <TableCell className="text-right">{log.litres.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">${log.pricePerLitre.toFixed(3)}</TableCell>
                             <TableCell className="text-right">${log.totalCost.toFixed(2)}</TableCell>
                             <TableCell>
                                 <Button variant="ghost" size="icon" onClick={() => handleEditLog(log)}><Edit className="h-4 w-4"/></Button>

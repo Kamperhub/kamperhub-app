@@ -31,7 +31,7 @@ const waterTankSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Tank name is required"),
   type: z.enum(['fresh', 'grey', 'black'], { required_error: "Tank type is required" }),
-  capacityLiters: z.coerce.number().positive("Capacity must be a positive number"),
+  capacityLitres: z.coerce.number().positive("Capacity must be a positive number"),
   longitudinalPosition: z.enum(['front-of-axles', 'over-axles', 'rear-of-axles'], { required_error: "Longitudinal position is required" }),
   lateralPosition: z.enum(['left', 'center', 'right'], { required_error: "Lateral position is required" }),
   distanceFromAxleCenterMm: z.coerce.number().optional().nullable(),
@@ -169,7 +169,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
     }, 0);
 
     const water = (watchedForm.waterTanks || []).reduce((sum, tank) => {
-        const capacity = Number(tank.capacityLiters);
+        const capacity = Number(tank.capacityLitres);
         return sum + (isNaN(capacity) ? 0 : capacity);
     }, 0);
     
@@ -218,7 +218,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
       })) || [],
       waterTanks: data.waterTanks?.map(tank => ({
         ...tank,
-        capacityLiters: Number(tank.capacityLiters),
+        capacityLitres: Number(tank.capacityLitres),
         distanceFromAxleCenterMm: tank.distanceFromAxleCenterMm ? Number(tank.distanceFromAxleCenterMm) : null,
       })) || [],
       diagrams: data.diagrams?.map(diag => ({
@@ -513,9 +513,9 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
                 {errors.waterTanks?.[index]?.type && <p className="text-sm text-destructive font-body mt-1">{errors.waterTanks[index]?.type?.message}</p>}
               </div>
               <div>
-                <Label htmlFor={`waterTanks.${index}.capacityLiters`} className="text-xs font-body">Capacity (Liters)*</Label>
-                <Input type="number" {...register(`waterTanks.${index}.capacityLiters`)} placeholder="e.g., 80" className="font-body bg-background"/>
-                {errors.waterTanks?.[index]?.capacityLiters && <p className="text-sm text-destructive font-body mt-1">{errors.waterTanks[index]?.capacityLiters?.message}</p>}
+                <Label htmlFor={`waterTanks.${index}.capacityLitres`} className="text-xs font-body">Capacity (Litres)*</Label>
+                <Input type="number" {...register(`waterTanks.${index}.capacityLitres`)} placeholder="e.g., 80" className="font-body bg-background"/>
+                {errors.waterTanks?.[index]?.capacityLitres && <p className="text-sm text-destructive font-body mt-1">{errors.waterTanks[index]?.capacityLitres?.message}</p>}
               </div>
             </div>
              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
@@ -538,7 +538,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
              <p className="text-xs text-muted-foreground font-body -mt-2">For Distance from Axle, a positive number is towards the hitch.</p>
           </div>
         ))}
-        <Button type="button" variant="outline" onClick={() => appendWaterTank({ id: Date.now().toString(), name: '', type: 'fresh', capacityLiters: 80, longitudinalPosition: 'over-axles', lateralPosition: 'center', distanceFromAxleCenterMm: null } as WaterTank)} className="font-body">
+        <Button type="button" variant="outline" onClick={() => appendWaterTank({ id: Date.now().toString(), name: '', type: 'fresh', capacityLitres: 80, longitudinalPosition: 'over-axles', lateralPosition: 'center', distanceFromAxleCenterMm: null } as WaterTank)} className="font-body">
           <Droplet className="mr-2 h-4 w-4" /> Add Water Tank
         </Button>
         {errors.waterTanks && typeof errors.waterTanks === 'object' && !Array.isArray(errors.waterTanks) && (errors.waterTanks as any).message && (

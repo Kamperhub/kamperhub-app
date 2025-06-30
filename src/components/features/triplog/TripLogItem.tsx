@@ -69,7 +69,7 @@ export function TripLogItem({ trip, onDelete, onRecall, onAddToCalendar, onStart
           </div>
         )}
         <div className="text-xs text-muted-foreground">
-            Efficiency: {trip.fuelEfficiency} L/100km, Price: ${trip.fuelPrice.toFixed(2)}/L
+            Efficiency: {trip.fuelEfficiency} Litres/100km, Price: ${trip.fuelPrice.toFixed(2)}/Litre
         </div>
         {trip.notes && (
           <div className="font-body mt-2 pt-2 border-t">
@@ -111,4 +111,3 @@ export function TripLogItem({ trip, onDelete, onRecall, onAddToCalendar, onStart
     </Card>
   );
 }
-

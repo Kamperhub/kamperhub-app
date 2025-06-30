@@ -47,8 +47,8 @@ import type { UserProfile } from '@/types/auth';
 const tripPlannerSchema = z.object({
   startLocation: z.string().min(3, "Start location is required (min 3 chars)"),
   endLocation: z.string().min(3, "End location is required (min 3 chars)"),
-  fuelEfficiency: z.coerce.number().positive("Fuel efficiency must be a positive number (L/100km)"),
-  fuelPrice: z.coerce.number().positive("Fuel price must be a positive number (per liter)"),
+  fuelEfficiency: z.coerce.number().positive("Fuel efficiency must be a positive number (Litres/100km)"),
+  fuelPrice: z.coerce.number().positive("Fuel price must be a positive number (per litre)"),
   dateRange: z.object({
     from: z.date().optional().nullable(),
     to: z.date().optional().nullable(),
@@ -421,12 +421,12 @@ export function TripPlannerClient() {
                       )} />
                     </div>
                     <div>
-                      <Label htmlFor="fuelEfficiency" className="font-body">Fuel Efficiency (L/100km)</Label>
+                      <Label htmlFor="fuelEfficiency" className="font-body">Fuel Efficiency (Litres/100km)</Label>
                       <Controller name="fuelEfficiency" control={control} render={({ field }) => (<Input id="fuelEfficiency" type="number" step="0.1" {...field} value={field.value ?? ''} className="font-body" />)} />
                       {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
                     </div>
                     <div>
-                      <Label htmlFor="fuelPrice" className="font-body">Fuel Price ($/L)</Label>
+                      <Label htmlFor="fuelPrice" className="font-body">Fuel Price ($/Litre)</Label>
                       <Controller name="fuelPrice" control={control} render={({ field }) => (<Input id="fuelPrice" type="number" step="0.01" {...field} value={field.value ?? ''} className="font-body" />)} />
                       {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
                     </div>
