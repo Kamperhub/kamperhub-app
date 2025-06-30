@@ -442,7 +442,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
                       {potentialGrossPayload > 0 && (
                           <Alert variant="default" className="mt-2 text-xs p-2 bg-background">
                               <Info className="h-3 w-3" />
-                              <AlertDescription>Suggestion: You have ~<strong>{Math.max(0, remainingPayloadForThisLocation).toFixed(0)} kg</strong> of payload remaining to allocate.</AlertDescription>
+                              <AlertDescription>Suggestion: You have approx. <strong>{Math.max(0, remainingPayloadForThisLocation).toFixed(0)} kg</strong> of payload remaining to allocate.</AlertDescription>
                           </Alert>
                       )}
                   </div>
@@ -518,7 +518,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
                 {errors.waterTanks?.[index]?.capacityLiters && <p className="text-sm text-destructive font-body mt-1">{errors.waterTanks[index]?.capacityLiters?.message}</p>}
               </div>
             </div>
-             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
               <div>
                 <Label htmlFor={`waterTanks.${index}.longitudinalPosition`} className="text-xs font-body">Longitudinal Pos.*</Label>
                 <Controller name={`waterTanks.${index}.longitudinalPosition`} control={control} render={({ field: ctrlField }) => (<Select onValueChange={ctrlField.onChange} defaultValue={ctrlField.value}><SelectTrigger className="font-body bg-background"><SelectValue placeholder="Position" /></SelectTrigger><SelectContent><SelectItem value="front-of-axles">Front</SelectItem><SelectItem value="over-axles">Over Axles</SelectItem><SelectItem value="rear-of-axles">Rear</SelectItem></SelectContent></Select>)}/>
