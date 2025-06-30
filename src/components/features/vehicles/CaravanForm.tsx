@@ -518,24 +518,24 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
                 {errors.waterTanks?.[index]?.capacityLiters && <p className="text-sm text-destructive font-body mt-1">{errors.waterTanks[index]?.capacityLiters?.message}</p>}
               </div>
             </div>
-             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <Label htmlFor={`waterTanks.${index}.longitudinalPosition`} className="text-xs font-body">Longitudinal Position*</Label>
-                <Controller name={`waterTanks.${index}.longitudinalPosition`} control={control} render={({ field: ctrlField }) => (<Select onValueChange={ctrlField.onChange} defaultValue={ctrlField.value}><SelectTrigger className="font-body bg-background"><SelectValue placeholder="Select position" /></SelectTrigger><SelectContent><SelectItem value="front-of-axles">Front of Axle(s)</SelectItem><SelectItem value="over-axles">Over Axle(s)</SelectItem><SelectItem value="rear-of-axles">Rear of Axle(s)</SelectItem></SelectContent></Select>)}/>
+                <Label htmlFor={`waterTanks.${index}.longitudinalPosition`} className="text-xs font-body">Longitudinal Pos.*</Label>
+                <Controller name={`waterTanks.${index}.longitudinalPosition`} control={control} render={({ field: ctrlField }) => (<Select onValueChange={ctrlField.onChange} defaultValue={ctrlField.value}><SelectTrigger className="font-body bg-background"><SelectValue placeholder="Position" /></SelectTrigger><SelectContent><SelectItem value="front-of-axles">Front</SelectItem><SelectItem value="over-axles">Over Axles</SelectItem><SelectItem value="rear-of-axles">Rear</SelectItem></SelectContent></Select>)}/>
                 {errors.waterTanks?.[index]?.longitudinalPosition && <p className="text-sm text-destructive font-body mt-1">{errors.waterTanks[index]?.longitudinalPosition?.message}</p>}
               </div>
               <div>
-                <Label htmlFor={`waterTanks.${index}.lateralPosition`} className="text-xs font-body">Lateral Position*</Label>
-                <Controller name={`waterTanks.${index}.lateralPosition`} control={control} render={({ field: ctrlField }) => (<Select onValueChange={ctrlField.onChange} defaultValue={ctrlField.value}><SelectTrigger className="font-body bg-background"><SelectValue placeholder="Select position" /></SelectTrigger><SelectContent><SelectItem value="left">Left</SelectItem><SelectItem value="center">Center</SelectItem><SelectItem value="right">Right</SelectItem></SelectContent></Select>)}/>
+                <Label htmlFor={`waterTanks.${index}.lateralPosition`} className="text-xs font-body">Lateral Pos.*</Label>
+                <Controller name={`waterTanks.${index}.lateralPosition`} control={control} render={({ field: ctrlField }) => (<Select onValueChange={ctrlField.onChange} defaultValue={ctrlField.value}><SelectTrigger className="font-body bg-background"><SelectValue placeholder="Position" /></SelectTrigger><SelectContent><SelectItem value="left">Left</SelectItem><SelectItem value="center">Center</SelectItem><SelectItem value="right">Right</SelectItem></SelectContent></Select>)}/>
                 {errors.waterTanks?.[index]?.lateralPosition && <p className="text-sm text-destructive font-body mt-1">{errors.waterTanks[index]?.lateralPosition?.message}</p>}
               </div>
-            </div>
-            <div>
-                <Label htmlFor={`waterTanks.${index}.distanceFromAxleCenterMm`} className="text-xs font-body">Dist. from Axle Center (mm)</Label>
-                <Input {...register(`waterTanks.${index}.distanceFromAxleCenterMm`)} type="number" placeholder="e.g., 1200 (front)" className="font-body bg-background"/>
-                <p className="text-xs text-muted-foreground font-body mt-0.5">Relative to axle(s) center. +ve towards hitch.</p>
+               <div>
+                <Label htmlFor={`waterTanks.${index}.distanceFromAxleCenterMm`} className="text-xs font-body">Dist. from Axle (mm)</Label>
+                <Input {...register(`waterTanks.${index}.distanceFromAxleCenterMm`)} type="number" placeholder="e.g., 1200" className="font-body bg-background"/>
                 {errors.waterTanks?.[index]?.distanceFromAxleCenterMm && <p className="text-sm text-destructive font-body mt-1">{errors.waterTanks[index]?.distanceFromAxleCenterMm?.message}</p>}
               </div>
+            </div>
+             <p className="text-xs text-muted-foreground font-body -mt-2">For Distance from Axle, a positive number is towards the hitch.</p>
           </div>
         ))}
         <Button type="button" variant="outline" onClick={() => appendWaterTank({ id: Date.now().toString(), name: '', type: 'fresh', capacityLiters: 80, longitudinalPosition: 'over-axles', lateralPosition: 'center', distanceFromAxleCenterMm: null } as WaterTank)} className="font-body">
