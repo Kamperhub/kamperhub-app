@@ -12,6 +12,7 @@ This document tracks the development priorities, future features, and completed 
     *   Investigate and fix errors preventing vehicle, caravan, and WDH data from loading on the `/vehicles` page.
     *   Address any remaining `Unauthorized: Invalid ID token` or `client is offline` errors.
     *   Ensure all user preferences and settings load correctly for all user types (including admin).
+    *   **Fuel Log Toast Action:** Ensure the "Add Category" button in the "Missing 'Fuel' Category" error message correctly navigates the user to the trip planner.
 
 ### 2. New Feature Development
 *   **Objective:** Begin implementing new, high-value features now that the core data migration is complete.
