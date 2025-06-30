@@ -1,4 +1,3 @@
-
 // src/app/api/create-customer-portal-session/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -16,8 +15,8 @@ if (stripeSecretKey) {
 }
 
 export async function POST(req: NextRequest) {
-  const { firestore, error: adminError } = getFirebaseAdmin();
-  if (adminError || !firestore) {
+  const { auth, firestore, error: adminError } = getFirebaseAdmin();
+  if (adminError || !auth || !firestore) {
     console.error('Error getting Firebase Admin instances:', adminError?.message);
     return NextResponse.json({ error: 'Server configuration error.', details: adminError?.message }, { status: 503 });
   }
@@ -28,11 +27,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { userId } = await req.json();
-
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required.' }, { status: 400 });
+    const authorizationHeader = req.headers.get('Authorization');
+    if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 });
     }
+    const idToken = authorizationHeader.split('Bearer ')[1];
+    const decodedToken = await auth.verifyIdToken(idToken);
+    const userId = decodedToken.uid;
 
     const userDocRef = firestore.collection('users').doc(userId);
     const userDocSnap = await userDocRef.get();
@@ -66,7 +67,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: portalSession.url });
 
   } catch (error: any) {
-    console.error('Create Customer Portal Session: Error in POST handler:', error.message, error.stack);
+    console.error('Create Customer Portal Session: Error in POST handler:', error);
+     if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') {
+      return NextResponse.json({ error: 'Unauthorized: Invalid or expired token.' }, { status: 401 });
+    }
     const stripeErrorMessage = error.type ? `${error.type}: ${error.message}` : error.message;
     return NextResponse.json({ error: `Internal Server Error creating Stripe portal session: ${stripeErrorMessage}` }, { status: 500 });
   }

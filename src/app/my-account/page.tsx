@@ -180,10 +180,14 @@ export default function MyAccountPage() {
     }
     setIsRedirectingToPortal(true);
     try {
+      const idToken = await user.getIdToken(true);
       const response = await fetch('/api/create-customer-portal-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.uid }), 
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}` 
+        },
+        body: JSON.stringify({}), // Body is now empty, user is identified by token
       });
       const sessionData = await response.json();
       if (response.ok && sessionData.url) {
