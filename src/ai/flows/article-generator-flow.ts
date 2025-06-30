@@ -62,19 +62,30 @@ const articleGeneratorFlow = ai.defineFlow(
     try {
       const {output} = await prompt(input);
       if (!output) {
-        console.warn('ArticleGeneratorFlow: AI model returned null output. This might be due to schema mismatch or other non-fatal errors from the model.');
-        throw new Error('AI_MODEL_OUTPUT_ERROR: Failed to generate article content in the expected format from the model.');
+        console.warn('ArticleGeneratorFlow: AI model returned null output.');
+        throw new Error('The AI returned an unexpected response. Please try rephrasing your request.');
       }
       return { ...output, topic: input.topic };
     } catch (error: any) {
       console.error("Error in articleGeneratorFlow during prompt execution:", error);
-      // Check for rate limit / quota errors
-      if (error.message && (error.message.includes("429") || error.message.toLowerCase().includes("quota") || (error.cause && typeof error.cause === 'object' && 'status' in error.cause && error.cause.status === 429))) {
-        throw new Error(`RATE_LIMIT_EXCEEDED: API request failed due to rate limits or quota issues. Original: ${error.message}`);
+      
+      let errorMessageForUser = "An unexpected error occurred while generating the article. Please try again.";
+      if (error.message) {
+        const errorMessage = error.message.toLowerCase();
+        const causeStatus = error.cause && typeof error.cause === 'object' && 'status' in error.cause ? error.cause.status : null;
+        
+        if (errorMessage.includes("service unavailable") || errorMessage.includes("overloaded") || causeStatus === 503) {
+          errorMessageForUser = "The AI service is currently experiencing high demand. Please try again in a few moments.";
+        } else if (errorMessage.includes("429") || errorMessage.includes("quota") || errorMessage.includes("rate limit") || causeStatus === 429) {
+          errorMessageForUser = "The AI service has reached its usage limit for the current period. Please try again later.";
+        } else if (errorMessage.includes("api key not valid") || causeStatus === 401 || causeStatus === 403) {
+          errorMessageForUser = "There is an issue with the AI service configuration. Please contact support.";
+        } else if (errorMessage.includes("failed to parse schema") || errorMessage.includes("output_schema")) {
+          errorMessageForUser = "The AI returned a response in an unexpected format. This can sometimes happen, please try again.";
+        }
       }
-      // For other types of errors from the prompt call
-      throw new Error(`AI_PROMPT_ERROR: An unexpected error occurred while calling the AI prompt. Original: ${error.message}`);
+      
+      throw new Error(errorMessageForUser);
     }
   }
 );
-
