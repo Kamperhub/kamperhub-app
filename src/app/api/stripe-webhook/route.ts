@@ -4,12 +4,13 @@ import { NextResponse, type NextRequest } from 'next/server';
 import Stripe from 'stripe';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile, SubscriptionTier } from '@/types/auth';
+import type admin from 'firebase-admin';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 let stripe: Stripe;
 if (stripeSecretKey) {
   stripe = new Stripe(stripeSecretKey, {
-    apiVersion: '2024-06-20',
+    apiVersion: '2024-06-20', // Using latest stable version
   });
 } else {
   console.error("Stripe secret key is not configured for webhook handler.");
@@ -17,6 +18,25 @@ if (stripeSecretKey) {
 
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+async function updateUserSubscriptionStatus(
+  firestore: admin.firestore.Firestore,
+  stripeCustomerId: string,
+  updates: Partial<UserProfile>
+) {
+  const usersRef = firestore.collection('users');
+  const snapshot = await usersRef.where('stripeCustomerId', '==', stripeCustomerId).limit(1).get();
+  
+  if (snapshot.empty) {
+    console.warn(`[Stripe Webhook] No user found with Stripe Customer ID: ${stripeCustomerId}`);
+    return;
+  }
+  
+  const userDoc = snapshot.docs[0];
+  console.log(`[Stripe Webhook] Updating user ${userDoc.id} for Stripe Customer ID ${stripeCustomerId}`);
+  await userDoc.ref.set(updates, { merge: true });
+}
+
 
 export async function POST(req: NextRequest) {
   const { firestore, error: adminError } = getFirebaseAdmin();
@@ -49,190 +69,120 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
   }
 
-  // Handle the event
-  switch (event.type) {
-    case 'checkout.session.completed':
-      const session = event.data.object as Stripe.Checkout.Session;
-      const userId = session.metadata?.userId;
-      const stripeCustomerId = session.customer as string;
-      const stripeSubscriptionId = session.subscription as string;
+  console.log(`[Stripe Webhook] Received event: ${event.type} (ID: ${event.id})`);
 
-      if (!userId) {
-        console.error('Webhook Error: userId not found in checkout session metadata for session:', session.id);
-        return NextResponse.json({ error: 'User ID missing in session metadata.' }, { status: 400 });
-      }
-      if (!stripeSubscriptionId) {
-        console.error('Webhook Error: subscription ID not found in checkout session for session:', session.id);
-        return NextResponse.json({ error: 'Subscription ID missing in session.' }, { status: 400 });
-      }
-       if (!stripeCustomerId) {
-        console.error('Webhook Error: customer ID not found in checkout session for session:', session.id);
-        return NextResponse.json({ error: 'Customer ID missing in session.' }, { status: 400 });
-      }
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        const session = event.data.object as Stripe.Checkout.Session;
+        const userId = session.metadata?.userId;
+        const stripeCustomerId = session.customer as string;
+        const stripeSubscriptionId = session.subscription as string;
 
-      try {
+        if (!userId || !stripeCustomerId || !stripeSubscriptionId) {
+          console.error(`[Stripe Webhook] checkout.session.completed event ${session.id} missing required data.`);
+          break;
+        }
+
         const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
         
-        if (!subscription) {
-          console.error(`Webhook Error: Failed to retrieve subscription object for ID ${stripeSubscriptionId} from Stripe for session ${session.id}. The retrieve call returned null/undefined.`);
-          return NextResponse.json({ error: 'Failed to retrieve subscription details from Stripe.' }, { status: 500 });
-        }
+        let determinedTier: SubscriptionTier = 'free';
+        if (subscription.status === 'active') determinedTier = 'pro';
+        else if (subscription.status === 'trialing') determinedTier = 'trialing';
 
-        const userDocRef = firestore.collection('users').doc(userId);
-        
-        let determinedTier: SubscriptionTier;
-        if (subscription.status === 'active') {
-            determinedTier = 'pro';
-        } else if (subscription.status === 'trialing') {
-            determinedTier = 'trialing';
-        } else {
-            determinedTier = 'free'; 
-            console.warn(`Webhook: checkout.session.completed for session ${session.id} - Subscription status is '${subscription.status}'. Determined tier as '${determinedTier}'.`);
-        }
-
-        const userProfileUpdate: Partial<UserProfile> = {
+        await firestore.collection('users').doc(userId).set({
           subscriptionTier: determinedTier, 
           stripeCustomerId: stripeCustomerId,
           stripeSubscriptionId: stripeSubscriptionId,
           trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
           updatedAt: new Date().toISOString(),
-        };
-
-        await userDocRef.set(userProfileUpdate, { merge: true });
-
-      } catch (dbOrStripeError: any) {
-        console.error(`Webhook Error during Firestore update or Stripe API call for user ${userId} (session ${session.id}):`, dbOrStripeError.message);
-        return NextResponse.json({ error: 'Database update or Stripe API call failed during webhook processing.' }, { status: 500 });
-      }
-      break;
-    
-    case 'invoice.payment_succeeded':
-      const invoice = event.data.object as Stripe.Invoice;
-      if (invoice.subscription && invoice.customer) {
-        try {
-          const subscriptionFromInvoice = await stripe.subscriptions.retrieve(invoice.subscription as string);
+        }, { merge: true });
+        console.log(`[Stripe Webhook] Processed checkout.session.completed for user ${userId}`);
+        break;
+      
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as Stripe.Invoice;
+        if (invoice.subscription && invoice.customer) {
+          const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+          let newTier: SubscriptionTier = 'free';
+          if (subscription.status === 'active') newTier = 'pro';
+          else if (subscription.status === 'trialing') newTier = 'trialing';
           
-          const usersRef = firestore.collection('users');
-          const snapshot = await usersRef.where('stripeCustomerId', '==', invoice.customer as string).limit(1).get();
-
-          if (!snapshot.empty) {
-            const userDoc = snapshot.docs[0];
-            
-            let newTier: SubscriptionTier = 'free';
-            if (subscriptionFromInvoice.status === 'active') {
-                newTier = 'pro';
-            } else if (subscriptionFromInvoice.status === 'trialing') {
-                newTier = 'trialing';
-            }
-
-            const userProfileUpdate: Partial<UserProfile> = {
-              subscriptionTier: newTier, 
-              stripeSubscriptionId: subscriptionFromInvoice.id, // Ensure subscription ID is up-to-date
-              trialEndsAt: subscriptionFromInvoice.trial_end ? new Date(subscriptionFromInvoice.trial_end * 1000).toISOString() : null,
-              updatedAt: new Date().toISOString(),
-            };
-            await userDoc.ref.set(userProfileUpdate, { merge: true });
-          } else {
-            console.warn(`Webhook Warning: No user found with stripeCustomerId ${invoice.customer as string} for invoice.payment_succeeded event ${invoice.id}.`);
-          }
-        } catch (dbOrStripeError: any) {
-           console.error(`Webhook Error updating Firestore from invoice.payment_succeeded ${invoice.id}:`, dbOrStripeError.message);
-           return NextResponse.json({ error: 'Database update or Stripe API call failed for invoice.payment_succeeded.' }, { status: 500 });
+          await updateUserSubscriptionStatus(firestore, invoice.customer as string, {
+            subscriptionTier: newTier,
+            stripeSubscriptionId: subscription.id,
+            trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
+            updatedAt: new Date().toISOString(),
+          });
+          console.log(`[Stripe Webhook] Processed invoice.payment_succeeded for customer ${invoice.customer}`);
+        } else {
+          console.warn(`[Stripe Webhook] invoice.payment_succeeded event ${invoice.id} missing subscription or customer ID.`);
         }
+        break;
       }
-      break;
 
-    case 'invoice.payment_failed':
-      const failedInvoice = event.data.object as Stripe.Invoice;
-      if (failedInvoice.subscription && failedInvoice.customer) {
-         try {
+      case 'invoice.payment_failed': {
+        const failedInvoice = event.data.object as Stripe.Invoice;
+        if (failedInvoice.subscription && failedInvoice.customer) {
           const subscriptionDetails = await stripe.subscriptions.retrieve(failedInvoice.subscription as string); 
+          let newTier: SubscriptionTier = 'free';
+          if (subscriptionDetails.status === 'active') newTier = 'pro';
+          else if (subscriptionDetails.status === 'trialing') newTier = 'trialing';
 
-          const usersRef = firestore.collection('users');
-          const snapshot = await usersRef.where('stripeCustomerId', '==', failedInvoice.customer as string).limit(1).get();
-          if (!snapshot.empty) {
-            const userDoc = snapshot.docs[0];
-
-            let newTier: SubscriptionTier = 'free';
-            if (subscriptionDetails.status === 'active') {
-                newTier = 'pro';
-            } else if (subscriptionDetails.status === 'trialing') {
-                newTier = 'trialing';
-            }
-
-            const userProfileUpdate: Partial<UserProfile> = { 
-              subscriptionTier: newTier,
-              trialEndsAt: subscriptionDetails.trial_end ? new Date(subscriptionDetails.trial_end * 1000).toISOString() : null,
-              updatedAt: new Date().toISOString(),
-            };
-            await userDoc.ref.set(userProfileUpdate, { merge: true });
-          } else {
-             console.warn(`Webhook Warning: No user found with stripeCustomerId ${failedInvoice.customer as string} for invoice.payment_failed event.`);
-          }
-        } catch (dbOrStripeError: any) {
-           console.error(`Webhook Error updating Firestore from failed_invoice ${failedInvoice.id}:`, dbOrStripeError.message);
-           return NextResponse.json({ error: 'Database update or Stripe API call failed for invoice.payment_failed.' }, { status: 500 });
+          await updateUserSubscriptionStatus(firestore, failedInvoice.customer as string, {
+            subscriptionTier: newTier,
+            trialEndsAt: subscriptionDetails.trial_end ? new Date(subscriptionDetails.trial_end * 1000).toISOString() : null,
+            updatedAt: new Date().toISOString(),
+          });
+          console.log(`[Stripe Webhook] Processed invoice.payment_failed for customer ${failedInvoice.customer}`);
+        } else {
+           console.warn(`[Stripe Webhook] invoice.payment_failed event ${failedInvoice.id} missing subscription or customer ID.`);
         }
+        break;
       }
-      break;
 
-    case 'customer.subscription.updated':
-      const updatedSubscription = event.data.object as Stripe.Subscription;
-      try {
-        const usersRef = firestore.collection('users');
-        const snapshot = await usersRef.where('stripeCustomerId', '==', updatedSubscription.customer as string).limit(1).get();
-        
-        if (!snapshot.empty) {
-            const userDoc = snapshot.docs[0];
-            const userProfileUpdate: Partial<UserProfile> = { 
+      case 'customer.subscription.updated': {
+        const updatedSubscription = event.data.object as Stripe.Subscription;
+        if (updatedSubscription.customer) {
+            let newTier: SubscriptionTier = 'free';
+            if (updatedSubscription.status === 'active') newTier = 'pro';
+            else if (updatedSubscription.status === 'trialing') newTier = 'trialing';
+            
+            await updateUserSubscriptionStatus(firestore, updatedSubscription.customer as string, {
+              subscriptionTier: newTier,
               stripeSubscriptionId: updatedSubscription.id, 
               trialEndsAt: updatedSubscription.trial_end ? new Date(updatedSubscription.trial_end * 1000).toISOString() : null,
               updatedAt: new Date().toISOString(),
-            };
-
-            if (updatedSubscription.status === 'active') {
-              userProfileUpdate.subscriptionTier = 'pro';
-            } else if (updatedSubscription.status === 'trialing') {
-              userProfileUpdate.subscriptionTier = 'trialing';
-            } else {
-              userProfileUpdate.subscriptionTier = 'free';
-            }
-            
-            await userDoc.ref.set(userProfileUpdate, { merge: true });
+            });
+            console.log(`[Stripe Webhook] Processed customer.subscription.updated for customer ${updatedSubscription.customer}`);
         } else {
-            console.warn(`Webhook Warning: No user found with stripeCustomerId ${updatedSubscription.customer as string} for subscription.updated event.`);
+            console.warn(`[Stripe Webhook] customer.subscription.updated event ${updatedSubscription.id} missing customer ID.`);
         }
-      } catch (dbOrStripeError: any) {
-           console.error(`Webhook Error updating Firestore from subscription.updated ${updatedSubscription.id}:`, dbOrStripeError.message);
-           return NextResponse.json({ error: 'Database update or Stripe API call failed for subscription.updated.' }, { status: 500 });
+        break;
       }
-      break;
-
-    case 'customer.subscription.deleted': 
-      const deletedSubscription = event.data.object as Stripe.Subscription;
-      try {
-        const usersRef = firestore.collection('users');
-        const snapshot = await usersRef.where('stripeCustomerId', '==', deletedSubscription.customer as string).limit(1).get();
-        if (!snapshot.empty) {
-            const userDoc = snapshot.docs[0];
-            const userProfileUpdate: Partial<UserProfile> = { 
-              subscriptionTier: 'free',
-              stripeSubscriptionId: null, 
-              trialEndsAt: null,
-              updatedAt: new Date().toISOString(),
-            };
-            await userDoc.ref.set(userProfileUpdate, { merge: true });
-        } else {
-            console.warn(`Webhook Warning: No user found for deleted stripeCustomerId ${deletedSubscription.customer as string}.`);
-        }
-      } catch (dbOrStripeError: any) {
-           console.error(`Webhook Error updating Firestore from subscription.deleted ${deletedSubscription.id}:`, dbOrStripeError.message);
-           return NextResponse.json({ error: 'Database update or Stripe API call failed for subscription.deleted.' }, { status: 500 });
-      }
-      break;
       
-    default:
-      // Unhandled event type
+      case 'customer.subscription.deleted': {
+        const deletedSubscription = event.data.object as Stripe.Subscription;
+        if (deletedSubscription.customer) {
+          await updateUserSubscriptionStatus(firestore, deletedSubscription.customer as string, {
+            subscriptionTier: 'free',
+            stripeSubscriptionId: null,
+            trialEndsAt: null,
+            updatedAt: new Date().toISOString(),
+          });
+          console.log(`[Stripe Webhook] Processed customer.subscription.deleted for customer ${deletedSubscription.customer}`);
+        } else {
+          console.warn(`[Stripe Webhook] customer.subscription.deleted event ${deletedSubscription.id} missing customer ID.`);
+        }
+        break;
+      }
+
+      default:
+        console.log(`[Stripe Webhook] Unhandled event type: ${event.type}`);
+    }
+  } catch (err: any) {
+    console.error(`[Stripe Webhook] Error processing event ${event.type} (ID: ${event.id}):`, err.message);
+    return NextResponse.json({ error: `Webhook handler failed for ${event.type}.`, details: err.message }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });
