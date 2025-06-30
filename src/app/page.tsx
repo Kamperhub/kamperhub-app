@@ -7,7 +7,7 @@ import type { NavItem } from '@/lib/navigation';
 import { navItems as defaultNavItems } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Home as HomeIcon, Loader2, LayoutDashboard, AlertTriangle } from 'lucide-react';
+import { Home as HomeIcon, Loader2, LayoutDashboard, AlertTriangle, Rocket } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
@@ -22,6 +22,7 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type D
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { NavigationContext } from '@/components/layout/AppShell';
+import { StartTripDialog } from '@/components/features/dashboard/StartTripDialog';
 
 
 function NavItemCard({ item }: { item: NavItem }) {
@@ -266,6 +267,15 @@ export default function DashboardPage() {
             <p className="font-body text-muted-foreground">Your ultimate travelling companion for everyone.</p>
           </div>
         </div>
+      </div>
+      
+      <div className="text-center my-6">
+        <StartTripDialog>
+            <Button size="lg" className="h-14 px-10 text-xl font-headline bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg animate-pulse">
+                <Rocket className="mr-3 h-6 w-6" />
+                Start a Trip!
+            </Button>
+        </StartTripDialog>
       </div>
 
       <DndContext
