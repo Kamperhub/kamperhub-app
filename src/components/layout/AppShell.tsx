@@ -7,6 +7,7 @@ import { Header } from './Header';
 import { BottomNavigation } from './BottomNavigation';
 import { APIProvider } from '@vis.gl/react-google-maps';
 import { Loader2 } from 'lucide-react';
+import { AuthGuard } from './AuthGuard';
 
 interface NavigationContextType {
   setIsNavigating: (isNavigating: boolean) => void;
@@ -36,17 +37,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex flex-col min-h-screen">
         <Header />
         <main className="flex-grow container mx-auto px-4 py-8 pb-24 sm:pb-8">
-          {apiKey ? (
-            <APIProvider 
-              apiKey={apiKey} 
-              solutionChannel="GMP_visgl_rgm_reactfirebase_v1"
-              libraries={['places', 'routes']}
-            >
-              {children}
-            </APIProvider>
-          ) : (
-            children 
-          )}
+          <AuthGuard>
+            {apiKey ? (
+              <APIProvider 
+                apiKey={apiKey} 
+                solutionChannel="GMP_visgl_rgm_reactfirebase_v1"
+                libraries={['places', 'routes']}
+              >
+                {children}
+              </APIProvider>
+            ) : (
+              children 
+            )}
+          </AuthGuard>
         </main>
         <BottomNavigation />
       </div>

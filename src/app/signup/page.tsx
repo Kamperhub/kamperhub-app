@@ -90,6 +90,9 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       newFirebaseUser = userCredential.user;
       await updateProfile(newFirebaseUser, { displayName: username });
+      
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + 7);
 
       const userProfileData: Omit<UserProfile, 'activeVehicleId' | 'activeCaravanId' | 'activeWdhId' | 'dashboardLayout' | 'caravanWaterLevels' | 'caravanDefaultChecklists' | 'updatedAt' | 'isAdmin'> = {
         uid: newFirebaseUser.uid,
@@ -104,6 +107,7 @@ export default function SignupPage() {
         stripeCustomerId: null,
         stripeSubscriptionId: null,
         createdAt: new Date().toISOString(),
+        trialEndsAt: trialEndDate.toISOString(),
       };
 
       await setDoc(doc(db, "users", newFirebaseUser.uid), userProfileData);
