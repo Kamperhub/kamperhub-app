@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     const userDocRef = firestore.collection('users').doc(userId);
     const userDocSnap = await userDocRef.get();
 
-    if (!userDocSnap.exists()) {
+    if (!userDocSnap.exists) {
       console.error(`Create Customer Portal Session: User document not found for userId: ${userId}`);
       return NextResponse.json({ error: 'User profile not found.' }, { status: 404 });
     }
