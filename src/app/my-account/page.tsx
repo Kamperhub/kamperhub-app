@@ -210,7 +210,6 @@ export default function MyAccountPage() {
   }
 
   if (isError) {
-    // This is the improved error display
     const isProjectMismatchError = profileError.message.includes("5 NOT_FOUND") || profileError.message.includes("Database Not Found");
     const isProfileMissingError = profileError.message.includes("User profile not found");
 
@@ -219,7 +218,7 @@ export default function MyAccountPage() {
         <Alert variant="destructive" className="max-w-2xl text-left">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle className="font-headline">
-              {isProjectMismatchError ? "Critical Configuration Error" : "Error Loading Account Details"}
+              {isProjectMismatchError ? "Critical Configuration Error" : isProfileMissingError ? "User Profile Missing" : "Error Loading Account Details"}
             </AlertTitle>
             <AlertDescription className="font-body mt-2 space-y-3">
                 {isProjectMismatchError ? (
