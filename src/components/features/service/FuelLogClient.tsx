@@ -32,7 +32,7 @@ import { cn } from '@/lib/utils';
 const fuelLogFormSchema = z.object({
   date: z.date({ required_error: "A date is required." }),
   odometer: z.coerce.number().positive("Odometer must be a positive number."),
-  litres: z.coerce.number().positive("Litres must be a positive number."),
+  totalCost: z.coerce.number().positive("Total cost must be a positive number."),
   pricePerLitre: z.coerce.number().positive("Price per litre must be positive."),
   location: z.string().optional(),
   notes: z.string().optional(),
@@ -69,18 +69,18 @@ export function FuelLogClient() {
       if (editingLog) {
         setValue('date', parseISO(editingLog.date));
         setValue('odometer', editingLog.odometer);
-        setValue('litres', editingLog.litres);
+        setValue('totalCost', editingLog.totalCost);
         setValue('pricePerLitre', editingLog.pricePerLitre);
         setValue('location', editingLog.location);
         setValue('notes', editingLog.notes);
       } else {
-        reset({ date: new Date(), odometer: undefined, litres: undefined, pricePerLitre: undefined, location: '', notes: '' });
+        reset({ date: new Date(), odometer: undefined, totalCost: undefined, pricePerLitre: undefined, location: '', notes: '' });
       }
     }
   }, [editingLog, isFormOpen, setValue, reset]);
 
   const saveMutation = useMutation({
-    mutationFn: (data: { vehicleId: string; logData: FuelLogEntry | Omit<FuelLogEntry, 'id' | 'timestamp' | 'totalCost'> & { totalCost: number } }) => {
+    mutationFn: (data: { vehicleId: string; logData: FuelLogEntry | Omit<FuelLogEntry, 'id' | 'timestamp'> }) => {
       if ('id' in data.logData) {
         return updateFuelLog(data.logData as FuelLogEntry);
       }
@@ -107,17 +107,17 @@ export function FuelLogClient() {
   const handleSaveLog: SubmitHandler<FuelLogFormData> = (data) => {
     if (!selectedVehicleId) return;
 
-    const totalCost = data.litres * data.pricePerLitre;
+    const litres = data.totalCost / data.pricePerLitre;
 
     const logData = {
         ...data,
-        totalCost,
+        litres,
         vehicleId: selectedVehicleId,
         date: data.date.toISOString(),
     };
 
     if (editingLog) {
-        saveMutation.mutate({ vehicleId: selectedVehicleId, logData: { ...editingLog, ...logData } });
+        saveMutation.mutate({ vehicleId: selectedVehicleId, logData: { ...editingLog, ...logData, totalCost: data.totalCost } });
     } else {
         saveMutation.mutate({ vehicleId: selectedVehicleId, logData });
     }
@@ -172,9 +172,9 @@ export function FuelLogClient() {
                     </div>
                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <Label htmlFor="litres">Litres</Label>
-                            <Input id="litres" type="number" step="0.01" {...register('litres')} />
-                            {errors.litres && <p className="text-destructive text-sm mt-1">{errors.litres.message}</p>}
+                            <Label htmlFor="totalCost">Total Cost ($)</Label>
+                            <Input id="totalCost" type="number" step="0.01" {...register('totalCost')} />
+                            {errors.totalCost && <p className="text-destructive text-sm mt-1">{errors.totalCost.message}</p>}
                         </div>
                         <div>
                             <Label htmlFor="pricePerLitre">Price / Litre</Label>
