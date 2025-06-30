@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useContext } from 'react';
@@ -13,7 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { NavigationContext } from './AppShell';
 
 export function Header() {
-  const { user, isAuthLoading } = useAuth();
+  const { user, userProfile, isAuthLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const navContext = useContext(NavigationContext);
@@ -75,7 +74,7 @@ export function Header() {
               <Link href="/my-account" passHref>
                 <Button variant="ghost" className="p-0 sm:px-3 sm:py-2 hover:bg-primary/80 flex items-center max-w-[150px] sm:max-w-[200px]" onClick={handleNavigation}>
                   <UserCircle className="h-6 w-6 sm:mr-2 flex-shrink-0" />
-                  <span className="hidden sm:inline font-body text-sm truncate">{user.displayName || user.email}</span>
+                  <span className="hidden sm:inline font-body text-sm truncate">{userProfile?.displayName || user.displayName || user.email}</span>
                 </Button>
               </Link>
               <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Log Out" className="p-0 hover:bg-primary/80">
