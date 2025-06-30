@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Home, Route as RouteIcon, CalendarDays, CheckCircle, Award, Trophy, TrendingUp, AlertCircle, BarChart3, Loader2 } from 'lucide-react';
+import { Home, Route as RouteIcon, CalendarDays, CheckCircle, Trophy, TrendingUp, AlertCircle, BarChart3, Loader2 } from 'lucide-react';
 import { parseISO, differenceInCalendarDays, isValid } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
@@ -105,7 +105,7 @@ export default function StatsPage() {
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium font-body">{title}</CardTitle>
-        <Icon className="h-5 w-5 text-muted-foreground" />
+        <Icon className="h-5 w-5 text-primary" />
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold font-headline text-primary">{value}{unit && <span className="text-lg"> {unit}</span>}</div>
@@ -124,8 +124,8 @@ export default function StatsPage() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="ml-3 font-body text-lg">Loading trip stats from server...</p>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-[120px]" />)}
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-[120px]" />)}
         </div>
         <Skeleton className="h-[200px] mt-6" />
       </div>
@@ -182,47 +182,53 @@ export default function StatsPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatCard title="Total Trips Logged" value={stats.totalTrips} icon={RouteIcon} />
         <StatCard title="Total Kilometers Travelled" value={stats.totalKilometers.toFixed(0)} unit="km" icon={TrendingUp} />
         <StatCard title="Total Days On Road" value={stats.totalDaysOnRoad} unit="days" icon={CalendarDays} />
         <StatCard title="Completed Trips" value={stats.completedTrips} icon={CheckCircle} description={`${stats.totalTrips > 0 ? ((stats.completedTrips / stats.totalTrips) * 100).toFixed(0) : 0}% of total`} />
-      </div>
-      
-      <div className="grid gap-4 md:grid-cols-2">
         <StatCard title="Avg. Distance / Trip" value={stats.averageDistancePerTrip.toFixed(0)} unit="km" icon={RouteIcon} />
         <StatCard title="Avg. Duration / Trip" value={stats.averageDurationPerTrip.toFixed(1)} unit="days" icon={CalendarDays} />
       </div>
-
+      
       { (stats.longestTripByDistance || stats.longestTripByDuration) &&
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-headline text-xl text-primary flex items-center"><Award className="mr-2 h-6 w-6" />Trip Milestones</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {stats.longestTripByDistance && (
-              <div>
-                <h3 className="text-md font-semibold font-body text-foreground">Longest Trip by Distance:</h3>
-                <p className="text-sm text-muted-foreground font-body">
-                  "{stats.longestTripByDistance.name}" - {stats.longestTripByDistance.routeDetails.distance} ({stats.longestTripByDistance.routeDetails.duration})
-                </p>
-              </div>
-            )}
-            {stats.longestTripByDuration && (
-              <div>
-                <h3 className="text-md font-semibold font-body text-foreground">Longest Trip by Duration:</h3>
-                <p className="text-sm text-muted-foreground font-body">
-                  "{stats.longestTripByDuration.name}" - 
-                  {stats.longestTripByDuration.plannedStartDate && stats.longestTripByDuration.plannedEndDate && isValid(parseISO(stats.longestTripByDuration.plannedEndDate)) && isValid(parseISO(stats.longestTripByDuration.plannedStartDate)) ? 
-                    `${differenceInCalendarDays(parseISO(stats.longestTripByDuration.plannedEndDate), parseISO(stats.longestTripByDuration.plannedStartDate)) + 1} days`
-                    : "Duration details incomplete"
-                  }
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <div className="pt-6">
+            <h2 className="text-2xl font-headline text-primary mb-4">Trip Records</h2>
+            <Card>
+            <CardHeader className="flex flex-row items-start gap-4">
+                <Trophy className="h-8 w-8 text-accent mt-1 flex-shrink-0" />
+                <div>
+                    <CardTitle className="font-headline text-xl text-primary">Trip Milestones</CardTitle>
+                    <CardDescription>Your most notable journeys.</CardDescription>
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-3 pl-16">
+                {stats.longestTripByDistance && (
+                <div>
+                    <h3 className="text-md font-semibold font-body text-foreground">Longest Trip by Distance:</h3>
+                    <p className="text-sm text-muted-foreground font-body">
+                    "{stats.longestTripByDistance.name}" - {stats.longestTripByDistance.routeDetails.distance} ({stats.longestTripByDistance.routeDetails.duration})
+                    </p>
+                </div>
+                )}
+                {stats.longestTripByDuration && (
+                <div>
+                    <h3 className="text-md font-semibold font-body text-foreground">Longest Trip by Duration:</h3>
+                    <p className="text-sm text-muted-foreground font-body">
+                    "{stats.longestTripByDuration.name}" - 
+                    {stats.longestTripByDuration.plannedStartDate && stats.longestTripByDuration.plannedEndDate && isValid(parseISO(stats.longestTripByDuration.plannedEndDate)) && isValid(parseISO(stats.longestTripByDuration.plannedStartDate)) ? 
+                        `${differenceInCalendarDays(parseISO(stats.longestTripByDuration.plannedEndDate), parseISO(stats.longestTripByDuration.plannedStartDate)) + 1} days`
+                        : "Duration details incomplete"
+                    }
+                    </p>
+                </div>
+                )}
+            </CardContent>
+            </Card>
+        </div>
       }
     </div>
   );
 }
+
+  
