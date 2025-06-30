@@ -133,13 +133,13 @@ export default function DashboardPage() {
   const { data: userPrefs, error: prefsError, isLoading: isLoadingPrefs } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
     queryFn: fetchUserPreferences,
-    enabled: !!user && !isAuthLoading,
     retry: (failureCount, error: Error) => {
       if (error.message.includes("500") || error.message.includes("crash")) {
         return false;
       }
       return failureCount < 2;
     },
+    enabled: !!user && !isAuthLoading,
   });
 
   const updateUserPrefsMutation = useMutation({
@@ -282,7 +282,7 @@ export default function DashboardPage() {
       
       <div className="my-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4">
         <StartTripDialog>
-            <Button size="lg" className="h-14 px-10 text-xl font-headline bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg animate-pulse">
+            <Button size="lg" className="h-14 px-10 text-xl font-headline bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg animate-pulse">
                 <Rocket className="mr-3 h-6 w-6" />
                 Start a Trip!
             </Button>
