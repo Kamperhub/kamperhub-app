@@ -29,13 +29,34 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Luggage, AlertTriangle, Wand2, Info, Loader2, Route, Calendar, Users, Edit3, Trash2, PlusCircle, RefreshCw } from 'lucide-react';
 
+// New structured activity options
+const activityOptions = [
+  {
+    category: 'Coastal & Water',
+    activities: ['Beach Relaxation', 'Swimming', 'Surfing/Bodyboarding', 'Snorkeling', 'Fishing', 'Boating'],
+  },
+  {
+    category: 'Nature & Adventure',
+    activities: ['Bushwalking/Hiking', 'National Park Exploration', 'Bird Watching', 'Mountain Biking', '4WD Off-roading'],
+  },
+  {
+    category: 'Relaxation & Leisure',
+    activities: ['Relaxing at Camp', 'Reading', 'Photography', 'Campfires', 'Local Market Visits'],
+  },
+  {
+    category: 'Urban & Cultural',
+    activities: ['Visiting Museums', 'Shopping', 'Dining Out', 'Exploring Towns'],
+  },
+];
+
+
 export default function TripPackingPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
   const [selectedTripId, setSelectedTripId] = useState<string>('');
-  const [activities, setActivities] = useState('');
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   
   const [editingItemState, setEditingItemState] = useState<{ categoryId: string; item: PackingListItem } | null>(null);
 
@@ -108,7 +129,7 @@ export default function TripPackingPage() {
       durationInDays,
       numberOfAdults: adults,
       numberOfChildren: children,
-      activities: activities || 'General touring and relaxation',
+      activities: selectedActivities.join(', ') || 'General touring and relaxation',
     });
   };
 
@@ -183,6 +204,14 @@ export default function TripPackingPage() {
     });
     handleListChange(newList);
   };
+
+  const handleActivityChange = (activity: string) => {
+    setSelectedActivities(prev =>
+      prev.includes(activity)
+        ? prev.filter(a => a !== activity)
+        : [...prev, activity]
+    );
+  };
   
   const anyMutationLoading = generateListMutation.isPending || updateListMutation.isPending || deleteListMutation.isPending;
 
@@ -230,20 +259,40 @@ export default function TripPackingPage() {
        <Card>
         <CardHeader>
           <CardTitle>2. Plan Activities (Optional)</CardTitle>
-          <CardDescription>Give the AI some context about what you'll be doing for better suggestions.</CardDescription>
+          <CardDescription>Select the types of activities you're planning for more tailored suggestions.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="activities">Planned Activities</Label>
-            <Textarea id="activities" value={activities} onChange={(e) => setActivities(e.target.value)} placeholder="e.g., hiking in national parks, swimming at the beach, fishing, visiting museums." />
+          <div className="space-y-4">
+            {activityOptions.map(group => (
+              <div key={group.category}>
+                <h4 className="font-semibold mb-2">{group.category}</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {group.activities.map(activity => (
+                    <div key={activity} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`activity-${activity.replace(/\s+/g, '-')}`}
+                        checked={selectedActivities.includes(activity)}
+                        onCheckedChange={() => handleActivityChange(activity)}
+                      />
+                      <Label
+                        htmlFor={`activity-${activity.replace(/\s+/g, '-')}`}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {activity}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
           {packingList.length === 0 ? (
-            <Button onClick={handleGenerateList} disabled={!selectedTripId || anyMutationLoading}>
+            <Button onClick={handleGenerateList} disabled={!selectedTripId || anyMutationLoading} className="mt-4">
               {generateListMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
               Generate Packing List
             </Button>
           ) : (
-             <Button onClick={handleClearAndRegenerate} variant="destructive" disabled={!selectedTripId || anyMutationLoading}>
+             <Button onClick={handleClearAndRegenerate} variant="destructive" disabled={!selectedTripId || anyMutationLoading} className="mt-4">
               {deleteListMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
               Clear & Regenerate List
             </Button>
