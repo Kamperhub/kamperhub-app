@@ -10,6 +10,7 @@ import type { LoggedTrip, TripPlannerFormValues } from '@/types/tripplanner';
 import type { BookingEntry } from '@/types/booking';
 import type { UserProfile } from '@/types/auth';
 import type { FuelLogEntry, MaintenanceTask } from '@/types/service';
+import type { PackingListCategory } from '@/types/packing';
 
 // ---- Generic Fetcher ----
 async function apiFetch(url: string, options: RequestInit = {}) {
@@ -140,6 +141,11 @@ export const fetchMaintenanceTasks = (assetId?: string): Promise<MaintenanceTask
 export const createMaintenanceTask = (data: Omit<MaintenanceTask, 'id' | 'timestamp'>): Promise<MaintenanceTask> => apiFetch('/api/maintenance', { method: 'POST', body: JSON.stringify(data) });
 export const updateMaintenanceTask = (data: MaintenanceTask): Promise<{ maintenanceTask: MaintenanceTask }> => apiFetch('/api/maintenance', { method: 'PUT', body: JSON.stringify(data) });
 export const deleteMaintenanceTask = (id: string): Promise<{ message: string }> => apiFetch('/api/maintenance', { method: 'DELETE', body: JSON.stringify({ id }) });
+
+// ---- Packing List API Functions ----
+export const fetchPackingList = (tripId: string): Promise<{ list: PackingListCategory[] }> => apiFetch(`/api/packing-list/${tripId}`);
+export const updatePackingList = (payload: { tripId: string; list: PackingListCategory[] }): Promise<{ message: string }> => apiFetch(`/api/packing-list/${payload.tripId}`, { method: 'PUT', body: JSON.stringify(payload.list) });
+export const deletePackingList = (tripId: string): Promise<{ message: string }> => apiFetch(`/api/packing-list/${tripId}`, { method: 'DELETE' });
 
 // ---- Admin API Functions ----
 export const fetchAllUsers = (): Promise<{uid: string, email: string | undefined}[]> => apiFetch('/api/admin/list-users');

@@ -2,13 +2,18 @@
 "use client";
 
 import { useState, useMemo, useCallback } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import type { LoggedTrip } from '@/types/tripplanner';
 import type { PackingListCategory, PackingListItem } from '@/types/packing';
-import { fetchTrips } from '@/lib/api-client';
+import { 
+  fetchTrips, 
+  fetchPackingList, 
+  updatePackingList, 
+  deletePackingList 
+} from '@/lib/api-client';
 import { generatePackingList } from '@/ai/flows/packing-list-generator-flow';
 
 import { Button } from '@/components/ui/button';
@@ -22,15 +27,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Luggage, AlertTriangle, Wand2, Info, Loader2, Route, Calendar, Users, Edit3, Trash2, PlusCircle } from 'lucide-react';
+import { Luggage, AlertTriangle, Wand2, Info, Loader2, Route, Calendar, Users, Edit3, Trash2, PlusCircle, RefreshCw } from 'lucide-react';
 
 export default function TripPackingPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const [selectedTripId, setSelectedTripId] = useState<string>('');
   const [activities, setActivities] = useState('');
-  const [generatedList, setGeneratedList] = useState<PackingListCategory[]>([]);
   
   const [editingItemState, setEditingItemState] = useState<{ categoryId: string; item: PackingListItem } | null>(null);
 
@@ -41,6 +46,21 @@ export default function TripPackingPage() {
   });
   
   const selectedTrip = useMemo(() => trips.find(t => t.id === selectedTripId), [trips, selectedTripId]);
+  
+  const { data: packingList = [], isLoading: isLoadingPackingList, error: packingListError } = useQuery<PackingListCategory[]>({
+    queryKey: ['packingList', selectedTripId],
+    queryFn: () => fetchPackingList(selectedTripId!).then(data => data.list || []),
+    enabled: !!selectedTripId,
+  });
+
+  const updateListMutation = useMutation({
+    mutationFn: (newList: PackingListCategory[]) => updatePackingList({ tripId: selectedTripId!, list: newList }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['packingList', selectedTripId] });
+      toast({ title: 'Packing List Saved!' });
+    },
+    onError: (error: Error) => toast({ title: 'Save Failed', description: error.message, variant: 'destructive' }),
+  });
 
   const generateListMutation = useMutation({
     mutationFn: generatePackingList,
@@ -56,14 +76,21 @@ export default function TripPackingPage() {
           notes: item.notes,
         })),
       }));
-      setGeneratedList(listWithUiState);
-      toast({ title: 'Packing List Generated!', description: 'Your AI-powered packing list is ready.' });
+      updateListMutation.mutate(listWithUiState);
+      toast({ title: 'Packing List Generated!', description: 'Your new list has been saved.' });
     },
-    onError: (error: Error) => {
-      toast({ title: 'Generation Failed', description: error.message, variant: 'destructive' });
-    }
+    onError: (error: Error) => toast({ title: 'Generation Failed', description: error.message, variant: 'destructive' }),
   });
-  
+
+  const deleteListMutation = useMutation({
+    mutationFn: () => deletePackingList(selectedTripId!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['packingList', selectedTripId] });
+      toast({ title: 'Packing List Cleared', description: 'You can now generate a new list.' });
+    },
+    onError: (error: Error) => toast({ title: 'Clear Failed', description: error.message, variant: 'destructive' }),
+  });
+
   const handleGenerateList = () => {
     if (!selectedTrip) {
       toast({ title: 'Please select a trip first.', variant: 'destructive' });
@@ -85,8 +112,22 @@ export default function TripPackingPage() {
     });
   };
 
+  const handleClearAndRegenerate = () => {
+    if (window.confirm("Are you sure you want to clear this list and generate a new one? All current items and progress will be lost.")) {
+      deleteListMutation.mutate(undefined, {
+        onSuccess: () => {
+          handleGenerateList();
+        }
+      });
+    }
+  };
+
+  const handleListChange = useCallback((newList: PackingListCategory[]) => {
+    updateListMutation.mutate(newList);
+  }, [updateListMutation]);
+
   const handleTogglePacked = (categoryId: string, itemId: string) => {
-    setGeneratedList(prevList => prevList.map(category => {
+    const newList = packingList.map(category => {
       if (category.id === categoryId) {
         return {
           ...category,
@@ -96,11 +137,12 @@ export default function TripPackingPage() {
         };
       }
       return category;
-    }));
+    });
+    handleListChange(newList);
   };
 
   const handleUpdateItem = (categoryId: string, updatedItem: PackingListItem) => {
-    setGeneratedList(prevList => prevList.map(category => {
+    const newList = packingList.map(category => {
         if (category.id === categoryId) {
             return {
                 ...category,
@@ -108,17 +150,21 @@ export default function TripPackingPage() {
             };
         }
         return category;
-    }));
+    });
+    handleListChange(newList);
     setEditingItemState(null);
   };
 
   const handleDeleteItem = (categoryId: string, itemId: string) => {
-    setGeneratedList(prevList => prevList.map(category => {
-        if(category.id === categoryId) {
-            return { ...category, items: category.items.filter(item => item.id !== itemId) };
-        }
-        return category;
-    }));
+    if (window.confirm("Are you sure you want to delete this item?")) {
+      const newList = packingList.map(category => {
+          if(category.id === categoryId) {
+              return { ...category, items: category.items.filter(item => item.id !== itemId) };
+          }
+          return category;
+      }).filter(category => category.items.length > 0);
+      handleListChange(newList);
+    }
   };
   
   const handleAddItem = (categoryId: string) => {
@@ -129,16 +175,19 @@ export default function TripPackingPage() {
       packed: false,
       notes: ''
     };
-    setGeneratedList(prevList => prevList.map(category => {
+    const newList = packingList.map(category => {
       if(category.id === categoryId) {
         return { ...category, items: [...category.items, newItem]};
       }
       return category;
-    }));
+    });
+    handleListChange(newList);
   };
   
-  if (isLoadingTrips) return <p>Loading trips...</p>;
-  if (tripsError) return <p>Error loading trips: {tripsError.message}</p>;
+  const anyMutationLoading = generateListMutation.isPending || updateListMutation.isPending || deleteListMutation.isPending;
+
+  if (isLoadingTrips) return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-48 w-full" /></div>;
+  if (tripsError) return <Alert variant="destructive"><AlertTitle>Error Loading Trips</AlertTitle><AlertDescription>{tripsError.message}</AlertDescription></Alert>;
 
   return (
     <div className="space-y-8">
@@ -147,14 +196,14 @@ export default function TripPackingPage() {
           <Luggage className="mr-3 h-8 w-8" /> Trip Packing Assistant
         </h1>
         <p className="text-muted-foreground font-body mb-6">
-          Select a trip and let our AI assistant generate a personalized packing list for you.
+          Select a trip and let our AI assistant generate a personalized packing list for you. Your lists are now saved automatically.
         </p>
       </div>
       
       <Card>
         <CardHeader>
           <CardTitle>1. Select Your Trip</CardTitle>
-          <CardDescription>Choose a saved trip to generate a packing list for.</CardDescription>
+          <CardDescription>Choose a saved trip to generate or view a packing list for.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
@@ -181,49 +230,60 @@ export default function TripPackingPage() {
        <Card>
         <CardHeader>
           <CardTitle>2. Plan Activities (Optional)</CardTitle>
-          <CardDescription>Give the AI some context about what you'll be doing.</CardDescription>
+          <CardDescription>Give the AI some context about what you'll be doing for better suggestions.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="activities">Planned Activities</Label>
             <Textarea id="activities" value={activities} onChange={(e) => setActivities(e.target.value)} placeholder="e.g., hiking in national parks, swimming at the beach, fishing, visiting museums." />
           </div>
-          <Button onClick={handleGenerateList} disabled={!selectedTripId || generateListMutation.isPending}>
-            {generateListMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-            Generate Packing List
-          </Button>
+          {packingList.length === 0 ? (
+            <Button onClick={handleGenerateList} disabled={!selectedTripId || anyMutationLoading}>
+              {generateListMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+              Generate Packing List
+            </Button>
+          ) : (
+             <Button onClick={handleClearAndRegenerate} variant="destructive" disabled={!selectedTripId || anyMutationLoading}>
+              {deleteListMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              Clear & Regenerate List
+            </Button>
+          )}
         </CardContent>
       </Card>
 
-      {generateListMutation.isPending && <Skeleton className="h-64 w-full" />}
+      {isLoadingPackingList && <Card><CardContent className="pt-6"><Skeleton className="h-64 w-full" /></CardContent></Card>}
+      {packingListError && <Alert variant="destructive"><AlertTitle>Error Loading List</AlertTitle><AlertDescription>{packingListError.message}</AlertDescription></Alert>}
       
-      {generatedList.length > 0 && (
+      {!isLoadingPackingList && packingList.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>3. Your Packing List</CardTitle>
-            <CardDescription>Check off items as you pack them. You can add, edit, or delete items as needed.</CardDescription>
+            <CardDescription>Check off items as you pack them. Changes are saved automatically.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Accordion type="multiple" defaultValue={generatedList.map(c => c.id)} className="w-full">
-              {generatedList.map(category => (
+            <Accordion type="multiple" defaultValue={packingList.map(c => c.id)} className="w-full">
+              {packingList.map(category => (
                 <AccordionItem value={category.id} key={category.id}>
                   <AccordionTrigger className="font-headline text-lg">{category.name}</AccordionTrigger>
                   <AccordionContent className="space-y-2">
                     {category.items.map(item => (
                       <div key={item.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
                         <div className="flex items-center gap-3">
-                          <Checkbox id={item.id} checked={item.packed} onCheckedChange={() => handleTogglePacked(category.id, item.id)} />
-                          <Label htmlFor={item.id} className="text-base data-[state=checked]:line-through">
-                            {item.name} <span className="text-muted-foreground">({item.quantity})</span>
-                          </Label>
+                          <Checkbox id={item.id} checked={item.packed} onCheckedChange={() => handleTogglePacked(category.id, item.id)} disabled={anyMutationLoading}/>
+                          <div className="grid gap-0.5">
+                            <Label htmlFor={item.id} className={`text-base ${item.packed ? 'line-through text-muted-foreground' : ''}`}>
+                              {item.name} <span className="text-muted-foreground">({item.quantity})</span>
+                            </Label>
+                            {item.notes && <p className="text-xs text-muted-foreground">{item.notes}</p>}
+                          </div>
                         </div>
                         <div className="flex items-center">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingItemState({ categoryId: category.id, item })}><Edit3 className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteItem(category.id, item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingItemState({ categoryId: category.id, item })} disabled={anyMutationLoading}><Edit3 className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteItem(category.id, item.id)} disabled={anyMutationLoading}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                         </div>
                       </div>
                     ))}
-                    <Button variant="outline" size="sm" className="mt-2" onClick={() => handleAddItem(category.id)}><PlusCircle className="mr-2 h-4 w-4"/>Add Item</Button>
+                    <Button variant="outline" size="sm" className="mt-2" onClick={() => handleAddItem(category.id)} disabled={anyMutationLoading}><PlusCircle className="mr-2 h-4 w-4"/>Add Item</Button>
                   </AccordionContent>
                 </AccordionItem>
               ))}
