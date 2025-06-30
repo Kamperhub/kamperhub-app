@@ -229,7 +229,17 @@ export default function DashboardPage() {
              <pre className="mt-2 text-xs bg-destructive-foreground/10 p-2 rounded-md font-mono whitespace-pre-wrap">
               {prefsError.message}
              </pre>
-             {(prefsError.message.includes('Database Not Found') || prefsError.message.includes('Could not find the database')) ? (
+             {prefsError.message.includes('404') ? (
+                <div className="mt-4 border-t border-destructive-foreground/20 pt-2">
+                    <p className="font-bold">This is a common environment setup issue.</p>
+                    <p>
+                        A '404 Not Found' error for an API route usually means the server failed to start correctly. This is almost always caused by an issue with the <code className="bg-destructive-foreground/20 px-1 rounded-sm">GOOGLE_APPLICATION_CREDENTIALS_JSON</code> in your <code className="bg-destructive-foreground/20 px-1 rounded-sm">.env.local</code> file.
+                    </p>
+                    <p className="mt-2">
+                        Please use the updated diagnostic tool at <a href="/api/debug/env" target="_blank" rel="noopener noreferrer" className="underline font-bold">/api/debug/env</a> to see the exact server-side error, then follow the <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> to fix it.
+                    </p>
+                </div>
+            ) : (prefsError.message.includes('Database Not Found') || prefsError.message.includes('Could not find the database')) ? (
                 <div className="mt-4 border-t border-destructive-foreground/20 pt-2">
                     <p className="font-bold">This is an environment setup issue, not a code problem.</p>
                     <p>Please follow the updated instructions in <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code>, especially <strong>Step 5</strong>, which guides you to use the built-in diagnostic tool to verify your project setup.</p>

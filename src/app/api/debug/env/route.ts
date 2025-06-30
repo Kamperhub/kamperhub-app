@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-
-// Note: We are deliberately NOT importing from firebase-admin here to make this endpoint
-// as resilient as possible. If firebase-admin fails to initialize, this endpoint should still work.
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
 
 export async function GET() {
   const envVars = {
@@ -28,59 +26,53 @@ export async function GET() {
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? 'Set' : 'Not Set',
   };
 
-  // Safely check the admin credentials without trying to initialize the whole SDK
-  let adminSDKStatus = 'Not Checked';
-  const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  let adminSDKInitializationStatus = 'Not Attempted';
   let serverProjectId = 'Not found in credentials';
-  let clientProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set';
+  const clientProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set';
   let projectIdsMatch = 'Cannot determine';
-  let projectMatchDetails = 'Checking...';
-
-  if (serviceAccountJsonString) {
+  
+  try {
+    const { error: adminError } = getFirebaseAdmin();
+    if (adminError) {
+        throw adminError;
+    }
+    adminSDKInitializationStatus = "SUCCESS: Firebase Admin SDK initialized successfully. Server can connect to Firebase.";
+  } catch(e: any) {
+    adminSDKInitializationStatus = `CRITICAL FAILURE: The Admin SDK failed to initialize. This is the most likely cause of API route 404 errors. Exact Error: ${e.message}`;
+  }
+  
+  const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+   if (serviceAccountJsonString) {
     try {
       let jsonString = serviceAccountJsonString.trim();
-      // Handle cases where the string might be wrapped in single or double quotes, which is common in .env files.
       if ((jsonString.startsWith("'") && jsonString.endsWith("'")) || (jsonString.startsWith('"') && jsonString.endsWith('"'))) {
         jsonString = jsonString.substring(1, jsonString.length - 1);
       }
-      
       const parsedJson = JSON.parse(jsonString);
-      serverProjectId = parsedJson.project_id || 'Not found in credentials';
-
-      if (parsedJson.project_id && parsedJson.private_key && parsedJson.client_email) {
-        adminSDKStatus = 'Set and appears to be valid JSON with key fields present.';
-      } else {
-        adminSDKStatus = 'CRITICAL ERROR: The JSON is valid, but it is missing required fields like project_id, private_key, or client_email. Please ensure you have copied the entire service account file content.';
-      }
-    } catch (e: any) {
-      adminSDKStatus = `CRITICAL ERROR: The GOOGLE_APPLICATION_CREDENTIALS_JSON is set, but it is NOT valid JSON. This is the most common cause of server errors. Please ensure it is copied correctly and on a single line. Parser error: ${e.message}`;
+      serverProjectId = parsedJson.project_id || 'Not found in credentials JSON';
+    } catch(e: any) {
+        serverProjectId = 'Could not parse credentials JSON';
     }
-  } else {
-    adminSDKStatus = 'CRITICAL ERROR: The GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is missing.';
   }
 
-  if (serverProjectId !== 'Not found in credentials' && clientProjectId !== 'Not Set') {
-      if (serverProjectId === clientProjectId) {
-        projectIdsMatch = 'Yes - OK';
-        projectMatchDetails = `Both server and client are correctly configured for project '${clientProjectId}'. If you are still seeing 'Database Not Found' errors, it means you have not yet created a Firestore database in this project. Please go to the Firebase Console for project '${clientProjectId}' and create one (see Step 6 of FIREBASE_SETUP_CHECKLIST.md).`;
-      } else {
-        projectIdsMatch = 'NO - MISMATCH DETECTED';
-        projectMatchDetails = `CRITICAL MISMATCH: Your server is configured for project '${serverProjectId}' but your client is configured for project '${clientProjectId}'. These MUST match. All keys in your .env.local file must come from the same Firebase project.`;
-      }
+  if (serverProjectId.startsWith('Could not') || serverProjectId.startsWith('Not found')) {
+      projectIdsMatch = `Cannot determine: Server Project ID is missing or invalid.`;
+  } else if (clientProjectId === 'Not Set') {
+      projectIdsMatch = `Cannot determine: Client Project ID is not set.`;
+  } else if (serverProjectId === clientProjectId) {
+      projectIdsMatch = `Yes - OK. Both client and server are configured for project '${clientProjectId}'.`;
   } else {
-     projectMatchDetails = "Could not verify project match because at least one Project ID is missing from your .env.local file.";
+      projectIdsMatch = `NO - CRITICAL MISMATCH. Server is for '${serverProjectId}', Client is for '${clientProjectId}'.`;
   }
-
 
   return NextResponse.json({
-    message: "This endpoint checks the status of environment variables on the server. 'Set' means the variable is present. 'Not Set' means it is missing. If a NEXT_PUBLIC_ variable is 'Not Set' here, it will also be missing on the client.",
+    message: "This endpoint checks the status of critical environment variables on the server.",
     status: {
         ...envVars,
-        FIREBASE_ADMIN_SDK_STATUS: adminSDKStatus,
         SERVER_SIDE_PROJECT_ID: serverProjectId,
         CLIENT_SIDE_PROJECT_ID: clientProjectId,
         PROJECT_IDS_MATCH: projectIdsMatch,
-        PROJECT_MATCH_DETAILS: projectMatchDetails,
+        ADMIN_SDK_INITIALIZATION_STATUS: adminSDKInitializationStatus,
     }
   });
 }
