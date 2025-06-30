@@ -348,12 +348,17 @@ const caravanSupportChatbotFlow = ai.defineFlow(
       let answer = "An unexpected error occurred while communicating with the AI assistant. Please try again later.";
       if (error.message) {
         const errorMessage = error.message.toLowerCase();
-        if (errorMessage.includes("service unavailable") || errorMessage.includes("overloaded") || errorMessage.includes("model is overloaded") || (error.cause && typeof error.cause === 'object' && 'status' in error.cause && error.cause.status === 503) ) {
+        const causeStatus = error.cause && typeof error.cause === 'object' && 'status' in error.cause ? error.cause.status : null;
+        if (errorMessage.includes("service unavailable") || errorMessage.includes("overloaded") || errorMessage.includes("model is overloaded") || causeStatus === 503 ) {
           answer = "The AI assistant is currently experiencing high demand or is temporarily unavailable. Please try again in a few moments.";
-        } else if (errorMessage.includes("429") || errorMessage.includes("quota") || errorMessage.includes("rate limit") || (error.cause && typeof error.cause === 'object' && 'status' in error.cause && error.cause.status === 429)) {
+        } else if (errorMessage.includes("429") || errorMessage.includes("quota") || errorMessage.includes("rate limit") || causeStatus === 429) {
           answer = "The AI assistant has hit a usage limit for the current period. Please try again later. If this issue persists, please check API plan details.";
-        } else if (errorMessage.includes("api key not valid") || (error.cause && typeof error.cause === 'object' && 'status' in error.cause && (error.cause.status === 401 || error.cause.status === 403)) ){
-           answer = "There seems to be an issue with the AI service configuration (e.g. API key). Please contact support if this persists.";
+        } else if (errorMessage.includes("api key not valid") || causeStatus === 401 || causeStatus === 403){
+            if (errorMessage.includes("httpreferrer") || errorMessage.includes("referer")) {
+                answer = "API Key Error: Your API key seems to be restricted by HTTP Referer. Requests from this environment are being blocked. Please check your API key settings in your Google Cloud Console and either remove the HTTP Referer restriction or add your development domain to the allowed list.";
+            } else {
+                answer = "There seems to be an issue with the AI service configuration (e.g. API key not valid or permission denied). Please check the key and its permissions in your Google Cloud Console.";
+            }
         } else if (errorMessage.includes("failed to parse schema") || errorMessage.includes("output_schema")) {
            answer = "I had a little trouble formatting my thoughts. Could you try asking in a slightly different way?";
         }
