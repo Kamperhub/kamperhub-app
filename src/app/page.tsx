@@ -231,7 +231,17 @@ export default function DashboardPage() {
              <pre className="mt-2 text-xs bg-destructive-foreground/10 p-2 rounded-md font-mono whitespace-pre-wrap">
               {prefsError.message}
              </pre>
-             {prefsError.message.includes('404') ? (
+             {prefsError.message.includes('timed out') ? (
+                <div className="mt-4 border-t border-destructive-foreground/20 pt-2">
+                    <p className="font-bold">This may be a server-side permission issue.</p>
+                    <p>
+                        A timeout error means the server is running but is taking too long to fetch your data from the database. This can happen on a slow network, but it often points to a permissions problem with the server's service account.
+                    </p>
+                    <p className="mt-2">
+                        Please check the <code className="bg-destructive-foreground/20 px-1 rounded-sm">IAM & Admin</code> section of your Google Cloud Console and ensure the service account associated with this project has the `Cloud Datastore User` or `Firebase Admin` role.
+                    </p>
+                </div>
+            ) : prefsError.message.includes('404') ? (
                 <div className="mt-4 border-t border-destructive-foreground/20 pt-2">
                     <p className="font-bold">This is a common environment setup issue.</p>
                     <p>

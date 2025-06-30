@@ -15,7 +15,7 @@ import type { PackingListCategory } from '@/types/packing';
 // ---- Generic Fetcher ----
 async function apiFetch(url: string, options: RequestInit = {}) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000); // 8-second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
 
   try {
     const user = auth.currentUser;
@@ -79,7 +79,7 @@ async function apiFetch(url: string, options: RequestInit = {}) {
   } catch (error: any) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
-      console.error(`API Fetch Error: Request to ${url} timed out after 8 seconds.`);
+      console.error(`API Fetch Error: Request to ${url} timed out after 15 seconds.`);
       throw new Error(`The request to the server timed out. This could be due to a server-side problem. Please try again.`);
     }
     // Re-throw other errors
