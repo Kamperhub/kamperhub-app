@@ -24,7 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
-import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Trash2, PlusCircle, Users } from 'lucide-react';
+import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Trash2, PlusCircle, Users, AlertTriangle, XCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from "date-fns";
@@ -136,6 +136,8 @@ export function TripPlannerClient() {
     setTripBudget([]);
     setTripExpenses([]);
     setTripOccupants([]);
+    setPendingTripName('');
+    setPendingTripNotes('');
   }, [reset]);
 
   useEffect(() => {
@@ -430,9 +432,14 @@ export function TripPlannerClient() {
                       <Controller name="fuelPrice" control={control} render={({ field }) => (<Input id="fuelPrice" type="number" step="0.01" {...field} value={field.value ?? ''} className="font-body" />)} />
                       {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
                     </div>
-                    <Button type="submit" disabled={isLoading || !isGoogleApiReady} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body">
-                      {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Calculating...</> : 'Plan Route'}
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <Button type="button" variant="outline" onClick={() => clearPlanner(true)} disabled={isLoading} className="w-full font-body">
+                          <XCircle className="mr-2 h-4 w-4" /> Reset
+                        </Button>
+                        <Button type="submit" disabled={isLoading || !isGoogleApiReady} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body">
+                          {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Calculating...</> : 'Plan Route'}
+                        </Button>
+                    </div>
                     {!isGoogleApiReady && <p className="text-xs text-muted-foreground text-center font-body mt-1">Map services loading...</p>}
                   </form>
                 </CardContent>
@@ -440,9 +447,18 @@ export function TripPlannerClient() {
                <Card>
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center"><Users className="mr-2 h-6 w-6 text-primary" /> Vehicle Occupants</CardTitle>
-                    <CardDescription>Add driver, passengers, and even pets to account for their weight.</CardDescription>
+                    <CardDescription>Add driver, passengers, and even pets to account for their weight in GVM calculations.</CardDescription>
                 </CardHeader>
                 <CardContent>
+                    {routeDetails && tripOccupants.length === 0 && (
+                        <Alert variant="destructive" className="mb-4">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle className="font-headline">Occupant Required</AlertTitle>
+                            <AlertDescription className="font-body">
+                                Please add at least one occupant before saving the trip.
+                            </AlertDescription>
+                        </Alert>
+                    )}
                     <OccupantManager occupants={tripOccupants} onUpdate={handleOccupantsUpdate} disabled={!routeDetails && !activeTrip} />
                 </CardContent>
               </Card>
