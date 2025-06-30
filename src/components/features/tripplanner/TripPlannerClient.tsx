@@ -38,8 +38,7 @@ import {
 import type { DateRange } from 'react-day-picker';
 import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesAutocompleteInput';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { auth } from '@/lib/firebase';
-import type { User as FirebaseUser } from 'firebase/auth';
+import { useAuth } from '@/hooks/useAuth';
 import { createTrip, updateTrip, fetchUserPreferences, fetchVehicles } from '@/lib/api-client';
 import type { UserProfile } from '@/types/auth';
 
@@ -88,7 +87,7 @@ export function TripPlannerClient() {
   const { toast } = useToast();
   const pathname = usePathname();
   const queryClient = useQueryClient();
-  const user = auth.currentUser;
+  const { user } = useAuth();
 
   const [activeTrip, setActiveTrip] = useState<LoggedTrip | null>(null);
   const [tripBudget, setTripBudget] = useState<BudgetCategory[]>([]);
@@ -240,6 +239,20 @@ export function TripPlannerClient() {
           startLocation: leg?.start_location?.toJSON(), endLocation: leg?.end_location?.toJSON()
         });
         setDirectionsResponse(results);
+
+        if (tripOccupants.length === 0 && user) {
+          const defaultDriver: Occupant = {
+            id: `driver_${Date.now()}`,
+            description: `Driver (${user.displayName || 'Default'})`,
+            weight: 75,
+          };
+          setTripOccupants([defaultDriver]);
+          toast({
+            title: "Default Driver Added",
+            description: "A default driver (75kg) has been added. You can edit the description and weight as needed.",
+            duration: 6000,
+          });
+        }
 
         if (distanceValue > 0 && data.fuelEfficiency > 0) {
           const fuelNeeded = (distanceValue / 1000 / 100) * data.fuelEfficiency;
@@ -561,7 +574,7 @@ function OccupantManager({ occupants, onUpdate, disabled }: { occupants: Occupan
                 <div className="grid grid-cols-2 gap-2">
                     <div>
                         <Label htmlFor="occ-desc" className="text-xs">Description</Label>
-                        <Input id="occ-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g., Driver, Passenger" disabled={disabled} />
+                        <Input id="occ-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g., Adult Passenger, Child" disabled={disabled} />
                     </div>
                     <div>
                         <Label htmlFor="occ-weight" className="text-xs">Weight (kg)</Label>
@@ -586,3 +599,6 @@ function OccupantManager({ occupants, onUpdate, disabled }: { occupants: Occupan
         </div>
     )
 }
+
+
+    
