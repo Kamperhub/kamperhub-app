@@ -35,7 +35,10 @@ const maintenanceTaskFormSchema = z.object({
   taskName: z.string().min(1, "Task name is required."),
   category: z.enum(['Engine', 'Tyres', 'Brakes', 'Chassis', 'Electrical', 'Plumbing', 'Appliance', 'Registration', 'General']),
   dueDate: z.date().nullable().optional(),
-  dueOdometer: z.coerce.number().positive().nullable().optional(),
+  dueOdometer: z.preprocess(
+    (val) => (val === "" || val === null ? undefined : val), // If empty string or null, treat as undefined
+    z.coerce.number({invalid_type_error: "Must be a number"}).positive("Odometer must be a positive number.").nullable().optional()
+  ),
   notes: z.string().optional(),
   isCompleted: z.boolean().default(false),
 });
@@ -242,6 +245,7 @@ export function MaintenanceLogClient() {
                           <div className="col-span-2 sm:col-span-1">
                             <Label>Due Odometer (km) (Optional)</Label>
                             <Input type="number" {...register('dueOdometer')} />
+                             {errors.dueOdometer && <p className="text-destructive text-sm mt-1">{errors.dueOdometer.message}</p>}
                           </div>
                       </div>
                       <div>
