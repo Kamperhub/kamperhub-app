@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import type { FuelLogEntry } from '@/types/service';
 import type { StoredVehicle } from '@/types/vehicle';
 import type { LoggedTrip } from '@/types/tripplanner';
+import { RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import { fetchFuelLogs, createFuelLog, updateFuelLog, deleteFuelLog, fetchVehicles, fetchTrips } from '@/lib/api-client';
 
 import { Button } from '@/components/ui/button';
@@ -45,6 +47,7 @@ export function FuelLogClient() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const router = useRouter();
 
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -110,7 +113,39 @@ export function FuelLogClient() {
       setIsFormOpen(false);
       setEditingLog(null);
     },
-    onError: (error: Error) => toast({ title: "Error", description: error.message, variant: "destructive" }),
+    onError: (error: Error, variables: { logData: { assignedTripId?: string | null } }) => {
+      if (error.message.includes("Could not find a 'Fuel' budget category")) {
+        const assignedTripId = variables.logData.assignedTripId;
+        const tripToRecall = trips.find(t => t.id === assignedTripId);
+
+        const handleRecallAndGo = () => {
+            if (tripToRecall) {
+                try {
+                    localStorage.setItem(RECALLED_TRIP_DATA_KEY, JSON.stringify(tripToRecall));
+                    router.push('/trip-expense-planner');
+                } catch (e) {
+                    toast({ title: "Error", description: "Could not recall trip.", variant: "destructive" });
+                }
+            }
+        };
+
+        toast({
+          title: "Missing 'Fuel' Category",
+          description: (
+            <div>
+              <p>The selected trip doesn't have a 'Fuel' budget category. Please add one to assign this expense.</p>
+              <Button variant="link" className="p-0 h-auto mt-2 text-destructive-foreground hover:underline font-bold" onClick={handleRecallAndGo}>
+                Click here to add it now.
+              </Button>
+            </div>
+          ),
+          variant: "destructive",
+          duration: 10000,
+        });
+      } else {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      }
+    },
   });
 
   const deleteMutation = useMutation({
