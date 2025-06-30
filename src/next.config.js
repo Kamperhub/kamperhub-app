@@ -1,27 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
-    // Only apply Content-Security-Policy headers in production
-    if (process.env.NODE_ENV !== 'production') {
-      return [];
-    }
-  
+    // Apply Content-Security-Policy headers in all environments to ensure consistency
     const cspHeader = [
       "default-src 'self'",
-      // Scripts - Add js.stripe.com for Stripe.js and the wildcard as a fallback.
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://www.gstatic.com https://js.stripe.com https://*.stripe.com https://*.cloudworkstations.googleusercontent.com",
+      // Scripts - Add all known Stripe domains
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://www.gstatic.com https://js.stripe.com https://m.stripe.network https://*.stripe.com https://*.cloudworkstations.googleusercontent.com",
       // Styles
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      // Images
-      "img-src 'self' data: https://placehold.co https://firebasestorage.googleapis.com https://maps.gstatic.com https://maps.googleapis.com *.googleusercontent.com",
+      // Images - Add Stripe images
+      "img-src 'self' data: https://placehold.co https://firebasestorage.googleapis.com https://maps.gstatic.com https://maps.googleapis.com *.googleusercontent.com https://*.stripe.com",
       // Fonts
       "font-src 'self' https://fonts.gstatic.com",
-      // Connections - Add api.stripe.com and the wildcard for any other connections.
-      "connect-src 'self' https://*.googleapis.com wss://*.cloudworkstations.dev https://api.stripe.com https://*.stripe.com https://*.cloudworkstations.googleusercontent.com",
+      // Connections - Add all known Stripe domains
+      "connect-src 'self' https://*.googleapis.com wss://*.cloudworkstations.dev https://api.stripe.com https://m.stripe.network https://*.stripe.com https://*.cloudworkstations.googleusercontent.com",
       // Workers
       "worker-src 'self' blob: *.cloudworkstations.googleusercontent.com",
-      // Frames - Add billing.stripe.com for the customer portal and the wildcard as a fallback.
-      "frame-src 'self' https://www.google.com https://billing.stripe.com https://*.stripe.com https://www.youtube.com https://*.cloudworkstations.googleusercontent.com",
+      // Frames - Add all known Stripe domains for iframes
+      "frame-src 'self' https://www.google.com https://js.stripe.com https://hooks.stripe.com https://billing.stripe.com https://m.stripe.network https://*.stripe.com https://www.youtube.com https://*.cloudworkstations.googleusercontent.com",
       // Others
       "object-src 'none'",
       "base-uri 'self'",
