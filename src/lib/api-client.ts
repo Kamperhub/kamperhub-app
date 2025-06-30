@@ -28,14 +28,15 @@ async function apiFetch(url: string, options: RequestInit = {}) {
     const authToken = await user.getIdToken(true);
     headers.set('Authorization', `Bearer ${authToken}`);
 
-    if (appCheck) {
-      try {
-        const appCheckTokenResponse = await getToken(appCheck, false);
-        headers.set('X-Firebase-AppCheck', appCheckTokenResponse.token);
-      } catch (err: any) {
-        console.warn("App Check getToken() failed. Proceeding without App Check token.", err);
-      }
-    }
+    // Temporarily disabled for diagnostics
+    // if (appCheck) {
+    //   try {
+    //     const appCheckTokenResponse = await getToken(appCheck, false);
+    //     headers.set('X-Firebase-AppCheck', appCheckTokenResponse.token);
+    //   } catch (err: any) {
+    //     console.warn("App Check getToken() failed. Proceeding without App Check token.", err);
+    //   }
+    // }
     
     if (options.body) {
       headers.set('Content-Type', 'application/json');
