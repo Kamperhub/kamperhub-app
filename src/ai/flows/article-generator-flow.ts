@@ -74,8 +74,8 @@ const articleGeneratorFlow = ai.defineFlow(
         const errorMessage = error.message.toLowerCase();
         const causeStatus = error.cause && typeof error.cause === 'object' && 'status' in error.cause ? error.cause.status : null;
         
-        if (errorMessage.includes("service unavailable") || errorMessage.includes("overloaded") || causeStatus === 503) {
-          errorMessageForUser = "The AI service is currently experiencing high demand. Please try again in a few moments.";
+        if (errorMessage.includes("service unavailable") || errorMessage.includes("overloaded") || errorMessage.includes("model is overloaded") || causeStatus === 503) {
+          errorMessageForUser = "The AI service is currently experiencing high demand or is temporarily unavailable. Please try again in a few moments.";
         } else if (errorMessage.includes("429") || errorMessage.includes("quota") || errorMessage.includes("rate limit") || causeStatus === 429) {
           errorMessageForUser = "The AI service has reached its usage limit for the current period. Please try again later.";
         } else if (errorMessage.includes("api key not valid") || causeStatus === 401 || causeStatus === 403) {
