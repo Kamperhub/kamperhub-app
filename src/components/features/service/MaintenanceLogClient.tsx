@@ -1,12 +1,12 @@
 
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, addDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import type { MaintenanceTask } from '@/types/service';
@@ -27,7 +27,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PlusCircle, Edit, Trash2, Car, Home, Info, Loader2, CalendarIcon } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Car, Home, Info, Loader2, CalendarIcon, CalendarPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const maintenanceTaskFormSchema = z.object({
@@ -72,7 +72,7 @@ export function MaintenanceLogClient() {
     ...caravans.map(c => ({ id: c.id, name: `${c.year} ${c.make} ${c.model}` })),
   ], [vehicles, caravans]);
 
-  const { control, register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm<MaintenanceTaskFormData>({
+  const { control, register, handleSubmit, formState: { errors }, reset, setValue, watch, getValues } = useForm<MaintenanceTaskFormData>({
     resolver: zodResolver(maintenanceTaskFormSchema),
   });
 
@@ -144,6 +144,36 @@ export function MaintenanceLogClient() {
     setIsFormOpen(true);
   };
   
+  const handleAddToCalendarFromForm = useCallback(() => {
+    const formData = getValues();
+    const assetName = assets.find(a => a.id === formData.assetId)?.name;
+
+    if (!formData.dueDate || !formData.taskName || !assetName) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please provide a task name, asset, and due date before adding to calendar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const title = encodeURIComponent(`Maint: ${formData.taskName} for ${assetName}`);
+    const details = encodeURIComponent(`Maintenance task for ${assetName}.\n\nTask: ${formData.taskName}\nCategory: ${formData.category}\nNotes: ${formData.notes || 'N/A'}`);
+    
+    const startDate = formData.dueDate;
+    const startDateFormatted = format(startDate, 'yyyyMMdd');
+    const endDateFormatted = format(addDays(startDate, 1), 'yyyyMMdd'); // All-day event for one day
+    
+    const dates = `${startDateFormatted}/${endDateFormatted}`;
+    
+    const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}`;
+    window.open(calendarUrl, '_blank');
+    toast({
+      title: 'Opening Google Calendar',
+      description: 'Remember to save the task in KamperHub as well!',
+    });
+  }, [getValues, assets, toast]);
+  
   if (isLoadingVehicles || isLoadingCaravans || isLoadingTasks) {
     return <Skeleton className="h-64 w-full" />;
   }
@@ -193,11 +223,23 @@ export function MaintenanceLogClient() {
                           <Controller name="category" control={control} render={({field}) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{['Engine', 'Tyres', 'Brakes', 'Chassis', 'Electrical', 'Plumbing', 'Appliance', 'Registration', 'General'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>)}/>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
-                          <div>
+                          <div className="col-span-2 sm:col-span-1">
                             <Label>Due Date (Optional)</Label>
                             <Controller name="dueDate" control={control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant="outline" className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4"/>{field.value ? format(field.value, "PP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ?? undefined} onSelect={field.onChange} /></PopoverContent></Popover>)}/>
+                             {watch('dueDate') && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="mt-2 w-full"
+                                    onClick={handleAddToCalendarFromForm}
+                                >
+                                    <CalendarPlus className="mr-2 h-4 w-4" />
+                                    Add to Calendar
+                                </Button>
+                            )}
                           </div>
-                          <div>
+                          <div className="col-span-2 sm:col-span-1">
                             <Label>Due Odometer (km) (Optional)</Label>
                             <Input type="number" {...register('dueOdometer')} />
                           </div>
