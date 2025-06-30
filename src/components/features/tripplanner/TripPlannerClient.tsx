@@ -24,7 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
-import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Trash2, PlusCircle, Users, AlertTriangle, XCircle, Edit3 } from 'lucide-react';
+import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Trash2, PlusCircle, Users, AlertTriangle, XCircle, Edit3, Car, Settings } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from "date-fns";
@@ -41,6 +41,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { createTrip, updateTrip, fetchUserPreferences, fetchVehicles } from '@/lib/api-client';
 import type { UserProfile } from '@/types/auth';
+import Link from 'next/link';
 
 
 const tripPlannerSchema = z.object({
@@ -100,7 +101,7 @@ export function TripPlannerClient() {
     enabled: !!user,
   });
   
-  const { data: allVehicles = [] } = useQuery<StoredVehicle[]>({
+  const { data: allVehicles = [], isLoading: isLoadingVehicles } = useQuery<StoredVehicle[]>({
     queryKey: ['vehicles', user?.uid],
     queryFn: fetchVehicles,
     enabled: !!user,
@@ -386,6 +387,47 @@ export function TripPlannerClient() {
 
   const mapHeight = "400px"; 
 
+  if (isLoadingVehicles) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
+          <p className="font-body text-lg">Checking vehicle setup...</p>
+        </div>
+        <Skeleton className="h-48 w-full" />
+      </div>
+    );
+  }
+
+  if (!isLoadingVehicles && allVehicles.length === 0) {
+    return (
+      <Card className="max-w-xl mx-auto">
+        <CardHeader>
+          <CardTitle className="font-headline flex items-center text-destructive">
+            <AlertTriangle className="mr-3 h-6 w-6" /> Tow Vehicle Required
+          </CardTitle>
+          <CardDescription>
+            You must add at least one tow vehicle before you can plan a trip.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <Car className="h-4 w-4" />
+            <AlertTitle className="font-headline">Action Required</AlertTitle>
+            <AlertDescription className="font-body">
+              Trip planning uses your vehicle's specifications, like fuel efficiency, for accurate calculations. Please go to the Vehicle Setup page to add your primary tow vehicle.
+            </AlertDescription>
+          </Alert>
+          <Button asChild className="mt-6 w-full font-body">
+            <Link href="/vehicles">
+              <Settings className="mr-2 h-4 w-4" /> Go to Vehicle Setup
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <>
       <Tabs defaultValue="itinerary" className="w-full">
@@ -441,7 +483,7 @@ export function TripPlannerClient() {
                   </form>
                 </CardContent>
               </Card>
-               <Card>
+              <Card>
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center"><Users className="mr-2 h-6 w-6 text-primary" /> Vehicle Occupants</CardTitle>
                     <CardDescription>Add driver, passengers, and even pets to account for their weight in GVM calculations.</CardDescription>
@@ -638,3 +680,4 @@ function OccupantManager({ occupants, onUpdate, disabled }: { occupants: Occupan
 
     
     
+
