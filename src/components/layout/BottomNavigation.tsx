@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -11,15 +10,25 @@ export function BottomNavigation() {
 
   const bottomNavItems = navItems;
 
+  // New logic: Define which paths belong to the Trip Manager group
+  const tripManagerPaths = ['/trip-manager', '/trip-expense-planner', '/triplog', '/trip-packing'];
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-top md:hidden z-50">
       <div className="container mx-auto px-2 sm:px-4">
         <ul className="flex justify-around items-center h-16">
           {bottomNavItems.map((item) => {
             const isDashboardLink = item.href === '/dashboard-details';
-            const isActive = isDashboardLink
-              ? pathname === '/' || pathname === '/dashboard-details'
-              : pathname === item.href;
+            const isTripManagerLink = item.href === '/trip-manager';
+            
+            let isActive = false;
+            if (isDashboardLink) {
+              isActive = pathname === '/' || pathname === '/dashboard-details';
+            } else if (isTripManagerLink) {
+              isActive = tripManagerPaths.includes(pathname);
+            } else {
+              isActive = pathname === item.href;
+            }
               
             return (
               <li key={item.label} className="flex-1 text-center">

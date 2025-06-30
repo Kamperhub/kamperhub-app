@@ -1,6 +1,5 @@
-
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Wrench, Luggage } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Wrench, Luggage, Suitcase } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -9,6 +8,32 @@ export interface NavItem {
   description: string;
   keywords: string;
 }
+
+// New export for Trip Manager sub-items
+export const tripManagerItems: NavItem[] = [
+  {
+    href: '/trip-expense-planner',
+    label: 'Trip & Expense Planner',
+    icon: Route,
+    description: "Plan routes, set budgets, and track expenses for your trips. Your all-in-one travel command center.",
+    keywords: 'route map budget expense'
+  },
+  {
+    href: '/trip-packing',
+    label: 'Trip Packing Assistant',
+    icon: Luggage,
+    description: "Use our AI assistant to generate smart, personalized packing lists for your trips and passengers.",
+    keywords: 'packing checklist luggage'
+  },
+  {
+    href: '/triplog',
+    label: 'Trip Log',
+    icon: History,
+    description: "Review your past adventures, recall saved trips for re-planning, and keep a history of your journeys.",
+    keywords: 'trip history'
+  },
+];
+
 
 // Main navigation items for the dashboard grid and potentially other global navs
 export const navItems: NavItem[] = [
@@ -41,18 +66,11 @@ export const navItems: NavItem[] = [
     keywords: 'fuel maintenance service'
   },
   {
-    href: '/trip-expense-planner',
-    label: 'Trip & Expense Planner',
-    icon: Route,
-    description: "Plan routes, set budgets, and track expenses for your trips. Your all-in-one travel command center.",
-    keywords: 'route map budget expense'
-  },
-   {
-    href: '/trip-packing',
-    label: 'Trip Packing Assistant',
-    icon: Luggage,
-    description: "Use our AI assistant to generate smart, personalized packing lists for your trips and passengers.",
-    keywords: 'packing checklist luggage'
+    href: '/trip-manager',
+    label: 'Trip Manager',
+    icon: Suitcase,
+    description: 'A central hub to plan your routes, budgets, packing lists, and review past trips.',
+    keywords: 'trip planner log packing'
   },
   {
     href: '/checklists',
@@ -60,13 +78,6 @@ export const navItems: NavItem[] = [
     icon: ListChecks,
     description: "Create pre-departure, setup, and pack-down checklists for trips and caravan defaults. Never miss a step!",
     keywords: 'travel list'
-  },
-  {
-    href: '/triplog',
-    label: 'Trip Log',
-    icon: History,
-    description: "Review your past adventures, recall saved trips for re-planning, and keep a history of your journeys.",
-    keywords: 'trip history'
   },
   {
     href: '/bookings',
