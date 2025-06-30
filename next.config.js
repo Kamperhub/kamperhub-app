@@ -1,3 +1,4 @@
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
@@ -17,7 +18,7 @@ const nextConfig = {
       // Workers
       "worker-src 'self' blob: *.cloudworkstations.googleusercontent.com",
       // Frames - Allow self, Google (for Recaptcha/maps), and Stripe (for portal and payment forms)
-      "frame-src 'self' https://www.google.com https://*.stripe.com https://m.stripe.network https://www.youtube.com https://*.cloudworkstations.googleusercontent.com",
+      "frame-src 'self' https://www.google.com https://*.stripe.com https://billing.stripe.com https://m.stripe.network https://www.youtube.com https://*.cloudworkstations.googleusercontent.com",
       // Others
       "object-src 'none'",
       "base-uri 'self'",
