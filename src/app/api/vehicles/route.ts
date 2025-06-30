@@ -53,6 +53,8 @@ const createVehicleSchema = z.object({
   frontAxleLimit: z.coerce.number().min(1).optional().nullable(),
   rearAxleLimit: z.coerce.number().min(1).optional().nullable(),
   wheelbase: z.coerce.number().min(1000).optional().nullable(),
+  recommendedTyrePressureUnladenPsi: z.coerce.number().min(0).optional().nullable(),
+  recommendedTyrePressureLadenPsi: z.coerce.number().min(0).optional().nullable(),
   storageLocations: z.array(z.any()).optional(), // Basic check, could be more detailed
 });
 

@@ -38,6 +38,8 @@ const vehicleSchema = z.object({
   frontAxleLimit: z.coerce.number().min(1, "Front Axle Limit must be a positive number").optional().nullable(),
   rearAxleLimit: z.coerce.number().min(1, "Rear Axle Limit must be a positive number").optional().nullable(),
   wheelbase: z.coerce.number().min(1000, "Wheelbase seems too short (min 1000mm)").optional().nullable(),
+  recommendedTyrePressureUnladenPsi: z.coerce.number().min(0).optional().nullable(),
+  recommendedTyrePressureLadenPsi: z.coerce.number().min(0).optional().nullable(),
   storageLocations: z.array(vehicleStorageLocationSchema).optional(),
 }).refine(data => {
   if (data.kerbWeight && data.gvm && data.kerbWeight > data.gvm) {
@@ -71,6 +73,8 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
     frontAxleLimit: null,
     rearAxleLimit: null,
     wheelbase: null,
+    recommendedTyrePressureUnladenPsi: null,
+    recommendedTyrePressureLadenPsi: null,
     storageLocations: [],
   };
 
@@ -110,6 +114,8 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
         frontAxleLimit: data.frontAxleLimit ? Number(data.frontAxleLimit) : null,
         rearAxleLimit: data.rearAxleLimit ? Number(data.rearAxleLimit) : null,
         wheelbase: data.wheelbase ? Number(data.wheelbase) : null,
+        recommendedTyrePressureUnladenPsi: data.recommendedTyrePressureUnladenPsi ? Number(data.recommendedTyrePressureUnladenPsi) : null,
+        recommendedTyrePressureLadenPsi: data.recommendedTyrePressureLadenPsi ? Number(data.recommendedTyrePressureLadenPsi) : null,
         storageLocations: data.storageLocations?.map(loc => ({
           ...loc,
           distanceFromRearAxleMm: loc.distanceFromRearAxleMm ? Number(loc.distanceFromRearAxleMm) : null,
@@ -216,7 +222,7 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
       </div>
 
       {/* Dimensions & Fuel */}
-      <h3 className="text-sm font-medium font-headline text-primary pt-1">Dimensions & Fuel</h3>
+      <h3 className="text-sm font-medium font-headline text-primary pt-1">Dimensions, Fuel & Tyres</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="wheelbase" className="font-body">Wheelbase (mm) (Optional)</Label>
@@ -231,6 +237,18 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
             Expected efficiency (towing typically increases consumption).
           </p>
           {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="recommendedTyrePressureUnladenPsi" className="font-body">Tyre Pressure (Unladen, PSI) (Opt.)</Label>
+          <Input id="recommendedTyrePressureUnladenPsi" type="number" {...register("recommendedTyrePressureUnladenPsi")} placeholder="e.g., 36" className="font-body" />
+          <p className="text-xs text-muted-foreground font-body mt-1">Tyre pressure when not towing.</p>
+          {errors.recommendedTyrePressureUnladenPsi && <p className="text-sm text-destructive font-body mt-1">{errors.recommendedTyrePressureUnladenPsi.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="recommendedTyrePressureLadenPsi" className="font-body">Tyre Pressure (Laden, PSI) (Opt.)</Label>
+          <Input id="recommendedTyrePressureLadenPsi" type="number" {...register("recommendedTyrePressureLadenPsi")} placeholder="e.g., 42" className="font-body" />
+          <p className="text-xs text-muted-foreground font-body mt-1">Tyre pressure when towing/loaded.</p>
+          {errors.recommendedTyrePressureLadenPsi && <p className="text-sm text-destructive font-body mt-1">{errors.recommendedTyrePressureLadenPsi.message}</p>}
         </div>
       </div>
 

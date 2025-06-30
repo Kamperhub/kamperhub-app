@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { VehicleForm } from './VehicleForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, Weight, Axe, Car, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Ruler, Backpack, Loader2 } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, Weight, Axe, Car, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Ruler, Backpack, Loader2, Disc } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -251,6 +251,7 @@ export function VehicleManager() {
                       <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 -rotate-90"/> R Axle: {formatDimension(vehicle.rearAxleLimit, 'kg')}</span>
                       <span className="flex items-center"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Wheelbase: {formatDimension(vehicle.wheelbase, 'mm')}</span>
                       <span className="flex items-center"><Fuel className="w-3 h-3 mr-1 text-primary/70"/> {vehicle.fuelEfficiency}L/100km</span>
+                      <span className="flex items-center col-span-full sm:col-span-2"><Disc className="w-3 h-3 mr-1 text-primary/70"/> Tyre PSI: {vehicle.recommendedTyrePressureUnladenPsi ?? 'N/A'} (Unladen) / {vehicle.recommendedTyrePressureLadenPsi ?? 'N/A'} (Laden)</span>
                     </div>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center self-start sm:self-auto flex-shrink-0 mt-2 sm:mt-0">

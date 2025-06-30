@@ -23,6 +23,8 @@ export interface VehicleFormData {
   frontAxleLimit?: number | null; // Max permissible load on the front axle
   rearAxleLimit?: number | null; // Max permissible load on the rear axle
   wheelbase?: number | null; // New: Vehicle wheelbase in mm
+  recommendedTyrePressureUnladenPsi?: number | null; // Pressure when not towing
+  recommendedTyrePressureLadenPsi?: number | null; // Pressure when towing/loaded
   storageLocations?: VehicleStorageLocation[];
 }
 
