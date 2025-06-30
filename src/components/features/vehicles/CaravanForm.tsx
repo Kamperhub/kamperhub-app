@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, XCircle, PlusCircle, Trash2, Droplet, Info, FileText } from 'lucide-react';
+import { Save, XCircle, PlusCircle, Trash2, Droplet, Info, FileText, Disc } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
@@ -71,6 +71,11 @@ const caravanSchema = z.object({
   gtm: z.coerce.number().positive("GTM must be positive"),
   maxTowballDownload: z.coerce.number().positive("Max Towball Download must be positive"),
   numberOfAxles: z.coerce.number().int().min(1, "Must have at least 1 axle").max(4, "Number of axles seems high (max 4)"),
+  axleGroupRating: z.coerce.number().positive("Axle Group Rating must be positive"),
+  tyreSize: z.string().optional().nullable(),
+  tyreLoadRating: z.coerce.number().min(0).optional().nullable(),
+  tyreSpeedRating: z.string().optional().nullable(),
+  recommendedTyrePressurePsi: z.coerce.number().min(0, "Pressure must be positive").optional().nullable(),
   overallLength: z.coerce.number().min(1, "Overall length must be positive (mm)").optional().nullable(),
   bodyLength: z.coerce.number().min(1, "Body length must be positive (mm)").optional().nullable(),
   overallHeight: z.coerce.number().min(1, "Overall height must be positive (mm)").optional().nullable(),
@@ -104,6 +109,11 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
     gtm: 0,
     maxTowballDownload: 0,
     numberOfAxles: 1,
+    axleGroupRating: 0,
+    tyreSize: null,
+    tyreLoadRating: null,
+    tyreSpeedRating: null,
+    recommendedTyrePressurePsi: null,
     overallLength: null,
     bodyLength: null,
     overallHeight: null,
@@ -276,6 +286,35 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
         </Alert>
       )}
 
+      {/* Axle & Tyre Specifications */}
+      <h3 className="text-lg font-medium font-headline text-primary pt-2">Axle & Tyre Specifications</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="axleGroupRating" className="font-body">Axle Group Rating (kg)</Label>
+          <Input id="axleGroupRating" type="number" {...register("axleGroupRating")} placeholder="e.g., 2400" className="font-body" />
+          {errors.axleGroupRating && <p className="text-sm text-destructive font-body mt-1">{errors.axleGroupRating.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="tyreSize" className="font-body">Tyre Size (Optional)</Label>
+          <Input id="tyreSize" {...register("tyreSize")} placeholder="e.g., 235/75R15" className="font-body" />
+          {errors.tyreSize && <p className="text-sm text-destructive font-body mt-1">{errors.tyreSize.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="tyreLoadRating" className="font-body">Tyre Load Rating (Optional)</Label>
+          <Input id="tyreLoadRating" type="number" {...register("tyreLoadRating")} placeholder="e.g., 109" className="font-body" />
+          {errors.tyreLoadRating && <p className="text-sm text-destructive font-body mt-1">{errors.tyreLoadRating.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="tyreSpeedRating" className="font-body">Tyre Speed Rating (Optional)</Label>
+          <Input id="tyreSpeedRating" {...register("tyreSpeedRating")} placeholder="e.g., T" className="font-body" />
+          {errors.tyreSpeedRating && <p className="text-sm text-destructive font-body mt-1">{errors.tyreSpeedRating.message}</p>}
+        </div>
+         <div>
+          <Label htmlFor="recommendedTyrePressurePsi" className="font-body">Recommended Tyre Pressure (PSI) (Opt.)</Label>
+          <Input id="recommendedTyrePressurePsi" type="number" {...register("recommendedTyrePressurePsi")} placeholder="e.g., 55" className="font-body" />
+          {errors.recommendedTyrePressurePsi && <p className="text-sm text-destructive font-body mt-1">{errors.recommendedTyrePressurePsi.message}</p>}
+        </div>
+      </div>
 
       {/* Dimensions (Optional) */}
       <h3 className="text-lg font-medium font-headline text-primary pt-2">Dimensions (Optional)</h3>
@@ -636,7 +675,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
               <div>
                 <Label htmlFor={`diagrams.${index}.name`} className="text-xs font-body">Diagram Name*</Label>
                 <Input {...register(`diagrams.${index}.name`)} placeholder="e.g., Floor Plan, Wiring Schematic" className="font-body bg-background" />
-                {errors.diagrams?.[index]?.name && <p className="text-sm text-destructive mt-1">{errors.diagrams[index]?.name?.message}</p>}
+                {errors.diagrams?.[index]?.name && <p className="text-sm text-destructive font-body mt-1">{errors.diagrams[index]?.name?.message}</p>}
               </div>
               <div>
                 <Label htmlFor={`diagrams.${index}.url`} className="text-xs font-body">Image/Document URL*</Label>

@@ -45,6 +45,11 @@ export interface CaravanFormData {
   gtm: number; 
   maxTowballDownload: number;
   numberOfAxles: number;
+  axleGroupRating: number;
+  tyreSize?: string | null;
+  tyreLoadRating?: number | null;
+  tyreSpeedRating?: string | null;
+  recommendedTyrePressurePsi?: number | null;
   overallLength?: number | null;
   bodyLength?: number | null;
   overallHeight?: number | null;

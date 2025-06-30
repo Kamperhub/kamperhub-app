@@ -33,7 +33,7 @@ interface InventoryListClientProps {
 }
 
 const defaultCaravanSpecs: CaravanWeightData = {
-  tareMass: 0, atm: 0, gtm: 0, maxTowballDownload: 0, numberOfAxles: 1,
+  tareMass: 0, atm: 0, gtm: 0, maxTowballDownload: 0, numberOfAxles: 1, axleGroupRating: 0
 };
 
 const DonutChartCustomLabel = ({ viewBox, value, limit, unit, name }: { viewBox?: { cx?: number, cy?: number }, value: number, limit: number, unit: string, name: string }) => {
@@ -146,10 +146,10 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
 
   const caravanSpecs = activeCaravan ? {
     tareMass: activeCaravan.tareMass, atm: activeCaravan.atm, gtm: activeCaravan.gtm,
-    maxTowballDownload: activeCaravan.maxTowballDownload, numberOfAxles: activeCaravan.numberOfAxles,
+    maxTowballDownload: activeCaravan.maxTowballDownload, numberOfAxles: activeCaravan.numberOfAxles, axleGroupRating: activeCaravan.axleGroupRating
   } : defaultCaravanSpecs;
 
-  const { tareMass, atm: atmLimit, gtm: gtmLimit, maxTowballDownload: caravanMaxTowballDownloadLimit } = caravanSpecs;
+  const { tareMass, atm: atmLimit, gtm: gtmLimit, maxTowballDownload: caravanMaxTowballDownloadLimit, axleGroupRating } = caravanSpecs;
   
   const caravanPayload = totalCaravanInventoryWeight + unassignedWeight + totalWaterWeight;
 
@@ -159,8 +159,8 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
   const estimatedTowballDownload = caravanPayload * 0.1;
   
   const currentLoadOnAxles = currentCaravanMass - estimatedTowballDownload;
-  const remainingPayloadGTM = gtmLimit > 0 ? gtmLimit - currentLoadOnAxles : 0;
-
+  const axleLoadLimit = Math.min(gtmLimit || Infinity, axleGroupRating || Infinity);
+  
   const vehicleKerbWeight = activeVehicle?.kerbWeight ?? 0;
   const vehicleGVM = activeVehicle?.gvm ?? 0;
   const vehicleGCM = activeVehicle?.gcm ?? 0;
@@ -234,7 +234,7 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
   };
 
   const atmChart = prepareChartData(currentCaravanMass, atmLimit);
-  const gtmChart = prepareChartData(currentLoadOnAxles, gtmLimit);
+  const axleLoadChart = prepareChartData(currentLoadOnAxles, axleLoadLimit);
   const towballChart = prepareChartData(estimatedTowballDownload, caravanMaxTowballDownloadLimit);
   
   const enrichedCombinedStorageLocations = useMemo(() => {
@@ -322,6 +322,7 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
             )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card><CardHeader><CardTitle>Caravan ATM</CardTitle></CardHeader><CardContent><Alert variant={getAlertStylingVariant(currentCaravanMass, atmLimit)}><AlertTitle>{currentCaravanMass.toFixed(1)}kg / {atmLimit > 0 ? atmLimit.toFixed(0) : 'N/A'}kg</AlertTitle><AlertDescription>Remaining: {remainingPayloadATM.toFixed(1)} kg</AlertDescription></Alert></CardContent></Card>
+            <Card><CardHeader><CardTitle>Caravan Axle Load</CardTitle></CardHeader><CardContent><Alert variant={getAlertStylingVariant(currentLoadOnAxles, axleLoadLimit)}><AlertTitle>{currentLoadOnAxles.toFixed(1)}kg / {axleLoadLimit > 0 && axleLoadLimit !== Infinity ? axleLoadLimit.toFixed(0) : 'N/A'}kg</AlertTitle><AlertDescription>GTM: {gtmLimit}kg, Axle Rating: {axleGroupRating}kg</AlertDescription></Alert></CardContent></Card>
             {activeVehicle && vehicleGVM > 0 && (
               <Card>
                 <CardHeader><CardTitle>Vehicle GVM</CardTitle></CardHeader>
@@ -334,29 +335,10 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
               </Card>
             )}
             {activeVehicle && (<Card><CardHeader><CardTitle>Vehicle Towing</CardTitle></CardHeader><CardContent><Alert variant={isOverMaxTowCapacity ? 'destructive' : 'default'}><AlertTitle>Towed Mass: {currentCaravanMass.toFixed(1)}kg / {vehicleMaxTowCapacity.toFixed(0)}kg</AlertTitle><AlertDescription>{isOverMaxTowCapacity ? 'OVER LIMIT!' : 'OK'}</AlertDescription></Alert></CardContent></Card>)}
-            {wdh && (
-              <Card>
-                <CardHeader><CardTitle>WDH Compatibility</CardTitle></CardHeader>
-                <CardContent>
-                    <Alert variant={isTowballOverWdhMax || isTowballUnderWdhMin ? 'destructive' : 'default'}>
-                        <AlertTitle>
-                            Est. Towball: {estimatedTowballDownload.toFixed(1)}kg
-                        </AlertTitle>
-                        <AlertDescription>
-                            WDH Range: {wdhMinCapacity ?? '0'}kg - {wdhMaxCapacity}kg
-                            <br/>
-                            {isTowballOverWdhMax && 'Status: OVER WDH max capacity!'}
-                            {isTowballUnderWdhMin && 'Status: UNDER WDH min capacity!'}
-                            {!isTowballOverWdhMax && !isTowballUnderWdhMin && 'Status: OK'}
-                        </AlertDescription>
-                    </Alert>
-                </CardContent>
-              </Card>
-            )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 my-6">
             <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={150}><PieChart><Pie data={atmChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={60} innerRadius={40} dataKey="value" stroke="hsl(var(--background))">{atmChart.data.map((_, i) => (<Cell key={`cell-atm-${i}`} fill={atmChart.colors[i % atmChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="ATM" value={currentCaravanMass} limit={atmLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
-            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={150}><PieChart><Pie data={gtmChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={60} innerRadius={40} dataKey="value" stroke="hsl(var(--background))">{gtmChart.data.map((_, i) => (<Cell key={`cell-gtm-${i}`} fill={gtmChart.colors[i % gtmChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="GTM" value={currentLoadOnAxles} limit={gtmLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
+            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={150}><PieChart><Pie data={axleLoadChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={60} innerRadius={40} dataKey="value" stroke="hsl(var(--background))">{axleLoadChart.data.map((_, i) => (<Cell key={`cell-axle-${i}`} fill={axleLoadChart.colors[i % axleLoadChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Axle Load" value={currentLoadOnAxles} limit={axleLoadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
             <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={150}><PieChart><Pie data={towballChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={60} innerRadius={40} dataKey="value" stroke="hsl(var(--background))">{towballChart.data.map((_, i) => (<Cell key={`cell-towball-${i}`} fill={towballChart.colors[i % towballChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Est. Towball" value={estimatedTowballDownload} limit={caravanMaxTowballDownloadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
           </div>
         </div>
