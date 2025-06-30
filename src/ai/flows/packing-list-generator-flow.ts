@@ -70,8 +70,8 @@ const packingListGeneratorFlow = ai.defineFlow(
     try {
       const {output} = await prompt(input);
       if (!output) {
-        console.warn('PackingListGeneratorFlow: AI model returned null output.');
-        throw new Error('The AI returned an unexpected response. Please try rephrasing your request.');
+        console.warn('PackingListGeneratorFlow: AI model returned null output. This might be due to schema mismatch or other non-fatal errors from the model.');
+        throw new Error('The AI returned an empty response. This can sometimes happen, please try again.');
       }
       return output;
     } catch (error: any) {
@@ -90,6 +90,8 @@ const packingListGeneratorFlow = ai.defineFlow(
           errorMessageForUser = "There is an issue with the AI service configuration. Please contact support.";
         } else if (errorMessage.includes("failed to parse schema") || errorMessage.includes("output_schema")) {
           errorMessageForUser = "The AI returned a response in an unexpected format. This can sometimes happen, please try again.";
+        } else if (error.message) { // Use the original error message if it's not one of the known types
+            errorMessageForUser = error.message;
         }
       }
       
