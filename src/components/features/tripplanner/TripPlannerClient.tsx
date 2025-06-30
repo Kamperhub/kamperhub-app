@@ -389,7 +389,7 @@ export function TripPlannerClient() {
   return (
     <>
       <Tabs defaultValue="itinerary" className="w-full">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between mb-6 gap-4">
           <TabsList className="grid w-full grid-cols-3 max-w-lg">
             <TabsTrigger value="itinerary" className="font-body"><MapPin className="mr-2 h-4 w-4"/>Itinerary</TabsTrigger>
             <TabsTrigger value="budget" className="font-body"><Edit className="mr-2 h-4 w-4"/>Budget</TabsTrigger>
@@ -399,7 +399,7 @@ export function TripPlannerClient() {
               onClick={handleOpenSaveTripDialog}
               variant="default"
               size="sm"
-              className="font-body bg-primary hover:bg-primary/90 text-primary-foreground hidden md:flex"
+              className="font-body bg-primary hover:bg-primary/90 text-primary-foreground"
               disabled={!routeDetails || createTripMutation.isPending || updateTripMutation.isPending}
           >
               {(createTripMutation.isPending || updateTripMutation.isPending) ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
