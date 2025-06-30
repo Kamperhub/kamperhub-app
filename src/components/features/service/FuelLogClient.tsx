@@ -11,7 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import type { FuelLogEntry } from '@/types/service';
 import type { StoredVehicle } from '@/types/vehicle';
-import { fetchFuelLogs, createFuelLog, updateFuelLog, deleteFuelLog, fetchVehicles } from '@/lib/api-client';
+import type { LoggedTrip } from '@/types/tripplanner';
+import { fetchFuelLogs, createFuelLog, updateFuelLog, deleteFuelLog, fetchVehicles, fetchTrips } from '@/lib/api-client';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -25,7 +26,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PlusCircle, Edit, Trash2, Car, Info, Loader2, CalendarIcon } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Car, Info, Loader2, CalendarIcon, Route } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 
@@ -36,6 +37,7 @@ const fuelLogFormSchema = z.object({
   pricePerLitre: z.coerce.number().positive("Price per litre must be positive."),
   location: z.string().optional(),
   notes: z.string().optional(),
+  assignedTripId: z.string().nullable().optional(),
 });
 type FuelLogFormData = z.infer<typeof fuelLogFormSchema>;
 
@@ -53,12 +55,20 @@ export function FuelLogClient() {
     queryFn: fetchVehicles,
     enabled: !!user,
   });
+  
+  const { data: trips = [] } = useQuery<LoggedTrip[]>({
+    queryKey: ['trips', user?.uid],
+    queryFn: fetchTrips,
+    enabled: !!user,
+  });
 
   const { data: fuelLogs = [], isLoading: isLoadingFuelLogs } = useQuery<FuelLogEntry[]>({
     queryKey: ['fuelLogs', selectedVehicleId],
     queryFn: () => fetchFuelLogs(selectedVehicleId!),
     enabled: !!selectedVehicleId,
   });
+  
+  const tripMap = useMemo(() => new Map(trips.map(trip => [trip.id, trip.name])), [trips]);
   
   const { control, register, handleSubmit, formState: { errors }, reset, setValue } = useForm<FuelLogFormData>({
     resolver: zodResolver(fuelLogFormSchema),
@@ -73,21 +83,29 @@ export function FuelLogClient() {
         setValue('pricePerLitre', editingLog.pricePerLitre);
         setValue('location', editingLog.location);
         setValue('notes', editingLog.notes);
+        setValue('assignedTripId', editingLog.assignedTripId);
       } else {
-        reset({ date: new Date(), odometer: undefined, totalCost: undefined, pricePerLitre: undefined, location: '', notes: '' });
+        reset({ date: new Date(), odometer: undefined, totalCost: undefined, pricePerLitre: undefined, location: '', notes: '', assignedTripId: null });
       }
     }
   }, [editingLog, isFormOpen, setValue, reset]);
 
   const saveMutation = useMutation({
-    mutationFn: (data: { vehicleId: string; logData: FuelLogEntry | Omit<FuelLogEntry, 'id' | 'timestamp'> }) => {
-      if ('id' in data.logData) {
-        return updateFuelLog(data.logData as FuelLogEntry);
-      }
-      return createFuelLog(data.logData as Omit<FuelLogEntry, 'id' | 'timestamp'>);
+    mutationFn: (data: { logData: Omit<FuelLogEntry, 'litres' | 'timestamp'> | Omit<FuelLogEntry, 'litres'> }) => {
+        const { date, ...restData } = data.logData;
+        const logDataForApi = {
+            ...restData,
+            date: typeof date === 'string' ? date : date.toISOString(),
+        };
+
+        if ('id' in logDataForApi) {
+            return updateFuelLog(logDataForApi as FuelLogEntry);
+        }
+        return createFuelLog(logDataForApi as Omit<FuelLogEntry, 'id' | 'timestamp'>);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fuelLogs', selectedVehicleId] });
+      queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] }); // Invalidate trips to refetch updated expenses
       toast({ title: editingLog ? "Log Updated" : "Log Added" });
       setIsFormOpen(false);
       setEditingLog(null);
@@ -99,6 +117,7 @@ export function FuelLogClient() {
     mutationFn: (logId: string) => deleteFuelLog(selectedVehicleId!, logId),
     onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['fuelLogs', selectedVehicleId] });
+        queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] }); // Invalidate trips to refetch updated expenses
         toast({ title: "Log Deleted" });
     },
     onError: (error: Error) => toast({ title: "Error", description: error.message, variant: "destructive" }),
@@ -107,19 +126,15 @@ export function FuelLogClient() {
   const handleSaveLog: SubmitHandler<FuelLogFormData> = (data) => {
     if (!selectedVehicleId) return;
 
-    const litres = data.totalCost / data.pricePerLitre;
-
     const logData = {
         ...data,
-        litres,
         vehicleId: selectedVehicleId,
-        date: data.date.toISOString(),
     };
 
     if (editingLog) {
-        saveMutation.mutate({ vehicleId: selectedVehicleId, logData: { ...editingLog, ...logData, totalCost: data.totalCost } });
+        saveMutation.mutate({ logData: { ...editingLog, ...logData } });
     } else {
-        saveMutation.mutate({ vehicleId: selectedVehicleId, logData });
+        saveMutation.mutate({ logData });
     }
   };
 
@@ -182,6 +197,23 @@ export function FuelLogClient() {
                             {errors.pricePerLitre && <p className="text-destructive text-sm mt-1">{errors.pricePerLitre.message}</p>}
                         </div>
                     </div>
+                    <div>
+                        <Label htmlFor="assignedTripId" className="font-body flex items-center"><Route className="mr-1 h-4 w-4 text-muted-foreground" />Assign to Trip (Optional)</Label>
+                        <Controller
+                            name="assignedTripId"
+                            control={control}
+                            render={({ field }) => (
+                                <Select onValueChange={v => field.onChange(v === 'none' ? null : v)} value={field.value || 'none'}>
+                                    <SelectTrigger className="font-body"><SelectValue placeholder="Select a trip..."/></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">-- No Trip --</SelectItem>
+                                        {trips.map(trip => <SelectItem key={trip.id} value={trip.id}>{trip.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                         {errors.assignedTripId && <p className="text-destructive text-sm mt-1">{errors.assignedTripId.message}</p>}
+                    </div>
                      <div>
                         <Label htmlFor="location">Location (Optional)</Label>
                         <Input id="location" {...register('location')} />
@@ -230,6 +262,7 @@ export function FuelLogClient() {
                 <TableHeader>
                     <TableRow>
                         <TableHead>Date</TableHead>
+                        <TableHead>Trip</TableHead>
                         <TableHead>Odometer</TableHead>
                         <TableHead className="text-right">Litres</TableHead>
                         <TableHead className="text-right">$/Litre</TableHead>
@@ -241,6 +274,7 @@ export function FuelLogClient() {
                     {fuelLogs.map(log => (
                         <TableRow key={log.id}>
                             <TableCell>{format(parseISO(log.date), 'PP')}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{log.assignedTripId ? tripMap.get(log.assignedTripId) : 'N/A'}</TableCell>
                             <TableCell>{log.odometer} km</TableCell>
                             <TableCell className="text-right">{log.litres.toFixed(2)}</TableCell>
                             <TableCell className="text-right">${log.pricePerLitre.toFixed(3)}</TableCell>

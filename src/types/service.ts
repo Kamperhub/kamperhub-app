@@ -1,3 +1,4 @@
+
 // src/types/service.ts
 import { z } from 'zod';
 
@@ -12,6 +13,7 @@ export const fuelLogSchema = z.object({
   totalCost: z.coerce.number().positive("Total cost must be a positive number"),
   location: z.string().optional(),
   notes: z.string().optional(),
+  assignedTripId: z.string().nullable().optional(),
   timestamp: z.string().datetime(),
 });
 
