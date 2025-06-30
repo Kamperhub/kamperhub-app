@@ -491,15 +491,17 @@ export default function TripPlannerPage() {
                           </Popover>
                       )} />
                     </div>
-                    <div>
-                      <Label htmlFor="fuelEfficiency" className="font-body">Fuel Efficiency (Litres/100km)</Label>
-                      <Controller name="fuelEfficiency" control={control} render={({ field }) => (<Input id="fuelEfficiency" type="number" step="0.1" {...field} value={field.value ?? ''} className="font-body" />)} />
-                      {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="fuelPrice" className="font-body">Fuel Price ($/Litre)</Label>
-                      <Controller name="fuelPrice" control={control} render={({ field }) => (<Input id="fuelPrice" type="number" step="0.01" {...field} value={field.value ?? ''} className="font-body" />)} />
-                      {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="fuelEfficiency" className="font-body">Fuel Efficiency (L/100km)</Label>
+                        <Controller name="fuelEfficiency" control={control} render={({ field }) => (<Input id="fuelEfficiency" type="number" step="0.1" {...field} value={field.value ?? ''} className="font-body" />)} />
+                        {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
+                      </div>
+                      <div>
+                        <Label htmlFor="fuelPrice" className="font-body">Fuel Price ($/L)</Label>
+                        <Controller name="fuelPrice" control={control} render={({ field }) => (<Input id="fuelPrice" type="number" step="0.01" {...field} value={field.value ?? ''} className="font-body" />)} />
+                        {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
+                      </div>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
                         <Button type="button" variant="outline" onClick={() => clearPlanner(true)} disabled={isLoading} className="w-full font-body">
@@ -531,6 +533,8 @@ export default function TripPlannerPage() {
                     <OccupantManager occupants={tripOccupants} onUpdate={handleOccupantsUpdate} disabled={!routeDetails && !activeTrip} />
                 </CardContent>
               </Card>
+            </div>
+            <div className="md:col-span-2 space-y-6">
                <Button
                   onClick={handleOpenSaveTripDialog}
                   variant="default"
@@ -541,8 +545,6 @@ export default function TripPlannerPage() {
                   {(createTripMutation.isPending || updateTripMutation.isPending) ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                   {activeTrip ? 'Update Trip Details' : 'Save Full Trip'}
               </Button>
-            </div>
-            <div className="md:col-span-2 space-y-6">
               <Card><CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="font-headline flex items-center"><MapPin className="mr-2 h-6 w-6 text-primary" /> Route Map</CardTitle>
               </CardHeader><CardContent className="p-0"><div style={{ height: mapHeight }} className="bg-muted rounded-b-lg overflow-hidden relative">
@@ -712,3 +714,4 @@ function OccupantManager({ occupants, onUpdate, disabled }: { occupants: Occupan
     
 
     
+
