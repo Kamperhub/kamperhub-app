@@ -1,3 +1,4 @@
+
 # KamperHub Development Roadmap
 
 This document tracks the development priorities, future features, and completed milestones for the KamperHub application.
@@ -6,18 +7,23 @@ This document tracks the development priorities, future features, and completed 
 
 ## **Current Priorities**
 
-### 1. Stability & Bug Fixing
-*   **Objective:** Resolve persistent data loading and authentication issues to ensure a stable and reliable user experience on the new server-based infrastructure.
-*   **Key Areas:**
-    *   Investigate and fix errors preventing vehicle, caravan, and WDH data from loading on the `/vehicles` page.
-    *   Address any remaining `Unauthorized: Invalid ID token` or `client is offline` errors.
-    *   Ensure all user preferences and settings load correctly for all user types (including admin).
-
-### 2. New Feature Development
-*   **Objective:** Begin implementing new, high-value features now that the core data migration is complete.
+### 1. New Feature Development
+*   **Objective:** Implement new, high-value features on the stable server-based infrastructure.
 *   **Next Up:**
-    *   **Fuel Log & Maintenance Tracker:** Build the user interface for logging fuel and tracking vehicle/caravan maintenance tasks. The backend APIs for this are already in place.
-    *   **AI-Powered Packing Assistant:** Create a Genkit flow to help users generate packing lists based on trip details.
+    *   **Fuel Log Toast Action:** Ensure the "Add Category" button in the "Missing 'Fuel' Category" error message correctly navigates the user to the trip planner.
+
+### 2. In Progress
+*   **AI-Powered Packing Assistant:**
+    *   **Status:** Initial version complete.
+    *   **Features:**
+        *   New "Trip Packing" page added to navigation.
+        *   Genkit flow created to generate packing lists based on trip details (destination, duration, activities, passenger count).
+        *   UI allows users to select a trip, generate a list, and manage items (add, edit, delete, check-off).
+    *   **Next Steps:**
+        *   Implement saving/loading of packing lists to Firestore.
+        *   Add reusable packing templates.
+        *   Integrate with weather APIs for smarter suggestions.
+        *   Explore collaborative packing features.
 
 ---
 
@@ -45,34 +51,6 @@ This document tracks the development priorities, future features, and completed 
 ## Future Development Ideas
 
 This section tracks potential new features and enhancements for future consideration.
-
-### High-Impact Performance Overhaul
-Based on industry best practices for Firebase and Next.js, this multi-phase plan will significantly improve the application's loading speed and responsiveness.
-
-**Phase 1: Server-Side Data Fetching (Core Strategy)**
-*   **The Problem:** Data-heavy pages currently show loading skeletons while the client fetches data, causing a noticeable delay.
-*   **The Solution:** Implement server-side data fetching using Next.js Server Components.
-    1.  **Pre-fetch Data on the Server:** When a page like `/vehicles` or `/inventory` is requested, the server will gather all necessary data from Firestore in a single, efficient operation.
-    2.  **Eliminate Initial Loading States:** The page will be sent to the browser with data already included, making content appear almost instantly and improving the perceived performance.
-    3.  **Retain Dynamic Updates:** The application will continue using TanStack Query for dynamic client-side updates after the initial fast load.
-
-**Phase 2: Advanced Caching & CDN Optimization**
-*   **The Problem:** While Firebase Hosting's CDN is automatic, we can optimize it further.
-*   **The Solution:** Implement custom `Cache-Control` headers in `next.config.js`.
-    1.  **Immutable Caching:** Set long-duration cache headers for static assets that have hashed names (e.g., JS/CSS chunks), telling browsers and the CDN to cache them for up to a year.
-    2.  **Stale-While-Revalidate:** For server-rendered pages, use `stale-while-revalidate` headers to serve cached content instantly while fetching fresh data in the background.
-
-**Phase 3: Frontend Asset Optimization**
-*   **The Problem:** Large images and initial JavaScript bundles can slow down rendering.
-*   **The Solution:** Ensure rigorous adherence to frontend best practices.
-    1.  **Image Optimization:** Ensure every `next/image` component has explicit `width`, `height`, and `priority` props where appropriate to prevent layout shift and optimize loading.
-    2.  **Component-Level Code Splitting:** Continue using `next/dynamic` to lazy-load large components (like the Trip Planner map) that are not critical for the initial page view.
-
-**Phase 4: Backend & Genkit Flow Optimization**
-*   **The Problem:** Serverless functions (like Genkit flows) can experience "cold starts," causing delays in AI-powered features.
-*   **The Solution:** Optimize backend function performance.
-    1.  **Dependency Pruning:** Review Genkit flows to ensure they only import the exact modules needed for their specific task, reducing cold start times.
-    2.  **Minimum Instances (Future Scaling):** As traffic grows, for latency-sensitive functions like the chatbot, configure a minimum number of instances in `apphosting.yaml` to keep them "warm" and ready for instant responses.
 
 ### Core Functionality Enhancements
 

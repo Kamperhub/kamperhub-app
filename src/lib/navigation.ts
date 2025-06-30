@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Wrench } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Wrench, Luggage } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -46,6 +46,13 @@ export const navItems: NavItem[] = [
     icon: Route,
     description: "Plan routes, set budgets, and track expenses for your trips. Your all-in-one travel command center.",
     keywords: 'route map budget expense'
+  },
+   {
+    href: '/trip-packing',
+    label: 'Trip Packing Assistant',
+    icon: Luggage,
+    description: "Use our AI assistant to generate smart, personalized packing lists for your trips and passengers.",
+    keywords: 'packing checklist luggage'
   },
   {
     href: '/checklists',
