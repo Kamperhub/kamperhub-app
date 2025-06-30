@@ -15,7 +15,7 @@ import { format, isAfter, parseISO } from 'date-fns';
 import type { UserProfile } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, UserCog, AlertTriangle, RotateCw, Clock } from 'lucide-react';
+import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, UserCog, AlertTriangle, RotateCw, Clock, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -373,7 +373,21 @@ export default function MyAccountPage() {
             )}
             
             {!hasProAccess && ( 
-              <div className="mt-4">
+              <div className="mt-4 space-y-4">
+                <Card className="bg-primary/5 border-primary/20">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-primary font-headline flex items-center"><Sparkles className="h-5 w-5 mr-2 text-yellow-500"/> Unlock Pro Features</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ul className="list-disc pl-5 space-y-1 text-sm font-body text-foreground/90">
+                            <li>Add **unlimited** tow vehicles and caravans.</li>
+                            <li>Access detailed trip statistics and records.</li>
+                            <li>Use the AI-powered Packing Assistant.</li>
+                            <li>Support the ongoing development of KamperHub!</li>
+                        </ul>
+                    </CardContent>
+                </Card>
+
                  <Alert variant="destructive" className="mb-3">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle className="font-headline">Stripe Security & Pop-up Blockers</AlertTitle>
