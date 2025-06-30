@@ -39,6 +39,26 @@ const prompt = ai.definePrompt({
   name: 'packingListGeneratorPrompt',
   input: {schema: PackingListGeneratorInputSchema},
   output: {schema: PackingListGeneratorOutputSchema},
+  config: {
+    safetySettings: [
+      {
+        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+        threshold: 'BLOCK_NONE',
+      },
+      {
+        category: 'HARM_CATEGORY_HATE_SPEECH',
+        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+      },
+      {
+        category: 'HARM_CATEGORY_HARASSMENT',
+        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+      },
+      {
+        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+      },
+    ],
+  },
   prompt: `You are an expert trip planner and packing assistant for Australian caravan and camping adventures. Your task is to generate a comprehensive and practical packing list based on the user's trip details.
 
 **Trip Details:**
@@ -70,8 +90,8 @@ const packingListGeneratorFlow = ai.defineFlow(
   async (input) => {
     try {
       const {output} = await prompt(input);
-      if (!output || !output.packingList || output.packingList.length === 0) {
-        console.warn('PackingListGeneratorFlow: AI model returned null or empty output. This might be due to schema mismatch or other non-fatal errors from the model.');
+      if (!output || !output.packingList) {
+        console.warn('PackingListGeneratorFlow: AI model returned null or invalid packingList property. This might be due to schema mismatch or other non-fatal errors from the model.');
         throw new Error('The AI returned an empty or invalid response. This can sometimes happen, please try again.');
       }
       return output;

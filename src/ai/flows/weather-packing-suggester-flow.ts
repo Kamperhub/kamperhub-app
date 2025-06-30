@@ -35,6 +35,26 @@ const prompt = ai.definePrompt({
   name: 'weatherPackingSuggesterPrompt',
   input: { schema: WeatherPackingSuggesterInputSchema },
   output: { schema: WeatherPackingSuggesterOutputSchema },
+  config: {
+    safetySettings: [
+      {
+        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+        threshold: 'BLOCK_NONE',
+      },
+      {
+        category: 'HARM_CATEGORY_HATE_SPEECH',
+        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+      },
+      {
+        category: 'HARM_CATEGORY_HARASSMENT',
+        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+      },
+      {
+        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+      },
+    ],
+  },
   prompt: `You are a travel assistant for Australian caravanning trips. Your task is to provide a weather summary and specific packing suggestions based on a destination and time of year.
 
 **Trip Details:**
