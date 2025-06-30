@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -309,6 +310,16 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
                   All calculations are estimates based on your inputs. For GVM, this tool accounts for added inventory, selected trip occupants, and towball mass against the vehicle's kerb weight; it does not include other accessories. Always verify your actual weights at a certified weighbridge for full legal compliance and safety.
               </AlertDescription>
           </Alert>
+           {wdh && (
+             <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+                <Link2Icon className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+                <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">WDH In Use: Note on Weight Distribution</AlertTitle>
+                <AlertDescription className="font-body text-blue-700 dark:text-blue-300 text-xs">
+                  Your Weight Distribution Hitch improves safety and handling by distributing the towball mass across the vehicle and caravan axles.
+                  However, it does <strong>not</strong> change the legal GVM, ATM, or tow capacity limits. Our calculations use the full estimated towball mass for GVM compliance, which is the safest approach. Always verify your actual axle weights at a certified weighbridge.
+                </AlertDescription>
+              </Alert>
+            )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card><CardHeader><CardTitle>Caravan ATM</CardTitle></CardHeader><CardContent><Alert variant={getAlertStylingVariant(currentCaravanMass, atmLimit)}><AlertTitle>{currentCaravanMass.toFixed(1)}kg / {atmLimit > 0 ? atmLimit.toFixed(0) : 'N/A'}kg</AlertTitle><AlertDescription>Remaining: {remainingPayloadATM.toFixed(1)} kg</AlertDescription></Alert></CardContent></Card>
             {activeVehicle && vehicleGVM > 0 && (
