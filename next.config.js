@@ -21,7 +21,7 @@ const nextConfig = {
       // Workers
       "worker-src 'self' blob: *.cloudworkstations.googleusercontent.com",
       // Frames
-      "frame-src 'self' https://www.google.com https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://*.cloudworkstations.googleusercontent.com",
+      "frame-src 'self' https://www.google.com https://js.stripe.com https://hooks.stripe.com https://billing.stripe.com https://www.youtube.com https://*.cloudworkstations.googleusercontent.com",
       // Others
       "object-src 'none'",
       "base-uri 'self'",
