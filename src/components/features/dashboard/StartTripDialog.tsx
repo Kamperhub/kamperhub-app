@@ -80,21 +80,35 @@ export function StartTripDialog({ children }: { children: React.ReactNode }) {
             </div>
           ) : (
             <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-              {sortedTrips.map(trip => (
-                <button
-                  key={trip.id}
-                  onClick={() => handleTripSelect(trip.id)}
-                  className="w-full text-left p-3 rounded-md border hover:bg-muted transition-colors flex justify-between items-center"
-                >
-                  <div>
-                    <p className="font-semibold text-primary">{trip.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Saved: {format(parseISO(trip.timestamp), "PP")}
-                    </p>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground"/>
-                </button>
-              ))}
+              {sortedTrips.map(trip => {
+                const renderDateRange = () => {
+                  if (trip.plannedStartDate && trip.plannedEndDate) {
+                    const start = format(parseISO(trip.plannedStartDate), "PP");
+                    const end = format(parseISO(trip.plannedEndDate), "PP");
+                    return start === end ? start : `${start} to ${end}`;
+                  }
+                  if (trip.plannedStartDate) {
+                    return `Starts: ${format(parseISO(trip.plannedStartDate), "PP")}`;
+                  }
+                  return "Date not set";
+                };
+
+                return (
+                  <button
+                    key={trip.id}
+                    onClick={() => handleTripSelect(trip.id)}
+                    className="w-full text-left p-3 rounded-md border hover:bg-muted transition-colors flex justify-between items-center"
+                  >
+                    <div>
+                      <p className="font-semibold text-primary">{trip.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {renderDateRange()}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground"/>
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>
