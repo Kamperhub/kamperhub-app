@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview AI agent for generating personalized packing lists for multiple passengers.
@@ -119,7 +120,11 @@ const personalizedPackingListFlow = ai.defineFlow(
       } else if (errorMessage.includes("429") || errorMessage.includes("quota") || causeStatus === 429) {
         errorMessageForUser = "The AI service has reached its usage limit. Please try again later.";
       } else if (errorMessage.includes("api key not valid") || causeStatus === 401 || causeStatus === 403) {
-        errorMessageForUser = "There is an issue with the AI service configuration. Please check the key and its permissions in your Google Cloud Console.";
+        if (errorMessage.includes("httpreferrer") || errorMessage.includes("referer")) {
+            errorMessageForUser = "API Key Error: Your API key is restricted by HTTP Referer. Requests from this environment are being blocked. Please check your Google Cloud Console API key settings and either remove the HTTP Referer restriction or add your development domain to the allowed list.";
+        } else {
+            errorMessageForUser = "There is an issue with the AI service configuration (e.g., API key not valid or permission denied). Please check the key and its permissions in your Google Cloud Console.";
+        }
       } else if (errorMessage.includes("failed to parse schema") || errorMessage.includes("output_schema")) {
         errorMessageForUser = "The AI returned a response in an unexpected format. Please try again.";
       }
