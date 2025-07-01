@@ -104,3 +104,8 @@ This section tracks potential new features and enhancements for future considera
 
 *   **Travel Journaling & Photo Gallery per Trip:**
     *   Within the Trip Log, allow users to add daily journal entries and upload/link a few photos for each trip to capture memories.
+
+*   **New Article: Towing Mirrors Guide:**
+    *   Create an article explaining the legal requirements and practical benefits of using towing mirrors.
+    *   Cover different types of mirrors (e.g., clamp-on, door-mounted, replacement).
+    *   Provide tips on how to set them up correctly for maximum visibility and safety.
