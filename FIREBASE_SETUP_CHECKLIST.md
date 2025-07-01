@@ -109,7 +109,7 @@ After **ANY** change to your `.env.local` file, you **MUST** restart your develo
 After restarting your server, you can use the built-in diagnostic tool to confirm everything is set up correctly.
 
 1.  Go to the following URL in your browser:
-    `[YOUR_APP_URL]/api/debug/env` (e.g., http://localhost:8081/api/debug/env)
+    `[YOUR_APP_URL]/api/debug/env` (e.g., http://localhost:8082/api/debug/env)
 2.  This will show a JSON response indicating the status of each required environment variable.
 3.  **Check `PROJECT_IDS_MATCH`**. If it says `"NO - MISMATCH DETECTED"`, it means the Project ID in your `GOOGLE_APPLICATION_CREDENTIALS_JSON` does not match your `NEXT_PUBLIC_FIREBASE_PROJECT_ID`. Go back to Step 2 and ensure you generated all keys from the same Firebase project.
 4.  If everything looks good here but you still have errors, proceed to the next step.
@@ -122,7 +122,7 @@ If after all the above steps you can log in but see an error on the "My Account"
 
 1.  Make sure you are logged into the application.
 2.  Open the following URL in a new tab:
-    `[YOUR_APP_URL]/api/debug/create-admin-user` (e.g., http://localhost:8081/api/debug/create-admin-user)
+    `[YOUR_APP_URL]/api/debug/create-admin-user` (e.g., http://localhost:8082/api/debug/create-admin-user)
 3.  This will create your admin user profile document in the database the server is connected to. It will either show a success message or a final, specific error.
 4.  After running it successfully, go back to the "My Account" page and refresh.
 
