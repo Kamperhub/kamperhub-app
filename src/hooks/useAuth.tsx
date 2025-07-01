@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, type Unsubscribe } from 'firebase/firestore';
 import { auth, db, firebaseInitializationError } from '@/lib/firebase';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from './useSubscription';
@@ -33,15 +33,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    let unsubscribeFromProfile: Unsubscribe = () => {};
+
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      // When auth state changes, first unsubscribe from any previous profile listener
+      unsubscribeFromProfile();
+
       setUser(currentUser);
-      setIsAuthLoading(false); // Auth state is resolved
+      setIsAuthLoading(false);
 
       if (currentUser) {
         setIsProfileLoading(true);
         setProfileError(null);
         const profileDocRef = doc(db, "users", currentUser.uid);
-        const unsubscribeProfile = onSnapshot(profileDocRef, 
+
+        // Set up the new listener and store its unsubscribe function
+        unsubscribeFromProfile = onSnapshot(profileDocRef,
           (docSnap) => {
             if (docSnap.exists()) {
               const profile = docSnap.data() as UserProfile;
@@ -58,7 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               setProfileError(new Error("User profile not found."));
             }
             setIsProfileLoading(false);
-          }, 
+          },
           (error) => {
             console.error("Error listening to user profile:", error);
             setUserProfile(null);
@@ -67,9 +74,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsProfileLoading(false);
           }
         );
-
-        return () => unsubscribeProfile();
       } else {
+        // No user, so clear profile data and reset loading states
         setUserProfile(null);
         setSubscriptionDetails('free');
         setIsProfileLoading(false);
@@ -77,7 +83,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
-    return () => unsubscribeAuth();
+    // Cleanup function for the useEffect hook
+    return () => {
+      unsubscribeAuth();
+      unsubscribeFromProfile();
+    };
   }, [setSubscriptionDetails]);
 
   const value = { user, userProfile, isAuthLoading, isProfileLoading, profileError };
