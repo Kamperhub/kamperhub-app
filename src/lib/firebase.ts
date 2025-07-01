@@ -55,6 +55,11 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
         console.error("Failed to initialize Firebase Analytics:", error);
       }
 
+      // Temporarily disabling App Check to resolve debug token issues.
+      // To re-enable, uncomment the following block and ensure your
+      // NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY and NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN
+      // are correctly set in .env.local and the Firebase Console.
+      /*
       const reCaptchaKey = process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY;
       if(reCaptchaKey) {
           try {
@@ -82,6 +87,7 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
       } else {
         console.warn("[Firebase Client] NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY is not set. App Check will not be initialized.");
       }
+      */
     }
   } catch (e: any) {
     firebaseInitializationError = `Firebase failed to initialize. Please check your Firebase project configuration and API keys. Error: ${e.message}`;
