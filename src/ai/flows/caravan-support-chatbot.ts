@@ -331,8 +331,10 @@ const caravanSupportChatbotFlow = ai.defineFlow(
       return output;
     } catch (error: any) {
       console.error("Error in caravanSupportChatbotFlow:", error);
-      // Simplify error handling to expose the root cause for debugging.
-      const answer = `I'm sorry, I ran into a problem. Here is the technical error: ${error.message || 'An unknown error occurred.'}`;
+      let answer = `I'm sorry, I ran into a problem. Here is the technical error: ${error.message || 'An unknown error occurred.'}`;
+      if (error.message && error.message.includes('API_KEY_HTTP_REFERRER_BLOCKED')) {
+        answer = 'AI Service Error: The API key is restricted. Please go to the Google Cloud Console for your project, find the API key being used, and under "Application restrictions", ensure that "Websites" is selected and that the correct domain (e.g., your development or production URL) is added to the "Website restrictions" list. The error was: API_KEY_HTTP_REFERRER_BLOCKED.';
+      }
       return {
         answer: answer,
         youtubeLink: null,
