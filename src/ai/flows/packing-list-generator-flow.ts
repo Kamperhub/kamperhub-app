@@ -10,18 +10,25 @@ import {ai} from '@/ai/genkit';
  * - PackingListGeneratorOutput - The output type for the list generation.
  */
 
+const TravelerSchema = z.object({
+  type: z.enum(["Adult", "Child", "Infant", "Pet"]),
+  name: z.string(),
+  age: z.number().optional(),
+  notes: z.string().optional().describe("Specific needs or interests, e.g., 'Likes superheroes', 'Needs joint meds'."),
+});
+
 const PackingListGeneratorInputSchema = z.object({
-  destination: z.string().describe('The primary destination of the trip (e.g., "Cairns, QLD", "Tasmanian Coast").'),
-  durationInDays: z.number().int().positive().describe('The total number of days for the trip.'),
-  numberOfAdults: z.number().int().min(0).describe('The number of adults on the trip.'),
-  numberOfChildren: z.number().int().min(0).describe('The number of children on the trip.'),
-  activities: z.string().optional().describe('A brief description of planned activities, like "hiking, swimming, fishing".'),
+  destination: z.string().describe('The primary destination of the trip (e.g., "Kyoto, Japan", "Colorado Rocky Mountains, USA").'),
+  departureDate: z.string().describe("The trip departure date in YYYY-MM-DD format."),
+  returnDate: z.string().describe("The trip return date in YYYY-MM-DD format."),
+  activities: z.string().optional().describe('A brief, comma-separated list of planned activities, like "sightseeing, hiking, fine dining, swimming".'),
+  travelers: z.array(TravelerSchema).min(1).describe("An array of all individuals and pets going on the trip."),
 });
 export type PackingListGeneratorInput = z.infer<typeof PackingListGeneratorInputSchema>;
 
 const PackingListGeneratorOutputSchema = z.object({
   packingList: z.array(z.object({
-    category: z.string().describe("A logical packing category. For personal items, this MUST be passenger-specific (e.g., 'Clothing - Adult 1', 'Toiletries - Child 1'). For shared items, use general categories (e.g., 'Kitchen Supplies')."),
+    category: z.string().describe("A logical packing category. For personal items, this MUST be traveler-specific using their name (e.g., 'Clothing - Alex', 'Toiletries - Leo'). For shared items, use general categories (e.g., 'Kitchen Supplies', 'Pet Supplies - Buddy')."),
     items: z.array(z.object({
       itemName: z.string().describe("The name of the individual item to pack."),
       quantity: z.number().int().positive().describe("A suggested quantity for the item, considering the trip duration and number of people."),
@@ -63,19 +70,27 @@ const prompt = ai.definePrompt({
 
 **Trip Details:**
 *   **Destination:** {{{destination}}}
-*   **Duration:** {{{durationInDays}}} days
-*   **Passengers:** {{{numberOfAdults}}} adults, {{{numberOfChildren}}} children
+*   **Departure Date:** {{{departureDate}}}
+*   **Return Date:** {{{returnDate}}}
 *   **Planned Activities:** {{{activities}}}
+*   **Travelers:**
+{{#each travelers}}
+    - {{this.type}} ({{this.name}})
+        {{#if this.age}} (Age: {{this.age}}){{/if}}
+        {{#if this.notes}} - Notes: {{this.notes}}{{/if}}
+{{/each}}
 
 **Instructions:**
-1.  **Generate a Categorized List:** Create a structured packing list divided into logical categories.
-2.  **IMPORTANT - Per-Passenger Categories:** For personal items like 'Clothing', 'Medication', and 'Toiletries', you MUST create separate, distinct categories for each individual passenger. For example, if there are 2 adults and 1 child, you should generate categories like "Clothing (Adult 1)", "Toiletries (Adult 1)", "Clothing (Adult 2)", "Clothing (Child 1)". Do not group personal items for all passengers into one category.
-3.  **Shared Items:** For items that are shared among everyone, use general categories like 'Kitchen Supplies', 'Caravan Essentials', 'Safety & First Aid', and 'Entertainment'.
-4.  **Suggest Quantities:** For each item, suggest a reasonable quantity based on the trip duration and the number of people it's for.
-5.  **Be Context-Aware:** Tailor suggestions to the destination and activities. If the destination is tropical, suggest light clothing. If activities include hiking, suggest hiking boots.
-6.  **Add Helpful Notes:** Include brief, useful notes where appropriate (e.g., for clothing, "Pack layers for variable weather").
-7.  **Be Comprehensive:** Include general caravanning essentials like chocks, hoses, and power leads, but place them in the 'Caravan Essentials' category.
-8.  **Output Format:** You MUST generate the output in the structured JSON format defined by the output schema. Ensure all fields are correctly populated.
+1.  **Analyze Trip Context:** Calculate the trip duration from the dates. Consider the destination, season (based on dates), and planned activities to tailor the packing list.
+2.  **Generate a Categorized List:** Create a structured packing list divided into logical categories.
+3.  **IMPORTANT - Per-Traveler Categories:** For personal items like 'Clothing', 'Medication', and 'Toiletries', you MUST create separate, distinct categories for each individual traveler using their name (e.g., "Clothing - Alex", "Toiletries - Leo"). If a traveler is a pet, create a specific category for them (e.g., "Pet Supplies - Buddy").
+4.  **Personalize for Each Traveler:** Use the notes for each traveler to add specific items. For example, if a child likes superheroes, suggest a "Superhero-themed T-shirt". If a pet needs meds, add "Buddy's Joint Medication".
+5.  **Shared Items:** For items that are shared among everyone, use general categories like 'Kitchen Supplies', 'Caravan Essentials', 'Safety & First Aid', and 'Entertainment'.
+6.  **Suggest Quantities:** For each item, suggest a reasonable quantity based on the trip duration and the traveler it's for.
+7.  **Be Context-Aware:** Tailor suggestions to the destination and activities. If the destination is tropical, suggest light clothing. If activities include hiking, suggest hiking boots.
+8.  **Add Helpful Notes:** Include brief, useful notes where appropriate (e.g., for clothing, "Pack layers for variable weather").
+9.  **Be Comprehensive:** Include general caravanning essentials like chocks, hoses, and power leads, but place them in the 'Caravan Essentials' category.
+10. **Output Format:** You MUST generate the output in the structured JSON format defined by the output schema. Ensure all fields are correctly populated.
 
 Generate the packing list now.
 `,

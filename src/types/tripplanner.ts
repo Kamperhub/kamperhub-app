@@ -36,8 +36,11 @@ export interface Waypoint {
 
 export interface Occupant {
   id: string;
-  description: string;
-  weight: number;
+  name: string;
+  type: 'Adult' | 'Child' | 'Infant' | 'Pet';
+  age?: number | null;
+  weight: number; // in kg
+  notes?: string | null;
 }
 
 export interface LoggedTrip {

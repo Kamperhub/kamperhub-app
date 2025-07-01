@@ -133,14 +133,26 @@ export default function TripPackingPage() {
   };
 
   const handleGenerateList = () => {
-    if (!selectedTrip) return;
-    const durationInDays = selectedTrip.plannedStartDate && selectedTrip.plannedEndDate 
-      ? differenceInDays(parseISO(selectedTrip.plannedEndDate), parseISO(selectedTrip.plannedStartDate)) + 1
-      : 1;
-    const adults = selectedTrip.occupants?.filter(o => !o.description.toLowerCase().includes('child')).length || 1;
-    const children = selectedTrip.occupants?.filter(o => o.description.toLowerCase().includes('child')).length || 0;
+    if (!selectedTrip || !selectedTrip.plannedStartDate || !selectedTrip.plannedEndDate) {
+        toast({ title: 'Cannot Generate List', description: 'Selected trip must have a start and end date.', variant: 'destructive'});
+        return;
+    }
+    const travelers = selectedTrip.occupants?.map(occ => ({
+      name: occ.name,
+      type: occ.type,
+      age: occ.age ?? undefined, // handle null
+      notes: occ.notes ?? undefined, // handle null
+    })) || [];
+
+    if (travelers.length === 0) {
+        travelers.push({ type: 'Adult', name: 'Traveler 1' }); // Fallback
+    }
+
     generateListMutation.mutate({
-      destination: selectedTrip.endLocationDisplay, durationInDays, numberOfAdults: adults, numberOfChildren: children,
+      destination: selectedTrip.endLocationDisplay,
+      departureDate: selectedTrip.plannedStartDate,
+      returnDate: selectedTrip.plannedEndDate,
+      travelers: travelers,
       activities: selectedActivities.join(', ') || 'General touring and relaxation',
     });
   };

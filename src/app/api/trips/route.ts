@@ -93,9 +93,12 @@ const tripChecklistSetSchema = z.object({
 });
 
 const occupantSchema = z.object({
-    id: z.string(),
-    description: z.string().min(1, "Occupant description is required"),
-    weight: z.coerce.number().min(0, "Occupant weight must be non-negative"),
+  id: z.string(),
+  name: z.string().min(1, "Name is required"),
+  type: z.enum(['Adult', 'Child', 'Infant', 'Pet']),
+  age: z.coerce.number().int().min(0).optional().nullable(),
+  weight: z.coerce.number().min(0, "Weight must be a non-negative number."),
+  notes: z.string().optional().nullable(),
 });
 
 const createTripSchema = z.object({
@@ -113,7 +116,7 @@ const createTripSchema = z.object({
   isCompleted: z.boolean().optional().default(false),
   checklists: tripChecklistSetSchema.optional(),
   budget: z.array(budgetCategorySchema).optional(),
-  occupants: z.array(occupantSchema).min(1, "At least one occupant (e.g., the driver) is required."),
+  occupants: z.array(occupantSchema).min(1, "At least one occupant (e.g., the driver) is required.").optional(),
 });
 
 const updateTripSchema = createTripSchema.extend({
