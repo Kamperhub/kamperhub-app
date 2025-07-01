@@ -93,18 +93,55 @@ export default function TripPackingPage() {
   const generateListMutation = useMutation({
     mutationFn: generatePackingList,
     onSuccess: (data) => {
-      const listWithUiState: PackingListCategory[] = data.packingList.map(category => ({
-        id: `cat_${Date.now()}_${Math.random()}`,
-        name: category.category,
-        items: category.items.map(item => ({
-          id: `item_${Date.now()}_${Math.random()}`,
-          name: item.itemName,
-          quantity: item.quantity,
-          packed: false,
-          notes: item.notes,
-        })),
-      }));
-      updateListMutation.mutate(listWithUiState);
+      const newUiList: PackingListCategory[] = [];
+      if (data && data.packing_list) {
+        data.packing_list.forEach(traveler => {
+          if (traveler.categories) {
+            Object.entries(traveler.categories).forEach(([categoryKey, items]) => {
+              if (items && items.length > 0) {
+                const categoryNameMapping: { [key: string]: string } = {
+                  clothing: "Clothing",
+                  toiletries_hygiene: "Toiletries & Hygiene",
+                  documents_money: "Documents & Money",
+                  electronics: "Electronics",
+                  health_safety: "Health & Safety",
+                  miscellaneous: "Miscellaneous",
+                  pet_supplies: "Pet Supplies",
+                  baby_supplies: "Baby Supplies",
+                };
+
+                const uiCategoryName = `${categoryNameMapping[categoryKey] || categoryKey} - ${traveler.traveler_name}`;
+                
+                const uiItems: PackingListItem[] = items.map(itemNameString => {
+                  const match = itemNameString.match(/^(\d+)\s+(.*)$/);
+                  let quantity = 1;
+                  let name = itemNameString;
+
+                  if (match) {
+                    quantity = parseInt(match[1], 10);
+                    name = match[2];
+                  }
+
+                  return {
+                    id: `item_${name.replace(/\s+/g, '_')}_${Date.now()}_${Math.random()}`,
+                    name: name,
+                    quantity: quantity,
+                    packed: false,
+                    notes: '',
+                  };
+                });
+
+                newUiList.push({
+                  id: `cat_${traveler.traveler_name}_${categoryKey}`,
+                  name: uiCategoryName,
+                  items: uiItems,
+                });
+              }
+            });
+          }
+        });
+      }
+      updateListMutation.mutate(newUiList);
       toast({ title: 'Packing List Generated!', description: 'Your new list has been saved.' });
     },
     onError: (error: Error) => toast({ title: 'Generation Failed', description: error.message, variant: 'destructive' }),
