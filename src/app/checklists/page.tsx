@@ -197,10 +197,10 @@ export default function ChecklistsPage() {
         <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
           <ListChecks className="mr-3 h-8 w-8" /> Checklists
         </h1>
-        <Alert variant="default" className="mb-6 bg-accent text-accent-foreground border-accent/70">
-          <Info className="h-4 w-4 text-accent-foreground" />
-          <AlertTitle className="font-headline text-accent-foreground">How Checklists Work Now</AlertTitle>
-          <AlertDescription className="font-body text-accent-foreground/90 space-y-1">
+        <Alert variant="default" className="mb-6 bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+          <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+          <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">How Checklists Work Now</AlertTitle>
+          <AlertDescription className="font-body text-blue-700 dark:text-blue-300 space-y-1">
             <p>Checklist data is now stored on the server for access across your devices.</p>
             <ul className="list-disc pl-5">
               <li><strong>Trip-Specific Checklists:</strong> When you save a trip, a checklist is created based on your active caravan's default (or a global template if none is set). Modifications here only affect this specific trip.</li>
