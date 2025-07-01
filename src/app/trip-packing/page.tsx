@@ -15,7 +15,7 @@ import {
   updatePackingList, 
   deletePackingList 
 } from '@/lib/api-client';
-import { generatePackingList } from '@/ai/flows/packing-list-generator-flow.ts';
+import { generatePackingList, type PackingListGeneratorInput } from '@/ai/flows/packing-list-generator-flow.ts';
 import { generateWeatherPackingSuggestions, type WeatherPackingSuggesterOutput } from '@/ai/flows/weather-packing-suggester-flow';
 import { NavigationContext } from '@/components/layout/AppShell';
 
@@ -185,20 +185,18 @@ export default function TripPackingPage() {
         || [];
 
     if (travelers.length === 0) {
-        travelers.push({ type: 'Adult', name: 'Traveler 1' }); // Fallback
+        travelers.push({ type: 'Adult', name: 'Traveler 1' }); // Fallback if no valid occupants found
     }
 
-    // Format dates correctly to YYYY-MM-DD
-    const departureDate = format(parseISO(selectedTrip.plannedStartDate), 'yyyy-MM-dd');
-    const returnDate = format(parseISO(selectedTrip.plannedEndDate), 'yyyy-MM-dd');
-
-    generateListMutation.mutate({
+    const aiInput: PackingListGeneratorInput = {
       destination: selectedTrip.endLocationDisplay,
-      departureDate: departureDate,
-      returnDate: returnDate,
+      departureDate: format(parseISO(selectedTrip.plannedStartDate), 'yyyy-MM-dd'),
+      returnDate: format(parseISO(selectedTrip.plannedEndDate), 'yyyy-MM-dd'),
       travelers: travelers,
       activities: selectedActivities.join(', ') || 'General touring and relaxation',
-    });
+    };
+
+    generateListMutation.mutate(aiInput);
   };
 
   const handleClearAndRegenerate = () => {
@@ -442,4 +440,3 @@ function EditItemDialog({ isOpen, onClose, itemState, onSave }: EditItemDialogPr
   );
 }
 
-    
