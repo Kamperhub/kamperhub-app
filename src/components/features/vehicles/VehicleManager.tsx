@@ -83,17 +83,25 @@ export function VehicleManager() {
 
   const deleteVehicleMutation = useMutation({
     mutationFn: deleteVehicle,
-    onSuccess: (_, vehicleId) => {
+    onMutate: async (vehicleId: string) => {
+      await queryClient.cancelQueries({ queryKey: ['vehicles', user?.uid] });
+      const previousVehicles = queryClient.getQueryData<StoredVehicle[]>(['vehicles', user?.uid]);
+      queryClient.setQueryData<StoredVehicle[]>(['vehicles', user?.uid], (old) => old?.filter(v => v.id !== vehicleId) ?? []);
+      setDeleteDialogState({ isOpen: false, vehicleId: null, vehicleName: null, confirmationText: '' });
+      return { previousVehicles };
+    },
+    onError: (err, vehicleId, context) => {
+      queryClient.setQueryData(['vehicles', user?.uid], context?.previousVehicles);
+      toast({ title: "Delete Failed", description: (err as Error).message, variant: "destructive" });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles', user?.uid] });
-      if (activeVehicleId === vehicleId) {
+      if (activeVehicleId === deleteDialogState.vehicleId) {
         queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
       }
-      toast({ title: "Vehicle Deleted" });
-      setDeleteDialogState({ isOpen: false, vehicleId: null, vehicleName: null, confirmationText: '' });
     },
-    onError: (error: Error) => {
-      toast({ title: "Delete Failed", description: error.message, variant: "destructive" });
-      setDeleteDialogState({ isOpen: false, vehicleId: null, vehicleName: null, confirmationText: '' });
+    onSuccess: () => {
+        toast({ title: "Vehicle Deleted" });
     },
   });
 
@@ -154,7 +162,7 @@ export function VehicleManager() {
     return `${longText || loc.longitudinalPosition} / ${latText || loc.lateralPosition}`;
   };
 
-  const formatDimension = (value: number | null | undefined, unit: string = 'mm') => {
+  const formatDimension = (value: number | null | undefined, unit: string = 'kg') => {
     return typeof value === 'number' ? `${value}${unit}` : 'N/A';
   };
 
@@ -245,10 +253,10 @@ export function VehicleManager() {
                       <span>GCM: {vehicle.gcm}kg</span>
                       <span>Tow: {vehicle.maxTowCapacity}kg</span>
                       <span>Towball: {vehicle.maxTowballMass}kg</span>
-                      <span className="flex items-center"><Weight className="w-3 h-3 mr-1 text-primary/70"/> Kerb: {formatDimension(vehicle.kerbWeight, 'kg')}</span>
+                      <span className="flex items-center"><Weight className="w-3 h-3 mr-1 text-primary/70"/> Kerb: {formatDimension(vehicle.kerbWeight)}</span>
                       {vehiclePayload !== null && <span className="flex items-center"><Backpack className="w-3 h-3 mr-1 text-primary/70"/> Payload: {vehiclePayload.toFixed(0)}kg</span>}
-                      <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 rotate-90"/> F Axle: {formatDimension(vehicle.frontAxleLimit, 'kg')}</span>
-                      <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 -rotate-90"/> R Axle: {formatDimension(vehicle.rearAxleLimit, 'kg')}</span>
+                      <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 rotate-90"/> F Axle: {formatDimension(vehicle.frontAxleLimit)}</span>
+                      <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 -rotate-90"/> R Axle: {formatDimension(vehicle.rearAxleLimit)}</span>
                       <span className="flex items-center"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Wheelbase: {formatDimension(vehicle.wheelbase, 'mm')}</span>
                       <span className="flex items-center"><Fuel className="w-3 h-3 mr-1 text-primary/70"/> {vehicle.fuelEfficiency} Litres/100km</span>
                       <span className="flex items-center col-span-full sm:col-span-2"><Disc className="w-3 h-3 mr-1 text-primary/70"/> Tyre PSI: {vehicle.recommendedTyrePressureUnladenPsi ?? 'N/A'} (Unladen) / {vehicle.recommendedTyrePressureLadenPsi ?? 'N/A'} (Laden)</span>
@@ -295,10 +303,10 @@ export function VehicleManager() {
                           </h5>
                           <div className="space-y-0.5 text-xs font-body text-muted-foreground">
                             <p><strong className="text-foreground/80">Position:</strong> {formatPositionText(loc)}</p>
-                            <p><strong className="text-foreground/80">Max Capacity:</strong> {formatDimension(loc.maxWeightCapacityKg, 'kg')}</p>
-                            <p className="flex items-center"><ArrowLeftRight className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Dist. from Rear Axle:</strong>&nbsp;{formatDimension(loc.distanceFromRearAxleMm)}</p>
-                            <p className="flex items-center"><ArrowUpDown className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Dist. from Centerline:</strong>&nbsp;{formatDimension(loc.distanceFromCenterlineMm)}</p>
-                            <p className="flex items-center"><Ruler className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Height from Ground:</strong>&nbsp;{formatDimension(loc.heightFromGroundMm)}</p>
+                            <p><strong className="text-foreground/80">Max Capacity:</strong> {formatDimension(loc.maxWeightCapacityKg)}</p>
+                            <p className="flex items-center"><ArrowLeftRight className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Dist. from Rear Axle:</strong>&nbsp;{formatDimension(loc.distanceFromRearAxleMm, 'mm')}</p>
+                            <p className="flex items-center"><ArrowUpDown className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Dist. from Centerline:</strong>&nbsp;{formatDimension(loc.distanceFromCenterlineMm, 'mm')}</p>
+                            <p className="flex items-center"><Ruler className="w-3 h-3 mr-1.5 text-primary/70" /> <strong className="text-foreground/80">Height from Ground:</strong>&nbsp;{formatDimension(loc.heightFromGroundMm, 'mm')}</p>
                           </div>
                         </div>
                       ))}

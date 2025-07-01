@@ -101,13 +101,26 @@ export default function ChecklistsPage() {
   // --- Mutations ---
   const updateTripMutation = useMutation({
     mutationFn: updateTrip,
-    onSuccess: () => {
+    onMutate: async (updatedTrip: LoggedTrip) => {
+      await queryClient.cancelQueries({ queryKey: ['trips', user?.uid] });
+      const previousTrips = queryClient.getQueryData<LoggedTrip[]>(['trips', user?.uid]);
+      queryClient.setQueryData<LoggedTrip[]>(['trips', user?.uid], (old) =>
+        old?.map(t => t.id === updatedTrip.id ? updatedTrip : t) ?? []
+      );
+      return { previousTrips };
+    },
+    onError: (err, updatedTrip, context) => {
+      if (context?.previousTrips) {
+        queryClient.setQueryData(['trips', user?.uid], context.previousTrips);
+      }
+      toast({ title: "Error Saving Trip Checklist", description: (err as Error).message, variant: "destructive" });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
+    },
+    onSuccess: () => {
       toast({ title: "Checklist Saved", description: "Your trip checklist has been updated on the server." });
     },
-    onError: (error: Error) => {
-      toast({ title: "Error Saving Trip Checklist", description: error.message, variant: "destructive" });
-    }
   });
 
   const updateUserPrefsMutation = useMutation({

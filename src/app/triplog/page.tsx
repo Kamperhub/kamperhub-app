@@ -37,12 +37,21 @@ export default function TripLogPage() {
 
   const deleteTripMutation = useMutation({
     mutationFn: deleteTrip,
-    onSuccess: (_, tripId) => {
-      queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
-      toast({ title: "Trip Deleted", description: "The selected trip has been removed from your log." });
+    onMutate: async (tripId: string) => {
+      await queryClient.cancelQueries({ queryKey: ['trips', user?.uid] });
+      const previousTrips = queryClient.getQueryData<LoggedTrip[]>(['trips', user?.uid]);
+      queryClient.setQueryData<LoggedTrip[]>(['trips', user?.uid], (old) => old?.filter(t => t.id !== tripId) ?? []);
+      return { previousTrips };
     },
-    onError: (error: Error) => {
-      toast({ title: "Error Deleting Trip", description: error.message, variant: "destructive" });
+    onError: (err, tripId, context) => {
+      queryClient.setQueryData(['trips', user?.uid], context?.previousTrips);
+      toast({ title: "Error Deleting Trip", description: (err as Error).message, variant: "destructive" });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
+    },
+    onSuccess: () => {
+      toast({ title: "Trip Deleted", description: "The selected trip has been removed from your log." });
     },
   });
 

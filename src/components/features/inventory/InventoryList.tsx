@@ -83,11 +83,20 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
   
   const inventoryMutation = useMutation({
     mutationFn: (newItems: InventoryItem[]) => updateInventory({ caravanId: activeCaravan!.id, items: newItems }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventory', activeCaravan?.id] });
+    onMutate: async (newItems: InventoryItem[]) => {
+      await queryClient.cancelQueries({ queryKey: ['inventory', activeCaravan?.id] });
+      const previousInventory = queryClient.getQueryData<{ items: InventoryItem[] }>(['inventory', activeCaravan?.id]);
+      queryClient.setQueryData<{ items: InventoryItem[] }>(['inventory', activeCaravan?.id], { items: newItems });
+      return { previousInventory };
     },
-    onError: (error: Error) => {
-      toast({ title: "Error Saving Inventory", description: error.message, variant: "destructive" });
+    onError: (err, newItems, context) => {
+      if (context?.previousInventory) {
+        queryClient.setQueryData(['inventory', activeCaravan?.id], context.previousInventory);
+      }
+      toast({ title: "Error Saving Inventory", description: (err as Error).message, variant: "destructive" });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory', activeCaravan?.id] });
     },
   });
   

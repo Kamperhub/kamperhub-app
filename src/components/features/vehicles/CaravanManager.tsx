@@ -80,19 +80,28 @@ export function CaravanManager() {
 
   const deleteCaravanMutation = useMutation({
     mutationFn: deleteCaravan,
-    onSuccess: (_, caravanId) => {
-      queryClient.invalidateQueries({ queryKey: ['caravans', user?.uid] });
-      if (activeCaravanId === caravanId) {
-        updateUserPreferences({ activeCaravanId: null, activeWdhId: null });
-        queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
-      }
-      toast({ title: "Caravan Deleted" });
-      setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' });
+    onMutate: async (caravanId: string) => {
+        await queryClient.cancelQueries({ queryKey: ['caravans', user?.uid] });
+        const previousCaravans = queryClient.getQueryData<StoredCaravan[]>(['caravans', user?.uid]);
+        queryClient.setQueryData<StoredCaravan[]>(['caravans', user?.uid], (old) => old?.filter(c => c.id !== caravanId) ?? []);
+        setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' });
+        return { previousCaravans };
     },
-    onError: (error: Error) => {
-      toast({ title: "Delete Failed", description: error.message, variant: "destructive" });
+    onError: (err, caravanId, context) => {
+        queryClient.setQueryData(['caravans', user?.uid], context?.previousCaravans);
+        toast({ title: "Delete Failed", description: (err as Error).message, variant: "destructive" });
+    },
+    onSettled: () => {
+        queryClient.invalidateQueries({ queryKey: ['caravans', user?.uid] });
+        if (activeCaravanId === deleteDialogState.caravanId) {
+            queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
+        }
+    },
+    onSuccess: () => {
+        toast({ title: "Caravan Deleted" });
     },
   });
+
 
   const setActiveCaravanMutation = useMutation({
     mutationFn: (caravanId: string) => {
@@ -278,7 +287,7 @@ export function CaravanManager() {
                               <h5 className="font-semibold font-body text-base flex items-center mb-1 text-primary"><Droplet className="w-4 h-4 mr-2 text-accent" /> {tank.name}</h5>
                               <div className="space-y-0.5 text-xs font-body text-muted-foreground">
                                   <p><strong className="text-foreground/80">Type:</strong> {tank.type.charAt(0).toUpperCase() + tank.type.slice(1)}</p>
-                                  <p><strong className="text-foreground/80">Capacity:</strong> {tank.capacityLiters}L</p>
+                                  <p><strong className="text-foreground/80">Capacity:</strong> {tank.capacityLitres}L</p>
                                   <p><strong className="text-foreground/80">Position:</strong> {formatPositionText(tank)}</p>
                               </div>
                           </div>
