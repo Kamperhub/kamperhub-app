@@ -1,8 +1,7 @@
 
 'use client';
 
-import { auth, appCheck } from './firebase';
-import { getToken } from 'firebase/app-check';
+import { auth } from './firebase';
 import type { StoredVehicle, VehicleFormData } from '@/types/vehicle';
 import type { StoredCaravan, CaravanFormData } from '@/types/caravan';
 import type { InventoryItem } from '@/types/inventory';

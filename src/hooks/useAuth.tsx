@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, type ReactNode, useRef } from 'react';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { doc, onSnapshot, type Unsubscribe } from 'firebase/firestore';
 import { auth, db, firebaseInitializationError } from '@/lib/firebase';
@@ -26,9 +26,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [authStatus, setAuthStatus] = useState<AuthStatus>('LOADING');
   const [profileError, setProfileError] = useState<string | null>(null);
   const { setSubscriptionDetails } = useSubscription();
+  const authStatusRef = useRef(authStatus);
+  authStatusRef.current = authStatus;
 
   useEffect(() => {
+    // Failsafe timeout for auth state resolution
+    const authTimeout = setTimeout(() => {
+      if (authStatusRef.current === 'LOADING') {
+        console.error("Auth state listener timed out after 10 seconds.");
+        setAuthStatus('ERROR');
+        setProfileError("Authentication timed out. This could be due to a network issue or a problem with the Firebase configuration. Please check your browser's console for more details and verify your project setup.");
+      }
+    }, 10000); // 10-second timeout
+
     if (firebaseInitializationError) {
+      clearTimeout(authTimeout); // Clear timeout since we have an immediate error
       setAuthStatus('ERROR');
       setProfileError(`Firebase Client Error: ${firebaseInitializationError}`);
       return;
@@ -37,7 +49,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let unsubscribeFromProfile: Unsubscribe = () => {};
 
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      unsubscribeFromProfile(); // Unsubscribe from any previous profile listener
+      clearTimeout(authTimeout); // Auth state resolved, clear the timeout
+      unsubscribeFromProfile(); 
 
       setUser(currentUser);
       
@@ -58,7 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               );
               setAuthStatus('READY');
             } else {
-              const isAdmin = currentUser.email === 'info@kamperhub.com';
+              const isAdmin = currentUser.email?.toLowerCase() === 'info@kamperhub.com';
               const errorMsg = isAdmin 
                 ? `Your admin profile was not found in the database. Please use the one-time tool at /api/debug/create-admin-user to create it.`
                 : `User profile not found for UID: ${currentUser.uid}. The signup process may have been interrupted. Please contact support.`;
@@ -87,13 +100,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setProfileError(null);
       }
     }, (error) => {
-        // Handle errors with onAuthStateChanged itself
+        clearTimeout(authTimeout); // Auth state errored, clear the timeout
         console.error("Firebase auth state error:", error);
         setProfileError(`An error occurred during authentication. Please refresh the page. Error: ${error.message}`);
         setAuthStatus('ERROR');
     });
 
     return () => {
+      clearTimeout(authTimeout);
       unsubscribeAuth();
       unsubscribeFromProfile();
     };
