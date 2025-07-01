@@ -74,8 +74,8 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  // Use the more specific loading flags from useAuth
-  if (isAuthLoading || isProfileLoading) {
+  // Wait for all user and subscription data to be loaded before proceeding.
+  if (isAuthLoading || isProfileLoading || isSubscriptionLoading) {
     return <FullPageLoader />;
   }
   
@@ -85,7 +85,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     return <FullPageLoader />;
   }
 
-  // Subscription check remains the same
+  // Subscription check is now safe to perform.
   if (!hasProAccess) {
     return <Paywall />;
   }
