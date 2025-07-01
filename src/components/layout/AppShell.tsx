@@ -5,6 +5,7 @@ import React, { useState, useEffect, createContext } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Header } from './Header';
 import { BottomNavigation } from './BottomNavigation';
+import { AuthGuard } from './AuthGuard';
 import { APIProvider } from '@vis.gl/react-google-maps';
 import { Loader2 } from 'lucide-react';
 
@@ -25,6 +26,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setIsNavigating(false);
   }, [pathname, searchParams]);
 
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
+
   return (
     <NavigationContext.Provider value={{ setIsNavigating }}>
       {isNavigating && (
@@ -36,20 +39,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex flex-col min-h-screen">
         <Header />
         <main className="flex-grow container mx-auto px-4 py-8 pb-24 sm:pb-8">
-           {apiKey ? (
-              <APIProvider 
-                apiKey={apiKey} 
-                solutionChannel="GMP_visgl_rgm_reactfirebase_v1"
-                libraries={['places', 'routes']}
-              >
-                {children}
-              </APIProvider>
-            ) : (
-              children 
-            )}
+           <APIProvider 
+              apiKey={apiKey || "MISSING_API_KEY"} 
+              solutionChannel="GMP_visgl_rgm_reactfirebase_v1"
+              libraries={['places', 'routes']}
+            >
+              {isAuthPage ? (
+                children // Render login/signup pages without the AuthGuard
+              ) : (
+                <AuthGuard>
+                  {children}
+                </AuthGuard>
+              )}
+            </APIProvider>
         </main>
-        <BottomNavigation />
+        {!isAuthPage && <BottomNavigation />}
       </div>
     </NavigationContext.Provider>
   );
 }
+
+    

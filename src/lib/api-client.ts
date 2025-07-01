@@ -27,16 +27,6 @@ async function apiFetch(url: string, options: RequestInit = {}) {
 
     const authToken = await user.getIdToken(true);
     headers.set('Authorization', `Bearer ${authToken}`);
-
-    // Temporarily disabled for diagnostics
-    // if (appCheck) {
-    //   try {
-    //     const appCheckTokenResponse = await getToken(appCheck, false);
-    //     headers.set('X-Firebase-AppCheck', appCheckTokenResponse.token);
-    //   } catch (err: any) {
-    //     console.warn("App Check getToken() failed. Proceeding without App Check token.", err);
-    //   }
-    // }
     
     if (options.body) {
       headers.set('Content-Type', 'application/json');
@@ -53,18 +43,20 @@ async function apiFetch(url: string, options: RequestInit = {}) {
         const errorText = await response.text();
         try {
           const errorData = JSON.parse(errorText);
-          const errorMessage = errorData.error || errorData.message || 'No specific error message provided.';
+          const errorMessage = errorData.error || errorData.message || 'No specific error message provided from the server.';
           const errorDetails = errorData.details ? ` Details: ${JSON.stringify(errorData.details, null, 2)}` : '';
           errorInfo = `${errorMessage}${errorDetails}`;
         } catch (jsonError) {
-          if (errorText.toLowerCase().includes('<html')) {
-             errorInfo = `Server returned an HTML error page, which indicates a critical backend crash. Status: ${response.status}. Check server logs.`;
+          if (response.status === 404 && url.startsWith('/api/')) {
+            errorInfo = `API route not found (404). This often indicates a server build or startup error. Please check the server logs.`;
+          } else if (errorText.toLowerCase().includes('<html')) {
+             errorInfo = `Server returned an HTML error page instead of JSON, which indicates a critical backend crash or misconfiguration. Status: ${response.status}. Check server logs for the root cause.`;
           } else {
-             errorInfo = `Server returned a non-JSON response. Status: ${response.status}. Body: ${errorText.substring(0, 500)}`;
+             errorInfo = `Server returned a non-JSON error response. Status: ${response.status}. Response body: ${errorText.substring(0, 500)}`;
           }
         }
       } catch (e) {
-        errorInfo = `Request failed with status ${response.status}. Could not read response body.`;
+        errorInfo = `Request failed with status ${response.status}. Could not read the error response body.`;
       }
 
       console.error("API Fetch Error Details:", errorInfo);
@@ -81,7 +73,7 @@ async function apiFetch(url: string, options: RequestInit = {}) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
       console.error(`API Fetch Error: Request to ${url} timed out after 15 seconds.`);
-      throw new Error(`The request to the server timed out. This could be due to a server-side problem. Please try again.`);
+      throw new Error(`The request to the server timed out. This may be due to a slow network or a server-side problem. Please try again.`);
     }
     // Re-throw other errors
     throw error;
@@ -154,3 +146,5 @@ export const fetchAllUsers = (): Promise<{uid: string, email: string | undefined
 // ---- Google Auth API Functions ----
 export const generateGoogleAuthUrl = (): Promise<{ url: string }> => 
   apiFetch('/api/auth/google/connect', { method: 'POST' });
+
+    

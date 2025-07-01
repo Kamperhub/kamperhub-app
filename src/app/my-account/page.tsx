@@ -3,13 +3,13 @@
 
 import React, { useState, useEffect, useContext } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
 import { updateProfile, updateEmail } from 'firebase/auth';
-import { fetchUserPreferences, updateUserPreferences, generateGoogleAuthUrl } from '@/lib/api-client';
+import { updateUserPreferences, generateGoogleAuthUrl } from '@/lib/api-client';
 import { format, isAfter, parseISO } from 'date-fns';
 
 import type { UserProfile } from '@/types/auth';
@@ -26,7 +26,7 @@ import { NavigationContext } from '@/components/layout/AppShell';
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export default function MyAccountPage() {
-  const { user, isAuthLoading, userProfile, isProfileLoading, profileError } = useAuth();
+  const { user, userProfile } = useAuth();
   const { hasProAccess, subscriptionTier, stripeCustomerId, isTrialActive, trialEndsAt } = useSubscription();
   const queryClient = useQueryClient();
   const navContext = useContext(NavigationContext);
@@ -39,12 +39,6 @@ export default function MyAccountPage() {
   
   const router = useRouter();
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (!isAuthLoading && !user) {
-      router.push('/login');
-    }
-  }, [isAuthLoading, user, router]);
 
   const handleNavigation = () => {
     navContext?.setIsNavigating(true);
@@ -202,81 +196,27 @@ export default function MyAccountPage() {
     }
   };
   
-  const isLoading = isAuthLoading || isProfileLoading;
   const isAdminUser = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
-        <Loader2 className="h-10 w-10 animate-spin text-primary mr-3" />
-        <p className="font-body text-muted-foreground text-lg">Loading Account Details...</p>
-      </div>
-    );
-  }
-
-  if (profileError) {
-    const isProfileMissingError = profileError.message.includes("User profile not found");
-
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] px-4">
-        <Alert variant="destructive" className="max-w-2xl text-left">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle className="font-headline">
-              {isProfileMissingError ? "User Profile Missing" : "Error Loading Account Details"}
-            </AlertTitle>
-            <AlertDescription className="font-body mt-2 space-y-3">
-                {isProfileMissingError ? (
-                  <>
-                    <p className="font-bold">Your user profile could not be found in the database.</p>
-                    {isAdminUser ? (
-                         <p className="mt-2">As you are the admin, this can happen after setting up your environment. Please use the one-time tool to create your admin profile. Refer to **Step 7** in the updated <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file for instructions.</p>
-                    ) : (
-                         <p className="mt-2">This can happen if your signup was interrupted. Please try logging out and signing up again. If the problem persists, please contact support.</p>
-                    )}
-                  </>
-                ) : (
-                  <p>There was a problem fetching your profile from the server.</p>
-                )}
-                <pre className="mt-2 text-xs bg-destructive-foreground/10 p-2 rounded-md font-mono whitespace-pre-wrap">
-                      Error: {profileError.message}
-                </pre>
-            </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
+  // The AuthGuard handles the main loading/error states now.
+  // We just need to ensure user and userProfile are not null before rendering.
   if (!user || !userProfile) {
-    // This case is handled by the useEffect redirect, but as a fallback:
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
-        <Alert variant="destructive" className="max-w-md text-center">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle className="font-headline">Not Logged In</AlertTitle>
-            <AlertDescription className="font-body mt-2">
-                You must be logged in to view this page.
-            </AlertDescription>
-            <Button variant="secondary" onClick={() => router.push('/login')} className="mt-4 font-body">
-                Go to Login
-            </Button>
-        </Alert>
-      </div>
-    );
+    return null; // Or a minimal loader, but AuthGuard should prevent this state from being visible for long.
   }
   
   const initialProfileDataForEdit: EditProfileFormData = {
-    displayName: userProfile?.displayName || user?.displayName || '',
-    firstName: userProfile?.firstName || '',
-    lastName: userProfile?.lastName || '',
-    email: userProfile?.email || user?.email || '',
-    city: userProfile?.city || '',
-    state: userProfile?.state || '',
-    country: userProfile?.country || '',
+    displayName: userProfile.displayName || user.displayName || '',
+    firstName: userProfile.firstName || '',
+    lastName: userProfile.lastName || '',
+    email: userProfile.email || user.email || '',
+    city: userProfile.city || '',
+    state: userProfile.state || '',
+    country: userProfile.country || '',
   };
   
-  const fullName = [userProfile?.firstName, userProfile?.lastName].filter(Boolean).join(' ');
-  const welcomeName = fullName || userProfile?.displayName || user.displayName || 'User';
-  const isGoogleTasksConnected = !!userProfile?.googleAuth?.refreshToken;
+  const fullName = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ');
+  const welcomeName = fullName || userProfile.displayName || user.displayName || 'User';
+  const isGoogleTasksConnected = !!userProfile.googleAuth?.refreshToken;
 
   return (
     <div className="space-y-8">
@@ -316,31 +256,31 @@ export default function MyAccountPage() {
             
             <p className="font-body text-sm flex items-center">
                 <User className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>First Name:</strong>&nbsp;{userProfile?.firstName || '[Not Set]'}
+                <strong>First Name:</strong>&nbsp;{userProfile.firstName || '[Not Set]'}
             </p>
              <p className="font-body text-sm flex items-center">
                 <User className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>Last Name:</strong>&nbsp;{userProfile?.lastName || '[Not Set]'}
+                <strong>Last Name:</strong>&nbsp;{userProfile.lastName || '[Not Set]'}
             </p>
             <p className="font-body text-sm flex items-center">
                 <UserCircle className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>Username:</strong>&nbsp;{userProfile?.displayName || '[Not Set]'}
+                <strong>Username:</strong>&nbsp;{userProfile.displayName || '[Not Set]'}
             </p>
             <p className="font-body text-sm flex items-center">
                 <Mail className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>Email:</strong>&nbsp;{userProfile?.email || user.email || '[Not Set]'}
+                <strong>Email:</strong>&nbsp;{userProfile.email || user.email || '[Not Set]'}
             </p>
             <p className="font-body text-sm flex items-center">
                 <MapPin className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>City:</strong>&nbsp;{userProfile?.city || '[Not Provided]'}
+                <strong>City:</strong>&nbsp;{userProfile.city || '[Not Provided]'}
             </p>
             <p className="font-body text-sm flex items-center">
                 <Building className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>State / Region:</strong>&nbsp;{userProfile?.state || '[Not Provided]'}
+                <strong>State / Region:</strong>&nbsp;{userProfile.state || '[Not Provided]'}
             </p>
              <p className="font-body text-sm flex items-center">
                 <Globe className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>Country:</strong>&nbsp;{userProfile?.country || '[Not Provided]'}
+                <strong>Country:</strong>&nbsp;{userProfile.country || '[Not Provided]'}
             </p>
           </div>
 
@@ -461,3 +401,5 @@ export default function MyAccountPage() {
     </div>
   );
 }
+
+    

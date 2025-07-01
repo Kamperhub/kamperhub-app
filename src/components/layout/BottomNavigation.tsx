@@ -14,7 +14,9 @@ export function BottomNavigation() {
   const navContext = useContext(NavigationContext);
 
   const handleNavigation = () => {
-    navContext?.setIsNavigating(true);
+    if (navContext) {
+      navContext.setIsNavigating(true);
+    }
   };
 
   // The main dashboard nav items are too numerous for a bottom bar.
@@ -79,3 +81,5 @@ export function BottomNavigation() {
     </nav>
   );
 }
+
+    
