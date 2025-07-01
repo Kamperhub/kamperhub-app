@@ -174,21 +174,28 @@ export default function TripPackingPage() {
         toast({ title: 'Cannot Generate List', description: 'Selected trip must have a start and end date.', variant: 'destructive'});
         return;
     }
-    const travelers = selectedTrip.occupants?.map(occ => ({
-      name: occ.name,
-      type: occ.type,
-      age: occ.age ?? undefined, // handle null
-      notes: occ.notes ?? undefined, // handle null
-    })) || [];
+    const travelers = selectedTrip.occupants
+        ?.map(occ => ({
+            name: occ.name,
+            type: occ.type,
+            age: occ.age ?? undefined,
+            notes: occ.notes ?? undefined,
+        }))
+        .filter(t => t.name && t.type) // Filter out invalid occupants
+        || [];
 
     if (travelers.length === 0) {
         travelers.push({ type: 'Adult', name: 'Traveler 1' }); // Fallback
     }
 
+    // Format dates correctly to YYYY-MM-DD
+    const departureDate = format(parseISO(selectedTrip.plannedStartDate), 'yyyy-MM-dd');
+    const returnDate = format(parseISO(selectedTrip.plannedEndDate), 'yyyy-MM-dd');
+
     generateListMutation.mutate({
       destination: selectedTrip.endLocationDisplay,
-      departureDate: selectedTrip.plannedStartDate,
-      returnDate: selectedTrip.plannedEndDate,
+      departureDate: departureDate,
+      returnDate: returnDate,
       travelers: travelers,
       activities: selectedActivities.join(', ') || 'General touring and relaxation',
     });
@@ -434,3 +441,5 @@ function EditItemDialog({ isOpen, onClose, itemState, onSave }: EditItemDialogPr
     </Dialog>
   );
 }
+
+    
