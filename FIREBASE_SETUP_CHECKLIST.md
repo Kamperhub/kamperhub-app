@@ -60,23 +60,7 @@ All your secret keys will live in a special file that is NOT committed to versio
 
 ---
 
-### Step 3: CRITICAL - Ensure Firestore Database Exists
-
-The most common server error after a correct setup is `5 NOT_FOUND` or a server crash. This error means your backend code tried to connect to a Firestore database, but one has not been created in your project yet. You must do this manually.
-
-1.  Go to the [Firebase Console](https://console.firebase.google.com/) and select your project from Step 2.
-2.  In the left-hand navigation under "Build", click on **Firestore Database**.
-3.  If you see a large "Create database" button, **you must create one**.
-    *   Click **"Create database"**.
-    *   Choose **"Start in test mode"** (you can secure it later with `firestore.rules`).
-    *   Choose a location (e.g., `us-central` or one near you).
-    *   Click **Enable**.
-
-If a database already exists (you see "Data", "Rules", "Indexes" tabs), you can skip this step. This is a one-time setup for your project.
-
----
-
-### Step 4: Populate Your Environment File
+### Step 3: Populate Your Environment File
 
 Now, using the **correct `kamperhubv2` project** from Step 2, find your keys and paste them into the `.env.local` file.
 
@@ -91,6 +75,22 @@ Now, using the **correct `kamperhubv2` project** from Step 2, find your keys and
     *   Click "Generate new private key". A JSON file will download.
     *   Open the downloaded file, copy the **entire JSON content**, and paste it inside the single quotes for `GOOGLE_APPLICATION_CREDENTIALS_JSON`. **It must all be on one line.**
     *   **CRITICAL: The `project_id` field inside this JSON file must also match the `kamperhubv2` Project ID from Step 2.**
+
+---
+
+### Step 4: CRITICAL - Ensure Firestore Database Exists
+
+The most common server error after a correct setup is `5 NOT_FOUND`, `failed to fetch`, or a server crash. This error means your backend code tried to connect to a Firestore database, but one has not been created in your project yet. You must do this manually.
+
+1.  Go to the [Firebase Console](https://console.firebase.google.com/) and select your project from Step 2.
+2.  In the left-hand navigation under "Build", click on **Firestore Database**.
+3.  If you see a large "Create database" button, **you must create one**.
+    *   Click **"Create database"**.
+    *   Choose **"Start in test mode"** (you can secure it later with `firestore.rules`).
+    *   Choose a location (e.g., `us-central` or one near you).
+    *   Click **Enable**.
+
+If a database already exists (you see "Data", "Rules", "Indexes" tabs), you can skip this step. This is a one-time setup for your project.
 
 ---
 

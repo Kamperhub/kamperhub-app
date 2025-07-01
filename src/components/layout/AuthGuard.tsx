@@ -64,7 +64,7 @@ const ErrorScreen = ({ error }: { error: string | null }) => {
         return (
             <div className="mt-4 border-t border-red-400/30 pt-3 text-left font-body">
                 <p className="font-bold">This is an environment setup issue, not a code problem.</p>
-                <p>Please follow the updated instructions in <code className="bg-black/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code>, especially <strong>Step 3</strong>, which guides you to create the Firestore database in the Firebase Console.</p>
+                <p>Please follow the updated instructions in <code className="bg-black/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code>, especially <strong>Step 4</strong>, which guides you to create the Firestore database in the Firebase Console.</p>
             </div>
         );
     }

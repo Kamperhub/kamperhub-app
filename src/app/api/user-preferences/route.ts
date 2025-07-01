@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
     // Check for Firestore "database not found" error (code 5)
     if (err.code === 5 || (err.message && err.message.toLowerCase().includes('not_found'))) {
         errorInfo = `Database Not Found or Inaccessible`;
-        errorDetails = `The server connected to Firebase but could not find the Firestore database. This usually means the database has not been created in the Firebase console for this project. Please go to the Firebase Console, select your project, and ensure you have created a Firestore Database. Refer to Step 6 in FIREBASE_SETUP_CHECKLIST.md.`;
+        errorDetails = `CRITICAL: The Firestore database has not been created in this Firebase project. Please go to the Firebase Console, select your project, find 'Firestore Database' in the Build menu, and click 'Create database'. Refer to the setup checklist for more details.`;
     }
     
     return NextResponse.json(
