@@ -115,7 +115,7 @@ const ErrorScreen = ({ error }: { error: string | null }) => {
 };
 
 
-export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
+export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { authStatus, profileError } = useAuth();
   const router = useRouter();
 
