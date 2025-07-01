@@ -99,9 +99,18 @@ export default function TripLogPage() {
       });
       return;
     }
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const packingListUrl = `${appUrl}/trip-packing?tripId=${trip.id}`;
+
     const title = encodeURIComponent(trip.name);
-    const details = encodeURIComponent(`Trip from ${trip.startLocationDisplay} to ${trip.endLocationDisplay}.\nDistance: ${trip.routeDetails.distance}, Duration: ${trip.routeDetails.duration}.`);
+    const details = encodeURIComponent(
+      `Trip from ${trip.startLocationDisplay} to ${trip.endLocationDisplay}.\n` +
+      `Distance: ${trip.routeDetails.distance}, Duration: ${trip.routeDetails.duration}.\n\n` +
+      `Reminder: Pack for this trip 3 days before departure!\n` +
+      `View Packing List: ${packingListUrl}`
+    );
     const location = encodeURIComponent(trip.endLocationDisplay);
+    
     const startDateFormatted = format(parseISO(trip.plannedStartDate), "yyyyMMdd");
     let endDateFormatted: string;
     if (trip.plannedEndDate) {
@@ -110,8 +119,10 @@ export default function TripLogPage() {
     } else {
       endDateFormatted = format(addDays(parseISO(trip.plannedStartDate), 1), "yyyyMMdd");
     }
+    
     const dates = `${startDateFormatted}/${endDateFormatted}`;
     const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}`;
+    
     window.open(calendarUrl, '_blank');
     toast({ title: "Opening Google Calendar", description: "Check the new tab to add the event."});
   }, [toast]);

@@ -4,7 +4,7 @@
 import { useState, useMemo, useCallback, useContext } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, differenceInDays, parseISO } from 'date-fns';
+import { format, differenceInDays, parseISO, addDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import type { LoggedTrip } from '@/types/tripplanner';
@@ -32,7 +32,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Luggage, AlertTriangle, Wand2, Info, Loader2, Route, Calendar, Users, Edit3, Trash2, PlusCircle, RefreshCw, CloudRainWind, ChevronLeft, Sparkles, SendToBack } from 'lucide-react';
+import { Luggage, AlertTriangle, Wand2, Info, Loader2, Route, Calendar, Users, Edit3, Trash2, PlusCircle, RefreshCw, CloudRainWind, ChevronLeft, Sparkles, SendToBack, CalendarPlus } from 'lucide-react';
 
 const activityOptions = [
   {
@@ -180,15 +180,15 @@ export default function TripPackingPage() {
   };
   
    const handlePersonalizeList = () => {
-    if (!selectedTrip || !weatherSuggestions || packingList.length === 0) {
-        toast({ title: 'Cannot Personalize List', description: 'A trip, master list, and weather summary are required.', variant: 'destructive' });
+    if (!selectedTrip || packingList.length === 0) {
+        toast({ title: 'Cannot Personalize List', description: 'A trip and a master list are required.', variant: 'destructive' });
         return;
     }
     const aiInput: PersonalizedPackingListInput = {
         trip_details: {
             name: selectedTrip.name,
             dates: `${format(parseISO(selectedTrip.plannedStartDate!), 'PP')} to ${format(parseISO(selectedTrip.plannedEndDate!), 'PP')}`,
-            location_summary: weatherSuggestions.weatherSummary,
+            location_summary: weatherSuggestions?.weatherSummary || `Trip to ${selectedTrip.endLocationDisplay}`,
         },
         master_packing_list: packingList.reduce((acc, category) => {
             acc[category.name] = category.items.map(item => `${item.quantity}x ${item.name}`);
@@ -273,6 +273,42 @@ export default function TripPackingPage() {
   const handleActivityChange = (activity: string) => {
     setSelectedActivities(prev => prev.includes(activity) ? prev.filter(a => a !== activity) : [...prev, activity]);
   };
+
+  const handleAddToCalendar = useCallback((trip: LoggedTrip) => {
+    if (!trip.plannedStartDate) {
+      toast({
+        title: "Cannot Add to Calendar",
+        description: "This trip does not have a planned start date.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const packingListUrl = `${appUrl}/trip-packing?tripId=${trip.id}`;
+
+    const title = encodeURIComponent(trip.name);
+    const details = encodeURIComponent(
+      `Trip from ${trip.startLocationDisplay} to ${trip.endLocationDisplay}.\n` +
+      `Distance: ${trip.routeDetails.distance}, Duration: ${trip.routeDetails.duration}.\n\n` +
+      `Reminder: Pack for this trip 3 days before departure!\n` +
+      `View Packing List: ${packingListUrl}`
+    );
+    const location = encodeURIComponent(trip.endLocationDisplay);
+    const startDateFormatted = format(parseISO(trip.plannedStartDate), "yyyyMMdd");
+    
+    let endDateFormatted: string;
+    if (trip.plannedEndDate) {
+      const actualEndDate = parseISO(trip.plannedEndDate);
+      endDateFormatted = format(addDays(actualEndDate, 1), "yyyyMMdd");
+    } else {
+      endDateFormatted = format(addDays(parseISO(trip.plannedStartDate), 1), "yyyyMMdd");
+    }
+    const dates = `${startDateFormatted}/${endDateFormatted}`;
+    
+    const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}`;
+    window.open(calendarUrl, '_blank');
+    toast({ title: "Opening Google Calendar", description: "Check the new tab to add the event."});
+  }, [toast]);
   
   const anyMutationLoading = generateListMutation.isPending || updateListMutation.isPending || deleteListMutation.isPending || weatherSuggestMutation.isPending || personalizeListMutation.isPending;
 
@@ -294,10 +330,15 @@ export default function TripPackingPage() {
       </div>
       
       <Card><CardHeader><CardTitle>1. Select Your Trip</CardTitle><CardDescription>Choose a saved trip to generate or view a packing list for.</CardDescription></CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           <div className="space-y-2"><Label htmlFor="trip-select">Saved Trip</Label><Select onValueChange={setSelectedTripId} value={selectedTripId}><SelectTrigger id="trip-select"><SelectValue placeholder="Choose a trip..." /></SelectTrigger><SelectContent>{trips.map(trip => <SelectItem key={trip.id} value={trip.id}>{trip.name}</SelectItem>)}</SelectContent></Select></div>
-          {selectedTrip && (<Alert variant="default" className="bg-secondary/30 border-secondary/50"><Info className="h-4 w-4" /><AlertTitle className="font-headline text-foreground">{selectedTrip.name}</AlertTitle>
-                <AlertDescription className="text-xs space-y-1"><p className="flex items-center"><Route className="h-3 w-3 mr-1.5" />{selectedTrip.startLocationDisplay} to {selectedTrip.endLocationDisplay}</p><p className="flex items-center"><Calendar className="h-3 w-3 mr-1.5" />{selectedTrip.plannedStartDate ? format(parseISO(selectedTrip.plannedStartDate), "PP") : 'Date TBD'}</p><p className="flex items-center"><Users className="h-3 w-3 mr-1.5" />{selectedTrip.occupants?.length || 1} person(s)</p></AlertDescription></Alert>)}
+          {selectedTrip && (
+            <div className="space-y-2">
+                <Alert variant="default" className="bg-secondary/30 border-secondary/50"><Info className="h-4 w-4" /><AlertTitle className="font-headline text-foreground">{selectedTrip.name}</AlertTitle>
+                <AlertDescription className="text-xs space-y-1"><p className="flex items-center"><Route className="h-3 w-3 mr-1.5" />{selectedTrip.startLocationDisplay} to {selectedTrip.endLocationDisplay}</p><p className="flex items-center"><Calendar className="h-3 w-3 mr-1.5" />{selectedTrip.plannedStartDate ? format(parseISO(selectedTrip.plannedStartDate), "PP") : 'Date TBD'}</p><p className="flex items-center"><Users className="h-3 w-3 mr-1.5" />{selectedTrip.occupants?.length || 1} person(s)</p></AlertDescription></Alert>
+                <Button onClick={() => handleAddToCalendar(selectedTrip)} variant="outline" size="sm" className="w-full" disabled={!selectedTrip.plannedStartDate}><CalendarPlus className="mr-2 h-4 w-4"/>Add to Google Calendar</Button>
+            </div>
+          )}
         </CardContent>
       </Card>
       
