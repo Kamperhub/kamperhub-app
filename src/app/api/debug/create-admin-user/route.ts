@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
@@ -68,8 +69,8 @@ export async function GET(req: NextRequest) {
     
     let details = err.message;
 
-    if (err.code === 5 /* NOT_FOUND */) {
-      details = `The server could not find the database. This usually means either (a) the Firestore database has not been created in the Firebase console for this project, or (b) the Project ID in your GOOGLE_APPLICATION_CREDENTIALS_JSON does not match the client-side NEXT_PUBLIC_FIREBASE_PROJECT_ID.`;
+    if (err.code === 5 || err.message.includes('NOT_FOUND')) {
+      details = `The server could not find the Firestore database. This usually means either (a) the Firestore database has not been created in the Firebase console for this project, or (b) the Project ID in your GOOGLE_APPLICATION_CREDENTIALS_JSON does not match the client-side NEXT_PUBLIC_FIREBASE_PROJECT_ID. Please follow the setup checklist carefully.`;
     }
 
     return NextResponse.json({ 

@@ -30,17 +30,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   authStatusRef.current = authStatus;
 
   useEffect(() => {
-    // Failsafe timeout for auth state resolution
     const authTimeout = setTimeout(() => {
       if (authStatusRef.current === 'LOADING' || authStatusRef.current === 'AWAITING_PROFILE') {
         console.error("Auth state listener timed out after 10 seconds.");
         setAuthStatus('ERROR');
         setProfileError("Authentication timed out. This could be due to a network issue or a problem with the Firebase configuration. Please check your browser's console for more details and verify your project setup.");
       }
-    }, 10000); // 10-second timeout
+    }, 10000);
 
     if (firebaseInitializationError) {
-      clearTimeout(authTimeout); // Clear timeout since we have an immediate error
+      clearTimeout(authTimeout);
       setAuthStatus('ERROR');
       setProfileError(`Firebase Client Error: ${firebaseInitializationError}`);
       return;
@@ -49,7 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let unsubscribeFromProfile: Unsubscribe = () => {};
 
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      clearTimeout(authTimeout); // Auth state resolved, clear the timeout
+      clearTimeout(authTimeout);
       unsubscribeFromProfile(); 
 
       setUser(currentUser);
@@ -83,9 +82,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               setAuthStatus('ERROR');
             }
           },
-          (error) => {
+          (error: any) => {
             console.error("Error listening to user profile:", error);
-            const errorMsg = `Failed to load user profile from the database. This is often a permission issue. Please check your Firestore security rules. Original error: ${error.message}`;
+            
+            let errorMsg = `Failed to load user profile from the database. Original error: ${error.message}`;
+            if (error.code === 'permission-denied') {
+              errorMsg = "Failed to load user profile due to a permissions issue. Please check your Firestore security rules to ensure logged-in users can read their own profile document.";
+            } else if (error.code === 5 || error.message.includes('NOT_FOUND') || error.message.includes('database not found')) {
+              errorMsg = "CRITICAL: The Firestore database has not been created in this Firebase project. Please go to the Firebase Console, select your project, find 'Firestore Database' in the Build menu, and click 'Create database'. Refer to the setup checklist for more details.";
+            }
+
             setUserProfile(null);
             setSubscriptionDetails('free');
             setProfileError(errorMsg);
@@ -93,14 +99,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         );
       } else {
-        // No user is logged in
         setUserProfile(null);
         setSubscriptionDetails('free');
         setAuthStatus('UNAUTHENTICATED');
         setProfileError(null);
       }
     }, (error) => {
-        clearTimeout(authTimeout); // Auth state errored, clear the timeout
+        clearTimeout(authTimeout);
         console.error("Firebase auth state error:", error);
         setProfileError(`An error occurred during authentication. Please refresh the page. Error: ${error.message}`);
         setAuthStatus('ERROR');
