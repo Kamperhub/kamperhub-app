@@ -33,16 +33,9 @@ const LoadingScreen = ({ status }: { status: AuthStatus }) => {
       {showSlowLoadMessage && (
         <div className="mt-6 max-w-lg p-4 rounded-md border border-amber-500 bg-amber-500/10 text-amber-200">
             <h3 className="font-bold text-amber-300">Still waiting?</h3>
-            <p className="text-sm text-left mt-2">If you are the site administrator and this is your first time logging in, your user profile might not exist in the database yet.</p>
-            <p className="text-sm text-left mt-2">You can use this one-time tool to create it. After a success message appears in the new tab, please refresh this page.</p>
-            <a 
-                href="/api/debug/create-admin-user" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="inline-block mt-3 bg-amber-500 text-black py-2 px-4 rounded-md hover:bg-amber-600 font-semibold"
-            >
-                Create Admin Profile
-            </a>
+            <p className="text-sm text-left mt-2">If loading is stuck here, it usually means the application can't connect to the server's backend services.</p>
+            <p className="text-sm text-left mt-2">This is often caused by a server crash during startup due to a misconfiguration in your <code className="bg-black/20 px-1 rounded-sm">.env.local</code> file.</p>
+             <p className="text-sm text-left mt-2">Please check your server's terminal logs for a specific error message, then use the <code className="bg-black/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file to resolve the issue.</p>
         </div>
       )}
     </div>
