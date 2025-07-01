@@ -1,12 +1,6 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    allowedDevOrigins: [
-      "*.cloudworkstations.dev",
-      "*.cloudworkstations.googleusercontent.com",
-    ],
-  },
   async headers() {
     // Apply Content-Security-Policy headers in all environments to ensure consistency
     const cspHeader = [
