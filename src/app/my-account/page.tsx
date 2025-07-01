@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
 import { updateProfile, updateEmail } from 'firebase/auth';
-import { fetchUserPreferences, updateUserPreferences } from '@/lib/api-client';
+import { fetchUserPreferences, updateUserPreferences, generateGoogleAuthUrl } from '@/lib/api-client';
 import { format, isAfter, parseISO } from 'date-fns';
 
 import type { UserProfile } from '@/types/auth';
@@ -35,6 +35,7 @@ export default function MyAccountPage() {
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
   const [isRedirectingToPortal, setIsRedirectingToPortal] = useState(false);
+  const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
   
   const router = useRouter();
   const { toast } = useToast();
@@ -182,6 +183,22 @@ export default function MyAccountPage() {
       toast({ title: "Error", description: `An unexpected error occurred: ${error.message}`, variant: "destructive" });
     } finally {
       setIsRedirectingToPortal(false);
+    }
+  };
+
+  const handleConnectGoogleTasks = async () => {
+    if (!user) return;
+    setIsConnectingGoogle(true);
+    try {
+      const { url } = await generateGoogleAuthUrl();
+      if (url) {
+        window.location.href = url;
+      } else {
+        throw new Error("The server did not return a valid authentication URL.");
+      }
+    } catch (error: any) {
+        toast({ title: "Connection Failed", description: error.message, variant: "destructive" });
+        setIsConnectingGoogle(false);
     }
   };
   
@@ -340,10 +357,9 @@ export default function MyAccountPage() {
               ) : (
                 <div className="space-y-2">
                   <p className="text-sm font-body">Connect KamperHub to other services to enhance your experience.</p>
-                  <Button asChild className="w-full sm:w-auto" variant="outline">
-                      <a href="/api/auth/google/connect" onClick={handleNavigation}>
-                          <LinkIcon className="mr-2 h-4 w-4"/> Connect Google Tasks
-                      </a>
+                  <Button onClick={handleConnectGoogleTasks} className="w-full sm:w-auto" variant="outline" disabled={isConnectingGoogle}>
+                      {isConnectingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <LinkIcon className="mr-2 h-4 w-4"/>}
+                      {isConnectingGoogle ? 'Connecting...' : 'Connect Google Tasks'}
                   </Button>
                    <p className="text-xs text-muted-foreground font-body">This will allow KamperHub to create packing lists as tasks in your Google account.</p>
                 </div>

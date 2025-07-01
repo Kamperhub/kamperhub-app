@@ -150,3 +150,7 @@ export const deletePackingList = (tripId: string): Promise<{ message: string }> 
 
 // ---- Admin API Functions ----
 export const fetchAllUsers = (): Promise<{uid: string, email: string | undefined}[]> => apiFetch('/api/admin/list-users');
+
+// ---- Google Auth API Functions ----
+export const generateGoogleAuthUrl = (): Promise<{ url: string }> => 
+  apiFetch('/api/auth/google/connect', { method: 'POST' });
