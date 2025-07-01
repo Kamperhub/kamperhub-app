@@ -39,6 +39,7 @@ const GoogleTasksStructureSchema = z.object({
     items: z.array(z.string()).describe("An array of individual item strings for this category.")
   })).describe("An array of category objects, each containing a list of items.")
 });
+export type GoogleTasksStructure = z.infer<typeof GoogleTasksStructureSchema>;
 
 // Define the schema for a single passenger's output
 const PassengerListOutputSchema = z.object({
@@ -55,32 +56,6 @@ const PersonalizedPackingListOutputSchema = z.object({
 export type PersonalizedPackingListOutput = z.infer<typeof PersonalizedPackingListOutputSchema>;
 
 
-const createGoogleTasksTool = ai.defineTool(
-  {
-    name: 'createGoogleTasksTool',
-    description: 'Creates a task list in Google Tasks for a passenger based on a structured packing list.',
-    inputSchema: GoogleTasksStructureSchema,
-    outputSchema: z.string().describe("A confirmation message indicating success or failure."),
-  },
-  async (input) => {
-    // This is a placeholder implementation.
-    // In a real application, this would involve OAuth2 and calls to the Google Tasks API.
-    console.log(`[Placeholder] Authenticating with Google Tasks API...`);
-    console.log(`[Placeholder] Creating new task list: "${input.trip_task_name}"`);
-    
-    // Simulate creating category sub-tasks and item sub-sub-tasks
-    for (const category of input.categories) {
-      console.log(`[Placeholder]  - Creating category sub-task: "${category.category_name}"`);
-      for (const item of category.items) {
-        console.log(`[Placeholder]    - Creating item sub-sub-task: "${item}"`);
-      }
-    }
-    
-    return `Successfully created a placeholder task list in the logs for ${input.trip_task_name}. In a real app, this would be in Google Tasks.`;
-  }
-);
-
-
 export async function generatePersonalizedPackingLists(input: PersonalizedPackingListInput): Promise<PersonalizedPackingListOutput> {
   return personalizedPackingListFlow(input);
 }
@@ -89,7 +64,6 @@ const prompt = ai.definePrompt({
   name: 'personalizedPackingListPrompt',
   input: {schema: PersonalizedPackingListInputSchema},
   output: {schema: PersonalizedPackingListOutputSchema},
-  tools: [createGoogleTasksTool],
   prompt: `You are an expert travel assistant and personal concierge for 'KamperHub' trips. Your main task is to take a comprehensive, pre-generated packing list for a trip and personalize it for each individual passenger, considering their type and specific needs. You must then format this personalized list for two distinct purposes: a friendly, concise message for a messaging service, and a highly structured output for direct integration with Google Tasks.
 
 Here's the information you'll work with:
@@ -98,10 +72,6 @@ Here's the information you'll work with:
   "master_packing_list": {{{json master_packing_list}}},
   "passengers": {{{json passengers}}}
 }
-
-For each passenger, you must perform two steps:
-1.  **Generate the structures:** Create both the \`messenger_message\` and the \`google_tasks_structure\` as described below.
-2.  **Create the Tasks:** After generating the \`google_tasks_structure\` for a passenger, you MUST immediately call the \`createGoogleTasksTool\` with that structure to create the tasks in Google Tasks.
 
 **Output Generation Rules:**
 
@@ -120,7 +90,7 @@ For each passenger, you must perform two steps:
     -   Exclude any shared items (marked as "(shared)") from individual passenger lists, unless specifically relevant for a passenger to track. Assume shared items are managed centrally.
     -   Strictly adhere to the hierarchy: Trip Task > Category Sub-Task > Item Sub-Sub-Task.
 
-After performing these steps for all passengers, your final output MUST be a single JSON object containing an array of \`passenger_lists\`, with each element containing the \`passenger_id\`, \`passenger_name\`, \`messenger_message\`, and \`google_tasks_structure\`.
+Your final output MUST be a single JSON object containing an array of \`passenger_lists\`, with each element containing the \`passenger_id\`, \`passenger_name\`, \`messenger_message\`, and \`google_tasks_structure\`. Do not call any tools.
 `,
 });
 

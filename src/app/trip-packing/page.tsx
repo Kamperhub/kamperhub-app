@@ -17,7 +17,7 @@ import {
 } from '@/lib/api-client';
 import { generatePackingList, type PackingListGeneratorInput, type PackingListGeneratorOutput } from '@/ai/flows/packing-list-generator-flow';
 import { generateWeatherPackingSuggestions, type WeatherPackingSuggesterOutput } from '@/ai/flows/weather-packing-suggester-flow';
-import { generatePersonalizedPackingLists, type PersonalizedPackingListInput, type PersonalizedPackingListOutput } from '@/ai/flows/personalized-packing-list-flow';
+import { generatePersonalizedPackingLists, type PersonalizedPackingListInput, type PersonalizedPackingListOutput, type GoogleTasksStructure } from '@/ai/flows/personalized-packing-list-flow';
 import { NavigationContext } from '@/components/layout/AppShell';
 
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Luggage, AlertTriangle, Wand2, Info, Loader2, Route, Calendar, Users, Edit3, Trash2, PlusCircle, RefreshCw, CloudRainWind, ChevronLeft, Send, Sparkles } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Luggage, AlertTriangle, Wand2, Info, Loader2, Route, Calendar, Users, Edit3, Trash2, PlusCircle, RefreshCw, CloudRainWind, ChevronLeft, Sparkles, SendToBack } from 'lucide-react';
 
 const activityOptions = [
   {
@@ -122,7 +123,7 @@ export default function TripPackingPage() {
     mutationFn: generatePersonalizedPackingLists,
     onSuccess: (data: PersonalizedPackingListOutput) => {
       setPersonalizedLists(data);
-      toast({ title: 'Personalized Lists Created!', description: "Individual lists and Google Tasks (placeholder) are ready." });
+      toast({ title: 'Personalized Lists Created!', description: "Individual lists are ready." });
     },
     onError: (error: Error) => toast({ title: 'Personalization Failed', description: error.message, variant: 'destructive' }),
   });
@@ -148,6 +149,16 @@ export default function TripPackingPage() {
   const handleNavigation = () => {
     navContext?.setIsNavigating(true);
   };
+
+  const handleCreateGoogleTasks = useCallback((tasksData: GoogleTasksStructure) => {
+    // This is where the actual API call to a new flow/endpoint would go.
+    // For now, we'll simulate it.
+    console.log("Simulating sending to Google Tasks:", tasksData);
+    toast({
+      title: "Sent to Google Tasks (Simulated)",
+      description: `Task list "${tasksData.trip_task_name}" would be created now.`,
+    });
+  }, [toast]);
 
   const handleGenerateList = () => {
     if (!selectedTrip || !selectedTrip.plannedStartDate || !selectedTrip.plannedEndDate) {
@@ -319,11 +330,51 @@ export default function TripPackingPage() {
       }
       
       <Card>
-        <CardHeader><CardTitle className="flex items-center"><Sparkles className="mr-2 h-5 w-5"/>5. Personalize & Share (Requires Google Tasks Connection)</CardTitle><CardDescription>Creates individual packing lists and sends them to Google Tasks.</CardDescription></CardHeader>
+        <CardHeader>
+            <CardTitle className="flex items-center"><Sparkles className="mr-2 h-5 w-5"/>5. Personalize & Share</CardTitle>
+            <CardDescription>Creates individual packing lists for each passenger. You can then optionally send them to Google Tasks.</CardDescription>
+        </CardHeader>
         <CardContent>
-            {!userProfile?.googleAuth?.refreshToken && (<Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Google Tasks Not Connected</AlertTitle><AlertDescription>Please <Link href="/my-account" className="underline font-bold">connect your Google Account</Link> to use this feature.</AlertDescription></Alert>)}
-            <Button className="mt-4" onClick={handlePersonalizeList} disabled={!userProfile?.googleAuth?.refreshToken || !selectedTripId || packingList.length === 0 || anyMutationLoading}><Send className="mr-2 h-4 w-4"/>Personalize & Create Tasks</Button>
-            {personalizedLists && (<div className="mt-4 space-y-4">{personalizedLists.passenger_lists.map(p => (<Card key={p.passenger_id} className="bg-muted/50"><CardHeader><CardTitle>{p.passenger_name}'s List</CardTitle></CardHeader><CardContent><pre className="whitespace-pre-wrap font-sans text-sm">{p.messenger_message}</pre></CardContent></Card>))}</div>)}
+            <Button className="mt-4" onClick={handlePersonalizeList} disabled={!selectedTripId || packingList.length === 0 || anyMutationLoading}><Users className="mr-2 h-4 w-4"/>Personalize Lists</Button>
+            {personalizeListMutation.isPending && <div className="flex items-center gap-2 mt-4"><Loader2 className="h-4 w-4 animate-spin"/><p>Personalizing...</p></div>}
+            {personalizedLists && (
+              <div className="mt-4 space-y-4">
+                {personalizedLists.passenger_lists.map(p => (
+                  <Card key={p.passenger_id} className="bg-muted/50">
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <CardTitle>{p.passenger_name}'s List</CardTitle>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {/* Wrap button in a div to allow tooltip to show on disabled button */}
+                              <div>
+                                <Button 
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleCreateGoogleTasks(p.google_tasks_structure)}
+                                  disabled={!userProfile?.googleAuth?.refreshToken}
+                                >
+                                  <SendToBack className="mr-2 h-4 w-4"/> Send to Google Tasks
+                                </Button>
+                              </div>
+                            </TooltipTrigger>
+                            {!userProfile?.googleAuth?.refreshToken && (
+                              <TooltipContent>
+                                <p>Connect Google Account in My Account page.</p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <pre className="whitespace-pre-wrap font-sans text-sm">{p.messenger_message}</pre>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
         </CardContent>
       </Card>
 
