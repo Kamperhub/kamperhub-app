@@ -156,10 +156,11 @@ export default function DashboardPage() {
     queryKey: ['userPreferences', user?.uid],
     queryFn: fetchUserPreferences,
     retry: (failureCount, error: Error) => {
+      // Don't retry on fatal server errors, but do retry on network issues etc.
       if (error.message.includes("500") || error.message.includes("crash")) {
         return false;
       }
-      return failureCount < 2;
+      return failureCount < 2; // Retry up to 2 times
     },
     enabled: !!user && !isAuthLoading,
   });

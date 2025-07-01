@@ -146,5 +146,3 @@ export const fetchAllUsers = (): Promise<{uid: string, email: string | undefined
 // ---- Google Auth API Functions ----
 export const generateGoogleAuthUrl = (): Promise<{ url: string }> => 
   apiFetch('/api/auth/google/connect', { method: 'POST' });
-
-    

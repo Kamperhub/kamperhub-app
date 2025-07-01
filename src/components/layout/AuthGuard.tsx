@@ -89,5 +89,3 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   // or any other unexpected state, showing a loading screen to prevent flicker.
   return <LoadingScreen status="LOADING" />;
 };
-
-    
