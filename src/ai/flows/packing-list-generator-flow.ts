@@ -59,7 +59,7 @@ const prompt = ai.definePrompt({
       },
     ],
   },
-  prompt: `You are an expert trip planner and packing assistant for Australian caravan and camping adventures. Your task is to generate a comprehensive and practical packing list based on the user's trip details.
+  prompt: `You are an intelligent, meticulous travel assistant and packing expert. Your primary goal is to generate a highly personalized and comprehensive packing list for an upcoming trip, taking into account all specified details. The output must be a JSON object, structured precisely as requested.
 
 **Trip Details:**
 *   **Destination:** {{{destination}}}
