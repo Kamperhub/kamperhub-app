@@ -32,6 +32,10 @@ All your secret keys will live in a special file that is NOT committed to versio
     # Firebase Server-Side Admin Configuration (for backend functions)
     # This MUST be a single line of JSON wrapped in single quotes.
     GOOGLE_APPLICATION_CREDENTIALS_JSON='PASTE_YOUR_ENTIRE_SERVICE_ACCOUNT_JSON_HERE'
+    
+    # Generative AI (Genkit / Gemini) API Key
+    # IMPORTANT: This key MUST NOT have "HTTP referrer" restrictions. Use a key with no restrictions or IP address restrictions.
+    GOOGLE_API_KEY="YOUR_GENERATIVE_AI_API_KEY_HERE"
 
     # Stripe Configuration (for subscriptions)
     STRIPE_SECRET_KEY="sk_test_..."
@@ -75,6 +79,14 @@ Now, using the **correct `kamperhubv2` project** from Step 2, find your keys and
     *   Click "Generate new private key". A JSON file will download.
     *   Open the downloaded file, copy the **entire JSON content**, and paste it inside the single quotes for `GOOGLE_APPLICATION_CREDENTIALS_JSON`. **It must all be on one line.**
     *   **CRITICAL: The `project_id` field inside this JSON file must also match the `kamperhubv2` Project ID from Step 2.**
+
+3.  **Generative AI Key (`GOOGLE_API_KEY`)**
+    *   Go to the [Google Cloud Credentials page](https://console.cloud.google.com/apis/credentials) for your project.
+    *   You need an API key that is **NOT** restricted by "HTTP referrers". Requests from the server have no referrer and will be blocked by that restriction type.
+    *   From your screenshot, keys like **"Generative Language API Key"** or **"GenAI Key"** are good candidates. The key named **"KamperHub V2 key" is incorrect** for this purpose.
+    *   Click "Show key" next to a suitable, unrestricted key. Copy it.
+    *   Paste the key into the `GOOGLE_API_KEY` variable in your `.env.local` file.
+    *   **If you create a new key**, under "Application restrictions", select **"None"**. Do **NOT** select "HTTP referrers".
 
 ---
 
