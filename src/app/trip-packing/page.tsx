@@ -359,7 +359,7 @@ export default function TripPackingPage() {
        packingListError ? <Alert variant="destructive"><AlertTitle>Error Loading List</AlertTitle><AlertDescription>{packingListError.message}</AlertDescription></Alert> :
        selectedTripId && packingList.length > 0 ? (
         <Card>
-          <CardHeader><CardTitle>4. Your Master Packing List</CardTitle><CardDescription>Check off items as you pack. Changes are saved automatically.</CardDescription></CardHeader>
+          <CardHeader><CardTitle>Your Master Packing List</CardTitle><CardDescription>Check off items as you pack. Changes are saved automatically.</CardDescription></CardHeader>
           <CardContent>
                 <Accordion type="multiple" defaultValue={packingList.map(c => c.id)} className="w-full">
                 {packingList.map(category => (<AccordionItem value={category.id} key={category.id}><AccordionTrigger className="font-headline text-lg">{category.name}</AccordionTrigger>
@@ -372,7 +372,7 @@ export default function TripPackingPage() {
       
       <Card>
         <CardHeader>
-            <CardTitle className="flex items-center"><Sparkles className="mr-2 h-5 w-5"/>5. Personalize & Share</CardTitle>
+            <CardTitle className="flex items-center"><Sparkles className="mr-2 h-5 w-5"/>4. Personalize & Share</CardTitle>
             <CardDescription>Creates individual packing lists for each passenger. You can then optionally send them to Google Tasks.</CardDescription>
         </CardHeader>
         <CardContent>
