@@ -86,10 +86,7 @@ export default function TripPackingPage() {
 
   const updateListMutation = useMutation({
     mutationFn: (newList: PackingListCategory[]) => updatePackingList({ tripId: selectedTripId!, list: newList }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['packingList', selectedTripId] });
-      // Don't toast on every small change, only on major actions.
-    },
+    // Individual onSuccess callbacks are handled in handleListChange for more specific feedback
     onError: (error: Error) => toast({ title: 'Save Failed', description: error.message, variant: 'destructive' }),
   });
 
@@ -221,59 +218,6 @@ export default function TripPackingPage() {
     weatherSuggestMutation.mutate({ destination: selectedTrip.endLocationDisplay, tripMonth, durationInDays });
   };
   
-  const handleAddSuggestedItem = (itemToAdd: { itemName: string; notes?: string }) => {
-    const categoryName = "Weather Suggested";
-    const newList = [...packingList];
-    let category = newList.find(c => c.name === categoryName);
-    const newItem: PackingListItem = {
-      id: `item_weather_${Date.now()}`, name: itemToAdd.itemName, quantity: 1, packed: false, notes: itemToAdd.notes,
-    };
-    if (category) {
-      if (!category.items.some(i => i.name.toLowerCase() === newItem.name.toLowerCase())) {
-        category.items.push(newItem);
-      } else {
-        toast({ title: "Item already exists", description: `"${itemToAdd.itemName}" is already in your list.` });
-        return;
-      }
-    } else {
-      newList.push({ id: `cat_weather_${Date.now()}`, name: categoryName, items: [newItem] });
-    }
-    handleListChange(newList);
-    toast({ title: "Item Added", description: `"${itemToAdd.itemName}" was added to your list.` });
-  };
-
-  const handleListChange = useCallback((newList: PackingListCategory[]) => {
-    updateListMutation.mutate(newList);
-  }, [updateListMutation]);
-
-  const handleTogglePacked = (categoryId: string, itemId: string) => {
-    const newList = packingList.map(c => c.id === categoryId ? { ...c, items: c.items.map(i => i.id === itemId ? { ...i, packed: !i.packed } : i) } : c);
-    handleListChange(newList);
-  };
-
-  const handleUpdateItem = (categoryId: string, updatedItem: PackingListItem) => {
-    const newList = packingList.map(c => c.id === categoryId ? { ...c, items: c.items.map(i => i.id === updatedItem.id ? updatedItem : i) } : c);
-    handleListChange(newList);
-    setEditingItemState(null);
-  };
-
-  const handleDeleteItem = (categoryId: string, itemId: string) => {
-    if (window.confirm("Are you sure?")) {
-      const newList = packingList.map(c => c.id === categoryId ? { ...c, items: c.items.filter(i => i.id !== itemId) } : c).filter(c => c.items.length > 0);
-      handleListChange(newList);
-    }
-  };
-  
-  const handleAddItem = (categoryId: string) => {
-    const newItem: PackingListItem = { id: `item_manual_${Date.now()}`, name: 'New Item', quantity: 1, packed: false, notes: '' };
-    const newList = packingList.map(c => c.id === categoryId ? { ...c, items: [...c.items, newItem] } : c);
-    handleListChange(newList);
-  };
-
-  const handleActivityChange = (activity: string) => {
-    setSelectedActivities(prev => prev.includes(activity) ? prev.filter(a => a !== activity) : [...prev, activity]);
-  };
-
   const handleAddToCalendar = useCallback((trip: LoggedTrip) => {
     if (!trip.plannedStartDate) {
       toast({
@@ -309,6 +253,45 @@ export default function TripPackingPage() {
     window.open(calendarUrl, '_blank');
     toast({ title: "Opening Google Calendar", description: "Check the new tab to add the event."});
   }, [toast]);
+  
+  const handleListChange = useCallback((newList: PackingListCategory[], successMessage?: { title: string, description: string }) => {
+    updateListMutation.mutate(newList, {
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['packingList', selectedTripId] });
+            if (successMessage) {
+                toast(successMessage);
+            }
+        }
+    });
+  }, [updateListMutation, queryClient, selectedTripId, toast]);
+
+  const handleTogglePacked = (categoryId: string, itemId: string) => {
+    const newList = packingList.map(c => c.id === categoryId ? { ...c, items: c.items.map(i => i.id === itemId ? { ...i, packed: !i.packed } : i) } : c);
+    handleListChange(newList);
+  };
+
+  const handleUpdateItem = (categoryId: string, updatedItem: PackingListItem) => {
+    const newList = packingList.map(c => c.id === categoryId ? { ...c, items: c.items.map(i => i.id === updatedItem.id ? updatedItem : i) } : c);
+    handleListChange(newList, { title: "Item Updated", description: `"${updatedItem.name}" has been updated.` });
+    setEditingItemState(null);
+  };
+
+  const handleDeleteItem = (categoryId: string, itemId: string) => {
+    if (window.confirm("Are you sure?")) {
+      const newList = packingList.map(c => c.id === categoryId ? { ...c, items: c.items.filter(i => i.id !== itemId) } : c).filter(c => c.items.length > 0);
+      handleListChange(newList, { title: "Item Deleted", description: "The item has been removed from your list." });
+    }
+  };
+  
+  const handleAddItem = (categoryId: string) => {
+    const newItem: PackingListItem = { id: `item_manual_${Date.now()}`, name: 'New Item', quantity: 1, packed: false, notes: '' };
+    const newList = packingList.map(c => c.id === categoryId ? { ...c, items: [...c.items, newItem] } : c);
+    handleListChange(newList, { title: "Item Added", description: "A new item was added to your list." });
+  };
+
+  const handleActivityChange = (activity: string) => {
+    setSelectedActivities(prev => prev.includes(activity) ? prev.filter(a => a !== activity) : [...prev, activity]);
+  };
   
   const anyMutationLoading = generateListMutation.isPending || updateListMutation.isPending || deleteListMutation.isPending || weatherSuggestMutation.isPending || personalizeListMutation.isPending;
 
@@ -359,12 +342,15 @@ export default function TripPackingPage() {
        packingListError ? <Alert variant="destructive"><AlertTitle>Error Loading List</AlertTitle><AlertDescription>{packingListError.message}</AlertDescription></Alert> :
        selectedTripId && packingList.length > 0 ? (
         <Card>
-          <CardHeader><CardTitle>Your Master Packing List</CardTitle><CardDescription>Check off items as you pack. Changes are saved automatically.</CardDescription></CardHeader>
+          <CardHeader>
+            <CardTitle>Your Master Packing List</CardTitle>
+            <CardDescription>Check off items as you pack. Adds, edits, and deletions are saved automatically.</CardDescription>
+          </CardHeader>
           <CardContent>
-                <Accordion type="multiple" defaultValue={packingList.map(c => c.id)} className="w-full">
-                {packingList.map(category => (<AccordionItem value={category.id} key={category.id}><AccordionTrigger className="font-headline text-lg">{category.name}</AccordionTrigger>
-                    <AccordionContent className="space-y-2">{category.items.map(item => (<div key={item.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50"><div className="flex items-center gap-3"><Checkbox id={item.id} checked={item.packed} onCheckedChange={() => handleTogglePacked(category.id, item.id)} disabled={anyMutationLoading}/><div className="grid gap-0.5"><Label htmlFor={item.id} className={`text-base ${item.packed ? 'line-through text-muted-foreground' : ''}`}>{item.name} <span className="text-muted-foreground">({item.quantity})</span></Label>{item.notes && <p className="text-xs text-muted-foreground">{item.notes}</p>}</div></div><div className="flex items-center"><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingItemState({ categoryId: category.id, item })} disabled={anyMutationLoading}><Edit3 className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteItem(category.id, item.id)} disabled={anyMutationLoading}><Trash2 className="h-4 w-4 text-destructive" /></Button></div></div>))}<Button variant="outline" size="sm" className="mt-2" onClick={() => handleAddItem(category.id)} disabled={anyMutationLoading}><PlusCircle className="mr-2 h-4 w-4"/>Add Item</Button></AccordionContent></AccordionItem>))}
-                </Accordion>
+            <Accordion type="multiple" defaultValue={packingList.map(c => c.id)} className="w-full">
+            {packingList.map(category => (<AccordionItem value={category.id} key={category.id}><AccordionTrigger className="font-headline text-lg">{category.name}</AccordionTrigger>
+                <AccordionContent className="space-y-2">{category.items.map(item => (<div key={item.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50"><div className="flex items-center gap-3"><Checkbox id={item.id} checked={item.packed} onCheckedChange={() => handleTogglePacked(category.id, item.id)} disabled={anyMutationLoading}/><div className="grid gap-0.5"><Label htmlFor={item.id} className={`text-base ${item.packed ? 'line-through text-muted-foreground' : ''}`}>{item.name} <span className="text-muted-foreground">({item.quantity})</span></Label>{item.notes && <p className="text-xs text-muted-foreground">{item.notes}</p>}</div></div><div className="flex items-center"><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingItemState({ categoryId: category.id, item })} disabled={anyMutationLoading}><Edit3 className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteItem(category.id, item.id)} disabled={anyMutationLoading}><Trash2 className="h-4 w-4 text-destructive" /></Button></div></div>))}<Button variant="outline" size="sm" className="mt-2" onClick={() => handleAddItem(category.id)} disabled={anyMutationLoading}><PlusCircle className="mr-2 h-4 w-4"/>Add Item</Button></AccordionContent></AccordionItem>))}
+            </Accordion>
           </CardContent>
         </Card>
        ) : null
