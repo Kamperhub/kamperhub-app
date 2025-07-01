@@ -96,31 +96,13 @@ const packingListGeneratorFlow = ai.defineFlow(
     try {
       const {output} = await prompt(input);
       if (!output) {
-        throw new Error('The AI returned an empty response. This can sometimes happen, please try again.');
+        throw new Error('The AI returned an empty or invalid response.');
       }
       return output;
     } catch (error: any) {
       console.error("Error in packingListGeneratorFlow:", error);
-      
-      let errorMessageForUser = error.message || "An unknown error occurred while contacting the AI service.";
-      const errorMessage = (error.message || '').toLowerCase();
-      const causeStatus = error.cause && typeof error.cause === 'object' && 'status' in error.cause ? error.cause.status : null;
-      
-      if (errorMessage.includes("service unavailable") || errorMessage.includes("overloaded") || errorMessage.includes("model is overloaded") || causeStatus === 503) {
-        errorMessageForUser = "The AI service is currently experiencing high demand or is temporarily unavailable. Please try again in a few moments.";
-      } else if (errorMessage.includes("429") || errorMessage.includes("quota") || errorMessage.includes("rate limit") || causeStatus === 429) {
-        errorMessageForUser = "The AI service has reached its usage limit for the current period. Please try again later.";
-      } else if (errorMessage.includes("api key not valid") || causeStatus === 401 || causeStatus === 403) {
-          if (errorMessage.includes("httpreferrer") || errorMessage.includes("referer")) {
-              errorMessageForUser = "API Key Error: Your API key is restricted by HTTP Referer. Requests from this environment are being blocked. Please check your Google Cloud Console API key settings and either remove the HTTP Referer restriction or add your development domain to the allowed list.";
-          } else {
-              errorMessageForUser = "There is an issue with the AI service configuration (e.g., API key not valid or permission denied). Please check the key and its permissions in your Google Cloud Console.";
-          }
-      } else if (errorMessage.includes("failed to parse schema") || errorMessage.includes("output_schema")) {
-        errorMessageForUser = "The AI returned a response in an unexpected format. This can sometimes happen, please try again.";
-      }
-      
-      throw new Error(errorMessageForUser);
+      // Simplify error handling to expose the root cause for debugging.
+      throw new Error(`AI Service Error: ${error.message || 'An unknown error occurred.'}`);
     }
   }
 );
