@@ -23,6 +23,7 @@ const PackingListGeneratorInputSchema = z.object({
   returnDate: z.string().describe("The trip return date in YYYY-MM-DD format."),
   activities: z.string().optional().describe('A brief, comma-separated list of planned activities, like "sightseeing, hiking, fine dining, swimming".'),
   travelers: z.array(TravelerSchema).min(1).describe("An array of all individuals and pets going on the trip."),
+  weatherSummary: z.string().optional().describe('A summary of the expected weather conditions for the trip.'),
 });
 export type PackingListGeneratorInput = z.infer<typeof PackingListGeneratorInputSchema>;
 
@@ -59,6 +60,9 @@ const prompt = ai.definePrompt({
 *   **Departure Date:** {{{departureDate}}}
 *   **Return Date:** {{{returnDate}}}
 *   **Planned Activities:** {{{activities}}}
+{{#if weatherSummary}}
+*   **Weather Context:** {{{weatherSummary}}}
+{{/if}}
 *   **Travelers:**
 {{#each travelers}}
     - {{this.type}} ({{this.name}})
@@ -67,7 +71,7 @@ const prompt = ai.definePrompt({
 {{/each}}
 
 **Instructions:**
-1.  **Assess Conditions:** Based on the **Destination** and **Dates**, determine the likely weather and environment.
+1.  **Assess Conditions:** Based on the **Destination**, **Dates**, and any provided **Weather Context**, determine the likely weather and environment.
 2.  **Consolidate Needs:** Consider all **Travelers** and **Activities** to create a single, unified packing list for the entire group. Do NOT break the list down per traveler.
 3.  **Categorize Items:** Logically group all items into clear categories like 'Clothing', 'Toiletries', 'Documents & Money', 'Electronics', 'Health & Safety', 'Shared Gear', 'Pet Supplies', etc.
 4.  **Specify Quantities:** Where appropriate, include quantities in the item name (e.g., "4x T-shirts", "2x Pairs of socks per person").
@@ -98,10 +102,7 @@ const packingListGeneratorFlow = ai.defineFlow(
     } catch (error: any) {
       console.error("Error in packingListGeneratorFlow:", error);
       
-      // Default to the original error message if it exists.
       let errorMessageForUser = error.message || "An unknown error occurred while contacting the AI service.";
-
-      // Try to provide a more user-friendly message for common, identifiable issues.
       const errorMessage = (error.message || '').toLowerCase();
       const causeStatus = error.cause && typeof error.cause === 'object' && 'status' in error.cause ? error.cause.status : null;
       

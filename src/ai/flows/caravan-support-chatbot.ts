@@ -276,8 +276,6 @@ export async function caravanSupportChatbot(
   input: CaravanSupportChatbotInput,
   userId: string,
 ): Promise<CaravanSupportChatbotOutput> {
-  // Directly call the flow without the extra check layer.
-  // Errors from initialization will now be handled at a higher level.
   return caravanSupportChatbotFlow({ ...input, userId });
 }
 
@@ -326,42 +324,34 @@ const caravanSupportChatbotFlow = ai.defineFlow(
   },
   async (input): Promise<CaravanSupportChatbotOutput> => {
     try {
-      const {output, usage} = await prompt(input); // Include usage for detailed logging
-      
+      const {output} = await prompt(input);
       if (!output) {
-        console.warn('CaravanSupportChatbotFlow: AI model returned null output. This might be due to schema mismatch or other non-fatal errors from the model.');
         return { 
-          answer: "I'm sorry, I had trouble generating a response in the expected format. Could you try rephrasing your question?", 
+          answer: "I'm sorry, I had trouble generating a response. Could you try rephrasing your question?", 
           youtubeLink: null,
           relatedArticleTitle: null,
         };
       }
-      
-      return {
-        answer: output.answer || "I'm not sure how to respond to that. Can you try asking differently?", // Fallback if answer is empty
-        youtubeLink: output.youtubeLink || null,
-        relatedArticleTitle: output.relatedArticleTitle || null,
-      };
+      return output;
     } catch (error: any) {
-      console.error("Error in caravanSupportChatbotFlow calling prompt:", error);
+      console.error("Error in caravanSupportChatbotFlow:", error);
 
       let answer = "An unexpected error occurred while communicating with the AI assistant. Please try again later.";
-      if (error.message) {
-        const errorMessage = error.message.toLowerCase();
-        const causeStatus = error.cause && typeof error.cause === 'object' && 'status' in error.cause ? error.cause.status : null;
-        if (errorMessage.includes("service unavailable") || errorMessage.includes("overloaded") || errorMessage.includes("model is overloaded") || causeStatus === 503 ) {
-          answer = "The AI assistant is currently experiencing high demand or is temporarily unavailable. Please try again in a few moments.";
-        } else if (errorMessage.includes("429") || errorMessage.includes("quota") || errorMessage.includes("rate limit") || causeStatus === 429) {
-          answer = "The AI assistant has hit a usage limit for the current period. Please try again later. If this issue persists, please check API plan details.";
-        } else if (errorMessage.includes("api key not valid") || causeStatus === 401 || causeStatus === 403){
-            if (errorMessage.includes("httpreferrer") || errorMessage.includes("referer")) {
-                answer = "API Key Error: Your API key seems to be restricted by HTTP Referer. Requests from this environment are being blocked. Please check your API key settings in your Google Cloud Console and either remove the HTTP Referer restriction or add your development domain to the allowed list.";
-            } else {
-                answer = "There seems to be an issue with the AI service configuration (e.g. API key not valid or permission denied). Please check the key and its permissions in your Google Cloud Console.";
-            }
-        } else if (errorMessage.includes("failed to parse schema") || errorMessage.includes("output_schema")) {
-           answer = "I had a little trouble formatting my thoughts. Could you try asking in a slightly different way?";
-        }
+      const errorMessage = (error.message || '').toLowerCase();
+      const causeStatus = error.cause && typeof error.cause === 'object' && 'status' in error.cause ? error.cause.status : null;
+      
+      if (errorMessage.includes("service unavailable") || errorMessage.includes("overloaded") || errorMessage.includes("model is overloaded") || causeStatus === 503 ) {
+        answer = "The AI assistant is currently experiencing high demand or is temporarily unavailable. Please try again in a few moments.";
+      } else if (errorMessage.includes("429") || errorMessage.includes("quota") || errorMessage.includes("rate limit") || causeStatus === 429) {
+        answer = "The AI assistant has hit a usage limit for the current period. Please try again later. If this issue persists, please check API plan details.";
+      } else if (errorMessage.includes("api key not valid") || causeStatus === 401 || causeStatus === 403){
+          if (errorMessage.includes("httpreferrer") || errorMessage.includes("referer")) {
+              answer = "API Key Error: Your API key seems to be restricted by HTTP Referer. Requests from this environment are being blocked. Please check your API key settings in your Google Cloud Console and either remove the HTTP Referer restriction or add your development domain to the allowed list.";
+          } else {
+              answer = "There seems to be an issue with the AI service configuration (e.g. API key not valid or permission denied). Please check the key and its permissions in your Google Cloud Console.";
+          }
+      } else if (errorMessage.includes("failed to parse schema") || errorMessage.includes("output_schema")) {
+         answer = "I had a little trouble formatting my thoughts. Could you try asking in a slightly different way?";
       }
       
       return { 

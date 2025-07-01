@@ -88,10 +88,7 @@ const articleGeneratorFlow = ai.defineFlow(
     } catch (error: any) {
       console.error("Error in articleGeneratorFlow:", error);
       
-      // Default to the original error message if it exists.
       let errorMessageForUser = error.message || "An unknown error occurred while contacting the AI service.";
-
-      // Try to provide a more user-friendly message for common, identifiable issues.
       const errorMessage = (error.message || '').toLowerCase();
       const causeStatus = error.cause && typeof error.cause === 'object' && 'status' in error.cause ? error.cause.status : null;
       

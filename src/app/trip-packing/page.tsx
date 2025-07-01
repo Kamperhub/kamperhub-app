@@ -86,7 +86,6 @@ export default function TripPackingPage() {
 
   const updateListMutation = useMutation({
     mutationFn: (newList: PackingListCategory[]) => updatePackingList({ tripId: selectedTripId!, list: newList }),
-    // Individual onSuccess callbacks are handled in handleListChange for more specific feedback
     onError: (error: Error) => toast({ title: 'Save Failed', description: error.message, variant: 'destructive' }),
   });
 
@@ -172,6 +171,7 @@ export default function TripPackingPage() {
       returnDate: format(parseISO(selectedTrip.plannedEndDate), 'yyyy-MM-dd'),
       travelers: travelers,
       activities: selectedActivities.join(', ') || 'General touring and relaxation',
+      weatherSummary: weatherSuggestions?.weatherSummary,
     };
     generateListMutation.mutate(aiInput);
   };
@@ -330,8 +330,33 @@ export default function TripPackingPage() {
           <div className="space-y-4">{activityOptions.map(group => (<div key={group.category}><h4 className="font-semibold mb-2">{group.category}</h4><div className="grid grid-cols-2 sm:grid-cols-3 gap-2">{group.activities.map(activity => (<div key={activity} className="flex items-center space-x-2"><Checkbox id={`activity-${activity.replace(/\s+/g, '-')}`} checked={selectedActivities.includes(activity)} onCheckedChange={() => handleActivityChange(activity)}/><Label htmlFor={`activity-${activity.replace(/\s+/g, '-')}`} className="text-sm font-normal cursor-pointer">{activity}</Label></div>))}</div></div>))}</div>
         </CardContent>
       </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center"><CloudRainWind className="mr-2 h-5 w-5 text-primary"/>3. Get Weather Suggestions (Optional)</CardTitle>
+          <CardDescription>Get AI-powered suggestions based on typical weather for your destination and travel month.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={handleGetWeatherSuggestions} disabled={!selectedTripId || anyMutationLoading} variant="outline">
+            {weatherSuggestMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4" />}
+            Get Weather Suggestions
+          </Button>
+          {weatherSuggestions && (
+            <Alert className="mt-4">
+              <AlertTitle className="font-headline">{weatherSuggestions.weatherSummary}</AlertTitle>
+              <AlertDescription>
+                <ul className="list-disc pl-5 mt-2 space-y-1">
+                  {weatherSuggestions.suggestedItems.map(item => (
+                    <li key={item.itemName}><strong>{item.itemName}:</strong> {item.notes}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
 
-      <Card><CardHeader><CardTitle className="flex items-center"><Wand2 className="mr-2 h-5 w-5"/>3. Generate Master List</CardTitle><CardDescription>Uses all trip info to generate a comprehensive list for everyone.</CardDescription></CardHeader>
+      <Card><CardHeader><CardTitle className="flex items-center"><Wand2 className="mr-2 h-5 w-5"/>4. Generate Master List</CardTitle><CardDescription>Uses all trip info to generate a comprehensive list for everyone.</CardDescription></CardHeader>
         <CardContent className="flex gap-4 items-center">
             <Button onClick={handleGenerateList} disabled={!selectedTripId || anyMutationLoading}><Wand2 className="mr-2 h-4 w-4" />Generate List</Button>
             {packingList.length > 0 && <Button onClick={handleClearAndRegenerate} variant="destructive" disabled={anyMutationLoading}><RefreshCw className="mr-2 h-4 w-4" />Clear & Regenerate</Button>}
@@ -358,7 +383,7 @@ export default function TripPackingPage() {
       
       <Card>
         <CardHeader>
-            <CardTitle className="flex items-center"><Sparkles className="mr-2 h-5 w-5"/>4. Personalize & Share</CardTitle>
+            <CardTitle className="flex items-center"><Sparkles className="mr-2 h-5 w-5"/>5. Personalize & Share</CardTitle>
             <CardDescription>Creates individual packing lists for each passenger. You can then optionally send them to Google Tasks.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -374,7 +399,6 @@ export default function TripPackingPage() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              {/* Wrap button in a div to allow tooltip to show on disabled button */}
                               <div>
                                 <Button 
                                   size="sm"
