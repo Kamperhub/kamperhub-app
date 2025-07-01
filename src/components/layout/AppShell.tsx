@@ -37,8 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex flex-col min-h-screen">
         <Header />
         <main className="flex-grow container mx-auto px-4 py-8 pb-24 sm:pb-8">
-          <AuthGuard>
-            {apiKey ? (
+           {apiKey ? (
               <APIProvider 
                 apiKey={apiKey} 
                 solutionChannel="GMP_visgl_rgm_reactfirebase_v1"
@@ -49,7 +48,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ) : (
               children 
             )}
-          </AuthGuard>
         </main>
         <BottomNavigation />
       </div>
