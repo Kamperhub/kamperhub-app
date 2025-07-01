@@ -27,6 +27,14 @@ export interface UserProfile {
   dashboardLayout?: string[] | null;
   caravanWaterLevels?: Record<string, Record<string, number>> | null; // { [caravanId]: { [tankId]: level } }
   caravanDefaultChecklists?: Record<string, CaravanDefaultChecklistSet> | null; // { [caravanId]: ChecklistSet }
+  
+  // New field for storing Google API credentials
+  googleAuth?: {
+    accessToken: string;
+    refreshToken: string; // Very sensitive, store securely
+    expiryDate: number; // Unix timestamp for access token expiry
+    scopes: string[];
+  } | null;
 }
 
 // This interface was for the old mock system.

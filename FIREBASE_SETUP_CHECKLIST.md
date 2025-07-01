@@ -36,6 +36,10 @@ All your secret keys will live in a special file that is NOT committed to versio
     STRIPE_SECRET_KEY="sk_test_..."
     STRIPE_WEBHOOK_SECRET="whsec_..."
     STRIPE_PRO_PRICE_ID="price_..."
+    
+    # Google API Configuration (for Google Tasks, etc.)
+    GOOGLE_CLIENT_ID="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+    GOOGLE_CLIENT_SECRET="YOUR_GOOGLE_CLIENT_SECRET"
     ```
 
 ---

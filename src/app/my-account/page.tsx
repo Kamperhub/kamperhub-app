@@ -15,7 +15,7 @@ import { format, isAfter, parseISO } from 'date-fns';
 import type { UserProfile } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, UserCog, AlertTriangle, RotateCw, Clock, Sparkles } from 'lucide-react';
+import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, UserCog, AlertTriangle, RotateCw, Clock, Sparkles, Link as LinkIcon, Check } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -259,6 +259,7 @@ export default function MyAccountPage() {
   
   const fullName = [userProfile?.firstName, userProfile?.lastName].filter(Boolean).join(' ');
   const welcomeName = fullName || userProfile?.displayName || user.displayName || 'User';
+  const isGoogleTasksConnected = !!userProfile?.googleAuth?.refreshToken;
 
   return (
     <div className="space-y-8">
@@ -324,6 +325,29 @@ export default function MyAccountPage() {
                 <Globe className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
                 <strong>Country:</strong>&nbsp;{userProfile?.country || '[Not Provided]'}
             </p>
+          </div>
+
+          <div className="p-4 border rounded-md bg-muted/30">
+            <h3 className="text-lg font-headline text-foreground mb-2">Integrations</h3>
+              {isGoogleTasksConnected ? (
+                 <Alert variant="default" className="bg-green-100 border-green-300">
+                    <Check className="h-4 w-4 text-green-700"/>
+                    <AlertTitle className="font-headline text-green-800">Google Tasks Connected</AlertTitle>
+                    <AlertDescription className="text-green-700">
+                      KamperHub is authorized to create packing lists in your Google Tasks. You can revoke access at any time from your Google Account security settings.
+                    </AlertDescription>
+                </Alert>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm font-body">Connect KamperHub to other services to enhance your experience.</p>
+                  <Button asChild className="w-full sm:w-auto" variant="outline">
+                      <a href="/api/auth/google/connect" onClick={handleNavigation}>
+                          <LinkIcon className="mr-2 h-4 w-4"/> Connect Google Tasks
+                      </a>
+                  </Button>
+                   <p className="text-xs text-muted-foreground font-body">This will allow KamperHub to create packing lists as tasks in your Google account.</p>
+                </div>
+              )}
           </div>
 
           <div className="p-4 border rounded-md bg-muted/30">
