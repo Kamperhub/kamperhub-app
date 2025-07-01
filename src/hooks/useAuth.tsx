@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Failsafe timeout for auth state resolution
     const authTimeout = setTimeout(() => {
-      if (authStatusRef.current === 'LOADING') {
+      if (authStatusRef.current === 'LOADING' || authStatusRef.current === 'AWAITING_PROFILE') {
         console.error("Auth state listener timed out after 10 seconds.");
         setAuthStatus('ERROR');
         setProfileError("Authentication timed out. This could be due to a network issue or a problem with the Firebase configuration. Please check your browser's console for more details and verify your project setup.");
