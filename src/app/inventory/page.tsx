@@ -92,7 +92,7 @@ export default function InventoryPage() {
     } else if (activeCaravan) {
       text += ` Using specs for your ${activeCaravan.year} ${activeCaravan.make} ${activeCaravan.model}. Select an active tow vehicle in 'Vehicles' for full compliance checks.`;
     } else if (activeVehicle) {
-      text += ` Current tow vehicle: ${activeVehicle.year} ${activeVehicle.make} ${activeVehicle.model}. Set an active caravan for accurate calculations.`;
+       text += ` Current tow vehicle: ${activeVehicle.year} ${activeVehicle.make} ${activeVehicle.model}. Set an active caravan for accurate calculations.`;
     } else {
        text += " Please set an active caravan and tow vehicle in 'Vehicles' for accurate weight management. Current calculations use default zero values.";
     }
