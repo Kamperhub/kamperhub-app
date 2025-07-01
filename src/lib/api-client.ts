@@ -92,13 +92,6 @@ export const createCaravan = (data: CaravanFormData): Promise<StoredCaravan> => 
 export const updateCaravan = (data: StoredCaravan): Promise<{ caravan: StoredCaravan }> => apiFetch('/api/caravans', { method: 'PUT', body: JSON.stringify(data) });
 export const deleteCaravan = (id: string): Promise<{ message: string }> => apiFetch('/api/caravans', { method: 'DELETE', body: JSON.stringify({ id }) });
 
-// ---- WDH API (Obsolete - kept for reference if needed, but should not be used) ----
-export const fetchWdhs = async (): Promise<any[]> => { console.warn("fetchWdhs is obsolete."); return Promise.resolve([]); };
-export const createWdh = async (data: any): Promise<any> => { console.warn("createWdh is obsolete."); return Promise.reject(new Error("Obsolete")); };
-export const updateWdh = async (data: any): Promise<any> => { console.warn("updateWdh is obsolete."); return Promise.reject(new Error("Obsolete")); };
-export const deleteWdh = async (id: string): Promise<any> => { console.warn("deleteWdh is obsolete."); return Promise.reject(new Error("Obsolete")); };
-
-
 // ---- Inventory API Functions ----
 export const fetchInventory = (caravanId: string): Promise<{ items: InventoryItem[] }> => apiFetch(`/api/inventory/${caravanId}`);
 export const updateInventory = (payload: { caravanId: string; items: InventoryItem[] }): Promise<{ items: InventoryItem[] }> => apiFetch(`/api/inventory/${payload.caravanId}`, { method: 'PUT', body: JSON.stringify(payload.items) });
