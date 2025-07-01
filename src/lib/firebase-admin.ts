@@ -1,8 +1,6 @@
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 
-// This function safely initializes the Firebase Admin SDK.
-// It ensures that initialization only happens once.
 export function getFirebaseAdmin() {
   const app = admin.apps.length > 0 && admin.apps[0] ? admin.apps[0] : undefined;
 
@@ -21,7 +19,6 @@ export function getFirebaseAdmin() {
       throw new Error("FATAL: GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is not set. The server cannot connect to Firebase services.");
     }
 
-    // Safely trim and remove quotes from the env variable string before parsing.
     let jsonString = serviceAccountJsonString.trim();
     if ((jsonString.startsWith("'") && jsonString.endsWith("'")) || (jsonString.startsWith('"') && jsonString.endsWith('"'))) {
         jsonString = jsonString.substring(1, jsonString.length - 1);
