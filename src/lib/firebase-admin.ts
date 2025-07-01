@@ -9,7 +9,7 @@ export function getFirebaseAdmin() {
   if (app) {
     return {
       auth: admin.auth(app),
-      firestore: getFirestore(app),
+      firestore: getFirestore(app, 'kamperhubv2'),
       error: null
     };
   }
@@ -41,7 +41,7 @@ export function getFirebaseAdmin() {
 
     return {
       auth: admin.auth(newApp),
-      firestore: getFirestore(newApp),
+      firestore: getFirestore(newApp, 'kamperhubv2'),
       error: null
     };
 
