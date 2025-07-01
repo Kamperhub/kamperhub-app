@@ -112,7 +112,8 @@ export async function GET(req: NextRequest) {
     let errorInfo = 'Failed to process user preferences on the server.';
     let errorDetails = err.message;
 
-    if (err.code === 5 || err.message.toLowerCase().includes('not_found')) {
+    // Check for Firestore "database not found" error (code 5)
+    if (err.code === 5 || (err.message && err.message.toLowerCase().includes('not_found'))) {
         errorInfo = `Database Not Found or Inaccessible`;
         errorDetails = `The server connected to Firebase but could not find the Firestore database. This usually means the database has not been created in the Firebase console for this project. Please go to the Firebase Console, select your project, and ensure you have created a Firestore Database. Refer to Step 6 in FIREBASE_SETUP_CHECKLIST.md.`;
     }
