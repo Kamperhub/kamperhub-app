@@ -7,7 +7,6 @@ import { Header } from './Header';
 import { BottomNavigation } from './BottomNavigation';
 import { APIProvider } from '@vis.gl/react-google-maps';
 import { Loader2 } from 'lucide-react';
-import { AuthGuard } from './AuthGuard';
 
 interface NavigationContextType {
   setIsNavigating: (isNavigating: boolean) => void;
