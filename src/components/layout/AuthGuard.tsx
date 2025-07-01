@@ -56,6 +56,7 @@ const ErrorScreen = ({ error }: { error: string | null }) => {
   const isConfigError = errorMessage.toLowerCase().includes('firebase client error');
   const isTimeoutError = errorMessage.toLowerCase().includes('authentication timed out');
   const isDbNotFoundError = errorMessage.toLowerCase().includes('database has not been created');
+  const isFailedToFetch = errorMessage.toLowerCase().includes('failed to fetch') || errorMessage.toLowerCase().includes('error reaching server');
 
 
   const renderAdvice = () => {
@@ -63,7 +64,7 @@ const ErrorScreen = ({ error }: { error: string | null }) => {
         return (
             <div className="mt-4 border-t border-red-400/30 pt-3 text-left font-body">
                 <p className="font-bold">This is an environment setup issue, not a code problem.</p>
-                <p>Please follow the updated instructions in <code className="bg-black/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code>, especially <strong>Step 6</strong>, which guides you to create the Firestore database in the Firebase Console.</p>
+                <p>Please follow the updated instructions in <code className="bg-black/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code>, especially <strong>Step 3</strong>, which guides you to create the Firestore database in the Firebase Console.</p>
             </div>
         );
     }
@@ -92,6 +93,15 @@ const ErrorScreen = ({ error }: { error: string | null }) => {
                     Please use the built-in diagnostic tool at <a href="/api/debug/env" target="_blank" rel="noopener noreferrer" className="underline font-bold">/api/debug/env</a> to see the exact server-side error, then follow the instructions in the <code className="bg-black/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file to fix your <code className="bg-black/20 px-1 rounded-sm">.env.local</code> file.
                 </p>
                  <p className="text-xs mt-2">Remember to restart your development server after any changes to <code className="bg-black/20 px-1 rounded-sm">.env.local</code>.</p>
+            </div>
+        )
+    }
+    if(isFailedToFetch) {
+        return (
+             <div className="mt-4 border-t border-red-400/30 pt-3 text-left font-body">
+                <p className="font-bold">This may be a server startup issue.</p>
+                <p>The application could not reach its backend services. This often happens if the server crashes during startup due to a configuration problem.</p>
+                <p className="mt-2">Please ensure you have followed all steps in the <code className="bg-black/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code>, especially creating the Firestore database.</p>
             </div>
         )
     }

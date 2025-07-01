@@ -2,7 +2,7 @@
 # Firebase & Backend Setup Checklist
 
 > [!CAUTION]
-> **This guide has been updated to use industry-standard environment variables.** This is the most secure and flexible way to manage your app's secret keys.
+> **This guide has been updated to use industry-standard environment variables and a safer setup order.** This is the most secure and flexible way to manage your app's secret keys and avoid common startup errors.
 
 ---
 
@@ -60,7 +60,23 @@ All your secret keys will live in a special file that is NOT committed to versio
 
 ---
 
-### Step 3: Populate Your Environment File
+### Step 3: CRITICAL - Ensure Firestore Database Exists
+
+The most common server error after a correct setup is `5 NOT_FOUND` or a server crash. This error means your backend code tried to connect to a Firestore database, but one has not been created in your project yet. You must do this manually.
+
+1.  Go to the [Firebase Console](https://console.firebase.google.com/) and select your project from Step 2.
+2.  In the left-hand navigation under "Build", click on **Firestore Database**.
+3.  If you see a large "Create database" button, **you must create one**.
+    *   Click **"Create database"**.
+    *   Choose **"Start in test mode"** (you can secure it later with `firestore.rules`).
+    *   Choose a location (e.g., `us-central` or one near you).
+    *   Click **Enable**.
+
+If a database already exists (you see "Data", "Rules", "Indexes" tabs), you can skip this step. This is a one-time setup for your project.
+
+---
+
+### Step 4: Populate Your Environment File
 
 Now, using the **correct `kamperhubv2` project** from Step 2, find your keys and paste them into the `.env.local` file.
 
@@ -78,7 +94,7 @@ Now, using the **correct `kamperhubv2` project** from Step 2, find your keys and
 
 ---
 
-### Step 4: CRITICAL - Restart Your Server
+### Step 5: CRITICAL - Restart Your Server
 
 After **ANY** change to your `.env.local` file, you **MUST** restart your development server. The server only reads this file when it first starts.
 
@@ -88,7 +104,7 @@ After **ANY** change to your `.env.local` file, you **MUST** restart your develo
 
 ---
 
-### Step 5: Verify Your Setup (Troubleshooting)
+### Step 6: Verify Your Setup (Troubleshooting)
 
 After restarting your server, you can use the built-in diagnostic tool to confirm everything is set up correctly.
 
@@ -96,23 +112,7 @@ After restarting your server, you can use the built-in diagnostic tool to confir
     `[YOUR_APP_URL]/api/debug/env` (e.g., http://localhost:8081/api/debug/env)
 2.  This will show a JSON response indicating the status of each required environment variable.
 3.  **Check `PROJECT_IDS_MATCH`**. If it says `"NO - MISMATCH DETECTED"`, it means the Project ID in your `GOOGLE_APPLICATION_CREDENTIALS_JSON` does not match your `NEXT_PUBLIC_FIREBASE_PROJECT_ID`. Go back to Step 2 and ensure you generated all keys from the same Firebase project.
-4.  **If `PROJECT_IDS_MATCH` is "Yes - OK" but you still have errors**, it means the configuration is correct, but your project is missing a required service. Proceed to Step 6.
-
----
-
-### Step 6: CRITICAL - Ensure Firestore Database Exists
-
-The most common server error after a correct setup is `5 NOT_FOUND`. This error means your environment variables are **correct**, but the Firestore database has not been created in your project yet. You must do this manually.
-
-1.  Go to the [Firebase Console](https://console.firebase.google.com/) and select your project.
-2.  In the left-hand navigation under "Build", click on **Firestore Database**.
-3.  If you see a large "Create database" button, **you must create one**.
-    *   Click **"Create database"**.
-    *   Choose **"Start in test mode"** (you can secure it later with `firestore.rules`).
-    *   Choose a location (e.g., `us-central` or one near you).
-    *   Click **Enable**.
-
-If a database already exists (you see "Data", "Rules", "Indexes" tabs), you can skip this step. This is a one-time setup for your project.
+4.  If everything looks good here but you still have errors, proceed to the next step.
 
 ---
 
