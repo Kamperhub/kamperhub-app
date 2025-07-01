@@ -4,9 +4,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, type AuthStatus } from '@/hooks/useAuth';
-import { Loader2, AlertTriangle, ShieldX } from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Button } from '../ui/button';
+import { Loader2, ShieldX } from 'lucide-react';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -26,84 +24,37 @@ const LoadingScreen = ({ status }: { status: AuthStatus }) => {
   );
 };
 
+// This component is intentionally simple to guarantee it can render even when the app is in a broken state.
+// It avoids complex components and hooks like useRouter or Button which might fail.
 const ErrorScreen = ({ error }: { error: string | null }) => {
-  const router = useRouter();
   const errorMessage = error || "An unknown error occurred.";
-
-  const handleGoToDebug = () => {
-    window.open('/api/debug/env', '_blank');
-  };
-  
-  const handleCreateAdmin = () => {
-    window.open('/api/debug/create-admin-user', '_blank');
-  };
-
-  const renderErrorDetails = () => {
-    if (errorMessage.includes("profile not found")) {
-      return (
-        <div className="mt-4 border-t border-destructive/20 pt-3">
-          <p className="font-bold">This is a common setup issue for new projects or users.</p>
-          <ul className="list-disc pl-5 mt-1 text-sm space-y-2">
-            <li>It means you're successfully authenticated with Firebase, but your user-specific data document doesn't exist in the Firestore database.</li>
-            {errorMessage.includes("admin") && (
-              <li>
-                Since you're the admin, you can fix this instantly. Click the button below to create your profile document.
-                <Button variant="outline" size="sm" className="w-full mt-2" onClick={handleCreateAdmin}>Create Admin User Profile</Button>
-              </li>
-            )}
-            <li>If you are not the admin, this indicates the signup process may have been interrupted. Please contact support.</li>
-          </ul>
-        </div>
-      );
-    }
-    if (errorMessage.includes("permission issue") || errorMessage.includes("permission denied") || errorMessage.includes("timed out")) {
-        return (
-             <div className="mt-4 border-t border-destructive/20 pt-3">
-                <p className="font-bold">This is likely a server configuration or permission issue.</p>
-                <ul className="list-disc pl-5 mt-1 text-sm space-y-2">
-                    <li>A timeout or permission error usually means the server is running but cannot access the database.</li>
-                    <li>
-                      Use the diagnostic tool to check your server's environment variables and ensure the Project IDs match.
-                      <Button variant="link" className="p-1 h-auto text-destructive-foreground" onClick={handleGoToDebug}>
-                        Open Debug Tool
-                      </Button>
-                    </li>
-                    <li>Check the <code className="font-mono text-xs bg-background/20 px-1 rounded">IAM & Admin</code> section of your Google Cloud Console and ensure the service account has the `Cloud Datastore User` or `Firebase Admin` role.</li>
-                    <li>Verify your `firestore.rules` are deployed and allow read access for authenticated users.</li>
-                </ul>
-            </div>
-        )
-    }
-    return (
-       <div className="mt-4 border-t border-destructive/20 pt-3">
-            <p className="font-bold">Next Steps:</p>
-            <ul className="list-disc pl-5 mt-1 text-sm">
-                <li>Ensure you have followed the <code className="font-mono text-xs bg-background/20 px-1 rounded">FIREBASE_SETUP_CHECKLIST.md</code> guide.</li>
-                <li>
-                  Use the diagnostic tool to check your server's environment variables.
-                  <Button variant="link" className="p-1 h-auto text-destructive-foreground" onClick={handleGoToDebug}>
-                    Open Debug Tool
-                  </Button>
-                </li>
-                 <li>If the issue persists, check your browser console and server logs for more details.</li>
-            </ul>
-        </div>
-    );
-  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-4">
-        <Alert variant="destructive" className="max-w-2xl text-left">
-            <ShieldX className="h-4 w-4" />
-            <AlertTitle className="font-headline">Access Denied or Application Error</AlertTitle>
-            <AlertDescription className="font-body mt-2 space-y-3">
-                <p>The application failed to initialize correctly. This is often due to a configuration issue.</p>
-                <pre className="mt-2 text-xs bg-destructive-foreground/10 p-2 rounded-md font-mono whitespace-pre-wrap">
-                      {errorMessage}
-                </pre>
-                {renderErrorDetails()}
-            </AlertDescription>
-        </Alert>
+      <div className="max-w-2xl w-full border border-destructive bg-destructive/10 text-destructive-foreground p-6 rounded-lg">
+        <h1 className="text-xl font-bold font-headline flex items-center justify-center">
+          <ShieldX className="h-6 w-6 mr-3" />
+          Access Denied or Application Error
+        </h1>
+        <p className="mt-2 font-body">The application failed to initialize correctly. This is often due to a configuration issue.</p>
+        <pre className="mt-4 text-xs bg-black/20 p-3 rounded-md font-mono whitespace-pre-wrap text-left">
+          {errorMessage}
+        </pre>
+        {errorMessage.includes('profile not found') && errorMessage.includes('admin') && (
+           <div className="mt-4 border-t border-destructive/20 pt-3 text-left font-body">
+             <p className="font-bold">Action Required:</p>
+             <p>As the admin, your profile doesn't exist in the database yet. Please use the one-time tool to create it.</p>
+             <a 
+               href="/api/debug/create-admin-user" 
+               target="_blank" 
+               rel="noopener noreferrer" 
+               className="inline-block mt-2 bg-background text-foreground py-2 px-4 rounded-md hover:bg-background/80 font-semibold"
+             >
+               Create Admin Profile
+             </a>
+           </div>
+        )}
+      </div>
     </div>
   );
 };
