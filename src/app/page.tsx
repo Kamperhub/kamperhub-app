@@ -143,6 +143,62 @@ const FirebaseErrorState = ({ error }: { error: string }) => (
     </div>
 );
 
+const DashboardErrorState = ({ error }: { error: Error }) => {
+  const renderErrorDetails = () => {
+    const errorMessage = error.message.toLowerCase();
+    if (errorMessage.includes("404") || errorMessage.includes("server build or startup error")) {
+      return (
+        <div className="mt-4 border-t border-destructive-foreground/20 pt-2">
+          <p className="font-bold">This is a common environment setup issue.</p>
+          <p>
+            A '404 Not Found' error for an API route usually means the server failed to start correctly. This is almost always caused by an issue with the <code className="bg-destructive-foreground/20 px-1 rounded-sm">GOOGLE_APPLICATION_CREDENTIALS_JSON</code> in your <code className="bg-destructive-foreground/20 px-1 rounded-sm">.env.local</code> file.
+          </p>
+          <p className="mt-2">
+            Please use the updated diagnostic tool at <a href="/api/debug/env" target="_blank" rel="noopener noreferrer" className="underline font-bold">/api/debug/env</a> to see the exact server-side error, then follow the <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> to fix it.
+          </p>
+        </div>
+      );
+    }
+    if (errorMessage.includes("timed out") || errorMessage.includes("permission")) {
+       return (
+          <div className="mt-4 border-t border-destructive-foreground/20 pt-2">
+            <p className="font-bold">This may be a server-side permission issue.</p>
+            <p>
+                A timeout error means the server is running but is taking too long to fetch your data from the database. This can happen on a slow network, but it often points to a permissions problem with the server's service account.
+            </p>
+            <p className="mt-2">
+                Please check the <code className="bg-destructive-foreground/20 px-1 rounded-sm">IAM & Admin</code> section of your Google Cloud Console and ensure the service account associated with this project has the `Cloud Datastore User` or `Firebase Admin` role.
+            </p>
+          </div>
+       );
+    }
+     if (errorMessage.includes("database not found") || errorMessage.includes("could not find the database")) {
+        return (
+            <div className="mt-4 border-t border-destructive-foreground/20 pt-2">
+                <p className="font-bold">This is an environment setup issue, not a code problem.</p>
+                <p>Please follow the updated instructions in <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code>, especially <strong>Step 5</strong>, which guides you to use the built-in diagnostic tool to verify your project setup, and <strong>Step 6</strong> about creating the Firestore database.</p>
+            </div>
+        );
+    }
+    return <p className="mt-2">Please check your server-side configuration in <code className="bg-destructive-foreground/20 px-1 rounded-sm">.env.local</code>.</p>;
+  };
+
+  return (
+      <Alert variant="destructive" className="mb-6">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle className="font-headline">Error Loading Dashboard Data</AlertTitle>
+        <AlertDescription className="font-body space-y-2">
+           <p>We couldn't load your personalized dashboard settings. The server reported the following issue:</p>
+           <pre className="mt-2 text-xs bg-destructive-foreground/10 p-2 rounded-md font-mono whitespace-pre-wrap">
+            {error.message}
+           </pre>
+           {renderErrorDetails()}
+        </AlertDescription>
+      </Alert>
+  );
+};
+
+
 export default function DashboardPage() {
   const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>(defaultNavItems);
   const [isMounted, setIsMounted] = useState(false);
@@ -157,7 +213,7 @@ export default function DashboardPage() {
     queryFn: fetchUserPreferences,
     retry: (failureCount, error: Error) => {
       // Don't retry on fatal server errors, but do retry on network issues etc.
-      if (error.message.includes("500") || error.message.includes("crash")) {
+      if (error.message.includes("500") || error.message.includes("crash") || error.message.includes("404")) {
         return false;
       }
       return failureCount < 2; // Retry up to 2 times
@@ -245,46 +301,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {prefsError && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle className="font-headline">Error Loading Dashboard Data</AlertTitle>
-          <AlertDescription className="font-body space-y-2">
-             <p>We couldn't load your personalized dashboard settings. The server reported the following issue:</p>
-             <pre className="mt-2 text-xs bg-destructive-foreground/10 p-2 rounded-md font-mono whitespace-pre-wrap">
-              {prefsError.message}
-             </pre>
-             {prefsError.message.includes('timed out') ? (
-                <div className="mt-4 border-t border-destructive-foreground/20 pt-2">
-                    <p className="font-bold">This may be a server-side permission issue.</p>
-                    <p>
-                        A timeout error means the server is running but is taking too long to fetch your data from the database. This can happen on a slow network, but it often points to a permissions problem with the server's service account.
-                    </p>
-                    <p className="mt-2">
-                        Please check the <code className="bg-destructive-foreground/20 px-1 rounded-sm">IAM & Admin</code> section of your Google Cloud Console and ensure the service account associated with this project has the `Cloud Datastore User` or `Firebase Admin` role.
-                    </p>
-                </div>
-            ) : prefsError.message.includes('404') ? (
-                <div className="mt-4 border-t border-destructive-foreground/20 pt-2">
-                    <p className="font-bold">This is a common environment setup issue.</p>
-                    <p>
-                        A '404 Not Found' error for an API route usually means the server failed to start correctly. This is almost always caused by an issue with the <code className="bg-destructive-foreground/20 px-1 rounded-sm">GOOGLE_APPLICATION_CREDENTIALS_JSON</code> in your <code className="bg-destructive-foreground/20 px-1 rounded-sm">.env.local</code> file.
-                    </p>
-                    <p className="mt-2">
-                        Please use the updated diagnostic tool at <a href="/api/debug/env" target="_blank" rel="noopener noreferrer" className="underline font-bold">/api/debug/env</a> to see the exact server-side error, then follow the <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> to fix it.
-                    </p>
-                </div>
-            ) : (prefsError.message.includes('Database Not Found') || prefsError.message.includes('Could not find the database')) ? (
-                <div className="mt-4 border-t border-destructive-foreground/20 pt-2">
-                    <p className="font-bold">This is an environment setup issue, not a code problem.</p>
-                    <p>Please follow the updated instructions in <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code>, especially <strong>Step 5</strong>, which guides you to use the built-in diagnostic tool to verify your project setup.</p>
-                </div>
-            ) : (
-                <p className="mt-2">Please check your server-side configuration in <code className="bg-destructive-foreground/20 px-1 rounded-sm">.env.local</code>.</p>
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
+      {prefsError && <DashboardErrorState error={prefsError} />}
       <div className="flex flex-col sm:flex-row items-center justify-between mb-6">
         <div className="flex items-center mb-4 sm:mb-0">
           <Image
