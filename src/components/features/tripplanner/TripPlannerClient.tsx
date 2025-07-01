@@ -9,11 +9,12 @@ import { usePathname } from 'next/navigation';
 import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip, Occupant } from '@/types/tripplanner';
 import { RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import type { StoredVehicle } from '@/types/vehicle';
+import type { StoredCaravan } from '@/types/caravan';
 import type { CaravanDefaultChecklistSet, ChecklistItem, ChecklistCategory, TripChecklistSet } from '@/types/checklist';
 import { initialChecklists as globalDefaultChecklistTemplate } from '@/types/checklist';
 import type { BudgetCategory, Expense } from '@/types/expense';
-import { BudgetTab } from './BudgetTab';
-import { ExpenseTab } from './ExpenseTab';
+import { BudgetTab } from '@/components/features/tripplanner/BudgetTab';
+import { ExpenseTab } from '@/components/features/tripplanner/ExpenseTab';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,9 +40,10 @@ import type { DateRange } from 'react-day-picker';
 import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesAutocompleteInput';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { createTrip, updateTrip, fetchUserPreferences, fetchVehicles } from '@/lib/api-client';
+import { createTrip, updateTrip, fetchUserPreferences, fetchVehicles, fetchCaravans } from '@/lib/api-client';
 import type { UserProfile } from '@/types/auth';
 import Link from 'next/link';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 const tripPlannerSchema = z.object({
@@ -94,6 +96,8 @@ export function TripPlannerClient() {
   const [tripBudget, setTripBudget] = useState<BudgetCategory[]>([]);
   const [tripExpenses, setTripExpenses] = useState<Expense[]>([]);
   const [tripOccupants, setTripOccupants] = useState<Occupant[]>([]);
+  const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
+
 
   const { data: userPrefs } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
@@ -104,6 +108,12 @@ export function TripPlannerClient() {
   const { data: allVehicles = [], isLoading: isLoadingVehicles } = useQuery<StoredVehicle[]>({
     queryKey: ['vehicles', user?.uid],
     queryFn: fetchVehicles,
+    enabled: !!user,
+  });
+
+  const { data: allCaravans = [] } = useQuery<StoredCaravan[]>({
+    queryKey: ['caravans', user?.uid],
+    queryFn: fetchCaravans,
     enabled: !!user,
   });
 
@@ -244,13 +254,14 @@ export function TripPlannerClient() {
         if (tripOccupants.length === 0 && user) {
           const defaultDriver: Occupant = {
             id: `driver_${Date.now()}`,
-            description: `Driver (${user.displayName || 'Default'})`,
+            name: user.displayName || 'Driver',
+            type: 'Adult',
             weight: 75,
           };
           setTripOccupants([defaultDriver]);
           toast({
             title: "Default Driver Added",
-            description: "A default driver (75kg) has been added. You can edit the description and weight as needed.",
+            description: "A default driver has been added. You can edit their details as needed.",
             duration: 6000,
           });
         }
@@ -359,6 +370,8 @@ export function TripPlannerClient() {
     };
     
     const currentFormData = getValues();
+    const activeCaravan = userPrefs?.activeCaravanId ? allCaravans.find(c => c.id === userPrefs.activeCaravanId) : null;
+
     const tripData: Omit<LoggedTrip, 'id' | 'timestamp'> = {
       name: pendingTripName.trim(),
       startLocationDisplay: currentFormData.startLocation,
@@ -374,6 +387,8 @@ export function TripPlannerClient() {
       budget: tripBudget,
       expenses: tripExpenses,
       occupants: tripOccupants,
+      activeCaravanIdAtTimeOfCreation: activeCaravan?.id || null,
+      activeCaravanNameAtTimeOfCreation: activeCaravan ? `${activeCaravan.year} ${activeCaravan.make} ${activeCaravan.model}` : null,
     };
     
     if (activeTrip) {
@@ -382,7 +397,7 @@ export function TripPlannerClient() {
     } else {
         createTripMutation.mutate(tripData);
     }
-  }, [routeDetails, getValues, fuelEstimate, toast, pendingTripName, pendingTripNotes, userPrefs, createTripMutation, updateTripMutation, activeTrip, tripBudget, tripExpenses, tripOccupants]);
+  }, [routeDetails, getValues, fuelEstimate, toast, pendingTripName, pendingTripNotes, userPrefs, createTripMutation, updateTripMutation, activeTrip, tripBudget, tripExpenses, tripOccupants, allCaravans]);
 
 
   const mapHeight = "400px"; 
@@ -453,23 +468,42 @@ export function TripPlannerClient() {
                     <div>
                       <Label htmlFor="dateRange" className="font-body">Planned Date Range</Label>
                       <Controller name="dateRange" control={control} render={({ field }) => (
-                          <Popover><PopoverTrigger asChild>
+                          <Popover open={isDatePopoverOpen} onOpenChange={setIsDatePopoverOpen}>
+                            <PopoverTrigger asChild>
                               <Button id="dateRange" variant={"outline"} className={cn("w-full justify-start text-left font-normal font-body", !field.value?.from && "text-muted-foreground")}>
                                 <CalendarDays className="mr-2 h-4 w-4" />
                                 {field.value?.from ? (field.value.to ? `${format(field.value.from, "LLL dd, yyyy")} - ${format(field.value.to, "LLL dd, yyyy")}` : format(field.value.from, "LLL dd, yyyy")) : <span>Pick a date range</span>}
                               </Button>
-                          </PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={field.value?.from} selected={field.value as DateRange | undefined} onSelect={field.onChange} numberOfMonths={2} /></PopoverContent></Popover>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar 
+                                initialFocus 
+                                mode="range" 
+                                defaultMonth={field.value?.from} 
+                                selected={field.value as DateRange | undefined} 
+                                onSelect={(range) => {
+                                  field.onChange(range);
+                                  if (range?.from && range?.to) {
+                                    setIsDatePopoverOpen(false);
+                                  }
+                                }}
+                                numberOfMonths={2} 
+                              />
+                            </PopoverContent>
+                          </Popover>
                       )} />
                     </div>
-                    <div>
-                      <Label htmlFor="fuelEfficiency" className="font-body">Fuel Efficiency (Litres/100km)</Label>
-                      <Controller name="fuelEfficiency" control={control} render={({ field }) => (<Input id="fuelEfficiency" type="number" step="0.1" {...field} value={field.value ?? ''} className="font-body" />)} />
-                      {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="fuelPrice" className="font-body">Fuel Price ($/Litre)</Label>
-                      <Controller name="fuelPrice" control={control} render={({ field }) => (<Input id="fuelPrice" type="number" step="0.01" {...field} value={field.value ?? ''} className="font-body" />)} />
-                      {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="fuelEfficiency" className="font-body">Fuel L/100km</Label>
+                        <Controller name="fuelEfficiency" control={control} render={({ field }) => (<Input id="fuelEfficiency" type="number" step="0.1" {...field} value={field.value ?? ''} className="font-body" />)} />
+                        {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
+                      </div>
+                      <div>
+                        <Label htmlFor="fuelPrice" className="font-body">Fuel Price $/L</Label>
+                        <Controller name="fuelPrice" control={control} render={({ field }) => (<Input id="fuelPrice" type="number" step="0.01" {...field} value={field.value ?? ''} className="font-body" />)} />
+                        {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
+                      </div>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
                         <Button type="button" variant="outline" onClick={() => clearPlanner(true)} disabled={isLoading} className="w-full font-body">
@@ -486,7 +520,7 @@ export function TripPlannerClient() {
               <Card>
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center"><Users className="mr-2 h-6 w-6 text-primary" /> Vehicle Occupants</CardTitle>
-                    <CardDescription>Add driver, passengers, and even pets to account for their weight in GVM calculations.</CardDescription>
+                    <CardDescription>Add travelers to account for their weight and personalize packing lists.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {routeDetails && tripOccupants.length === 0 && (
@@ -501,6 +535,8 @@ export function TripPlannerClient() {
                     <OccupantManager occupants={tripOccupants} onUpdate={handleOccupantsUpdate} disabled={!routeDetails && !activeTrip} />
                 </CardContent>
               </Card>
+            </div>
+            <div className="md:col-span-2 space-y-6">
               <Button
                   onClick={handleOpenSaveTripDialog}
                   variant="default"
@@ -511,8 +547,6 @@ export function TripPlannerClient() {
                   {(createTripMutation.isPending || updateTripMutation.isPending) ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                   {activeTrip ? 'Update Trip Details' : 'Save Full Trip'}
               </Button>
-            </div>
-            <div className="md:col-span-2 space-y-6">
               <Card><CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="font-headline flex items-center"><MapPin className="mr-2 h-6 w-6 text-primary" /> Route Map</CardTitle>
               </CardHeader><CardContent className="p-0"><div style={{ height: mapHeight }} className="bg-muted rounded-b-lg overflow-hidden relative">
@@ -583,43 +617,49 @@ export function TripPlannerClient() {
 
 // Occupant Manager Component
 function OccupantManager({ occupants, onUpdate, disabled }: { occupants: Occupant[], onUpdate: (newOccupants: Occupant[]) => void, disabled?: boolean }) {
-    const [description, setDescription] = useState('');
-    const [weight, setWeight] = useState('');
-    const [editingOccupantId, setEditingOccupantId] = useState<string | null>(null);
+    const [editingOccupant, setEditingOccupant] = useState<Partial<Occupant> & { id?: string }>({});
+    const [isEditing, setIsEditing] = useState(false);
     const { toast } = useToast();
 
     const handleEditClick = (occupant: Occupant) => {
-        setEditingOccupantId(occupant.id);
-        setDescription(occupant.description);
-        setWeight(String(occupant.weight));
+        setEditingOccupant(occupant);
+        setIsEditing(true);
     };
 
     const handleCancelEdit = () => {
-        setEditingOccupantId(null);
-        setDescription('');
-        setWeight('');
+        setIsEditing(false);
+        setEditingOccupant({});
+    };
+    
+    const handleInputChange = (field: keyof Occupant, value: any) => {
+        setEditingOccupant(prev => ({ ...prev, [field]: value }));
     };
 
     const handleSaveOccupant = (e: React.FormEvent) => {
         e.preventDefault();
-        const weightValue = parseFloat(weight);
-        if (!description.trim() || isNaN(weightValue) || weightValue <= 0) {
-            toast({ title: "Invalid Input", description: "Please provide a valid description and positive weight.", variant: "destructive" });
+        const { name, type, weight } = editingOccupant;
+
+        if (!name || !type || !weight || isNaN(Number(weight)) || Number(weight) < 0) {
+            toast({ title: "Invalid Input", description: "Please provide a valid name, type, and non-negative weight.", variant: "destructive" });
             return;
         }
 
-        if (editingOccupantId) {
+        const occupantData: Omit<Occupant, 'id'> = {
+            name: name,
+            type: type,
+            weight: Number(weight),
+            age: editingOccupant.age ? Number(editingOccupant.age) : null,
+            notes: editingOccupant.notes || null,
+        };
+
+        if (editingOccupant.id) {
             const updatedOccupants = occupants.map(occ =>
-                occ.id === editingOccupantId ? { ...occ, description: description.trim(), weight: weightValue } : occ
+                occ.id === editingOccupant.id ? { ...occ, ...occupantData } : occ
             );
             onUpdate(updatedOccupants);
             toast({ title: "Occupant Updated" });
         } else {
-            const newOccupant: Occupant = {
-                id: Date.now().toString(),
-                description: description.trim(),
-                weight: weightValue,
-            };
+            const newOccupant: Occupant = { ...occupantData, id: Date.now().toString() };
             onUpdate([...occupants, newOccupant]);
             toast({ title: "Occupant Added" });
         }
@@ -628,56 +668,42 @@ function OccupantManager({ occupants, onUpdate, disabled }: { occupants: Occupan
 
     const handleDeleteOccupant = (id: string) => {
         onUpdate(occupants.filter(occ => occ.id !== id));
+        toast({ title: "Occupant Removed" });
     };
 
     const totalWeight = useMemo(() => occupants.reduce((sum, occ) => sum + occ.weight, 0), [occupants]);
 
     return (
         <div className="space-y-4">
-            <form onSubmit={handleSaveOccupant} className="space-y-2 p-3 border rounded-md bg-muted/20">
-                 <h4 className="font-semibold text-sm">{editingOccupantId ? 'Edit Occupant' : 'Add New Occupant'}</h4>
+            <form onSubmit={handleSaveOccupant} className="space-y-3 p-3 border rounded-md bg-muted/20">
+                <h4 className="font-semibold text-sm">{isEditing ? 'Edit Occupant' : 'Add New Occupant'}</h4>
                 <div className="grid grid-cols-2 gap-2">
-                    <div>
-                        <Label htmlFor="occ-desc" className="text-xs">Description</Label>
-                        <Input id="occ-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g., Adult Passenger, Child" disabled={disabled} />
-                    </div>
-                    <div>
-                        <Label htmlFor="occ-weight" className="text-xs">Weight (kg)</Label>
-                        <Input id="occ-weight" type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="e.g., 75" disabled={disabled} />
-                    </div>
+                    <div className="col-span-2"><Label htmlFor="occ-name" className="text-xs">Name*</Label><Input id="occ-name" value={editingOccupant.name || ''} onChange={(e) => handleInputChange('name', e.target.value)} placeholder="e.g., Alex, Buddy" disabled={disabled} /></div>
+                    <div><Label htmlFor="occ-type" className="text-xs">Type*</Label><Select value={editingOccupant.type} onValueChange={(v) => handleInputChange('type', v as Occupant['type'])} disabled={disabled}><SelectTrigger><SelectValue placeholder="Select type..."/></SelectTrigger><SelectContent><SelectItem value="Adult">Adult</SelectItem><SelectItem value="Child">Child</SelectItem><SelectItem value="Infant">Infant</SelectItem><SelectItem value="Pet">Pet</SelectItem></SelectContent></Select></div>
+                    <div><Label htmlFor="occ-weight" className="text-xs">Weight (kg)*</Label><Input id="occ-weight" type="number" value={editingOccupant.weight || ''} onChange={(e) => handleInputChange('weight', e.target.value)} placeholder="e.g., 75" disabled={disabled} /></div>
+                    <div><Label htmlFor="occ-age" className="text-xs">Age (Optional)</Label><Input id="occ-age" type="number" value={editingOccupant.age || ''} onChange={(e) => handleInputChange('age', e.target.value)} placeholder="e.g., 7" disabled={disabled} /></div>
+                    <div className="col-span-2"><Label htmlFor="occ-notes" className="text-xs">Notes (Optional)</Label><Textarea id="occ-notes" value={editingOccupant.notes || ''} onChange={(e) => handleInputChange('notes', e.target.value)} placeholder="e.g., Likes superheroes, Needs joint meds" disabled={disabled} /></div>
                 </div>
                 <div className="flex gap-2">
-                    {editingOccupantId && (
-                        <Button type="button" size="sm" variant="outline" className="w-full" onClick={handleCancelEdit} disabled={disabled}>
-                            Cancel
-                        </Button>
-                    )}
-                    <Button type="submit" size="sm" className="w-full" disabled={disabled}>
-                        {editingOccupantId ? <Save className="mr-2 h-4 w-4" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                        {editingOccupantId ? 'Update Occupant' : 'Add Occupant'}
-                    </Button>
+                    {isEditing && (<Button type="button" size="sm" variant="outline" className="w-full" onClick={handleCancelEdit} disabled={disabled}>Cancel</Button>)}
+                    <Button type="submit" size="sm" className="w-full" disabled={disabled}><PlusCircle className="mr-2 h-4 w-4" /> {isEditing ? 'Update' : 'Add'}</Button>
                 </div>
             </form>
             <div className="space-y-2">
                 {occupants.map(occ => (
                     <div key={occ.id} className="flex items-center justify-between bg-muted/50 p-2 rounded-md">
-                        <span className="text-sm">{occ.description} - {occ.weight}kg</span>
+                        <div className="text-sm">
+                            <span className="font-semibold">{occ.name}</span> <span className="text-xs">({occ.type})</span> - {occ.weight}kg
+                            {occ.notes && <p className="text-xs text-muted-foreground">{occ.notes}</p>}
+                        </div>
                         <div className="flex items-center">
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditClick(occ)} disabled={disabled}>
-                                <Edit3 className="h-4 w-4 text-blue-600" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDeleteOccupant(occ.id)} disabled={disabled}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditClick(occ)} disabled={disabled}><Edit3 className="h-4 w-4 text-blue-600" /></Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDeleteOccupant(occ.id)} disabled={disabled}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                         </div>
                     </div>
                 ))}
             </div>
             {totalWeight > 0 && <p className="text-sm font-semibold text-right">Total Occupant Weight: {totalWeight.toFixed(1)} kg</p>}
         </div>
-    )
+    );
 }
-
-    
-    
-

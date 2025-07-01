@@ -1,7 +1,7 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getFirestore, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from "firebase/app-check";
 import { getAnalytics, type Analytics } from "firebase/analytics";
 
@@ -42,7 +42,6 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     // Initialize Firebase if config is valid
     app = getApps().length ? getApp() : initializeApp(firebaseConfig as FirebaseOptions);
     auth = getAuth(app);
-    // Connect to the default Firestore database
     db = getFirestore(app);
 
     console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}, connecting to default database.`);
@@ -54,12 +53,22 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
       } catch (error) {
         console.error("Failed to initialize Firebase Analytics:", error);
       }
+      
+      try {
+        enableIndexedDbPersistence(db)
+          .then(() => console.log('[Firebase Client] Firestore offline persistence enabled.'))
+          .catch((err) => {
+            if (err.code === 'failed-precondition') {
+              console.warn('[Firebase Client] Firestore offline persistence could not be enabled. Multiple tabs open?');
+            } else if (err.code === 'unimplemented') {
+              console.warn('[Firebase Client] Firestore offline persistence is not available in this browser.');
+            }
+          });
+      } catch (error) {
+         console.error("[Firebase Client] CRITICAL: Error enabling Firestore offline persistence:", error);
+      }
 
-      // Temporarily disabling App Check to resolve debug token issues.
-      // To re-enable, uncomment the following block and ensure your
-      // NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY and NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN
-      // are correctly set in .env.local and the Firebase Console.
-      /*
+
       const reCaptchaKey = process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY;
       if(reCaptchaKey) {
           try {
@@ -87,7 +96,6 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
       } else {
         console.warn("[Firebase Client] NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY is not set. App Check will not be initialized.");
       }
-      */
     }
   } catch (e: any) {
     firebaseInitializationError = `Firebase failed to initialize. Please check your Firebase project configuration and API keys. Error: ${e.message}`;
