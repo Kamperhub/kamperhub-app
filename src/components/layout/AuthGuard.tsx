@@ -65,7 +65,7 @@ function Paywall() {
 export function AuthGuard({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isAuthLoading } = useAuth();
+  const { user, isAuthLoading, isProfileLoading } = useAuth();
   const { hasProAccess, isLoading: isSubscriptionLoading } = useSubscription();
 
   const isUnprotected = UNPROTECTED_PATHS.some(path => pathname.startsWith(path));
@@ -74,7 +74,8 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  if (isAuthLoading || isSubscriptionLoading) {
+  // Use the more specific loading flags from useAuth
+  if (isAuthLoading || isProfileLoading) {
     return <FullPageLoader />;
   }
   
@@ -84,6 +85,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     return <FullPageLoader />;
   }
 
+  // Subscription check remains the same
   if (!hasProAccess) {
     return <Paywall />;
   }
