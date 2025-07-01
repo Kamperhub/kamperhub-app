@@ -3,21 +3,24 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can only read and write to their own user document.
-    // This rule allows a user to create their document during signup,
-    // and read/update it later.
+    // Users can read and write their own profile data.
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      // Allow creation of a user document only if the user is creating their own.
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
     }
     
-    // Admins can read all user data for the admin panel
-    match /users/{userId} {
-      allow get, list: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-    }
-    
-    // Users can read and write to all their own subcollections (vehicles, caravans, etc.)
+    // Users can read and write their own subcollections (vehicles, caravans, etc.)
     match /users/{userId}/{collection}/{docId} {
-      allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Secure the oauthStates collection. Only the authenticated user can create a state document.
+    // The callback handler will use admin privileges to delete it.
+    // No one should be able to read or list these documents.
+    match /oauthStates/{stateId} {
+        allow read, delete: if false;
+        allow create: if request.auth != null;
     }
   }
 }
