@@ -1,3 +1,4 @@
+
 # KamperHub Development Roadmap
 
 This document tracks the development priorities, future features, and completed milestones for the KamperHub application.
@@ -9,8 +10,23 @@ This document tracks the development priorities, future features, and completed 
 ### 1. New Feature Development
 *   **Objective:** Implement new, high-value features on the stable server-based infrastructure.
 *   **Next Up:**
-    *   **Fuel Log & Maintenance Tracker:** Build the user interface for logging fuel and tracking vehicle/caravan maintenance tasks. The backend APIs for this are already in place.
-    *   **AI-Powered Packing Assistant:** Create a Genkit flow to help users generate packing lists based on trip details.
+    *   **Fuel Log Toast Action:** Ensure the "Add Category" button in the "Missing 'Fuel' Category" error message correctly navigates the user to the trip planner.
+
+### 2. In Progress
+*   **AI-Powered Packing Assistant:**
+    *   **Status:** Partially implemented. Core packing list generation is working. Weather-based suggestions have been added but use AI's general knowledge instead of a live API. The feature is parked until underlying AI API access issues can be fully resolved.
+    *   **Features Implemented:**
+        *   New "Trip Packing" page added to navigation.
+        *   Genkit flow created to generate packing lists based on trip details (destination, duration, activities, passenger count).
+        *   Genkit flow added to generate weather-based packing suggestions based on typical climate.
+        *   UI allows users to select a trip, generate a list, receive weather suggestions, and manage items (add, edit, delete, check-off).
+    *   **Next Steps (Once unblocked):**
+        *   Resolve any remaining AI generation errors.
+        *   **Integrate with a real weather API:** Replace the AI's general climate knowledge with calls to a real-time weather service to provide more accurate forecasts.
+        *   Implement saving/loading of packing lists to Firestore.
+        *   Add reusable packing templates.
+        *   Explore collaborative packing features.
+        *   Integrate a messaging service to send packing lists to other people.
 
 ---
 

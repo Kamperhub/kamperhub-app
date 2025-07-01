@@ -40,6 +40,9 @@ All your secret keys will live in a special file that is NOT committed to versio
     # Google API Configuration (for Google Tasks, etc.)
     GOOGLE_CLIENT_ID="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
     GOOGLE_CLIENT_SECRET="YOUR_GOOGLE_CLIENT_SECRET"
+
+    # Google Maps API Key
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="YOUR_GOOGLE_MAPS_API_KEY_HERE"
     ```
 
 ---
