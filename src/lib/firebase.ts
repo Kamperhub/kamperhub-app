@@ -42,10 +42,10 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     // Initialize Firebase if config is valid
     app = getApps().length ? getApp() : initializeApp(firebaseConfig as FirebaseOptions);
     auth = getAuth(app);
-    // Explicitly connect to the 'kamperhubv2' database
-    db = getFirestore(app, 'kamperhubv2');
+    // Connect to the default Firestore database
+    db = getFirestore(app);
 
-    console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}, connecting to database 'kamperhubv2'.`);
+    console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}, connecting to default database.`);
 
     // Initialize other services only on the client-side
     if (typeof window !== 'undefined') {
