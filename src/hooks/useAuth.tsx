@@ -15,6 +15,7 @@ interface AuthContextType {
   userProfile: UserProfile | null;
   authStatus: AuthStatus;
   profileError: string | null;
+  isAuthLoading: boolean; // Simplified loading state for consumers
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -97,8 +98,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       unsubscribeFromProfile();
     };
   }, [setSubscriptionDetails]);
+  
+  const isAuthLoading = authStatus === 'LOADING' || authStatus === 'AWAITING_PROFILE';
 
-  const value = { user, userProfile, authStatus, profileError };
+  const value = { user, userProfile, authStatus, profileError, isAuthLoading };
 
   return (
     <AuthContext.Provider value={value}>

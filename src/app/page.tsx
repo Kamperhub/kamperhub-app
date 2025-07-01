@@ -237,12 +237,6 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthLoading && !user && !firebaseInitializationError) {
-      router.push('/login');
-    }
-  }, [isAuthLoading, user, router]);
-
-  useEffect(() => {
     const mainPageNavItems = defaultNavItems; 
     const storedLayoutHrefs = userPrefs?.dashboardLayout;
 
@@ -295,8 +289,8 @@ export default function DashboardPage() {
       return <FirebaseErrorState error={firebaseInitializationError} />;
   }
   
-  if (isAuthLoading || (user && isLoadingPrefs) || !isMounted) {
-     return <DashboardSkeleton loadingText={isAuthLoading ? 'Authenticating...' : !isMounted ? 'Preparing dashboard...' : 'Loading dashboard...'} />;
+  if (isLoadingPrefs || !isMounted) {
+     return <DashboardSkeleton loadingText={'Loading dashboard...'} />;
   }
 
   return (
