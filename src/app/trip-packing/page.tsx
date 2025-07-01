@@ -15,7 +15,7 @@ import {
   updatePackingList, 
   deletePackingList 
 } from '@/lib/api-client';
-import { generatePackingList, type PackingListGeneratorInput } from '@/ai/flows/packing-list-generator-flow.ts';
+import { generatePackingList, type PackingListGeneratorInput, type PackingListGeneratorOutput } from '@/ai/flows/packing-list-generator-flow';
 import { generateWeatherPackingSuggestions, type WeatherPackingSuggesterOutput } from '@/ai/flows/weather-packing-suggester-flow';
 import { NavigationContext } from '@/components/layout/AppShell';
 
@@ -92,57 +92,33 @@ export default function TripPackingPage() {
 
   const generateListMutation = useMutation({
     mutationFn: generatePackingList,
-    onSuccess: (data) => {
-      const newUiList: PackingListCategory[] = [];
-      if (data && data.packing_list) {
-        data.packing_list.forEach(traveler => {
-          if (traveler.categories) {
-            Object.entries(traveler.categories).forEach(([categoryKey, items]) => {
-              if (items && items.length > 0) {
-                const categoryNameMapping: { [key: string]: string } = {
-                  clothing: "Clothing",
-                  toiletries_hygiene: "Toiletries & Hygiene",
-                  documents_money: "Documents & Money",
-                  electronics: "Electronics",
-                  health_safety: "Health & Safety",
-                  miscellaneous: "Miscellaneous",
-                  pet_supplies: "Pet Supplies",
-                  baby_supplies: "Baby Supplies",
-                };
-
-                const uiCategoryName = `${categoryNameMapping[categoryKey] || categoryKey} - ${traveler.traveler_name}`;
-                
-                const uiItems: PackingListItem[] = items.map(itemNameString => {
-                  const match = itemNameString.match(/^(\d+)\s+(.*)$/);
-                  let quantity = 1;
-                  let name = itemNameString;
-
-                  if (match) {
-                    quantity = parseInt(match[1], 10);
-                    name = match[2];
-                  }
-
-                  return {
-                    id: `item_${name.replace(/\s+/g, '_')}_${Date.now()}_${Math.random()}`,
-                    name: name,
-                    quantity: quantity,
-                    packed: false,
-                    notes: '',
-                  };
-                });
-
-                newUiList.push({
-                  id: `cat_${traveler.traveler_name}_${categoryKey}`,
-                  name: uiCategoryName,
-                  items: uiItems,
-                });
-              }
-            });
-          }
-        });
+    onSuccess: (data: PackingListGeneratorOutput) => {
+      if (data && data.categories) {
+        const newUiList: PackingListCategory[] = data.categories.map(cat => ({
+          id: `cat_${cat.category_name.replace(/\s+/g, '_')}_${Date.now()}`,
+          name: cat.category_name,
+          items: cat.items.map(itemName => {
+            const match = itemName.match(/^(\d+)\s*x\s+(.*)$/i);
+            let quantity = 1;
+            let name = itemName;
+            if (match) {
+              quantity = parseInt(match[1], 10) || 1;
+              name = match[2];
+            }
+            return {
+              id: `item_${name.replace(/\s+/g, '_')}_${Date.now()}_${Math.random()}`,
+              name: name,
+              quantity: quantity,
+              packed: false,
+              notes: '',
+            };
+          })
+        }));
+        updateListMutation.mutate(newUiList);
+        toast({ title: 'Packing List Generated!', description: 'Your new master list has been saved.' });
+      } else {
+        toast({ title: 'Generation Failed', description: 'The AI returned an unexpected format.', variant: 'destructive' });
       }
-      updateListMutation.mutate(newUiList);
-      toast({ title: 'Packing List Generated!', description: 'Your new list has been saved.' });
     },
     onError: (error: Error) => toast({ title: 'Generation Failed', description: error.message, variant: 'destructive' }),
   });
@@ -439,4 +415,3 @@ function EditItemDialog({ isOpen, onClose, itemState, onSave }: EditItemDialogPr
     </Dialog>
   );
 }
-

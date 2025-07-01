@@ -26,24 +26,13 @@ const PackingListGeneratorInputSchema = z.object({
 });
 export type PackingListGeneratorInput = z.infer<typeof PackingListGeneratorInputSchema>;
 
-// New schema based on user request
 const PackingListGeneratorOutputSchema = z.object({
-  packing_list: z.array(
+  categories: z.array(
     z.object({
-      traveler_name: z.string(),
-      traveler_type: z.string(),
-      categories: z.object({
-        clothing: z.array(z.string()).optional(),
-        toiletries_hygiene: z.array(z.string()).optional(),
-        documents_money: z.array(z.string()).optional(),
-        electronics: z.array(z.string()).optional(),
-        health_safety: z.array(z.string()).optional(),
-        miscellaneous: z.array(z.string()).optional(),
-        pet_supplies: z.array(z.string()).optional(),
-        baby_supplies: z.array(z.string()).optional(),
-      }),
+      category_name: z.string().describe("The name of the packing category (e.g., 'Clothing', 'Shared Gear', 'Electronics')."),
+      items: z.array(z.string()).describe("A list of suggested items for this category, including quantities where appropriate (e.g., '3x T-shirts', '1x Toothbrush')."),
     })
-  ),
+  ).describe("A categorized packing list."),
 });
 export type PackingListGeneratorOutput = z.infer<typeof PackingListGeneratorOutputSchema>;
 
@@ -51,7 +40,6 @@ export async function generatePackingList(input: PackingListGeneratorInput): Pro
   return packingListGeneratorFlow(input);
 }
 
-// New prompt based on user request
 const prompt = ai.definePrompt({
   name: 'packingListGeneratorPrompt',
   input: {schema: PackingListGeneratorInputSchema},
@@ -64,7 +52,7 @@ const prompt = ai.definePrompt({
       { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
     ],
   },
-  prompt: `You are an intelligent, meticulous travel assistant and packing expert. Your primary goal is to generate a highly personalized and comprehensive packing list based on the provided trip details. The output MUST be a single JSON object that strictly follows the requested schema.
+  prompt: `You are an intelligent, meticulous travel assistant and packing expert. Your primary goal is to generate a single, consolidated, and comprehensive "master" packing list for a trip based on the provided details. The output MUST be a single JSON object that strictly follows the requested schema.
 
 **Trip Details:**
 *   **Destination:** {{{destination}}}
@@ -79,21 +67,18 @@ const prompt = ai.definePrompt({
 {{/each}}
 
 **Instructions:**
-1.  **Weather and Duration Assessment:** Dynamically assess the typical weather conditions (temperature ranges, precipitation, humidity, seasonal factors) for the specified **Destination** and **Dates**. Calculate the trip duration and ensure suggestions are appropriate for the length of stay.
-2.  **Activity Tailoring:** Include specific items essential for each listed **Planned Activity**. For instance: "hiking" -> hiking boots, trail snacks; "fine dining" -> semi-formal/formal attire; "swimming" -> swimwear, towel.
-3.  **Traveler Personalization:** Generate a distinct packing list for *each* individual traveler. Differentiate items based on **Traveler Type** and any **specific details** provided (e.g., child's age, pet needs).
-4.  **Categorization:** For each traveler's list, organize items into these exact categories: \`clothing\`, \`toiletries_hygiene\`, \`documents_money\`, \`electronics\`, \`health_safety\`, \`miscellaneous\`, \`pet_supplies\` (only if a pet is included), and \`baby_supplies\` (only if an infant/young child is included).
+1.  **Assess Conditions:** Based on the **Destination** and **Dates**, determine the likely weather and environment.
+2.  **Consolidate Needs:** Consider all **Travelers** and **Activities** to create a single, unified packing list for the entire group. Do NOT break the list down per traveler.
+3.  **Categorize Items:** Logically group all items into clear categories like 'Clothing', 'Toiletries', 'Documents & Money', 'Electronics', 'Health & Safety', 'Shared Gear', 'Pet Supplies', etc.
+4.  **Specify Quantities:** Where appropriate, include quantities in the item name (e.g., "4x T-shirts", "2x Pairs of socks per person").
 5.  **JSON Output Format (Strict Requirement):**
     *   The output must be a single JSON object.
-    *   The top-level key must be \`packing_list\`.
-    *   The value of \`packing_list\` must be an array of objects, one for each traveler.
-    *   Each traveler object must have a \`traveler_name\` and \`traveler_type\` field.
-    *   Each traveler object must contain a \`categories\` object, where keys are the specified category names.
-    *   The value for each category key must be an array of strings, where each string is a suggested item.
-    *   Be concise with item names.
+    *   The top-level key must be \`categories\`.
+    *   The value of \`categories\` must be an array of objects.
+    *   Each category object must have a \`category_name\` and a list of \`items\`.
     *   Do NOT include any text outside the JSON object.
 
-Generate the packing list now.`,
+Generate the consolidated master packing list now.`,
 });
 
 
