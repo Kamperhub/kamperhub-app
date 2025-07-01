@@ -1,13 +1,3 @@
-// 🔒 LOCKED FILE - DO NOT EDIT 🔒
-// This file is correctly configured to connect to your Firebase project.
-// Modifying this file may break the application's connection to its services.
-//
-// Project ID: kamperhub-s4hc2
-// Database ID: kamperhubv2
-//
-// If you are experiencing connection issues, please verify your .env.local
-// file against the instructions in `FIREBASE_SETUP_CHECKLIST.md`.
-
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 
