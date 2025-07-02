@@ -47,11 +47,11 @@ export async function POST(req: NextRequest) {
   
   if (!stripe) {
     console.error("Webhook Error: Stripe is not configured on the server (STRIPE_SECRET_KEY missing at runtime).");
-    return NextResponse.json({ error: 'Stripe is not configured on the server.' }, { status: 500 });
+    return NextResponse.json({ error: 'Stripe service is not configured on the server (missing STRIPE_SECRET_KEY). See setup guide.' }, { status: 503 });
   }
   if (!webhookSecret) {
     console.error("Webhook Error: Stripe webhook secret is not configured (STRIPE_WEBHOOK_SECRET missing at runtime).");
-    return NextResponse.json({ error: 'Stripe webhook secret is not configured.' }, { status: 500 });
+    return NextResponse.json({ error: 'Stripe webhook endpoint is not configured (missing STRIPE_WEBHOOK_SECRET). See setup guide.' }, { status: 503 });
   }
 
   const sig = req.headers.get('stripe-signature');

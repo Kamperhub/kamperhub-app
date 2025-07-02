@@ -22,8 +22,8 @@ export async function POST(req: NextRequest) {
   }
 
   if (!stripe) {
-    console.error('Create Customer Portal Session: Stripe is not configured or STRIPE_SECRET_KEY is missing.');
-    return NextResponse.json({ error: 'Stripe configuration error on server.' }, { status: 500 });
+    console.error('Create Customer Portal Session: Stripe is not configured because STRIPE_SECRET_KEY is missing at runtime.');
+    return NextResponse.json({ error: 'Subscription system is not configured on the server. The STRIPE_SECRET_KEY is missing. Please check the setup checklist.' }, { status: 503 });
   }
 
   try {

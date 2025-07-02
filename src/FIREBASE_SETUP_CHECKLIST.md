@@ -92,7 +92,49 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 
 ---
 
-### Step 4: CRITICAL - Verify Your Server Setup
+### Step 4: Configure Stripe for Subscriptions
+
+To enable the "Upgrade to Pro" feature, you need to configure Stripe.
+
+1.  **Create Stripe Product & Price**
+    *   Go to your [Stripe Dashboard](https://dashboard.stripe.com/) and navigate to the **Products** section.
+    *   Click **+ Add product**.
+    *   Name it `KamperHub Pro` (or similar).
+    *   Under "Pricing", set it as **Recurring**.
+    *   Enter the price and select the currency (e.g., AUD) and billing period (Monthly).
+    *   Save the product.
+    *   On the product details page, find the **Price ID** (it looks like `price_...`). Copy it.
+    *   Paste this value into `STRIPE_PRO_PRICE_ID` in your `.env.local` file.
+
+2.  **Get API Keys**
+    *   In the Stripe Dashboard, go to **Developers > API keys**.
+    *   In the "Standard keys" section, find the **Secret key**.
+    *   Click to reveal and copy the key (it starts with `sk_test_...` for test mode).
+    *   Paste this value into `STRIPE_SECRET_KEY` in your `.env.local` file.
+
+3.  **Set Up Webhook Endpoint (CRITICAL)**
+    *   A webhook is how Stripe tells our app that a payment was successful. **Without this, subscriptions will not activate.**
+    *   Go to **Developers > Webhooks**.
+    *   Click **+ Add endpoint**.
+    *   For **Endpoint URL**, you must use the publicly accessible URL of your deployed application, followed by `/api/stripe-webhook`.
+        *   Example: `https://your-app-name.firebaseapp.com/api/stripe-webhook`
+        *   *Note: For local testing, you need a tool like the [Stripe CLI](https://stripe.com/docs/stripe-cli) to forward events to your local server.*
+    *   For **Events to listen to**, click "Select events" and add the following:
+        *   `checkout.session.completed`
+        *   `invoice.payment_succeeded`
+        *   `invoice.payment_failed`
+        *   `customer.subscription.updated`
+        *   `customer.subscription.deleted`
+    *   Click **Add endpoint**.
+
+4.  **Get Webhook Signing Secret**
+    *   On the webhook details page you just created, find the **Signing secret** section.
+    *   Click to reveal and copy the secret (it starts with `whsec_...`).
+    *   Paste this value into `STRIPE_WEBHOOK_SECRET` in your `.env.local` file.
+
+---
+
+### Step 5: CRITICAL - Verify Your Server Setup
 
 After populating `.env.local`, you **MUST** restart your development server. The server only reads this file when it first starts.
 
@@ -105,7 +147,7 @@ After populating `.env.local`, you **MUST** restart your development server. The
 
 ---
 
-### Step 5: CRITICAL - Verify Firestore Database Exists (with ID `kamperhubv2`)
+### Step 6: CRITICAL - Verify Firestore Database Exists (with ID `kamperhubv2`)
 
 > [!IMPORTANT]
 > The application code is specifically configured to connect to a Firestore database with the **Database ID `kamperhubv2`**. This is different from your **Project ID**.
@@ -121,7 +163,7 @@ After populating `.env.local`, you **MUST** restart your development server. The
 
 ---
 
-### Step 6: CRITICAL - Verify Service Account Permissions
+### Step 7: CRITICAL - Verify Service Account Permissions
 
 If the above steps are correct, the final check is to ensure your service account has permission to access Firestore.
 
@@ -132,7 +174,7 @@ If the above steps are correct, the final check is to ensure your service accoun
 
 ---
 
-### Step 7: FINAL & CRITICAL - Deploy Security Rules
+### Step 8: FINAL & CRITICAL - Deploy Security Rules
 
 This is the final step and solves most `UNAUTHENTICATED` errors seen on the dashboard.
 
@@ -147,7 +189,7 @@ This is the final step and solves most `UNAUTHENTICATED` errors seen on the dash
 
 ---
 
-### Step 8: Create Your User Account
+### Step 9: Create Your User Account
 
 The debug tool for creating users has been removed for security. The application now handles this automatically during sign-up.
 
