@@ -52,9 +52,12 @@ export async function POST(req: NextRequest) {
     let stripeCustomerId = userProfileData.stripeCustomerId;
 
     if (!stripeCustomerId) {
+      const fullName = [userProfileData.firstName, userProfileData.lastName].filter(Boolean).join(' ').trim();
+      const customerName = userProfileData.displayName || fullName || userProfileData.email; // Fallback to email if all else fails
+
       const customer = await stripe.customers.create({
         email: userProfileData.email!,
-        name: userProfileData.displayName || `${userProfileData.firstName} ${userProfileData.lastName}`.trim(),
+        name: customerName,
         metadata: { userId: userId }
       });
       stripeCustomerId = customer.id;
