@@ -370,47 +370,49 @@ export default function TripPackingPage() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center"><Sparkles className="mr-2 h-5 w-5"/>Personalize & Share</CardTitle>
-                    <CardDescription>Creates individual packing lists for each passenger based on the list above.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button onClick={handlePersonalizeList} disabled={anyMutationLoading}><Users className="mr-2 h-4 w-4"/>Personalize Lists</Button>
-                    {personalizeListMutation.isPending && <div className="flex items-center gap-2 mt-4"><Loader2 className="h-4 w-4 animate-spin"/><p>Personalizing...</p></div>}
-                    {personalizedLists && (
-                      <div ref={personalizedListsRef} className="mt-4 space-y-4">
-                        <h4 className="font-headline text-lg text-primary pt-4 border-t">Generated Lists:</h4>
-                        {personalizedLists.passenger_lists.map(p => (
-                          <Card key={p.passenger_id} className="bg-muted/50">
-                            <CardHeader>
-                              <div className="flex justify-between items-start">
-                                <CardTitle>{p.passenger_name}'s List</CardTitle>
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <div>
-                                        <Button size="sm" variant="outline" onClick={() => handleCreateGoogleTasks(p.google_tasks_structure)} disabled={!userProfile?.googleAuth?.refreshToken}>
-                                          <SendToBack className="mr-2 h-4 w-4"/> Send to Google Tasks
-                                        </Button>
-                                      </div>
-                                    </TooltipTrigger>
-                                    {!userProfile?.googleAuth?.refreshToken && (
-                                      <TooltipContent><p>Connect Google Account in My Account page.</p></TooltipContent>
-                                    )}
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                            </CardHeader>
-                            <CardContent>
-                              <pre className="whitespace-pre-wrap font-sans text-sm">{p.messenger_message}</pre>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                </CardContent>
-              </Card>
+              {selectedTrip && (selectedTrip.occupants?.length || 0) > 1 && (
+                <Card>
+                  <CardHeader>
+                      <CardTitle className="flex items-center"><Sparkles className="mr-2 h-5 w-5"/>Personalize & Share</CardTitle>
+                      <CardDescription>Creates individual packing lists for each passenger based on the list above.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                      <Button onClick={handlePersonalizeList} disabled={anyMutationLoading}><Users className="mr-2 h-4 w-4"/>Personalize Lists</Button>
+                      {personalizeListMutation.isPending && <div className="flex items-center gap-2 mt-4"><Loader2 className="h-4 w-4 animate-spin"/><p>Personalizing...</p></div>}
+                      {personalizedLists && (
+                        <div ref={personalizedListsRef} className="mt-4 space-y-4">
+                          <h4 className="font-headline text-lg text-primary pt-4 border-t">Generated Lists:</h4>
+                          {personalizedLists.passenger_lists.map(p => (
+                            <Card key={p.passenger_id} className="bg-muted/50">
+                              <CardHeader>
+                                <div className="flex justify-between items-start">
+                                  <CardTitle>{p.passenger_name}'s List</CardTitle>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div>
+                                          <Button size="sm" variant="outline" onClick={() => handleCreateGoogleTasks(p.google_tasks_structure)} disabled={!userProfile?.googleAuth?.refreshToken}>
+                                            <SendToBack className="mr-2 h-4 w-4"/> Send to Google Tasks
+                                          </Button>
+                                        </div>
+                                      </TooltipTrigger>
+                                      {!userProfile?.googleAuth?.refreshToken && (
+                                        <TooltipContent><p>Connect Google Account in My Account page.</p></TooltipContent>
+                                      )}
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </div>
+                              </CardHeader>
+                              <CardContent>
+                                <pre className="whitespace-pre-wrap font-sans text-sm">{p.messenger_message}</pre>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                  </CardContent>
+                </Card>
+              )}
             </>
           ) : (
             // CREATE NEW LIST VIEW
