@@ -25,7 +25,7 @@ All your secret keys will live in a special file that is NOT committed to versio
     NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"
     NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="your-measurement-id"
 
-    # App Check Configuration
+    # App Check Configuration (for securing backend requests)
     NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY="your-recaptcha-enterprise-site-key"
     NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN="your-app-check-debug-token-if-needed"
 
