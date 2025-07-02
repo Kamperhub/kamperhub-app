@@ -45,45 +45,55 @@ const LoadingScreen = ({ status }: { status: AuthStatus }) => {
 
 const ErrorScreen = ({ error }: { error: string | null }) => {
   const errorMessage = error || "An unknown error occurred.";
-  const isDbConnectionError =
-    errorMessage.toLowerCase().includes('unauthenticated') ||
-    errorMessage.toLowerCase().includes('permission-denied') ||
-    errorMessage.toLowerCase().includes('database') ||
-    errorMessage.toLowerCase().includes('not_found');
-
-  const renderAdvice = () => {
-    if (isDbConnectionError) {
-      return (
-        <div className="mt-4 border-t border-red-400/30 pt-3 text-left font-body">
-          <p className="font-bold">This error indicates a server-to-database connection failure. The most common causes are:</p>
-          <ul className="list-disc pl-5 my-2 space-y-1">
-            <li><strong>Project Mismatch:</strong> The client-side and server-side keys in `.env.local` are from different Firebase projects.</li>
-            <li><strong>Database Not Created:</strong> The Firestore database named 'kamperhubv2' does not exist in the project.</li>
-            <li><strong>Incorrect Permissions:</strong> The service account does not have the 'Editor' or 'Cloud Datastore User' role.</li>
-          </ul>
-          <p className="mt-2 font-semibold">Please follow the new <code className="bg-black/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file in your project's root folder. It includes diagnostic tools to fix this permanently.</p>
-        </div>
-      );
-    }
-    return (
-        <div className="mt-4 border-t border-red-400/30 pt-3 text-left font-body">
-            <p className="font-bold">This may be a client-side configuration issue.</p>
-            <p className="mt-2">Please ensure your <code className="bg-black/20 px-1 rounded-sm">.env.local</code> file contains the correct <code className="bg-black/20 px-1 rounded-sm">NEXT_PUBLIC_FIREBASE_*</code> variables for your project and that you have restarted the development server.</p>
-        </div>
-    );
-  };
+  
+  // This is a direct check for the most likely error.
+  const isUnauthenticatedError = errorMessage.toLowerCase().includes('unauthenticated');
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-4">
       <div className="max-w-2xl w-full border border-destructive bg-destructive/10 text-destructive-foreground p-6 rounded-lg">
         <h1 className="text-xl font-bold font-headline">
-          Application Error
+          Server Connection Error
         </h1>
-        <p className="mt-2 font-body">The application failed to initialize correctly.</p>
+        <p className="mt-2 font-body">The application server cannot connect to the database.</p>
         <pre className="mt-4 text-xs bg-black/20 p-3 rounded-md font-mono whitespace-pre-wrap text-left">
           {errorMessage}
         </pre>
-        {renderAdvice()}
+        
+        {isUnauthenticatedError && (
+          <div className="mt-4 border-t border-red-400/30 pt-3 text-left font-body space-y-4">
+            <p className="font-bold">This is a server permissions issue. It means the Service Account used by the server is not authorized to access Firestore. Please check the following in your Google Cloud Console for project <code className="bg-black/20 px-1 rounded-sm">kamperhub-s4hc2</code>:</p>
+            
+            <div>
+              <h3 className="font-semibold">1. Verify Service Account Roles</h3>
+              <p className="text-sm">The service account needs the <strong className="text-red-300">"Editor"</strong> or <strong className="text-red-300">"Cloud Datastore User"</strong> role.</p>
+              <a 
+                href="https://console.cloud.google.com/iam-admin/iam?project=kamperhub-s4hc2" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-sm text-cyan-400 hover:underline"
+              >
+                Go to IAM & Admin Page &rarr;
+              </a>
+              <p className="text-xs mt-1">Find the service account email (it's in your credentials JSON file) and check its "Role" column.</p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold">2. Verify Firestore API is Enabled</h3>
+              <p className="text-sm">The "Cloud Firestore API" must be enabled for the project.</p>
+              <a 
+                href="https://console.cloud.google.com/apis/library/firestore.googleapis.com?project=kamperhub-s4hc2" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-sm text-cyan-400 hover:underline"
+              >
+                Go to Firestore API Page &rarr;
+              </a>
+               <p className="text-xs mt-1">Click the "Enable" button if it is not already enabled.</p>
+            </div>
+             <p className="mt-2 text-sm">After making changes in the Cloud Console, you may need to restart the application server.</p>
+          </div>
+        )}
       </div>
     </div>
   );
