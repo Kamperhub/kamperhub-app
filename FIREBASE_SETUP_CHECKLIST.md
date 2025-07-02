@@ -52,37 +52,37 @@ All your secret keys will live in a special file that is NOT committed to versio
 
 ---
 
-### Step 2: Find the CORRECT Firebase Project
+### Step 2: Find Your Firebase Project (`kamperhub-s4hc2`)
 
 > [!IMPORTANT]
-> This is the most critical step. Based on the error messages you are seeing, your app may be configured for a different project than the one containing your `kamperhubv2` database. You must get **all keys** from the correct project.
+> This is the most critical step. Your Firebase **Project ID** is `kamperhub-s4hc2`. You must get **all keys** from this specific project.
 
 1.  Go to the [Firebase Console](https://console.firebase.google.com/).
-2.  In the project list, find the project that holds your existing `kamperhubv2` database.
+2.  In the project list, find and select the project named **`kamperhub-s4hc2`**.
 3.  Click the gear icon ⚙️ next to **Project Overview** and select **Project settings**.
-4.  The **Project ID** is listed on this General settings page (e.g., `kamperhubv2-prod-abcdef` or `kamperhubv2`). **This is the Project ID you must use for all subsequent steps.**
+4.  The **Project ID** listed on this General settings page must be `kamperhub-s4hc2`. This is the value you will use for `NEXT_PUBLIC_FIREBASE_PROJECT_ID` and verify against the service account JSON.
 
 ---
 
 ### Step 3: Populate Your Environment File
 
-Now, using the **correct `kamperhubv2` project** from Step 2, find your keys and paste them into the `.env.local` file.
+Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys and paste them into the `.env.local` file.
 
 1.  **Firebase Client Keys (`NEXT_PUBLIC_FIREBASE_*`)**
-    *   In your `kamperhubv2` Project settings, under "Your apps", find your web app.
+    *   In your `kamperhub-s4hc2` Project settings, under "Your apps", find your web app.
     *   Look for the "Firebase SDK snippet" and select the **Config** option.
     *   Copy each value (`apiKey`, `authDomain`, `projectId`, etc.) and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file.
-    *   **CRITICAL: Verify that `NEXT_PUBLIC_FIREBASE_PROJECT_ID` matches the `kamperhubv2` Project ID from Step 2.**
+    *   **CRITICAL: Verify that `NEXT_PUBLIC_FIREBASE_PROJECT_ID` is set to `kamperhub-s4hc2`**
 
 2.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
-    *   In your `kamperhubv2` Project settings, go to the **Service accounts** tab.
+    *   In your `kamperhub-s4hc2` Project settings, go to the **Service accounts** tab.
     *   Click "Generate new private key". A JSON file will download.
     *   Open the downloaded file, copy the **entire JSON content**, and paste it inside the single quotes for `GOOGLE_APPLICATION_CREDENTIALS_JSON`. **It must all be on one line.**
-    *   **CRITICAL: The `project_id` field inside this JSON file must also match the `kamperhubv2` Project ID from Step 2.**
+    *   **CRITICAL: The `project_id` field inside this JSON file must also be `kamperhub-s4hc2`.**
     *   **CRITICAL: The `private_key` field in the JSON contains `\n` characters. The app is now designed to handle these correctly, so you should not need to modify them manually.**
 
 3.  **Generative AI Key (`GOOGLE_API_KEY`)**
-    *   Go to the [Google Cloud Credentials page](https://console.cloud.google.com/apis/credentials) for your project.
+    *   Go to the [Google Cloud Credentials page](https://console.cloud.google.com/apis/credentials) for your `kamperhub-s4hc2` project.
     *   You need an API key that is **NOT** restricted by "HTTP referrers". Requests from the server have no referrer and will be blocked by that restriction type.
     *   A key with **"None"** or **"IP Address"** restrictions is required.
     *   Click "Show key" next to a suitable, unrestricted key. Copy it.
@@ -103,18 +103,19 @@ After populating `.env.local`, you **MUST** restart your development server. The
 
 ---
 
-### Step 5: CRITICAL - Verify Firestore Database Exists and Has the Correct Name
+### Step 5: CRITICAL - Verify Firestore Database Exists (with ID `kamperhubv2`)
 
-The `UNAUTHENTICATED` error also occurs if the Firestore database has not been created in your project, or if it was created with a different name.
+> [!IMPORTANT]
+> The application code is specifically configured to connect to a Firestore database with the **Database ID `kamperhubv2`**. This is different from your **Project ID**.
 
-1.  Go to the [Firebase Console](https://console.firebase.google.com/) and select your project from Step 2.
-2.  In the left-hand navigation under "Build", click on **Firestore Database**.
-3.  **If you see a large "Create database" button, you must create one.**
+1.  In the Firebase Console for your `kamperhub-s4hc2` project, go to **Firestore Database** in the "Build" menu.
+2.  **If you see a "Create database" button:** You must create one.
     *   Click **"Create database"**.
-    *   Choose **"Start in test mode"** (you can secure it later with `firestore.rules`).
-    *   Choose a location (e.g., `us-central` or one near you).
-    *   Click **Enable**. This will create the database with the ID `(default)`.
-4.  **If a database already exists**, look at the top of the "Data" tab. The database ID is shown there. This application specifically tries to connect to a database named **`kamperhubv2`**. If your database is named `(default)`, please delete it and re-create it, ensuring you provide `kamperhubv2` as the **Database ID** when prompted.
+    *   Choose **"Start in test mode"**.
+    *   Choose a location.
+    *   When prompted for a **Database ID**, you MUST enter **`kamperhubv2`**. Do not leave it as `(default)`.
+    *   Click **Enable**.
+3.  **If a database already exists:** Look at the top of the "Data" tab. The database ID is shown there. It **must be `kamperhubv2`**. If it is `(default)`, you must delete the `(default)` database and create a new one with the correct ID `kamperhubv2`.
 
 ---
 
