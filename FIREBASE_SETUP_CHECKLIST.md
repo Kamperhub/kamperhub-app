@@ -92,9 +92,12 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 
 ---
 
-### Step 4: CRITICAL - Verify Your Server Setup
+### Step 4: CRITICAL - Verify Your Local Development Server Setup
 
-After populating `.env.local`, you **MUST** restart your development server. The server only reads this file when it first starts.
+After populating `.env.local`, you **MUST** restart your local development server. The server only reads this file when it first starts.
+
+> [!NOTE]
+> **Production Note:** This manual restart is only for your local `npm run dev` server. In a live production environment (like Firebase App Hosting), you will set these variables in the hosting configuration, and the service will automatically handle applying them—no manual restarts needed.
 
 1.  Stop your server (`Ctrl + C`) and restart it (`npm run dev`).
 2.  Check the terminal where your server is running. You should see messages like:
