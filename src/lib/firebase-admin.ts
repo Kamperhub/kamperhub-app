@@ -26,6 +26,10 @@ export function getFirebaseAdmin() {
 
     const serviceAccount = JSON.parse(jsonString);
 
+    if (!serviceAccount.private_key) {
+      throw new Error("FATAL: The 'private_key' field is missing from your service account JSON. Please ensure you have copied the entire JSON file correctly.");
+    }
+    
     if (serviceAccount.private_key) {
       serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
     }

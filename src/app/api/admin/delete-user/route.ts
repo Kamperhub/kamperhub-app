@@ -42,15 +42,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Admin user cannot be deleted.' }, { status: 400 });
     }
 
-    const usersRef = firestore.collection('users');
-    const allUsersSnapshot = await usersRef.get();
-    
-    const userDoc = allUsersSnapshot.docs.find(doc => doc.data().email === targetEmail);
+    // Use a 'where' query for efficiency. This requires a Firestore index on the 'email' field.
+    const usersQuery = firestore.collection('users').where('email', '==', targetEmail).limit(1);
+    const userQuerySnapshot = await usersQuery.get();
 
-    if (!userDoc) {
+    if (userQuerySnapshot.empty) {
         return NextResponse.json({ error: `User with email ${targetEmail} not found in Firestore database.` }, { status: 404 });
     }
-
+    
+    const userDoc = userQuerySnapshot.docs[0];
     const userIdToDelete = userDoc.id;
 
     await userDoc.ref.delete();
