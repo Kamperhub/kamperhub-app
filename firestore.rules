@@ -2,11 +2,19 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // This rule allows an authenticated user to read and write to their own
-    // user profile document and ANY documents in ANY subcollections
-    // underneath it (e.g., trips, vehicles, etc.).
-    // This is the primary security rule for the application's data model.
-    match /users/{userId}/{documents=**} {
+    
+    // Rule 1: Manages access to the user profile document itself.
+    // A user can create their own profile, and then read, update, or delete it.
+    match /users/{userId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Rule 2: Manages access to all subcollections belonging to a user.
+    // The {subcollection}/{document=**} wildcard grants access to any document
+    // within any subcollection of a user's profile document.
+    // e.g., it will match /users/abc/vehicles/xyz and allow access if the user's UID is 'abc'.
+    match /users/{userId}/{subcollection}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
