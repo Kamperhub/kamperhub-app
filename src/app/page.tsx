@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo, useContext } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import type { NavItem } from '@/lib/navigation';
 import { navItems as defaultNavItems } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,10 +11,7 @@ import { Home as HomeIcon, Loader2, LayoutDashboard, AlertTriangle, CornerDownLe
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { firebaseInitializationError } from '@/lib/firebase';
-import { fetchUserPreferences, updateUserPreferences } from '@/lib/api-client';
-import type { UserProfile } from '@/types/auth';
+import { updateUserPreferences } from '@/lib/api-client';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from '@/hooks/useAuth';
@@ -103,153 +100,25 @@ function SortableNavItemCard({ item }: { item: NavItem }) {
   );
 }
 
-const DashboardSkeleton = ({ loadingText }: { loadingText: string }) => (
-    <div className="space-y-8">
-        <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-                <Skeleton className="mr-4 h-[60px] w-[60px] rounded-md" />
-                <div>
-                    <h1 className="text-3xl font-headline text-primary">Welcome to KamperHub</h1>
-                    <p className="font-body text-muted-foreground">{loadingText}</p>
-                </div>
-            </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-                <Card key={i}>
-                    <CardHeader className="pb-3">
-                        <Skeleton className="h-6 w-3/5" />
-                        <Skeleton className="h-4 w-4/5 mt-1" />
-                    </CardHeader>
-                    <CardContent>
-                        <Skeleton className="h-32 w-full rounded-md mb-2" />
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
-    </div>
-);
-
-const FirebaseErrorState = ({ error }: { error: string }) => (
-    <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-4">
-        <Alert variant="destructive" className="max-w-2xl">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle className="font-headline text-lg">Firebase Configuration Error</AlertTitle>
-            <AlertDescription className="font-body space-y-2 mt-2">
-                <p>{error}</p>
-                <p>Please follow the setup instructions in <code className="bg-muted text-destructive-foreground px-1 py-0.5 rounded-sm mx-1 font-mono text-sm">FIREBASE_SETUP_CHECKLIST.md</code> to configure your <code className="bg-muted text-destructive-foreground px-1 py-0.5 rounded-sm mx-1 font-mono text-sm">.env.local</code> file.</p>
-            </AlertDescription>
-        </Alert>
-    </div>
-);
-
-const DashboardErrorState = ({ error }: { error: Error }) => {
-  const renderErrorDetails = () => {
-    const errorMessage = error.message.toLowerCase();
-    
-    // Check for the most specific error first: UNAUTHENTICATED
-    if (errorMessage.includes("16 unauthenticated") || errorMessage.includes("invalid authentication credentials")) {
-      return (
-        <div className="mt-4 border-t border-destructive-foreground/20 pt-2 text-left space-y-2">
-          <p className="font-bold">This is a server authentication or permissions issue.</p>
-          <p>This `UNAUTHENTICATED` error means the application server was blocked when trying to access Google services. This is nearly always due to an issue with the service account credentials.</p>
-          <p>
-            **Action:** Please use the built-in diagnostic tool by visiting{' '}
-            <a href="/api/debug/env" target="_blank" rel="noopener noreferrer" className="underline font-bold text-destructive-foreground">
-              /api/debug/env
-            </a>
-            .
-          </p>
-          <p>
-            This tool will show you exactly how the server is configured. Pay close attention to the `ADMIN_SDK_INITIALIZATION_STATUS` and `PROJECT_IDS_MATCH` fields. Then, follow the updated <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> to resolve any reported issues.
-          </p>
-        </div>
-      );
-    }
-    
-    if (errorMessage.includes("404") || errorMessage.includes("server build or startup error")) {
-      return (
-        <div className="mt-4 border-t border-destructive-foreground/20 pt-2 text-left space-y-2">
-          <p className="font-bold">This is a common environment setup issue.</p>
-          <p>
-            A '404 Not Found' error for an API route usually means the server failed to start correctly. This is almost always caused by an issue with the <code className="bg-destructive-foreground/20 px-1 rounded-sm">GOOGLE_APPLICATION_CREDENTIALS_JSON</code> in your <code className="bg-destructive-foreground/20 px-1 rounded-sm">.env.local</code> file.
-          </p>
-          <p className="mt-2">
-            Please use the updated diagnostic tool at <a href="/api/debug/env" target="_blank" rel="noopener noreferrer" className="underline font-bold">/api/debug/env</a> to see the exact server-side error, then follow the <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> to fix it.
-          </p>
-        </div>
-      );
-    }
-    if (errorMessage.includes("timed out") || errorMessage.includes("permission")) {
-       return (
-          <div className="mt-4 border-t border-destructive-foreground/20 pt-2 text-left space-y-2">
-            <p className="font-bold">This may be a server-side permission issue.</p>
-            <p>
-                A timeout error means the server is running but is taking too long to fetch your data from the database. This can happen on a slow network, but it often points to a permissions problem with the server's service account.
-            </p>
-            <p className="mt-2">
-                Please check the <code className="bg-destructive-foreground/20 px-1 rounded-sm">IAM & Admin</code> section of your Google Cloud Console and ensure the service account associated with this project has the `Cloud Datastore User` or `Firebase Admin` role.
-            </p>
-          </div>
-       );
-    }
-     if (errorMessage.includes("database not found") || errorMessage.includes("could not find the database")) {
-        return (
-            <div className="mt-4 border-t border-destructive-foreground/20 pt-2 text-left space-y-2">
-                <p className="font-bold">This is an environment setup issue, not a code problem.</p>
-                <p>Please follow the updated instructions in <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code>, especially <strong>Step 5</strong>, which guides you to use the built-in diagnostic tool to verify your project setup, and <strong>Step 6</strong> about creating the Firestore database.</p>
-            </div>
-        );
-    }
-    return (
-      <div className="mt-4 border-t border-destructive-foreground/20 pt-2 text-left">
-        <p>Please check your server-side configuration in <code className="bg-destructive-foreground/20 px-1 rounded-sm">.env.local</code>.</p>
-      </div>
-    );
-  };
-
-  return (
-      <Alert variant="destructive" className="mb-6">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle className="font-headline">Error Loading Dashboard Data</AlertTitle>
-        <AlertDescription className="font-body space-y-2">
-           <p>We couldn't load your personalized dashboard settings. The server reported the following issue:</p>
-           <pre className="mt-2 text-xs bg-destructive-foreground/10 p-2 rounded-md font-mono whitespace-pre-wrap">
-            {error.message}
-           </pre>
-           {renderErrorDetails()}
-        </AlertDescription>
-      </Alert>
-  );
-};
-
-
 export default function DashboardPage() {
   const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>(defaultNavItems);
   const [isMounted, setIsMounted] = useState(false);
 
-  const { user, isAuthLoading } = useAuth();
-  const router = useRouter();
+  // The AuthGuard handles loading/error states for these.
+  // We can trust they are available here.
+  const { user, userProfile: userPrefs } = useAuth(); 
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const { data: userPrefs, error: prefsError, isLoading: isLoadingPrefs } = useQuery<Partial<UserProfile>>({
-    queryKey: ['userPreferences', user?.uid],
-    queryFn: fetchUserPreferences,
-    retry: (failureCount, error: Error) => {
-      // Don't retry on fatal server errors, but do retry on network issues etc.
-      if (error.message.includes("500") || error.message.includes("crash") || error.message.includes("404") || error.message.includes("16 UNAUTHENTICATED")) {
-        return false;
-      }
-      return failureCount < 2; // Retry up to 2 times
-    },
-    enabled: !!user && !isAuthLoading,
-  });
-
   const updateUserPrefsMutation = useMutation({
     mutationFn: (layout: string[]) => updateUserPreferences({ dashboardLayout: layout }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
+      // Optimistically update the userPrefs in the main auth context to prevent layout flicker
+      queryClient.setQueryData(['userPreferences', user?.uid], (oldData: any) => ({
+        ...oldData,
+        dashboardLayout: orderedNavItems.map(item => item.href)
+      }));
       toast({ title: "Layout Saved", description: "Your dashboard layout has been saved." });
     },
     onError: (error: Error) => {
@@ -309,18 +178,39 @@ export default function DashboardPage() {
   }, [updateUserPrefsMutation]);
 
   const navItemHrefs = useMemo(() => orderedNavItems.map(item => item.href), [orderedNavItems]);
-
-  if (firebaseInitializationError) {
-      return <FirebaseErrorState error={firebaseInitializationError} />;
-  }
   
-  if (isLoadingPrefs || !isMounted) {
-     return <DashboardSkeleton loadingText={'Loading dashboard...'} />;
+  // The AuthGuard handles the main loading/error state. We just show a simple skeleton if not mounted.
+  if (!isMounted) {
+     return (
+        <div className="space-y-8">
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center">
+                    <Skeleton className="mr-4 h-[60px] w-[60px] rounded-md" />
+                    <div>
+                        <h1 className="text-3xl font-headline text-primary">Welcome to KamperHub</h1>
+                        <p className="font-body text-muted-foreground">Loading dashboard...</p>
+                    </div>
+                </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                    <Card key={i}>
+                        <CardHeader className="pb-3">
+                            <Skeleton className="h-6 w-3/5" />
+                            <Skeleton className="h-4 w-4/5 mt-1" />
+                        </CardHeader>
+                        <CardContent>
+                            <Skeleton className="h-32 w-full rounded-md mb-2" />
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+        </div>
+     );
   }
 
   return (
     <div className="space-y-8">
-      {prefsError && <DashboardErrorState error={prefsError} />}
       <div className="flex items-center mb-6">
         <Image
           src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.firebasestorage.app/o/KamperHub%20512x512.jpg?alt=media&token=00bf2acd-dbca-4cc2-984e-58461f67fdbd"
