@@ -334,6 +334,59 @@ const getTripExpensesTool = ai.defineTool(
   }
 );
 
+const addAmountToBudgetCategoryTool = ai.defineTool(
+  {
+    name: 'addAmountToBudgetCategory',
+    description: 'Adds a specified amount to a budget category for a trip. If the category does not exist, it will be created.',
+    inputSchema: z.object({
+      userId: z.string().describe("The user's unique ID."),
+      tripId: z.string().describe("The unique ID of the trip, obtained from findUserTrip."),
+      categoryName: z.string().describe("The name of the budget category to add the amount to (e.g., 'Food', 'Activities')."),
+      amountToAdd: z.number().positive().describe("The positive amount to add to the budget category."),
+    }),
+    outputSchema: z.string().describe("A confirmation message indicating success or failure."),
+  },
+  async ({ userId, tripId, categoryName, amountToAdd }) => {
+    const { firestore, error } = getFirebaseAdmin();
+    if (error || !firestore) return 'Error: Database service is not available.';
+    
+    const tripRef = firestore.collection('users').doc(userId).collection('trips').doc(tripId);
+    
+    try {
+      await firestore.runTransaction(async (transaction) => {
+        const doc = await transaction.get(tripRef);
+        if (!doc.exists) {
+          throw new Error(`Trip with ID ${tripId} not found.`);
+        }
+        const trip = doc.data() as LoggedTrip;
+        const budget = trip.budget || [];
+
+        const categoryIndex = budget.findIndex(cat => cat.name.toLowerCase() === categoryName.toLowerCase());
+
+        if (categoryIndex > -1) {
+          // Category exists, update it
+          budget[categoryIndex].budgetedAmount += amountToAdd;
+        } else {
+          // Category doesn't exist, create it
+          budget.push({
+            id: `budget_${categoryName.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`,
+            name: categoryName,
+            budgetedAmount: amountToAdd,
+          });
+        }
+        
+        transaction.update(tripRef, { budget });
+      });
+
+      return `Successfully added $${amountToAdd.toFixed(2)} to the "${categoryName}" budget for the trip.`;
+
+    } catch (e: any) {
+      console.error("Error adding to budget category:", e);
+      return `An unexpected error occurred while updating the budget: ${e.message}`;
+    }
+  }
+);
+
 
 export async function caravanSupportChatbot(
   input: CaravanSupportChatbotInput,
@@ -350,24 +403,29 @@ const prompt = ai.definePrompt({
   name: 'caravanSupportChatbotPrompt',
   input: {schema: CaravanSupportChatbotFlowInputSchema },
   output: {schema: CaravanSupportChatbotOutputSchema},
-  tools: [getFaqAnswer, getArticleInfoTool, findYoutubeLink, listUserTripsTool, findUserTripTool, addExpenseToTripTool, getTripExpensesTool],
+  tools: [getFaqAnswer, getArticleInfoTool, findYoutubeLink, listUserTripsTool, findUserTripTool, addExpenseToTripTool, getTripExpensesTool, addAmountToBudgetCategoryTool],
   prompt: `You are a friendly and helpful caravan support chatbot for KamperHub. Your goal is to provide useful answers and perform actions for the user.
 
 USER ID: {{{userId}}}
 
 **Response Hierarchy:**
-1.  **Action or Query Intent:** First, check if the user wants to perform an action (e.g., "add expense") or query their data (e.g., "how much did I spend?"). If so, proceed to the "Data Interaction" section below.
-2.  **Trip Listing Intent:** If the user asks a general question like "what trips do I have?" or "what trips can I add expenses to?", use the 'listUserTripsTool'. If it returns a list of names, present them clearly to the user. If it returns null, inform the user they have no trips logged.
+1.  **Action or Query Intent:** First, check if the user wants to perform an action (e.g., "add expense", "increase budget") or query their data (e.g., "how much did I spend?"). If so, proceed to the "Data Interaction" section below.
+2.  **Trip Listing Intent:** If the user asks a general question like "what trips do I have?", use the 'listUserTripsTool'. If it returns a list of names, present them clearly to the user. If it returns null, inform the user they have no trips logged.
 3.  **FAQ Check:** If it's a general question, use 'getFaqAnswer' first.
 4.  **Article Check:** If no FAQ is found, use 'getArticleInfoTool'.
 5.  **General Knowledge:** If no internal tools provide an answer, use your general caravanning knowledge.
 6.  **YouTube Link:** As a final step, if a video would be helpful, use 'findYoutubeLink'.
 
-**Data Interaction (Adding or Retrieving Expenses):**
-- **Identify Intent:** Recognize if the user wants to *add* an expense or *get* expense information.
-- **Find Trip:** For any expense-related action, you MUST find the trip first. If the user mentions a trip name (e.g., "Fraser Island trip"), use the 'findUserTripTool' with the user's ID and the trip name.
+**Data Interaction (Budget & Expenses):**
+- **Identify Intent:** Recognize if the user wants to *add/modify budget*, *add* an expense, or *get* expense information.
+- **Find Trip:** For any budget or expense-related action, you MUST find the trip first. If the user mentions a trip name (e.g., "Fraser Island trip"), use the 'findUserTripTool' with the user's ID and the trip name.
     - If the tool returns null, it means no matching trip was found. You MUST inform the user that you couldn't find that trip and ask them to try a different name or check their trip log. Do not proceed.
     - If the user doesn't mention a trip name, you must ask them for it.
+
+**If Adding/Modifying Budget:**
+1.  **Gather Details:** You need the trip ID, the amount, and the category name. If any of these are missing from the user's request, you MUST ask for them. For example, if they say "add $50 to the budget for my trip", you must ask "For which category?".
+2.  **Add to Budget:** Once all details are gathered, use the 'addAmountToBudgetCategory' tool with all the details (userId, tripId, categoryName, amountToAdd).
+3.  **Confirm:** Relay the success or error message from the tool back to the user.
 
 **If Adding an Expense:**
 1.  **Gather Details:** Once you have the trip ID, you need the expense details: amount, description, and category. If any of these are missing from the user's request, ask for them. When asking for a category, you can suggest the available categories returned by 'findUserTripTool'.
