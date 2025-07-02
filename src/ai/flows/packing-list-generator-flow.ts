@@ -103,7 +103,7 @@ const packingListGeneratorFlow = ai.defineFlow(
       console.error("Error in packingListGeneratorFlow:", error);
       if (error.message && error.message.includes('API_KEY_HTTP_REFERRER_BLOCKED')) {
         throw new Error(
-          'AI Service Error: The GOOGLE_API_KEY you are using has "HTTP referrer" restrictions, which is not allowed for server-to-server AI calls. Please use a different API key that does NOT have this restriction type. A key with "None", "IP Address", or only API service restrictions will work. The error was: API_KEY_HTTP_REFERRER_BLOCKED.'
+          'AI Service Error: The GOOGLE_API_KEY has "HTTP referrer" restrictions, which is not allowed for server-to-server AI calls. Use a key with "None" or "IP Address" restrictions as explained in the setup guide.'
         );
       }
       throw new Error(`AI Service Error: ${error.message || 'An unknown error occurred.'}`);
