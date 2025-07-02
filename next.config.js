@@ -5,18 +5,18 @@ const nextConfig = {
     // Apply Content-Security-Policy headers in all environments to ensure consistency
     const cspHeader = [
       "default-src 'self'",
-      // Scripts - Allow self, inline, eval (for Next.js), Google Maps, and Stripe
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://www.gstatic.com https://*.stripe.com https://m.stripe.network https://*.cloudworkstations.googleusercontent.com",
+      // Scripts - Allow self, inline, eval (for Next.js), Google Maps, Stripe, and Cloud IDE resources
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://www.gstatic.com https://*.stripe.com https://m.stripe.network https://*.cloudworkstations.googleusercontent.com https://vscode-resource.vscode-cdn.net",
       // Styles - Allow self, inline (for component libraries), and Google Fonts
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       // Images - Allow self, data URIs, placeholders, Firebase Storage, Google content, and Stripe
       "img-src 'self' data: https://placehold.co https://firebasestorage.googleapis.com https://maps.gstatic.com https://maps.googleapis.com https://*.googleusercontent.com https://*.stripe.com",
       // Fonts
       "font-src 'self' https://fonts.gstatic.com",
-      // Connections - Allow self, Google APIs, local dev server, and Stripe
-      "connect-src 'self' http://localhost:8083 ws://localhost:8083 https://*.googleapis.com wss://*.cloudworkstations.dev https://*.stripe.com https://m.stripe.network https://*.cloudworkstations.googleusercontent.com",
-      // Workers
-      "worker-src 'self' blob: https://*.cloudworkstations.googleusercontent.com",
+      // Connections - Allow self, Google APIs, local dev server, Stripe, and Cloud IDE resources
+      "connect-src 'self' http://localhost:8083 ws://localhost:8083 https://*.googleapis.com wss://*.cloudworkstations.dev https://*.cloudworkstations.dev https://*.stripe.com https://m.stripe.network https://*.cloudworkstations.googleusercontent.com https://vscode-resource.vscode-cdn.net",
+      // Workers - Allow self, blobs, and Cloud IDE resources
+      "worker-src 'self' blob: https://*.cloudworkstations.googleusercontent.com https://vscode-resource.vscode-cdn.net",
       // Frames - Allow self, Google (for Recaptcha/maps), and Stripe (for portal and payment forms)
       "frame-src 'self' https://www.google.com https://*.stripe.com https://billing.stripe.com https://m.stripe.network https://www.youtube.com https://*.cloudworkstations.googleusercontent.com",
       // Others
