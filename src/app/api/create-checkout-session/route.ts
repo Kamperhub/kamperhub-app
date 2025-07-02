@@ -20,8 +20,8 @@ const proPriceId = process.env.STRIPE_PRO_PRICE_ID;
 export async function POST(req: NextRequest) {
   const { auth, firestore, error: adminError } = getFirebaseAdmin();
   if (adminError || !auth || !firestore) {
-    console.error('Create Checkout Session: Firebase Admin SDK failed to initialize.');
-    return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
+    console.error('Create Checkout Session: Firebase Admin SDK failed to initialize.', adminError?.message);
+    return NextResponse.json({ error: 'Server configuration error.', details: adminError?.message }, { status: 500 });
   }
   
   if (!stripeSecretKey || !stripe) {
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
       await userProfileDoc.ref.update({ stripeCustomerId });
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8083';
 
     const checkoutSessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
@@ -93,7 +93,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (error: any) {
     console.error('Create Checkout Session: Error in POST handler:', error.message, error.stack);
-    const stripeErrorMessage = error.type ? `${error.type}: ${error.message}` : error.message;
+    let errorDetails = error.message;
+    // This is the specific error from the screenshot.
+    if (error.code === 16 || error.message.toLowerCase().includes('unauthenticated')) {
+        errorDetails = `16 UNAUTHENTICATED: The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or missing permissions. Please verify your .env.local file and Firebase IAM settings, then restart the server. Original Error: ${error.message}`;
+    }
+    const stripeErrorMessage = error.type ? `${error.type}: ${error.message}` : errorDetails;
     return NextResponse.json({ error: `Internal Server Error creating Stripe session: ${stripeErrorMessage}` }, { status: 500 });
   }
 }
