@@ -146,9 +146,30 @@ const FirebaseErrorState = ({ error }: { error: string }) => (
 const DashboardErrorState = ({ error }: { error: Error }) => {
   const renderErrorDetails = () => {
     const errorMessage = error.message.toLowerCase();
+    
+    // Check for the most specific error first: UNAUTHENTICATED
+    if (errorMessage.includes("16 unauthenticated") || errorMessage.includes("invalid authentication credentials")) {
+      return (
+        <div className="mt-4 border-t border-destructive-foreground/20 pt-2 text-left space-y-2">
+          <p className="font-bold">This is a server authentication or permissions issue.</p>
+          <p>This `UNAUTHENTICATED` error means the application server was blocked when trying to access Google services. This is nearly always due to an issue with the service account credentials.</p>
+          <p>
+            **Action:** Please use the built-in diagnostic tool by visiting{' '}
+            <a href="/api/debug/env" target="_blank" rel="noopener noreferrer" className="underline font-bold text-destructive-foreground">
+              /api/debug/env
+            </a>
+            .
+          </p>
+          <p>
+            This tool will show you exactly how the server is configured. Pay close attention to the `ADMIN_SDK_INITIALIZATION_STATUS` and `PROJECT_IDS_MATCH` fields. Then, follow the updated <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> to resolve any reported issues.
+          </p>
+        </div>
+      );
+    }
+    
     if (errorMessage.includes("404") || errorMessage.includes("server build or startup error")) {
       return (
-        <div className="mt-4 border-t border-destructive-foreground/20 pt-2">
+        <div className="mt-4 border-t border-destructive-foreground/20 pt-2 text-left space-y-2">
           <p className="font-bold">This is a common environment setup issue.</p>
           <p>
             A '404 Not Found' error for an API route usually means the server failed to start correctly. This is almost always caused by an issue with the <code className="bg-destructive-foreground/20 px-1 rounded-sm">GOOGLE_APPLICATION_CREDENTIALS_JSON</code> in your <code className="bg-destructive-foreground/20 px-1 rounded-sm">.env.local</code> file.
@@ -161,7 +182,7 @@ const DashboardErrorState = ({ error }: { error: Error }) => {
     }
     if (errorMessage.includes("timed out") || errorMessage.includes("permission")) {
        return (
-          <div className="mt-4 border-t border-destructive-foreground/20 pt-2">
+          <div className="mt-4 border-t border-destructive-foreground/20 pt-2 text-left space-y-2">
             <p className="font-bold">This may be a server-side permission issue.</p>
             <p>
                 A timeout error means the server is running but is taking too long to fetch your data from the database. This can happen on a slow network, but it often points to a permissions problem with the server's service account.
@@ -174,13 +195,17 @@ const DashboardErrorState = ({ error }: { error: Error }) => {
     }
      if (errorMessage.includes("database not found") || errorMessage.includes("could not find the database")) {
         return (
-            <div className="mt-4 border-t border-destructive-foreground/20 pt-2">
+            <div className="mt-4 border-t border-destructive-foreground/20 pt-2 text-left space-y-2">
                 <p className="font-bold">This is an environment setup issue, not a code problem.</p>
                 <p>Please follow the updated instructions in <code className="bg-destructive-foreground/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code>, especially <strong>Step 5</strong>, which guides you to use the built-in diagnostic tool to verify your project setup, and <strong>Step 6</strong> about creating the Firestore database.</p>
             </div>
         );
     }
-    return <p className="mt-2">Please check your server-side configuration in <code className="bg-destructive-foreground/20 px-1 rounded-sm">.env.local</code>.</p>;
+    return (
+      <div className="mt-4 border-t border-destructive-foreground/20 pt-2 text-left">
+        <p>Please check your server-side configuration in <code className="bg-destructive-foreground/20 px-1 rounded-sm">.env.local</code>.</p>
+      </div>
+    );
   };
 
   return (
@@ -213,7 +238,7 @@ export default function DashboardPage() {
     queryFn: fetchUserPreferences,
     retry: (failureCount, error: Error) => {
       // Don't retry on fatal server errors, but do retry on network issues etc.
-      if (error.message.includes("500") || error.message.includes("crash") || error.message.includes("404")) {
+      if (error.message.includes("500") || error.message.includes("crash") || error.message.includes("404") || error.message.includes("16 UNAUTHENTICATED")) {
         return false;
       }
       return failureCount < 2; // Retry up to 2 times

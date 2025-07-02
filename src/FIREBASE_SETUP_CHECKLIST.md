@@ -126,7 +126,7 @@ If the above steps are correct, the final check is to ensure your service accoun
 
 1.  Go to the [Google Cloud Console IAM Page](https://console.cloud.google.com/iam-admin/iam) for your project.
 2.  Find the service account you are using (its email address is in the `client_email` field of your credentials JSON).
-3.  Check its "Role" column. It **must** have a role that allows Firestore access, such as **`Editor`**, or **`Cloud Datastore User`**.
+3.  Check its "Role" column. It **must** have a role that allows Firestore access, such as **`Editor`**, **`Firebase Admin`**, or **`Cloud Datastore User`**.
 4.  If it doesn't, click the pencil icon to edit its permissions and add one of those roles.
 
 ---

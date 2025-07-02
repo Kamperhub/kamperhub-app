@@ -111,11 +111,14 @@ export async function GET(req: NextRequest) {
     
     let errorInfo = 'Failed to process user preferences on the server.';
     let errorDetails = err.message;
-
-    // Check for Firestore "database not found" error (code 5)
-    if (err.code === 5 || (err.message && err.message.toLowerCase().includes('not_found'))) {
+    
+    // More specific error for UNATHENTICATED from the server side
+    if (err.code === 16 || (err.message && err.message.toLowerCase().includes('unauthenticated'))) {
+      errorInfo = '16 UNAUTHENTICATED: The server is not authorized to access Google Cloud services.';
+      errorDetails = `This is a server-side configuration error. The service account credentials in GOOGLE_APPLICATION_CREDENTIALS_JSON may be invalid, for the wrong project, or lack the necessary IAM permissions (e.g., 'Editor' or 'Cloud Datastore User' role). Please use the /api/debug/env tool to diagnose. Original Error: ${err.message}`;
+    } else if (err.code === 5 || (err.message && err.message.toLowerCase().includes('not_found'))) {
         errorInfo = `Database Not Found or Inaccessible`;
-        errorDetails = `CRITICAL: The Firestore database has not been created in this Firebase project. Please go to the Firebase Console, select your project, find 'Firestore Database' in the Build menu, and click 'Create database'. Refer to the setup checklist for more details.`;
+        errorDetails = `CRITICAL: The Firestore database has not been created in this Firebase project, or the service account does not have permission to access it. Please go to the Firebase Console, select your project, find 'Firestore Database' in the Build menu, and click 'Create database'. Refer to the setup checklist for more details. Original Error: ${err.message}`;
     }
     
     return NextResponse.json(
