@@ -83,10 +83,11 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 
 3.  **Generative AI Key (`GOOGLE_API_KEY`)**
     *   Go to the [Google Cloud Credentials page](https://console.cloud.google.com/apis/credentials) for your `kamperhub-s4hc2` project.
-    *   You need an API key that is **NOT** restricted by "HTTP referrers". Requests from the server have no referrer and will be blocked by that restriction type.
-    *   A key with **"None"** or **"IP Address"** restrictions is required.
-    *   Click "Show key" next to a suitable, unrestricted key. Copy it.
-    *   Paste the key into the `GOOGLE_API_KEY` variable in your `.env.local` file.
+    *   **CRITICAL:** You must use an API key that does **NOT** have "HTTP referrers" restrictions. Server-side AI features will fail with an `API_KEY_HTTP_REFERRER_BLOCKED` error if you use a key with this restriction type.
+    *   A key with **"None"**, **"IP Address"**, or just API service restrictions (e.g., restricted to "Generative Language API") is required.
+    *   Looking at your list of keys, the one named `KamperHub V2 key` **will not work** for this purpose. Use a different key like `Generative Language API Key` or `GenAI Key`.
+    *   Click "Show key" next to a suitable key. Copy it.
+    *   Paste this key into the `GOOGLE_API_KEY` variable in your `.env.local` file.
 
 ---
 
