@@ -21,6 +21,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { NavigationContext } from '@/components/layout/AppShell';
 
+const ADMIN_EMAIL = 'info@kamperhub.com';
+
 const signupSchema = z.object({
   firstName: z.string().min(1, "First Name is required"),
   lastName: z.string().min(1, "Last Name is required"),
@@ -87,18 +89,16 @@ export default function SignupPage() {
     let newFirebaseUser: FirebaseUser | null = null;
 
     try {
-      // 1. Create user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       newFirebaseUser = userCredential.user;
       
-      // 2. Update Firebase Auth profile (e.g., with display name)
       await updateProfile(newFirebaseUser, { displayName: username });
       
+      const isAdmin = newFirebaseUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       const trialEndDate = new Date();
       trialEndDate.setDate(trialEndDate.getDate() + 7);
 
-      // 3. Prepare the user profile document for Firestore
-      const userProfileData: Omit<UserProfile, 'activeVehicleId' | 'activeCaravanId' | 'activeWdhId' | 'dashboardLayout' | 'caravanWaterLevels' | 'caravanDefaultChecklists' | 'updatedAt' | 'isAdmin'> = {
+      const userProfileData: UserProfile = {
         uid: newFirebaseUser.uid,
         email: newFirebaseUser.email, 
         displayName: username, 
@@ -107,20 +107,20 @@ export default function SignupPage() {
         city: city,
         state: state,
         country: country,
-        subscriptionTier: 'trialing', // Start user on a trial
+        subscriptionTier: isAdmin ? 'pro' : 'trialing',
         stripeCustomerId: null,
         stripeSubscriptionId: null,
         createdAt: new Date().toISOString(),
-        trialEndsAt: trialEndDate.toISOString(),
+        updatedAt: new Date().toISOString(),
+        isAdmin: isAdmin,
+        trialEndsAt: isAdmin ? null : trialEndDate.toISOString(),
       };
 
-      // 4. Create the user profile document in Firestore
       await setDoc(doc(db, "users", newFirebaseUser.uid), userProfileData);
       
-      // 5. Success! Show toast and redirect.
       toast({
-        title: 'Account Created & Trial Started!',
-        description: `Welcome, ${username}! You now have a 7-day free trial of KamperHub Pro features.`,
+        title: isAdmin ? 'Admin Account Created!' : 'Account Created & Trial Started!',
+        description: isAdmin ? `Welcome, Admin! Your account is set up with Pro access.` : `Welcome, ${username}! You now have a 7-day free trial of KamperHub Pro features.`,
         duration: 7000,
       });
       
@@ -129,28 +129,23 @@ export default function SignupPage() {
       let toastMessage = 'An unexpected error occurred. Please try again.';
       const authError = error as AuthError;
 
-      // Handle specific Firebase Auth errors
       if (authError.code) {
         switch (authError.code) {
           case 'auth/email-already-in-use':
             toastMessage = 'This email address is already in use by another account.';
-            newFirebaseUser = null; // Don't try to delete a user that wasn't created
+            newFirebaseUser = null; 
             break;
           default:
             toastMessage = `An error occurred during signup: ${authError.message}`;
             break;
         }
       } else {
-        // This block likely runs if setDoc to Firestore fails
         toastMessage = `Could not save your profile to the database. This might be due to a network issue or database permissions. Error: ${error.message}`;
       }
 
-      // Cleanup: If an Auth user was created but the process failed later (e.g., Firestore write failed),
-      // delete the orphaned user to allow them to try signing up again with the same email.
       if (newFirebaseUser) {
         await deleteUser(newFirebaseUser).catch(deleteError => {
           console.error("Failed to delete orphaned user during signup rollback:", deleteError);
-          // Append to the error message if cleanup fails, so user knows to contact support
           toastMessage += " Failed to clean up temporary user. Please contact support if you cannot sign up.";
         });
       }

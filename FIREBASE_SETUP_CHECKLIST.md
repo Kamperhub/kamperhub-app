@@ -1,4 +1,5 @@
 
+
 # Firebase & Backend Setup Checklist
 
 > [!CAUTION]
@@ -91,16 +92,16 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 
 ---
 
-### Step 4: CRITICAL - Verify Your Setup with the Diagnostic Tool
+### Step 4: CRITICAL - Verify Your Server Setup
 
 After populating `.env.local`, you **MUST** restart your development server. The server only reads this file when it first starts.
 
 1.  Stop your server (`Ctrl + C`) and restart it (`npm run dev`).
-2.  Go to the following URL in your browser:
-    `[YOUR_APP_URL]/api/debug/env` (e.g., http://localhost:8083/api/debug/env)
-3.  This will show a JSON response indicating the status of each required environment variable. Review it carefully:
-    *   **`ADMIN_SDK_INITIALIZATION_STATUS`**: If this shows a `CRITICAL FAILURE`, the error message will tell you exactly what is wrong with your `GOOGLE_APPLICATION_CREDENTIALS_JSON`. Fix the issue in `.env.local` and restart the server.
-    *   **`PROJECT_IDS_MATCH`**: If it says `"NO - CRITICAL MISMATCH"`, it means the Project ID in your `GOOGLE_APPLICATION_CREDENTIALS_JSON` does not match your `NEXT_PUBLIC_FIREBASE_PROJECT_ID`. Go back to Step 2 and ensure you generated all keys from the same Firebase project. This is a very common cause of authentication errors.
+2.  Check the terminal where your server is running. You should see messages like:
+    *   `[Firebase Admin] SDK initialized successfully for project: kamperhub-s4hc2`
+    *   `[Firebase Client] Successfully initialized for project: kamperhub-s4hc2...`
+3.  If you see an error like `FATAL: The GOOGLE_APPLICATION_CREDENTIALS_JSON string... is not valid JSON`, it means there's a copy-paste error in your `.env.local` file. Recopy the service account JSON carefully.
+4.  If the project IDs in the two success messages above do not match, it means your client keys and server keys are from different projects. This is a critical error that will cause authentication to fail. Go back to Step 2 and ensure all keys come from the same project.
 
 ---
 
@@ -146,14 +147,12 @@ This is the final step and solves most `UNAUTHENTICATED` errors seen on the dash
 
 ---
 
-### Step 8: Resolve Login Issues (If Necessary)
+### Step 8: Create Your User Account
 
-If after all the above steps you can log in but see an error on the "My Account" page about a missing profile, use this special one-time tool.
+The debug tool for creating users has been removed for security. The application now handles this automatically during sign-up.
 
-1.  Make sure you are logged into the application.
-2.  Open the following URL in a new tab:
-    `[YOUR_APP_URL]/api/debug/create-admin-user` (e.g., http://localhost:8083/api/debug/create-admin-user)
-3.  This will create your admin user profile document in the database the server is connected to. It will either show a success message or a final, specific error.
-4.  After running it successfully, go back to the "My Account" page and refresh.
+1.  Navigate to the application's sign-up page.
+2.  Create your account. If you use the admin email (`info@kamperhub.com`), your account will automatically be granted admin privileges.
+3.  After signing up, you should be logged in and can access all features.
 
 > **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
