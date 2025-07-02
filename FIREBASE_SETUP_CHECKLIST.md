@@ -102,6 +102,8 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
         *   Click "+ Add product". Name it "KamperHub Pro" (or similar).
         *   Under "Pricing", add a recurring price.
         *   After saving, click on the price to view its details. The "ID" (e.g., `price_...`) is your `STRIPE_PRO_PRICE_ID`.
+        > [!IMPORTANT]
+        > You need the **Price ID** (which starts with `price_...`), not the Product ID (which starts with `prod_...`). After creating the product, you must click on the price itself to find its unique ID.
         *   You will need to repeat this process in Live Mode to get a different Price ID for production.
     *   **`STRIPE_WEBHOOK_SECRET`**: This is essential for your app to receive subscription status updates.
         *   In your Stripe Dashboard (in **Test Mode**), go to the [Webhooks section](https://dashboard.stripe.com/webhooks).
@@ -182,6 +184,7 @@ The debug tool for creating users has been removed for security. The application
 3.  After signing up, you should be logged in and can access all features.
 
 > **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
+
 
 
 
