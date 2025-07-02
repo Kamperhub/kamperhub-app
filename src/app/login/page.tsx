@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useContext } from 'react';
@@ -64,14 +63,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, password);
-      const loggedInUser = userCredential.user;
-
-      toast({
-        title: 'Login Successful!',
-        description: `Welcome back, ${loggedInUser.displayName || loggedInUser.email}!`,
-      });
-
+      await signInWithEmailAndPassword(auth, trimmedEmail, password);
       router.push('/'); 
     } catch (error: any) {
       const authError = error as AuthError;
