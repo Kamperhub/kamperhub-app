@@ -130,6 +130,9 @@ export default function TripPackingPage() {
         let errorMessage = error.message;
         if (error.message.includes('expected 2-4 sections')) {
             errorMessage = "The AI could not generate a valid list. This can happen with very unusual destinations. Please try adjusting your trip details.";
+        } else if (error.message.includes("single passenger")) {
+            // Refined error handling based on new prompt logic.
+            errorMessage = "The AI is designed to create unique lists for multiple passengers. For a single passenger, the master list is their personal list. You can send it directly to Google Tasks."
         }
         toast({ title: 'Personalization Failed', description: errorMessage, variant: 'destructive' });
     }
@@ -152,18 +155,59 @@ export default function TripPackingPage() {
     },
     onError: (error: Error) => toast({ title: 'Suggestion Failed', description: error.message, variant: 'destructive' }),
   });
+  
+  const createGoogleTasksMutation = useMutation({
+    mutationFn: async (tasksData: GoogleTasksStructure) => {
+      if (!user) throw new Error("User not authenticated");
+      const idToken = await user.getIdToken(true);
+      const response = await fetch('/api/google-tasks/create-list', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(tasksData),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create Google Tasks list.');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Google Tasks List Created!",
+        description: data.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Create List",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleNavigation = () => {
     navContext?.setIsNavigating(true);
   };
 
   const handleCreateGoogleTasks = useCallback((tasksData: GoogleTasksStructure) => {
-    console.log("Simulating sending to Google Tasks:", tasksData);
-    toast({
-      title: "Sent to Google Tasks (Simulated)",
-      description: `Task list "${tasksData.trip_task_name}" would be created now.`,
-    });
-  }, [toast]);
+    createGoogleTasksMutation.mutate(tasksData);
+  }, [createGoogleTasksMutation]);
+
+  const handleSendMasterListToGoogle = useCallback(() => {
+    if (!selectedTrip) return;
+    const tasksData: GoogleTasksStructure = {
+      trip_task_name: `Packing List for: ${selectedTrip.name}`,
+      categories: packingList.map(category => ({
+        category_name: category.name,
+        items: category.items.map(item => `${item.quantity}x ${item.name}${item.notes ? ` (${item.notes})` : ''}`)
+      }))
+    };
+    createGoogleTasksMutation.mutate(tasksData);
+  }, [selectedTrip, packingList, createGoogleTasksMutation]);
 
   const handleGenerateList = () => {
     if (!selectedTrip || !selectedTrip.plannedStartDate || !selectedTrip.plannedEndDate) {
@@ -298,7 +342,8 @@ export default function TripPackingPage() {
     setSelectedActivities(prev => prev.includes(activity) ? prev.filter(a => a !== activity) : [...prev, activity]);
   };
   
-  const anyMutationLoading = generateListMutation.isPending || updateListMutation.isPending || deleteListMutation.isPending || weatherSuggestMutation.isPending || personalizeListMutation.isPending;
+  const anyMutationLoading = generateListMutation.isPending || updateListMutation.isPending || deleteListMutation.isPending || weatherSuggestMutation.isPending || personalizeListMutation.isPending || createGoogleTasksMutation.isPending;
+  const isGoogleTasksConnected = !!userProfile?.googleAuth?.refreshToken;
 
   if (isLoadingTrips) return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-48 w-full" /></div>;
   if (tripsError) return <Alert variant="destructive"><AlertTitle>Error Loading Trips</AlertTitle><AlertDescription>{tripsError.message}</AlertDescription></Alert>;
@@ -370,8 +415,20 @@ export default function TripPackingPage() {
                       </AccordionItem>
                     ))}
                   </Accordion>
-                  <div className="mt-6 border-t pt-4">
+                  <div className="mt-6 border-t pt-4 flex flex-wrap gap-2 justify-between items-center">
                     <Button onClick={handleClearAndRegenerate} variant="destructive" disabled={anyMutationLoading}><RefreshCw className="mr-2 h-4 w-4" />Clear List & Start Over</Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <Button onClick={handleSendMasterListToGoogle} variant="outline" disabled={anyMutationLoading || !isGoogleTasksConnected}>
+                              <SendToBack className="mr-2 h-4 w-4"/> Send Master List to Google Tasks
+                            </Button>
+                          </div>
+                        </TooltipTrigger>
+                        {!isGoogleTasksConnected && (<TooltipContent><p>Connect your Google Account on the My Account page.</p></TooltipContent>)}
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </CardContent>
               </Card>
@@ -397,14 +454,12 @@ export default function TripPackingPage() {
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <div>
-                                          <Button size="sm" variant="outline" onClick={() => handleCreateGoogleTasks(p.google_tasks_structure)} disabled={!userProfile?.googleAuth?.refreshToken}>
+                                          <Button size="sm" variant="outline" onClick={() => handleCreateGoogleTasks(p.google_tasks_structure)} disabled={anyMutationLoading || !isGoogleTasksConnected}>
                                             <SendToBack className="mr-2 h-4 w-4"/> Send to Google Tasks
                                           </Button>
                                         </div>
                                       </TooltipTrigger>
-                                      {!userProfile?.googleAuth?.refreshToken && (
-                                        <TooltipContent><p>Connect Google Account in My Account page.</p></TooltipContent>
-                                      )}
+                                      {!isGoogleTasksConnected && (<TooltipContent><p>Connect Google Account in My Account page.</p></TooltipContent>)}
                                     </Tooltip>
                                   </TooltipProvider>
                                 </div>
