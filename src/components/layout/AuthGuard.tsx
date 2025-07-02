@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -45,17 +44,12 @@ const LoadingScreen = ({ status }: { status: AuthStatus }) => {
 const ErrorScreen = ({ error }: { error: string | null }) => {
   const errorMessage = error || "An unknown error occurred.";
   
-  // This is a direct check for the most likely error.
   const isUnauthenticatedError = errorMessage.toLowerCase().includes('unauthenticated');
-  const isMissingDocError = errorMessage.toLowerCase().includes('profile not found');
-  const isAdminError = isMissingDocError && errorMessage.toLowerCase().includes('admin');
-
+  
   return (
     <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-4">
       <div className="max-w-2xl w-full border border-destructive bg-destructive/10 text-destructive-foreground p-6 rounded-lg">
-        <h1 className="text-xl font-bold font-headline">
-            {isAdminError ? "Admin Profile Missing" : "Application Error"}
-        </h1>
+        <h1 className="text-xl font-bold font-headline">Application Error</h1>
         <p className="mt-2 font-body">There was a problem loading your user data.</p>
         <pre className="mt-4 text-xs bg-black/20 p-3 rounded-md font-mono whitespace-pre-wrap text-left">
           {errorMessage}
@@ -75,21 +69,6 @@ const ErrorScreen = ({ error }: { error: string | null }) => {
               <p className="text-sm">Go to the Firebase Console, select your project, go to the "Firestore Database" section, and click the "Rules" tab. Paste the copied rules into the editor, replacing anything that's currently there, and click "Publish".</p>
             </div>
              <p className="mt-2 text-sm">After publishing the rules, refresh this page.</p>
-          </div>
-        )}
-
-         {isAdminError && (
-          <div className="mt-4 border-t border-red-400/30 pt-3 text-left font-body space-y-4">
-            <p className="font-bold">As the administrator, your profile document needs to be created manually once.</p>
-             <a 
-                href="/api/debug/create-admin-user" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="text-sm text-cyan-400 hover:underline block"
-              >
-                Click here to run the admin user creation tool &rarr;
-              </a>
-              <p className="text-xs">After running the tool successfully, refresh this page.</p>
           </div>
         )}
       </div>
