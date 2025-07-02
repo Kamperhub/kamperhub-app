@@ -39,6 +39,7 @@ All your secret keys will live in a special file that is NOT committed to versio
     GOOGLE_API_KEY="YOUR_GENERATIVE_AI_API_KEY_HERE"
 
     # Stripe Configuration (for subscriptions)
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
     STRIPE_SECRET_KEY="sk_test_..."
     STRIPE_WEBHOOK_SECRET="whsec_..."
     STRIPE_PRO_PRICE_ID="price_..."
@@ -93,18 +94,19 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 4.  **Stripe API Keys (`STRIPE_*`)**
     *   Go to your [Stripe Developer Dashboard](https://dashboard.stripe.com/developers).
     *   **IMPORTANT:** For local development, it is highly recommended to use your **Test Mode** keys to avoid real charges. You can toggle between "Test mode" and "Live mode" at the top of the Stripe dashboard.
-    *   **`STRIPE_SECRET_KEY`**: Find your "Secret key". It will start with `sk_test_...` for test mode or `sk_live_...` for live mode.
+    *   **`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`**: This is your "Publishable key". It starts with `pk_test_...` and is safe to be exposed to the browser.
+    *   **`STRIPE_SECRET_KEY`**: This is your "Secret key". It will start with `sk_test_...` for test mode or `sk_live_...` for live mode. **Never expose this key to the browser.**
+    *   **`STRIPE_PRO_PRICE_ID`**: This is the ID of your subscription product's price.
+        *   In your Stripe Dashboard, go to "Products".
+        *   Click "+ Add product". Name it "KamperHub Pro" (or similar).
+        *   Under "Pricing", add a recurring price.
+        *   After saving, click on the price to view its details. The "ID" (e.g., `price_...`) is your `STRIPE_PRO_PRICE_ID`.
     *   **`STRIPE_WEBHOOK_SECRET`**: This is essential for your app to receive subscription status updates.
         *   Go to the [Webhooks section](https://dashboard.stripe.com/webhooks).
         *   Click "Add an endpoint".
-        *   The "Endpoint URL" will be your deployed application's URL followed by `/api/stripe-webhook`. For local testing, you will need a tool like the [Stripe CLI](https://stripe.com/docs/stripe-cli) to forward events to `http://localhost:8083/api/stripe-webhook`.
+        *   For local testing, you will need to use the Stripe CLI to forward events. The Endpoint URL will be `http://localhost:8083/api/stripe-webhook`. For a deployed app, it will be `YOUR_APP_URL/api/stripe-webhook`.
         *   Click "+ Select events" and choose `checkout.session.completed`, `invoice.payment_succeeded`, `invoice.payment_failed`, `customer.subscription.updated`, and `customer.subscription.deleted`.
-        *   After creating the endpoint, click "Reveal" next to the "Signing secret". This value starts with `whsec_...` and is your `STRIPE_WEBHOOK_SECRET`.
-    *   **`STRIPE_PRO_PRICE_ID`**:
-        *   In your Stripe Dashboard, go to "Products".
-        *   Create a new product named "KamperHub Pro" (or similar).
-        *   Add a recurring price to this product.
-        *   Click on the price to view its details. The "ID" (e.g., `price_...`) is your `STRIPE_PRO_PRICE_ID`.
+        *   After creating the endpoint, click to reveal the "Signing secret". This value starts with `whsec_...` and is your `STRIPE_WEBHOOK_SECRET`.
     > [!NOTE]
     > **Stripe's mode (Test vs. Live) does not affect the Firebase `UNAUTHENTICATED` errors.** Those errors are related to your server's access to the database, controlled by the `GOOGLE_APPLICATION_CREDENTIALS_JSON` and your Firebase project's IAM permissions.
 
@@ -177,4 +179,5 @@ The debug tool for creating users has been removed for security. The application
 3.  After signing up, you should be logged in and can access all features.
 
 > **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
+
 
