@@ -7,26 +7,19 @@ This document tracks the development priorities, future features, and completed 
 
 ## **Current Priorities**
 
-### 1. New Feature Development
-*   **Objective:** Implement new, high-value features on the stable server-based infrastructure.
-*   **Next Up:**
+### 1. Stability & Bug Fixing
+*   **Objective:** Resolve persistent data loading and authentication issues to ensure a stable and reliable user experience on the new server-based infrastructure.
+*   **Key Areas:**
+    *   Investigate and fix errors preventing vehicle, caravan, and WDH data from loading on the `/vehicles` page.
+    *   Address any remaining `Unauthorized: Invalid ID token` or `client is offline` errors.
+    *   Ensure all user preferences and settings load correctly for all user types (including admin).
     *   **Fuel Log Toast Action:** Ensure the "Add Category" button in the "Missing 'Fuel' Category" error message correctly navigates the user to the trip planner.
 
-### 2. In Progress
-*   **AI-Powered Packing Assistant:**
-    *   **Status:** Partially implemented. Core packing list generation is working. Weather-based suggestions have been added but use AI's general knowledge instead of a live API. The feature is parked until underlying AI API access issues can be fully resolved.
-    *   **Features Implemented:**
-        *   New "Trip Packing" page added to navigation.
-        *   Genkit flow created to generate packing lists based on trip details (destination, duration, activities, passenger count).
-        *   Genkit flow added to generate weather-based packing suggestions based on typical climate.
-        *   UI allows users to select a trip, generate a list, receive weather suggestions, and manage items (add, edit, delete, check-off).
-    *   **Next Steps (Once unblocked):**
-        *   Resolve any remaining AI generation errors.
-        *   **Integrate with a real weather API:** Replace the AI's general climate knowledge with calls to a real-time weather service to provide more accurate forecasts.
-        *   Implement saving/loading of packing lists to Firestore.
-        *   Add reusable packing templates.
-        *   Explore collaborative packing features.
-        *   Integrate a messaging service to send packing lists to other people.
+### 2. New Feature Development
+*   **Objective:** Begin implementing new, high-value features now that the core data migration is complete.
+*   **Next Up:**
+    *   **Fuel Log & Maintenance Tracker:** Build the user interface for logging fuel and tracking vehicle/caravan maintenance tasks. The backend APIs for this are already in place.
+    *   **AI-Powered Packing Assistant:** Create a Genkit flow to help users generate packing lists based on trip details.
 
 ---
 
@@ -56,6 +49,18 @@ This document tracks the development priorities, future features, and completed 
 This section tracks potential new features and enhancements for future consideration.
 
 ### Core Functionality Enhancements
+
+*   **Performance Optimization: Server-Side Data Fetching:**
+    *   **The Problem:** Currently, data-heavy pages (like "Vehicles", "Inventory") show loading skeletons while the client-side fetches data, leading to perceived slowness.
+    *   **The Solution:** Implement server-side data fetching using Next.js Server Components.
+        1.  **Pre-fetch Data on the Server:** When a page is requested, the server will gather all necessary data (vehicles, caravans, WDHs, etc.) in a single, efficient operation.
+        2.  **Eliminate Initial Loading Skeletons:** The page will be sent to the browser with the data already included, making content appear instantly.
+        3.  **Retain Dynamic Updates:** The application will still use TanStack Query for dynamic updates and mutations after the initial fast load.
+    *   **Example Implementation (for `/vehicles` page):**
+        *   Convert `src/app/vehicles/page.tsx` to a Server Component.
+        *   Fetch all vehicle, caravan, and WDH data directly on the server within this component.
+        *   Pass the pre-fetched data as props to the `VehicleManager`, `CaravanManager`, and `WDHManager` components.
+        *   Update those client components to use the pre-fetched data for their initial display, removing their individual loading states.
 
 *   **Multi-Stop Trip Planning:**
     *   Allow users to add multiple intermediate waypoints to their trips in the Trip Planner.
