@@ -1,6 +1,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import type { UserProfile } from '@/types/auth';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 let stripe: Stripe;
@@ -16,6 +18,12 @@ if (stripeSecretKey) {
 const proPriceId = process.env.STRIPE_PRO_PRICE_ID;
 
 export async function POST(req: NextRequest) {
+  const { auth, firestore, error: adminError } = getFirebaseAdmin();
+  if (adminError || !auth || !firestore) {
+    console.error('Create Checkout Session: Firebase Admin SDK failed to initialize.');
+    return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
+  }
+  
   if (!stripeSecretKey || !stripe) {
     console.error('Create Checkout Session: Stripe is not configured because STRIPE_SECRET_KEY is missing at runtime.');
     return NextResponse.json({ error: 'Stripe configuration error on server. Secret key missing.' }, { status: 500 });
@@ -27,10 +35,30 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { email, userId } = await req.json();
+    const authorizationHeader = req.headers.get('Authorization');
+    if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 });
+    }
+    const idToken = authorizationHeader.split('Bearer ')[1];
+    const decodedToken = await auth.verifyIdToken(idToken);
+    const userId = decodedToken.uid;
+    
+    const userProfileDoc = await firestore.collection('users').doc(userId).get();
 
-    if (!email || !userId) {
-      return NextResponse.json({ error: 'Email and userId are required.' }, { status: 400 });
+    if (!userProfileDoc.exists) {
+      return NextResponse.json({ error: 'User profile not found. Cannot create Stripe customer.' }, { status: 404 });
+    }
+    const userProfileData = userProfileDoc.data() as UserProfile;
+    let stripeCustomerId = userProfileData.stripeCustomerId;
+
+    if (!stripeCustomerId) {
+      const customer = await stripe.customers.create({
+        email: userProfileData.email!,
+        name: userProfileData.displayName || `${userProfileData.firstName} ${userProfileData.lastName}`.trim(),
+        metadata: { userId: userId }
+      });
+      stripeCustomerId = customer.id;
+      await userProfileDoc.ref.update({ stripeCustomerId });
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -38,13 +66,13 @@ export async function POST(req: NextRequest) {
     const checkoutSessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
       payment_method_types: ['card'],
+      customer: stripeCustomerId,
       line_items: [
         {
           price: proPriceId,
           quantity: 1,
         },
       ],
-      customer_email: email,
       metadata: {
         userId: userId,
       },

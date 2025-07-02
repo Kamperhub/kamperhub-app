@@ -156,23 +156,21 @@ export default function MyAccountPage() {
     }
     setIsRedirectingToCheckout(true);
     try {
+      const idToken = await user.getIdToken(true);
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: user.email, 
-          userId: user.uid,
-        }),
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+        body: JSON.stringify({}), // Body is empty; user is identified by token
       });
       const session = await response.json();
       if (response.ok && session.url) {
-        window.location.href = session.url;
+        window.top.location.href = session.url;
       } else {
         toast({ title: "Subscription Error", description: session.error || "Could not initiate subscription. Please try again.", variant: "destructive" });
+        setIsRedirectingToCheckout(false);
       }
     } catch (error: any) {
       toast({ title: "Subscription Error", description: `An unexpected error occurred: ${error.message}. Please try again.`, variant: "destructive" });
-    } finally {
       setIsRedirectingToCheckout(false);
     }
   };
@@ -199,13 +197,13 @@ export default function MyAccountPage() {
       });
       const sessionData = await response.json();
       if (response.ok && sessionData.url) {
-        window.location.href = sessionData.url;
+        window.top.location.href = sessionData.url;
       } else {
         toast({ title: "Error", description: sessionData.error || "Could not open customer portal.", variant: "destructive" });
+        setIsRedirectingToPortal(false);
       }
     } catch (error: any) {
       toast({ title: "Error", description: `An unexpected error occurred: ${error.message}`, variant: "destructive" });
-    } finally {
       setIsRedirectingToPortal(false);
     }
   };
@@ -378,6 +376,13 @@ export default function MyAccountPage() {
             
             {subscriptionTier !== 'pro' && (
               <div className="mt-4 space-y-4">
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle className="font-headline">Stripe Security & Pop-up Blockers</AlertTitle>
+                  <AlertDescription className="font-body text-sm">
+                    If the Stripe payment page doesn't open or appears blank, please temporarily disable browser extensions (like ad blockers or privacy tools) or security software that might be interfering. Using an Incognito/Private window can also help.
+                  </AlertDescription>
+                </Alert>
                 <Card className="bg-primary/5 border-primary/20">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-primary font-headline flex items-center"><Sparkles className="h-5 w-5 mr-2 text-yellow-500"/> Unlock Pro Features</CardTitle>
@@ -420,16 +425,6 @@ export default function MyAccountPage() {
             </Link>
           )}
 
-          {subscriptionTier !== 'pro' && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle className="font-headline">Stripe Security & Pop-up Blockers</AlertTitle>
-              <AlertDescription className="font-body text-sm">
-                If the Stripe payment page doesn't open or appears blank, please temporarily disable browser extensions (like ad blockers or privacy tools) or security software that might be interfering. Using an Incognito/Private window can also help.
-              </AlertDescription>
-            </Alert>
-          )}
-
           <Button onClick={handleLogout} variant="destructive" className="w-full font-body">
             <LogOut className="mr-2 h-4 w-4" /> Log Out
           </Button>
@@ -438,5 +433,3 @@ export default function MyAccountPage() {
     </div>
   );
 }
-
-    
