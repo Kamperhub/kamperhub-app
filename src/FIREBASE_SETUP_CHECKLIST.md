@@ -126,12 +126,27 @@ If the above steps are correct, the final check is to ensure your service accoun
 
 1.  Go to the [Google Cloud Console IAM Page](https://console.cloud.google.com/iam-admin/iam) for your project.
 2.  Find the service account you are using (its email address is in the `client_email` field of your credentials JSON).
-3.  Check its "Role" column. It **must** have a role that allows Firestore access, such as **`Editor`**, **`Firebase Admin`**, or **`Cloud Datastore User`**.
+3.  Check its "Role" column. It **must** have a role that allows Firestore access, such as **`Editor`**, or **`Cloud Datastore User`**.
 4.  If it doesn't, click the pencil icon to edit its permissions and add one of those roles.
 
 ---
 
-### Step 7: Resolve Login Issues (If Necessary)
+### Step 7: FINAL & CRITICAL - Deploy Security Rules
+
+This is the final step and solves most `UNAUTHENTICATED` errors seen on the dashboard.
+
+1.  In the application file explorer on the left, open the newly created `firestore.rules` file and copy its entire contents.
+2.  Go to the [Firebase Console](https://console.firebase.google.com/) for your `kamperhub-s4hc2` project.
+3.  Navigate to the **Firestore Database** section.
+4.  Make sure you have selected the **`kamperhubv2`** database from the dropdown at the top.
+5.  Click on the **"Rules"** tab.
+6.  Delete any existing text in the rules editor.
+7.  Paste the rules you copied from `firestore.rules`.
+8.  Click **"Publish"**.
+
+---
+
+### Step 8: Resolve Login Issues (If Necessary)
 
 If after all the above steps you can log in but see an error on the "My Account" page about a missing profile, use this special one-time tool.
 

@@ -86,8 +86,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error listening to user profile:", error);
             
             let errorMsg = `Failed to load user profile from the database. Original error: ${error.message}`;
-            if (error.code === 'permission-denied' || error.message.includes('UNAUTHENTICATED')) {
-              errorMsg = "Failed to load user profile due to a permissions issue. This usually means the server's credentials in GOOGLE_APPLICATION_CREDENTIALS_JSON are incorrect or lack permissions for Firestore. Please verify your .env.local file and service account roles. Full error: " + error.message;
+            if (error.code === 'permission-denied' || error.message.includes('UNAUTHENTICATED') || error.message.includes('permission denied')) {
+              errorMsg = "16 UNAUTHENTICATED: The client is blocked by Firestore Security Rules. The server can connect, but your browser cannot read your profile. Please copy the rules from firestore.rules into your Firebase console's Rules tab and click Publish.";
             } else if (error.code === 5 || error.message.includes('NOT_FOUND') || error.message.includes('database not found')) {
               errorMsg = "CRITICAL: The Firestore database has not been created in this Firebase project. Please go to the Firebase Console, select your project, find 'Firestore Database' in the Build menu, and click 'Create database'. Refer to the setup checklist for more details.";
             }

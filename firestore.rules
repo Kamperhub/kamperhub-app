@@ -1,26 +1,22 @@
 
 rules_version = '2';
 
+// These rules are for client-side access control.
+// The Firebase Admin SDK used on the server bypasses these rules.
 service cloud.firestore {
   match /databases/{database}/documents {
-    // This rule grants a user access to their own document and all subcollections.
-    // It also grants an admin access to ANY user's document and subcollections.
+    
+    // Allow an authenticated user to read and write to all documents
+    // within their own user-specific collection.
+    // This is how the app securely fetches and updates data for the logged-in user.
     match /users/{userId}/{documents=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
 
-      function isOwner() {
-        // Is the person making the request the owner of this document?
-        return request.auth.uid == userId;
-      }
-      
-      function isAdmin() {
-        // Does the person making the request have `isAdmin: true` in their own profile?
-        // This requires a `get` call, which is allowed because every user can read their own profile.
-        return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-      }
-      
-      // Allow access if the user is logged in AND is either the owner or an admin.
-      allow read, write: if request.auth != null && (isOwner() || isAdmin());
+    // Deny all other reads/writes to prevent unauthorized access.
+    // This is the default secure posture.
+    match /{path=**} {
+      allow read, write: if false;
     }
   }
 }
