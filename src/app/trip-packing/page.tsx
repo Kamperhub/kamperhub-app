@@ -126,7 +126,13 @@ export default function TripPackingPage() {
         personalizedListsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
     },
-    onError: (error: Error) => toast({ title: 'Personalization Failed', description: error.message, variant: 'destructive' }),
+    onError: (error: Error) => {
+        let errorMessage = error.message;
+        if (error.message.includes('expected 2-4 sections')) {
+            errorMessage = "The AI could not generate a valid list. This can happen with very unusual destinations. Please try adjusting your trip details.";
+        }
+        toast({ title: 'Personalization Failed', description: errorMessage, variant: 'destructive' });
+    }
   });
 
   const deleteListMutation = useMutation({
@@ -226,7 +232,7 @@ export default function TripPackingPage() {
       toast({ title: "Cannot Add to Calendar", description: "This trip does not have a planned start date.", variant: "destructive"});
       return;
     }
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = window.location.origin;
     const packingListUrl = `${appUrl}/trip-packing?tripId=${trip.id}`;
 
     const title = encodeURIComponent(trip.name);

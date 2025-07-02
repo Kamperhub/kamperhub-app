@@ -99,7 +99,7 @@ export default function TripLogPage() {
       });
       return;
     }
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = window.location.origin;
     const packingListUrl = `${appUrl}/trip-packing?tripId=${trip.id}`;
 
     const title = encodeURIComponent(trip.name);
