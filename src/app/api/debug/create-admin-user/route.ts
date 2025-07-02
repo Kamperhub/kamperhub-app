@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
     if (err.code === 5 || (err.message && err.message.toLowerCase().includes('not_found'))) {
       details = `CRITICAL: The server could not find the Firestore database. This usually means either (a) the Firestore database has not been created in the Firebase console for this project, or (b) the Project ID in your GOOGLE_APPLICATION_CREDENTIALS_JSON does not match the client-side NEXT_PUBLIC_FIREBASE_PROJECT_ID. Please follow the setup checklist carefully.`;
     }
-
+    
     return NextResponse.json({ 
       error: 'Internal Server Error While Creating Admin User', 
       details: details,
