@@ -14,7 +14,7 @@ const nextConfig = {
       // Fonts
       "font-src 'self' https://fonts.gstatic.com",
       // Connections - Allow self, Google APIs, local dev server, and Stripe
-      "connect-src 'self' https://*.googleapis.com wss://*.cloudworkstations.dev https://*.stripe.com https://m.stripe.network https://*.cloudworkstations.googleusercontent.com",
+      "connect-src 'self' http://localhost:8083 ws://localhost:8083 https://*.googleapis.com wss://*.cloudworkstations.dev https://*.stripe.com https://m.stripe.network https://*.cloudworkstations.googleusercontent.com",
       // Workers
       "worker-src 'self' blob: *.cloudworkstations.googleusercontent.com",
       // Frames - Allow self, Google (for Recaptcha/maps), and Stripe (for portal and payment forms)
