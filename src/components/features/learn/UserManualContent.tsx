@@ -9,7 +9,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { LayoutDashboard, Settings2, Backpack, ListChecks, Route as RouteIcon, History, BedDouble, BookOpen, ShieldAlert, UserCircle, DollarSign } from 'lucide-react';
+import { LayoutDashboard, Settings2, Backpack, ListChecks, Route as RouteIcon, History, BedDouble, BookOpen, ShieldAlert, UserCircle, DollarSign, Wrench } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 export function UserManualContent() {
@@ -21,9 +21,10 @@ export function UserManualContent() {
       <ul className="list-disc pl-5 my-2 space-y-1">
         <li>Vehicle, Caravan, and WDH details</li>
         <li>Inventory items and water tank levels</li>
-        <li>Trip plans and logged trips, including budgets and expenses</li>
+        <li>Trip plans and logged trips, including budgets, expenses and occupants</li>
         <li>Checklists (both trip-specific and caravan defaults)</li>
         <li>Accommodation bookings</li>
+        <li>Service and Fuel Logs</li>
         <li>Customized dashboard layout</li>
       </ul>
       <p>
@@ -53,7 +54,7 @@ export function UserManualContent() {
       content: importantNoteContent
     },
     {
-      title: "2. Vehicle, Caravan, Storage & WDH Data",
+      title: "2. Vehicle & Caravan Setup",
       icon: Settings2,
       content: (
         <>
@@ -71,39 +72,60 @@ export function UserManualContent() {
               <h4 className="font-semibold font-headline text-md text-foreground">Caravans:</h4>
               <ul className="list-disc pl-5 space-y-1 text-sm">
                 <li><strong>Add/Edit:</strong> Input details like make, model, year, Tare Mass, ATM (Aggregate Trailer Mass), GTM (Gross Trailer Mass), max towball download, number of axles, and various dimensions.</li>
+                <li><strong>Weight Distribution Hitch (WDH):</strong> WDH details are now managed directly within the caravan form for a more integrated setup.</li>
                 <li><strong>Storage Locations:</strong> Similar to vehicles, define specific storage areas within your caravan (e.g., "Front Boot," "Under Bed Storage"), their positions, and optional weight capacities for precise inventory management.</li>
                 <li><strong>Water Tanks:</strong> Add details for each water tank (fresh, grey, black), including its name, capacity (in Liters), and position. This is used in the Inventory section to calculate water weight.</li>
                 <li><strong>Diagrams:</strong> You can associate links to important documents like floor plans or wiring schematics for easy reference.</li>
-                <li><strong>Associate WDH:</strong> Link a saved Weight Distribution Hitch (WDH) to the caravan.</li>
                 <li><strong>Set Active:</strong> Mark one caravan as "Active." The active caravan's specifications are used in the Inventory & Weight Management page and for generating default checklists for new trips.</li>
               </ul>
             </li>
+          </ul>
+          <p className="text-sm"><strong>Subscription Note:</strong> The free version of KamperHub allows you to add 1 tow vehicle and 1 caravan. Upgrade to Pro for unlimited entries.</p>
+        </>
+      )
+    },
+     {
+      title: "3. Service & Fuel Log",
+      icon: Wrench,
+      content: (
+         <>
+          <p>Keep a comprehensive record of your vehicle's fuel usage and maintenance tasks for all your assets to ensure they stay in top condition.</p>
+          <ul className="list-disc pl-5 space-y-2">
             <li>
-              <h4 className="font-semibold font-headline text-md text-foreground">Weight Distribution Hitches (WDHs):</h4>
+              <h4 className="font-semibold font-headline text-md text-foreground">Maintenance Log:</h4>
               <ul className="list-disc pl-5 space-y-1 text-sm">
-                <li><strong>Add/Edit:</strong> Store information about your WDHs, including name/model, type, maximum and optional minimum towball capacity, and sway control details.</li>
-                <li><strong>Set Active:</strong> You can set one WDH as "Active." This is mainly for reference and compliance checks in the Inventory & Weight Management section. If a caravan with an associated WDH is made active, its WDH will also become active.</li>
+                <li><strong>Track Tasks:</strong> Add, edit, or delete maintenance tasks for any of your saved vehicles or caravans.</li>
+                <li><strong>Task Details:</strong> Each task includes a name, category (e.g., Engine, Tyres, Brakes), and due date or due odometer reading.</li>
+                <li><strong>Status:</strong> Mark tasks as completed to move them to the bottom of the list, keeping your upcoming maintenance organized.</li>
+              </ul>
+            </li>
+             <li>
+              <h4 className="font-semibold font-headline text-md text-foreground">Fuel Log:</h4>
+              <ul className="list-disc pl-5 space-y-1 text-sm">
+                <li><strong>Select Vehicle:</strong> Choose a vehicle from your saved list to view or add fuel logs.</li>
+                <li><strong>Log Entries:</strong> Record the date, odometer reading, total cost, and price per litre for each fill-up. The system automatically calculates the litres.</li>
+                <li><strong>Trip Integration:</strong> You can optionally assign a fuel log entry to a specific saved trip. This will automatically add the cost as an expense under the 'Fuel' category in that trip's budget.</li>
               </ul>
             </li>
           </ul>
-          <p className="text-sm"><strong>Subscription Note:</strong> The free version of KamperHub allows you to add 1 tow vehicle, 1 caravan, and 1 WDH. Upgrade to Pro for unlimited entries.</p>
         </>
       )
     },
     {
-      title: "3. Inventory & Weight Management",
+      title: "4. Inventory & Weight Management",
       icon: Backpack,
       content: (
          <>
           <p>This powerful tool helps you track items loaded into your active caravan and vehicle, manage their weights, and monitor compliance with various weight limits (ATM, GTM, Towball Mass, GVM, GCM).</p>
           <ul className="list-disc pl-5 space-y-1">
-            <li><strong>Active Selections:</strong> This page relies heavily on the "Active" caravan, "Active" tow vehicle, and "Active" WDH set in the "Vehicle, Caravan, Storage & WDH Data" section. Ensure these are correctly selected for accurate calculations and relevant storage locations.</li>
+            <li><strong>Active Selections:</strong> This page relies heavily on the "Active" caravan and "Active" tow vehicle set in the "Vehicle & Caravan Setup" section. Ensure these are correctly selected for accurate calculations and relevant storage locations.</li>
             <li><strong>Adding Items:</strong> Input item name, weight (per item), quantity, and assign it to a predefined storage location from your active caravan or vehicle. Items assigned to the caravan contribute to its payload, while items in the vehicle contribute to its GVM.</li>
+            <li><strong>Occupant Weight:</strong> You can select a saved trip to automatically include the weight of the occupants from that trip in the vehicle's GVM calculation.</li>
             <li><strong>Water Tank Levels:</strong> Adjust the fill percentage for each water tank defined for your active caravan. The weight of the water (1kg per liter) is automatically calculated and added to your caravan's total mass.</li>
             <li><strong>Weight Summary & Compliance:</strong>
                 <ul className="list-disc pl-5 space-y-1">
-                    <li><strong>Visual Charts:</strong> Donut charts provide a quick visual overview of your Caravan ATM, GTM, and estimated Towball Mass against their respective limits.</li>
-                    <li><strong>Detailed Alerts & Status:</strong> The system provides alerts for Caravan Compliance (ATM, GTM, Towball), Tow Vehicle Compliance (Max Tow Capacity, Vehicle Max Towball, GVM, and GCM advisory), and WDH Compatibility.</li>
+                    <li><strong>Visual Charts:</strong> Donut charts provide a quick visual overview of your Caravan ATM, Axle Load, and estimated Towball Mass against their respective limits.</li>
+                    <li><strong>Detailed Alerts & Status:</strong> The system provides alerts for Caravan Compliance (ATM, Axle Load), Vehicle GVM, and Towing Capacity.</li>
                 </ul>
             </li>
             <li><strong>Weighbridge Notice:</strong> Always verify your actual weights at a certified weighbridge. KamperHub provides estimates based on your input, but real-world weights can vary.</li>
@@ -112,47 +134,38 @@ export function UserManualContent() {
       )
     },
     {
-      title: "4. Checklists",
-      icon: ListChecks,
-      content: (
-        <>
-          <p>KamperHub offers a flexible checklist system to ensure you don't miss crucial steps. All checklist data is saved to your account and available across devices.</p>
-          <ul className="list-disc pl-5 space-y-2">
-            <li>
-              <strong>Two Types of Checklists:</strong>
-              <ol className="list-decimal pl-5 space-y-1">
-                <li><strong>Caravan Default Checklists:</strong> Define a default set of checklists (Pre-Departure, Campsite Setup, Pack-Down) for each of your caravans. This template will be used for new trips planned with that specific caravan.</li>
-                <li><strong>Trip-Specific Checklists:</strong> When you save a trip, a unique checklist set is created for it, copied from the active caravan's default. Modifications here only affect this specific trip.</li>
-              </ol>
-            </li>
-            <li><strong>Using Checklists:</strong> You can add, delete, reorder, and mark items as completed. The completion status is saved for each specific trip's checklist or caravan default.</li>
-          </ul>
-        </>
-      )
-    },
-    {
       title: "5. Trip & Expense Planner",
       icon: RouteIcon,
       content: (
         <>
-          <p>Plan your routes, estimate travel times, calculate fuel costs, set budgets, and track expenses. This is your all-in-one travel command center.</p>
+          <p>Plan your routes, estimate travel times, calculate fuel costs, set budgets, track expenses, and manage passengers. This is your all-in-one travel command center.</p>
           <ul className="list-disc pl-5 space-y-2">
-            <li><strong>Itinerary Planning:</strong>
+            <li>
+                <strong>Itinerary Planning:</strong>
                 <ul className="list-circle pl-5 space-y-1">
                     <li><strong>Inputs:</strong> Provide Start and End Locations (with Google Places Autocomplete), Planned Date Range, Vehicle Fuel Efficiency (L/100km), and Current Fuel Price.</li>
                     <li><strong>Route Calculation:</strong> Displays the route on an interactive map, showing total distance, estimated duration, and calculated fuel cost.</li>
                     <li><strong>Saving Trips:</strong> Saves the entire plan—including the route, fuel estimates, dates, budget, expenses, and notes—to your "Trip Log." This also creates a unique, editable checklist for the trip.</li>
                 </ul>
             </li>
-            <li><strong>Budgeting:</strong>
+             <li>
+                <strong>Occupants:</strong>
                 <ul className="list-circle pl-5 space-y-1">
-                    <li>Once an itinerary is planned, switch to the "Budget" tab.</li>
-                    <li>Create spending categories like "Fuel," "Groceries," "Accommodation," "Activities," etc.</li>
-                    <li>Assign a budgeted amount to each category. The total trip budget is automatically calculated.</li>
-                    <li>When you save a trip, the estimated fuel cost will automatically populate or update the "Fuel" budget category.</li>
+                    <li>Once an itinerary is planned, you can add travelers (adults, children, pets) to the trip.</li>
+                    <li>Specify the name, type, and weight for each occupant. This weight is used in the Inventory & Weight Management screen for accurate GVM calculations.</li>
+                    <li>These occupant details are also used by the AI Packing Assistant to create personalized packing lists.</li>
                 </ul>
             </li>
-             <li><strong>Expense Tracking:</strong>
+            <li>
+                <strong>Budgeting:</strong>
+                <ul className="list-circle pl-5 space-y-1">
+                    <li>In the "Budget" tab, create spending categories like "Fuel," "Groceries," "Accommodation," "Activities," etc.</li>
+                    <li>Assign a budgeted amount to each category. The total trip budget is automatically calculated.</li>
+                    <li>When you plan an itinerary, the estimated fuel cost will automatically populate or update the "Fuel" budget category.</li>
+                </ul>
+            </li>
+             <li>
+                <strong>Expense Tracking:</strong>
                 <ul className="list-circle pl-5 space-y-1">
                     <li>In the "Expenses" tab, you can log individual expenses as they occur.</li>
                     <li>Each expense requires a description, amount, date, and must be assigned to one of your created budget categories.</li>
@@ -174,8 +187,8 @@ export function UserManualContent() {
             <li><strong>Trip Cards:</strong> Each card shows the trip name, saved date, start/end locations, date range, route distance/duration, and fuel estimates if available.</li>
             <li><strong>Actions per Trip:</strong>
                 <ul className="list-circle pl-5">
-                    <li><strong>"Start Trip" / "View Checklists":</strong> Navigates to the checklists page, pre-selecting the checklist for that specific trip.</li>
-                    <li><strong>"Mark Completed" / "Reopen Trip":</strong> Toggles the trip's completion status.</li>
+                    <li><strong>"Start Trip":</strong> Navigates to the checklists page, pre-selecting the checklist for that specific trip.</li>
+                    <li><strong>"Mark Completed" / "Reopen Trip":</strong> Toggles the trip's completion status. Completed trips are visually distinct.</li>
                     <li><strong>"Calendar":</strong> Opens a pre-filled Google Calendar event to easily add the trip to your calendar.</li>
                     <li><strong>"Recall":</strong> Loads the trip data, including its budget and expenses, back into the Trip Planner for review or modification.</li>
                     <li><strong>"Delete":</strong> Permanently removes the trip and all associated data from your log.</li>
@@ -186,7 +199,55 @@ export function UserManualContent() {
       )
     },
     {
-      title: "7. Bookings",
+      title: "7. Trip Packing Assistant",
+      icon: Backpack,
+      content: (
+        <>
+          <p>Use our multi-step AI tool to generate, personalize, and share packing lists for your trips.</p>
+           <ul className="list-disc pl-5 space-y-2">
+            <li><strong>Select Trip:</strong> Choose a saved trip. The assistant will check if a packing list already exists for it.</li>
+            <li>
+                <strong>If a List Exists (Recall & Edit):</strong>
+                <ul className="list-circle pl-5 space-y-1">
+                    <li>The existing list is displayed immediately.</li>
+                    <li>You can check items off, edit quantities/notes, or add/delete items.</li>
+                    <li>Use the "Personalize & Share" option to generate individual lists for passengers and send them to Google Tasks.</li>
+                </ul>
+            </li>
+             <li>
+                <strong>If No List Exists (Create New):</strong>
+                <ul className="list-circle pl-5 space-y-1">
+                    <li><strong>Step 1 (Optional):</strong> Select planned activities to get tailored suggestions.</li>
+                    <li><strong>Step 2 (Optional):</strong> Get AI-powered weather suggestions for your destination.</li>
+                    <li><strong>Step 3 (Generate):</strong> The AI uses all trip info (destination, dates, travelers, activities, weather) to generate a comprehensive master packing list.</li>
+                </ul>
+            </li>
+             <li><strong>Google Tasks Integration:</strong> If you have connected your Google Account, you can send both master lists and personalized lists directly to your Google Tasks account.</li>
+        </ul>
+        </>
+      )
+    },
+     {
+      title: "8. Checklists",
+      icon: ListChecks,
+      content: (
+        <>
+          <p>KamperHub offers a flexible checklist system to ensure you don't miss crucial steps. All checklist data is saved to your account and available across devices.</p>
+          <ul className="list-disc pl-5 space-y-2">
+            <li>
+              <strong>Two Types of Checklists:</strong>
+              <ol className="list-decimal pl-5 space-y-1">
+                <li><strong>Caravan Default Checklists:</strong> Define a default set of checklists (Pre-Departure, Campsite Setup, Pack-Down) for each of your caravans. This template will be used for new trips planned with that specific caravan.</li>
+                <li><strong>Trip-Specific Checklists:</strong> When you save a trip, a unique checklist set is created for it, copied from the active caravan's default. Modifications here only affect this specific trip.</li>
+              </ol>
+            </li>
+            <li><strong>Using Checklists:</strong> You can add, delete, reorder, and mark items as completed. The completion status is saved for each specific trip's checklist or caravan default.</li>
+          </ul>
+        </>
+      )
+    },
+    {
+      title: "9. Bookings",
       icon: BedDouble,
       content: (
         <>
@@ -201,7 +262,7 @@ export function UserManualContent() {
       )
     },
     {
-      title: "8. Support & Learn",
+      title: "10. Support & Learn",
       icon: BookOpen,
       content: (
         <>
@@ -209,7 +270,7 @@ export function UserManualContent() {
           <ul className="list-disc pl-5 space-y-1">
             <li><strong>Educational Videos:</strong> A curated list of YouTube videos covering various topics like setup, driving, maintenance, and safety.</li>
             <li><strong>Articles & Guides:</strong> Helpful articles providing information on common caravanning topics.</li>
-            <li><strong>AI Chatbot:</strong> An interactive AI assistant to answer your caravanning questions. It can access a small internal FAQ and search the static articles for relevant information.</li>
+            <li><strong>AI Chatbot:</strong> An interactive AI assistant to answer your caravanning questions. It can access a small internal FAQ, search the static articles, and even help you manage your trip expenses and budgets through conversation.</li>
             <li><strong>User Manual:</strong> This document, providing an overview of KamperHub's features (you are here!).</li>
             <li><strong>Terms of Service:</strong> The legal terms and conditions for using KamperHub.</li>
         </ul>
@@ -217,13 +278,16 @@ export function UserManualContent() {
       )
     },
     {
-      title: "9. My Account & Subscriptions",
+      title: "11. My Account & Subscriptions",
       icon: UserCircle,
       content: (
          <>
             <p>Manage your KamperHub user profile and subscription details.</p>
             <ul className="list-disc pl-5 space-y-2">
                 <li><strong>User Profile:</strong> View your display name, email, and other profile details. Use the "Edit Profile" button to update this information. Email changes are handled securely and may require re-authentication.</li>
+                 <li>
+                    <strong>Integrations:</strong> Connect your KamperHub account to other services. Currently, you can connect your Google Account to enable creating packing lists directly in your Google Tasks. You can connect and disconnect at any time.
+                </li>
                 <li>
                   <strong>Subscription Model:</strong>
                   <ul className="list-circle pl-5 space-y-1 mt-1">
