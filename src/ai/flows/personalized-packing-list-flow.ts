@@ -112,7 +112,7 @@ const personalizedPackingListFlow = ai.defineFlow(
       console.error("Error in personalizedPackingListFlow:", error);
        if (error.message && error.message.includes('API_KEY_HTTP_REFERRER_BLOCKED')) {
         throw new Error(
-          'AI Service Error: The API key is restricted. Please go to the Google Cloud Console for your project, find the API key being used, and under "Application restrictions", ensure that "Websites" is selected and that the correct domain (e.g., your development or production URL) is added to the "Website restrictions" list. The error was: API_KEY_HTTP_REFERRER_BLOCKED.'
+          'AI Service Error: The GOOGLE_API_KEY you are using has "HTTP referrer" restrictions, which is not allowed for server-to-server AI calls. Please use a different API key that does NOT have this restriction type. A key with "None", "IP Address", or only API service restrictions will work. The error was: API_KEY_HTTP_REFERRER_BLOCKED.'
         );
       }
       throw new Error(`AI Service Error: ${error.message || 'An unknown error occurred.'}`);
