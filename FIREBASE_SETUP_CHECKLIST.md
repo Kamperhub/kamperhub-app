@@ -124,8 +124,9 @@ After restarting your server, you can use the built-in diagnostic tool to confir
 1.  Go to the following URL in your browser:
     `[YOUR_APP_URL]/api/debug/env` (e.g., http://localhost:8083/api/debug/env)
 2.  This will show a JSON response indicating the status of each required environment variable.
-3.  **Check `PROJECT_IDS_MATCH`**. If it says `"NO - MISMATCH DETECTED"`, it means the Project ID in your `GOOGLE_APPLICATION_CREDENTIALS_JSON` does not match your `NEXT_PUBLIC_FIREBASE_PROJECT_ID`. Go back to Step 2 and ensure you generated all keys from the same Firebase project.
-4.  If everything looks good here but you still have errors, proceed to the next step.
+3.  **Check `ADMIN_SDK_INITIALIZATION_STATUS`**. If it shows a `CRITICAL FAILURE`, the error message will tell you exactly what is wrong with your `GOOGLE_APPLICATION_CREDENTIALS_JSON`. Fix the issue in `.env.local` and restart the server.
+4.  **Check `PROJECT_IDS_MATCH`**. If it says `"NO - MISMATCH DETECTED"`, it means the Project ID in your `GOOGLE_APPLICATION_CREDENTIALS_JSON` does not match your `NEXT_PUBLIC_FIREBASE_PROJECT_ID`. Go back to Step 2 and ensure you generated all keys from the same Firebase project.
+5.  If everything looks good here but you still have errors, proceed to the next step.
 
 ---
 

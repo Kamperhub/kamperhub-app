@@ -1,3 +1,4 @@
+
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 
@@ -24,14 +25,19 @@ export function getFirebaseAdmin() {
         jsonString = jsonString.substring(1, jsonString.length - 1);
     }
 
-    const serviceAccount = JSON.parse(jsonString);
+    let serviceAccount;
+    try {
+        serviceAccount = JSON.parse(jsonString);
+    } catch (e: any) {
+        // This is a new, more specific error catch for malformed JSON.
+        throw new Error(`FATAL: The GOOGLE_APPLICATION_CREDENTIALS_JSON string in your .env.local file is not valid JSON. Please copy it again carefully. The JSON parser failed with: ${e.message}`);
+    }
+
 
     if (!serviceAccount.private_key) {
       throw new Error("FATAL: The 'private_key' field is missing from your service account JSON. Please ensure you have copied the entire JSON file correctly.");
     }
     
-    // This is the critical fix for the UNAUTHENTICATED error.
-    // The private key from the .env.local file has literal '\\n' characters which need to be replaced with actual newlines.
     if (serviceAccount.private_key) {
       serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
     }

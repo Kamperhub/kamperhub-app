@@ -32,14 +32,13 @@ export async function GET() {
   const clientProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'Not Set';
   let projectIdsMatch = 'Cannot determine';
   
-  try {
-    const { error: adminError } = getFirebaseAdmin();
-    if (adminError) {
-        throw adminError;
-    }
-    adminSDKInitializationStatus = "SUCCESS: Firebase Admin SDK initialized successfully. Server can connect to Firebase.";
-  } catch(e: any) {
-    adminSDKInitializationStatus = `CRITICAL FAILURE: The Admin SDK failed to initialize. This is the most likely cause of API route 404 errors. Exact Error: ${e.message}`;
+  // Directly call getFirebaseAdmin to test initialization.
+  // This is the most important part of the diagnostic.
+  const { error: adminError } = getFirebaseAdmin();
+  if (adminError) {
+      adminSDKInitializationStatus = `CRITICAL FAILURE: The Admin SDK failed to initialize. This is the most likely cause of API route 404 or other server errors. Exact Error: ${adminError.message}`;
+  } else {
+      adminSDKInitializationStatus = "SUCCESS: Firebase Admin SDK initialized successfully. Server can connect to Firebase.";
   }
   
   const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
@@ -52,7 +51,7 @@ export async function GET() {
       const parsedJson = JSON.parse(jsonString);
       serverProjectId = parsedJson.project_id || 'Not found in credentials JSON';
     } catch(e: any) {
-        serverProjectId = 'Could not parse credentials JSON';
+        serverProjectId = `Could not parse credentials JSON. Error: ${e.message}`;
     }
   }
 
