@@ -70,6 +70,10 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Error in admin delete-user endpoint:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    let details = error.message;
+    if (error.code === 5 || (error.details && error.details.toLowerCase().includes('database not found')) || (error.message && error.message.toLowerCase().includes('not_found'))) {
+      details = `CRITICAL: The server could not find the Firestore database named 'kamperhubv2'. Please check the setup checklist.`;
+    }
+    return NextResponse.json({ error: 'Internal Server Error', details: details }, { status: 500 });
   }
 }

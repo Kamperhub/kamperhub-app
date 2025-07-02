@@ -112,13 +112,13 @@ export async function GET(req: NextRequest) {
     let errorInfo = 'Failed to process user preferences on the server.';
     let errorDetails = err.message;
     
-    // More specific error for UNATHENTICATED from the server side
-    if (err.code === 16 || (err.message && err.message.toLowerCase().includes('unauthenticated'))) {
+    // Check for "database not found" error first, as it's very specific
+    if (err.code === 5 || (err.details && err.details.toLowerCase().includes('database not found')) || (err.message && err.message.toLowerCase().includes('not_found'))) {
+      errorInfo = `Database Not Found or Inaccessible`;
+      errorDetails = `CRITICAL: The server could not find the Firestore database named 'kamperhubv2'. This usually means either (a) the Firestore database has not been created in the Firebase console for this project, or (b) the Project ID in your GOOGLE_APPLICATION_CREDENTIALS_JSON does not match the client-side NEXT_PUBLIC_FIREBASE_PROJECT_ID. Please follow the setup checklist carefully. Original Error: ${err.message}`;
+    } else if (err.code === 16 || (err.message && err.message.toLowerCase().includes('unauthenticated'))) {
       errorInfo = '16 UNAUTHENTICATED: The server is not authorized to access Google Cloud services.';
       errorDetails = `This is a server-side configuration error. The service account credentials in GOOGLE_APPLICATION_CREDENTIALS_JSON may be invalid, for the wrong project, or lack the necessary IAM permissions (e.g., 'Editor' or 'Cloud Datastore User' role). Please use the /api/debug/env tool to diagnose. Original Error: ${err.message}`;
-    } else if (err.code === 5 || (err.message && err.message.toLowerCase().includes('not_found'))) {
-        errorInfo = `Database Not Found or Inaccessible`;
-        errorDetails = `CRITICAL: The Firestore database has not been created in this Firebase project, or the service account does not have permission to access it. Please go to the Firebase Console, select your project, find 'Firestore Database' in the Build menu, and click 'Create database'. Refer to the setup checklist for more details. Original Error: ${err.message}`;
     }
     
     return NextResponse.json(
