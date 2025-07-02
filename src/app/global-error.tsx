@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertTriangle, RotateCw } from 'lucide-react'
+import './globals.css'
 
 export default function GlobalError({
   error,
@@ -17,8 +18,16 @@ export default function GlobalError({
   }, [error])
   
   return (
-    <html>
-      <body>
+    <html lang="en">
+      <head>
+        <title>Application Error</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Belleza&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet" />
+      </head>
+      <body className="font-body antialiased">
         <div className="flex flex-col items-center justify-center min-h-screen text-center p-4 bg-background">
           <Card className="w-full max-w-lg shadow-xl border-destructive">
             <CardHeader>

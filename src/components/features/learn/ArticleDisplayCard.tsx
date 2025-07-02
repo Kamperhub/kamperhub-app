@@ -1,3 +1,6 @@
+
+"use client";
+
 import type { AiGeneratedArticle } from '@/types/learn';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

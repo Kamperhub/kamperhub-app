@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { navItems } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
-import { Backpack } from 'lucide-react';
 import { NavigationContext } from './AppShell';
 
 export function BottomNavigation() {
@@ -52,8 +51,7 @@ export function BottomNavigation() {
               isActive = pathname === item.href;
             }
               
-            // Use Backpack icon specifically for Trip Manager in the bottom nav
-            const IconComponent = isTripManagerLink ? Backpack : item.icon;
+            const IconComponent = item.icon;
 
             return (
               <li key={item.label} className="flex-1 text-center">
@@ -81,5 +79,3 @@ export function BottomNavigation() {
     </nav>
   );
 }
-
-    

@@ -1,4 +1,6 @@
 
+"use client";
+
 // src/components/features/learn/UserManualContent.tsx
 import {
   Accordion,
@@ -279,5 +281,3 @@ export function UserManualContent() {
     </div>
   );
 }
-
-    

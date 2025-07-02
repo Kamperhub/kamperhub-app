@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Wrench, Luggage, Suitcase } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Wrench, Luggage, Briefcase } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -69,7 +69,7 @@ export const navItems: NavItem[] = [
   {
     href: '/trip-manager',
     label: 'Trip Manager',
-    icon: Backpack,
+    icon: Briefcase,
     description: 'A central hub to plan your routes, budgets, packing lists, and review past trips.',
     keywords: 'trip planner log packing'
   },
