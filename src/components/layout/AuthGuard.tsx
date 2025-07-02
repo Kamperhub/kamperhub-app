@@ -31,11 +31,10 @@ const LoadingScreen = ({ status }: { status: AuthStatus }) => {
       <p className="text-lg font-semibold text-primary font-body">{message}</p>
       
       {showSlowLoadMessage && (
-        <div className="mt-6 max-w-lg p-4 rounded-md border border-amber-500 bg-amber-500/10 text-amber-200">
-            <h3 className="font-bold text-amber-300">Still waiting?</h3>
-            <p className="text-sm text-left mt-2">If loading is stuck here, it usually means the application can't connect to the server's backend services.</p>
-            <p className="text-sm text-left mt-2">This is often caused by a server crash during startup due to a misconfiguration in your <code className="bg-black/20 px-1 rounded-sm">.env.local</code> file.</p>
-             <p className="text-sm text-left mt-2">Please check your server's terminal logs for a specific error message, then use the <code className="bg-black/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file to resolve the issue.</p>
+        <div className="mt-6 max-w-lg p-4 rounded-md border border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+            <h3 className="font-bold text-amber-800 dark:text-amber-200">Still waiting?</h3>
+            <p className="text-sm text-left mt-2">If loading is stuck, it may be due to a network issue or a problem with the application's configuration.</p>
+            <p className="text-sm text-left mt-2">Please check your browser's developer console for any specific error messages (e.g., App Check failures). If the issue persists, verify all keys in your <code className="bg-black/20 px-1 rounded-sm">.env.local</code> file are correct and that the server has started without errors.</p>
         </div>
       )}
     </div>

@@ -2,6 +2,7 @@
 import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from '@firebase/app-check';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -35,6 +36,20 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}, connecting to database 'kamperhubv2'.`);
 
     if (typeof window !== 'undefined') {
+      if (process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY) {
+        try {
+          initializeAppCheck(app, {
+            provider: new ReCaptchaEnterpriseProvider(process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY),
+            isTokenAutoRefreshEnabled: true
+          });
+          console.log('[Firebase Client] App Check initialized.');
+        } catch(e: any) {
+          console.error(`[Firebase Client] App Check initialization failed. Error: ${e.message}`);
+        }
+      } else {
+        console.log('[Firebase Client] App Check not initialized (NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY is not set).');
+      }
+
       enableIndexedDbPersistence(db)
         .then(() => console.log('[Firebase Client] Firestore offline persistence enabled.'))
         .catch((err) => {
