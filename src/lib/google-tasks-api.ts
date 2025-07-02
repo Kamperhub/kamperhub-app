@@ -7,11 +7,19 @@ import type { GoogleTasksStructure } from '@/ai/flows/personalized-packing-list-
  * Creates and configures an OAuth2 client with the provided refresh token.
  * @param refreshToken - The user's Google OAuth refresh token.
  * @returns An authenticated OAuth2Client instance.
+ * @throws An error if Google API credentials are not set in the environment.
  */
 export function getOauth2Client(refreshToken: string): OAuth2Client {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error("Google API credentials are not configured on the server. Please check your .env.local file.");
+  }
+  
   const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
+    clientId,
+    clientSecret,
     // The redirect URI is not strictly needed for token refresh but is good practice to include.
     `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/google/callback` 
   );

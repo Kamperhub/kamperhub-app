@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     
     if (!clientId || !clientSecret) {
-      throw new Error("Google API credentials not configured on the server.");
+      throw new Error("Google API credentials are not configured on the server. Please check your .env.local file.");
     }
 
     const redirectUri = `${new URL(req.url).origin}/api/auth/google/callback`;

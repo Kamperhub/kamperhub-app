@@ -31,17 +31,21 @@ export async function POST(req: NextRequest) {
     const refreshToken = userProfile.googleAuth?.refreshToken;
 
     if (refreshToken) {
-      try {
-        const oauth2Client = new google.auth.OAuth2(
-            process.env.GOOGLE_CLIENT_ID,
-            process.env.GOOGLE_CLIENT_SECRET
-        );
-        // This call revokes the token on Google's side.
-        await oauth2Client.revokeToken(refreshToken);
-      } catch (revokeError: any) {
-        // Even if revocation fails (e.g., token already revoked by user on Google's side),
-        // we should still proceed to remove the data from our end.
-        console.warn(`Could not revoke Google token for user ${userId}. This may be because it was already revoked. Error: ${revokeError.message}`);
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+      if (!clientId || !clientSecret) {
+        console.error("Google API credentials not configured on the server for token revocation.");
+        // We will still proceed to delete our local copy, but we log the error.
+      } else {
+        try {
+          const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+          // This call revokes the token on Google's side.
+          await oauth2Client.revokeToken(refreshToken);
+        } catch (revokeError: any) {
+          // Even if revocation fails (e.g., token already revoked by user on Google's side),
+          // we should still proceed to remove the data from our end.
+          console.warn(`Could not revoke Google token for user ${userId}. This may be because it was already revoked. Error: ${revokeError.message}`);
+        }
       }
     }
     
