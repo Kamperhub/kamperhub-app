@@ -31,7 +31,7 @@ export function getFirebaseAdmin() {
     }
     
     // This is the critical fix for the UNAUTHENTICATED error.
-    // The private key from the .env.local file has literal '\n' characters which need to be replaced with actual newlines.
+    // The private key from the .env.local file has literal '\\n' characters which need to be replaced with actual newlines.
     if (serviceAccount.private_key) {
       serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
     }

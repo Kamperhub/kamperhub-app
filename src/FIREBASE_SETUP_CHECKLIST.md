@@ -79,6 +79,7 @@ Now, using the **correct `kamperhubv2` project** from Step 2, find your keys and
     *   Click "Generate new private key". A JSON file will download.
     *   Open the downloaded file, copy the **entire JSON content**, and paste it inside the single quotes for `GOOGLE_APPLICATION_CREDENTIALS_JSON`. **It must all be on one line.**
     *   **CRITICAL: The `project_id` field inside this JSON file must also match the `kamperhubv2` Project ID from Step 2.**
+    *   **CRITICAL: The `private_key` field in the JSON contains `\n` characters. The app is now designed to handle these correctly, so you should not need to modify them manually.**
 
 3.  **Generative AI Key (`GOOGLE_API_KEY`)**
     *   Go to the [Google Cloud Credentials page](https://console.cloud.google.com/apis/credentials) for your project.
@@ -92,7 +93,7 @@ Now, using the **correct `kamperhubv2` project** from Step 2, find your keys and
 
 ### Step 4: CRITICAL - Ensure Firestore Database Exists
 
-The most common server error after a correct setup is `5 NOT_FOUND`, `failed to fetch`, or a server crash. This error means your backend code tried to connect to a Firestore database, but one has not been created in your project yet. You must do this manually.
+The most common server error after a correct setup is `5 NOT_FOUND` or `16 UNAUTHENTICATED`. This error means your backend code tried to connect to a Firestore database, but one has not been created in your project yet. You must do this manually.
 
 1.  Go to the [Firebase Console](https://console.firebase.google.com/) and select your project from Step 2.
 2.  In the left-hand navigation under "Build", click on **Firestore Database**.
