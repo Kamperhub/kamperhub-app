@@ -296,21 +296,19 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       {prefsError && <DashboardErrorState error={prefsError} />}
-      <div className="flex flex-col sm:flex-row items-center justify-between mb-6">
-        <div className="flex items-center mb-4 sm:mb-0">
-          <Image
-            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.firebasestorage.app/o/KamperHub%20512x512.jpg?alt=media&token=00bf2acd-dbca-4cc2-984e-58461f67fdbd"
-            alt="KamperHub Logo"
-            width={60}
-            height={60}
-            className="mr-4 rounded-md"
-            priority
-            data-ai-hint="logo brand"
-          />
-          <div>
-            <h1 className="text-3xl font-headline text-primary">Welcome to KamperHub</h1>
-            <p className="font-body text-muted-foreground">Your ultimate travelling companion for everyone.</p>
-          </div>
+      <div className="flex items-center mb-6">
+        <Image
+          src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.firebasestorage.app/o/KamperHub%20512x512.jpg?alt=media&token=00bf2acd-dbca-4cc2-984e-58461f67fdbd"
+          alt="KamperHub Logo"
+          width={60}
+          height={60}
+          className="mr-4 rounded-md"
+          priority
+          data-ai-hint="logo brand"
+        />
+        <div>
+          <h1 className="text-3xl font-headline text-primary">Welcome to KamperHub</h1>
+          <p className="font-body text-muted-foreground">Your ultimate travelling companion for everyone.</p>
         </div>
       </div>
       
