@@ -34,19 +34,17 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}, connecting to database 'kamperhubv2'.`);
 
     if (typeof window !== 'undefined') {
-      try {
-        enableIndexedDbPersistence(db)
-          .then(() => console.log('[Firebase Client] Firestore offline persistence enabled.'))
-          .catch((err) => {
-            if (err.code === 'failed-precondition') {
-              console.warn('[Firebase Client] Firestore offline persistence could not be enabled. Multiple tabs open?');
-            } else if (err.code === 'unimplemented') {
-              console.warn('[Firebase Client] Firestore offline persistence is not available in this browser.');
-            }
-          });
-      } catch (error) {
-         console.error("[Firebase Client] CRITICAL: Error enabling Firestore offline persistence:", error);
-      }
+      enableIndexedDbPersistence(db)
+        .then(() => console.log('[Firebase Client] Firestore offline persistence enabled.'))
+        .catch((err) => {
+          if (err.code === 'failed-precondition') {
+            console.warn('[Firebase Client] Firestore offline persistence could not be enabled. Multiple tabs open?');
+          } else if (err.code === 'unimplemented') {
+            console.warn('[Firebase Client] Firestore offline persistence is not available in this browser.');
+          } else {
+             console.error("[Firebase Client] Error enabling Firestore offline persistence:", err);
+          }
+        });
     }
   } catch (e: any) {
     firebaseInitializationError = `Firebase failed to initialize. Please check your Firebase project configuration and API keys. Error: ${e.message}`;

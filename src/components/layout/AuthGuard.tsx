@@ -11,7 +11,7 @@ const LoadingScreen = ({ status }: { status: AuthStatus }) => {
 
   useEffect(() => {
     let timer: NodeJS.Timeout | undefined;
-    if (status === 'AWAITING_PROFILE') {
+    if (status === 'AWAITING_PROFILE' || status === 'LOADING') {
       timer = setTimeout(() => {
         setShowSlowLoadMessage(true);
       }, 5000); // After 5 seconds, show the helper message
@@ -46,7 +46,7 @@ const LoadingScreen = ({ status }: { status: AuthStatus }) => {
 const ErrorScreen = ({ error }: { error: string | null }) => {
   const errorMessage = error || "An unknown error occurred.";
   const isAdminError = errorMessage.toLowerCase().includes('admin');
-  const isConfigError = errorMessage.toLowerCase().includes('firebase client error');
+  const isConfigError = errorMessage.toLowerCase().includes('firebase client error') || errorMessage.toLowerCase().includes('unauthenticated');
   const isTimeoutError = errorMessage.toLowerCase().includes('authentication timed out');
   const isDbNotFoundError = errorMessage.toLowerCase().includes('database has not been created');
   const isFailedToFetch = errorMessage.toLowerCase().includes('failed to fetch') || errorMessage.toLowerCase().includes('error reaching server');
