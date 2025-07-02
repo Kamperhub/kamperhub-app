@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest) {
     
   } catch (err: any) {
     console.error("Error in Google Auth callback:", err);
-    // Attempt to delete the state doc on error too, if it exists
+    // Attempt to delete the state doc on error too, just in case it wasn't deleted earlier.
     await stateDocRef.delete().catch(() => {});
     return NextResponse.redirect(new URL(`/my-account?error=${encodeURIComponent(err.message)}`, req.url));
   }
