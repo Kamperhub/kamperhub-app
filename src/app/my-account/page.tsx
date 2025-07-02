@@ -3,19 +3,19 @@
 
 import React, { useState, useEffect, useContext } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
 import { updateProfile, updateEmail } from 'firebase/auth';
-import { updateUserPreferences, generateGoogleAuthUrl } from '@/lib/api-client';
+import { updateUserPreferences, generateGoogleAuthUrl, disconnectGoogleAccount } from '@/lib/api-client';
 import { format, isAfter, parseISO } from 'date-fns';
 
 import type { UserProfile } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, UserCog, AlertTriangle, RotateCw, Clock, Sparkles, Link as LinkIcon, Check } from 'lucide-react';
+import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, UserCog, AlertTriangle, RotateCw, Clock, Sparkles, Link as LinkIcon, Check, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +36,7 @@ export default function MyAccountPage() {
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
   const [isRedirectingToPortal, setIsRedirectingToPortal] = useState(false);
   const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
+  const [isDisconnectingGoogle, setIsDisconnectingGoogle] = useState(false);
   
   const router = useRouter();
   const { toast } = useToast();
@@ -52,6 +53,35 @@ export default function MyAccountPage() {
     } catch (error) {
       console.error("Error signing out: ", error);
       toast({ title: 'Logout Error', description: 'Failed to log out.', variant: 'destructive' });
+    }
+  };
+  
+  const disconnectGoogleMutation = useMutation({
+    mutationFn: disconnectGoogleAccount,
+    onSuccess: (data) => {
+      toast({
+        title: "Google Account Disconnected",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ['userProfile', user?.uid] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Disconnection Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setIsDisconnectingGoogle(false);
+    }
+  });
+  
+  const handleDisconnectGoogle = async () => {
+    if (!user) return;
+    if (window.confirm("Are you sure you want to disconnect your Google Account? KamperHub will no longer be able to access your Google Tasks.")) {
+        setIsDisconnectingGoogle(true);
+        disconnectGoogleMutation.mutate();
     }
   };
 
@@ -290,8 +320,12 @@ export default function MyAccountPage() {
                  <Alert variant="default" className="bg-green-100 border-green-300">
                     <Check className="h-4 w-4 text-green-700"/>
                     <AlertTitle className="font-headline text-green-800">Google Tasks Connected</AlertTitle>
-                    <AlertDescription className="text-green-700">
-                      KamperHub is authorized to create packing lists in your Google Tasks. You can revoke access at any time from your Google Account security settings.
+                    <AlertDescription className="text-green-700 space-y-2">
+                       <p>KamperHub is authorized to create packing lists in your Google Tasks.</p>
+                       <Button onClick={handleDisconnectGoogle} variant="destructive" size="sm" disabled={isDisconnectingGoogle}>
+                         {isDisconnectingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash2 className="mr-2 h-4 w-4"/>}
+                         {isDisconnectingGoogle ? 'Disconnecting...' : 'Disconnect Account'}
+                       </Button>
                     </AlertDescription>
                 </Alert>
               ) : (

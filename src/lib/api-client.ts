@@ -11,7 +11,9 @@ import {
   updateDoc, 
   deleteDoc,
   writeBatch,
-  Timestamp
+  Timestamp,
+  query,
+  where,
 } from 'firebase/firestore';
 
 import type { StoredVehicle, VehicleFormData } from '@/types/vehicle';
@@ -61,7 +63,9 @@ async function apiFetch(url: string, options: RequestInit = {}) {
       const errorData = await response.json();
       throw new Error(errorData.error || errorData.message || 'API request failed.');
     }
-    return response.json();
+    // Handle cases where the response body might be empty
+    const text = await response.text();
+    return text ? JSON.parse(text) : {};
 }
 
 
@@ -131,7 +135,7 @@ export async function fetchTrips(): Promise<LoggedTrip[]> {
     const querySnapshot = await getDocs(collection(db, 'users', uid, 'trips'));
     return querySnapshot.docs.map(doc => doc.data() as LoggedTrip);
 }
-export async function createTrip(data: Omit<LoggedTrip, 'id'>): Promise<LoggedTrip> {
+export async function createTrip(data: Omit<LoggedTrip, 'id' | 'timestamp'>): Promise<LoggedTrip> {
     const uid = await getUid();
     const newDocRef = doc(collection(db, 'users', uid, 'trips'));
     const newTrip: LoggedTrip = { ...data, id: newDocRef.id, timestamp: new Date().toISOString() };
@@ -216,7 +220,8 @@ export async function deleteFuelLog(vehicleId: string, id: string): Promise<{ me
 export async function fetchMaintenanceTasks(assetId?: string): Promise<MaintenanceTask[]> {
     const uid = await getUid();
     const tasksRef = collection(db, 'users', uid, 'maintenanceTasks');
-    const querySnapshot = assetId ? await getDocs(query(tasksRef, where("assetId", "==", assetId))) : await getDocs(tasksRef);
+    const q = assetId ? query(tasksRef, where("assetId", "==", assetId)) : tasksRef;
+    const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => doc.data() as MaintenanceTask);
 }
 export async function createMaintenanceTask(data: Omit<MaintenanceTask, 'id' | 'timestamp'>): Promise<MaintenanceTask> {
@@ -257,3 +262,4 @@ export async function deletePackingList(tripId: string): Promise<{ message: stri
 // ---- Admin & Auth Functions (Still need API routes) ----
 export const fetchAllUsers = (): Promise<{uid: string, email: string | undefined}[]> => apiFetch('/api/admin/list-users');
 export const generateGoogleAuthUrl = (): Promise<{ url: string }> => apiFetch('/api/auth/google/connect', { method: 'POST' });
+export const disconnectGoogleAccount = (): Promise<{ message: string }> => apiFetch('/api/auth/google/disconnect', { method: 'POST' });
