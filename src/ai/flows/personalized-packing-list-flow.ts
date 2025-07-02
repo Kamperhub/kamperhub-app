@@ -67,12 +67,27 @@ const prompt = ai.definePrompt({
   output: {schema: PersonalizedPackingListOutputSchema},
   prompt: `You are an expert travel assistant and personal concierge for 'KamperHub' trips. Your main task is to take a comprehensive, pre-generated packing list for a trip and personalize it for each individual passenger, considering their type and specific needs. You must then format this personalized list for two distinct purposes: a friendly, concise message for a messaging service, and a highly structured output for direct integration with Google Tasks.
 
-Here's the information you'll work with:
-{
-  "trip_details": {{{json trip_details}}},
-  "master_packing_list": {{{json master_packing_list}}},
-  "passengers": {{{json passengers}}}
-}
+**Trip Details:**
+- **Name:** {{trip_details.name}}
+- **Dates:** {{trip_details.dates}}
+- **Location Summary:** {{trip_details.location_summary}}
+
+**Master Packing List:**
+{{#each master_packing_list}}
+**Category: {{@key}}**
+{{#each this}}
+- {{this}}
+{{/each}}
+{{/each}}
+
+**Passengers:**
+{{#each passengers}}
+- **Passenger Name:** {{this.name}} (ID: {{this.id}})
+  - **Type:** {{this.type}}
+  {{#if this.specific_needs}}
+  - **Specific Needs:** {{#each this.specific_needs}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+  {{/if}}
+{{/each}}
 
 **Output Generation Rules:**
 
