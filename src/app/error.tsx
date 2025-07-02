@@ -1,6 +1,10 @@
 'use client' // Error components must be Client Components
 
 import { useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AlertTriangle, RotateCw } from 'lucide-react'
 
 export default function Error({
   error,
@@ -11,32 +15,40 @@ export default function Error({
 }) {
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error("Caught in Global Error Boundary:", error)
+    console.error("Caught in Route Segment Error Boundary:", error)
   }, [error])
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-center p-4">
-      <div className="max-w-lg w-full p-6 rounded-lg border border-red-500 bg-red-500/10 text-red-200">
-        <h2 className="text-2xl font-bold text-red-400">Oops! Something Went Wrong</h2>
-        <p className="mt-2 text-base text-red-300">
-          An unexpected error occurred while trying to load this page.
-        </p>
-        <div className="mt-4 p-3 rounded-md bg-red-900/20 text-left">
-            <p className="text-sm font-semibold text-red-300">Error Details:</p>
-            <pre className="text-xs whitespace-pre-wrap font-mono mt-1">
-                <code>{error.message || 'An unknown error occurred.'}</code>
-            </pre>
-        </div>
-        <p className="mt-4 text-sm text-red-300">
-            You can try to recover by clicking the button below. If the problem persists, please contact support.
-        </p>
-        <button
-            onClick={() => reset()}
-            className="mt-4 px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-red-900/20"
-        >
-            Try Again
-        </button>
-      </div>
+      <Card className="w-full max-w-lg shadow-xl border-destructive">
+        <CardHeader>
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10 mb-4">
+            <AlertTriangle className="h-10 w-10 text-destructive" />
+          </div>
+          <CardTitle className="font-headline text-2xl text-destructive">
+            Something Went Wrong
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <p className="font-body text-muted-foreground">
+                An unexpected error occurred while trying to load this part of the application.
+            </p>
+            <Alert variant="destructive" className="text-left">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle className="font-headline">Error Details</AlertTitle>
+                <AlertDescription className="font-mono text-xs whitespace-pre-wrap">
+                    {error.message || 'An unknown error occurred.'}
+                </AlertDescription>
+            </Alert>
+            <p className="text-sm font-body text-muted-foreground">
+                You can attempt to recover by clicking the button below.
+            </p>
+            <Button onClick={() => reset()} variant="destructive" className="w-full sm:w-auto font-body">
+                <RotateCw className="mr-2 h-4 w-4" />
+                Try Again
+            </Button>
+        </CardContent>
+      </Card>
     </div>
   )
 }
