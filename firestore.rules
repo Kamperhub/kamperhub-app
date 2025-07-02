@@ -1,43 +1,19 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/kamperhubv2/documents {
-  
-    // Helper functions
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+    // Users can manage their own data in any subcollection under their user document.
+    // This single rule covers vehicles, caravans, trips, inventory, etc.
+    match /users/{userId}/{documents=**} {
+      allow read, write: if request.auth.uid == userId;
     }
     
-    // Admins can read/write anything
-    function isAdmin() {
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-    }
-    
-    // === USERS Collection ===
-    // Users can read their own profile.
-    // Users can only create their own profile document.
-    // Users can only update their own profile document.
-    // Admins can read/write any user profile.
-    match /users/{userId} {
-      allow read, update: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId);
-      
-      // === USER Subcollections ===
-      // Logged-in users can read/write/delete data only within their own user document.
-      // This rule covers all subcollections like vehicles, caravans, trips, etc.
-      match /{subcollection}/{docId} {
-        allow read, write, delete: if isOwner(userId) || isAdmin();
-      }
-    }
-    
-    // === OAUTH STATES Collection (for Google Tasks integration) ===
-    // Only authenticated users can create a state document for themselves.
-    // The callback function (which runs with server credentials) is allowed to read and delete them.
-    match /oauthStates/{stateId} {
-        allow create: if request.auth != null;
-        allow read, delete: if true; // Server-side access is not restricted by these rules
-        allow update: if false;
+    // OAuth states for Google Tasks integration.
+    // Any authenticated user needs to be able to create and read their own state doc.
+    // The document ID is the random state string. We don't have a good way to secure this
+    // to a specific user before the callback, but since it's single-use and random, it's low risk.
+    match /oauthStates/{state} {
+        allow read, write, delete: if request.auth != null;
     }
   }
 }

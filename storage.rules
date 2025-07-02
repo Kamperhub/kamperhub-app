@@ -1,29 +1,10 @@
-
 rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Helper function to check if the user is the owner of the resource
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-  
-    // Admins can read/write anything
-    function isAdmin() {
-      // Assumes an 'isAdmin' flag exists on the user's Firestore document
-      return request.auth != null && get(/databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-    }
-
-    // Rules for user-specific files. 
-    // Example path: /users/{userId}/profile-pictures/avatar.png
+    // Users can read and write to their own folder in storage
     match /users/{userId}/{allPaths=**} {
-      allow read, write: if isOwner(userId) || isAdmin();
-    }
-    
-    // Public read for specific assets if needed (e.g., logos)
-    match /public/{allPaths=**} {
-      allow read;
-      allow write: if false; // No public writes
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
