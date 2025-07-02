@@ -55,9 +55,13 @@ const ErrorScreen = ({ error }: { error: string | null }) => {
     if (isDbConnectionError) {
       return (
         <div className="mt-4 border-t border-red-400/30 pt-3 text-left font-body">
-          <p className="font-bold">This points to a server-to-database connection failure.</p>
-          <p>Even with correct keys, this can happen if the Firestore database hasn't been created, has the wrong name, or if permissions are missing.</p>
-          <p className="mt-2 font-semibold">Please follow the new <code className="bg-black/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> in your project root. It will guide you through using the diagnostic tools to fix this.</p>
+          <p className="font-bold">This error indicates a server-to-database connection failure. The most common causes are:</p>
+          <ul className="list-disc pl-5 my-2 space-y-1">
+            <li><strong>Project Mismatch:</strong> The client-side and server-side keys in `.env.local` are from different Firebase projects.</li>
+            <li><strong>Database Not Created:</strong> The Firestore database named 'kamperhubv2' does not exist in the project.</li>
+            <li><strong>Incorrect Permissions:</strong> The service account does not have the 'Editor' or 'Cloud Datastore User' role.</li>
+          </ul>
+          <p className="mt-2 font-semibold">Please follow the new <code className="bg-black/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file in your project's root folder. It includes diagnostic tools to fix this permanently.</p>
         </div>
       );
     }
