@@ -358,31 +358,8 @@ export default function MyAccountPage() {
               </Alert>
             )}
 
-            {stripeCustomerId && subscriptionTier === 'pro' && (
-              <div className="mt-3">
-                <p className="font-body text-sm text-muted-foreground">
-                  Manage your payment methods, view invoices, or update/cancel your subscription.
-                </p>
-                <Button
-                    onClick={handleManageSubscription}
-                    disabled={isRedirectingToPortal}
-                    className="mt-2 w-full font-body bg-accent hover:bg-accent/90 text-accent-foreground"
-                >
-                  {isRedirectingToPortal ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ExternalLink className="mr-2 h-4 w-4" />}
-                  Manage Subscription in Stripe
-                </Button>
-              </div>
-            )}
-            
             {subscriptionTier !== 'pro' && (
               <div className="mt-4 space-y-4">
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle className="font-headline">Stripe Security & Pop-up Blockers</AlertTitle>
-                  <AlertDescription className="font-body text-sm">
-                    If the Stripe payment page doesn't open or appears blank, please temporarily disable browser extensions (like ad blockers or privacy tools) or security software that might be interfering. Using an Incognito/Private window can also help.
-                  </AlertDescription>
-                </Alert>
                 <Card className="bg-primary/5 border-primary/20">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-primary font-headline flex items-center"><Sparkles className="h-5 w-5 mr-2 text-yellow-500"/> Unlock Pro Features</CardTitle>
@@ -413,6 +390,22 @@ export default function MyAccountPage() {
             )}
             
             {stripeCustomerId && subscriptionTier === 'pro' && (
+              <div className="mt-3">
+                <p className="font-body text-sm text-muted-foreground">
+                  Manage your payment methods, view invoices, or update/cancel your subscription.
+                </p>
+                <Button
+                    onClick={handleManageSubscription}
+                    disabled={isRedirectingToPortal}
+                    className="mt-2 w-full font-body bg-accent hover:bg-accent/90 text-accent-foreground"
+                >
+                  {isRedirectingToPortal ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ExternalLink className="mr-2 h-4 w-4" />}
+                  Manage Subscription in Stripe
+                </Button>
+              </div>
+            )}
+            
+            {stripeCustomerId && subscriptionTier === 'pro' && (
                <p className="font-body text-xs mt-1 text-muted-foreground">Stripe Customer ID: {stripeCustomerId}</p>
             )}
           </div>
@@ -423,6 +416,16 @@ export default function MyAccountPage() {
                 <UserCog className="mr-2 h-4 w-4" /> Admin Only - Manage Users
               </Button>
             </Link>
+          )}
+
+          {subscriptionTier !== 'pro' && (
+            <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle className="font-headline">Stripe Security & Pop-up Blockers</AlertTitle>
+                <AlertDescription className="font-body text-sm">
+                  If the Stripe payment page doesn't open or appears blank, please temporarily disable browser extensions (like ad blockers or privacy tools) or security software that might be interfering. Using an Incognito/Private window can also help.
+                </AlertDescription>
+            </Alert>
           )}
 
           <Button onClick={handleLogout} variant="destructive" className="w-full font-body">
