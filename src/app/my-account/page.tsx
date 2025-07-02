@@ -378,14 +378,6 @@ export default function MyAccountPage() {
             
             {subscriptionTier !== 'pro' && (
               <div className="mt-4 space-y-4">
-                <Alert variant="destructive" className="mb-3">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle className="font-headline">Stripe Security & Pop-up Blockers</AlertTitle>
-                  <AlertDescription className="font-body text-sm">
-                    If the Stripe payment page doesn't open or appears blank, please temporarily disable browser extensions (like ad blockers or privacy tools) or security software that might be interfering. Using an Incognito/Private window can also help.
-                  </AlertDescription>
-                </Alert>
-
                 <Card className="bg-primary/5 border-primary/20">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-primary font-headline flex items-center"><Sparkles className="h-5 w-5 mr-2 text-yellow-500"/> Unlock Pro Features</CardTitle>
@@ -422,10 +414,20 @@ export default function MyAccountPage() {
 
           {isAdminUser && (
             <Link href="/admin" passHref onClick={handleNavigation}>
-              <Button variant="secondary" className="w-full font-body mt-2 mb-2">
+              <Button variant="secondary" className="w-full font-body">
                 <UserCog className="mr-2 h-4 w-4" /> Admin Only - Manage Users
               </Button>
             </Link>
+          )}
+
+          {subscriptionTier !== 'pro' && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle className="font-headline">Stripe Security & Pop-up Blockers</AlertTitle>
+              <AlertDescription className="font-body text-sm">
+                If the Stripe payment page doesn't open or appears blank, please temporarily disable browser extensions (like ad blockers or privacy tools) or security software that might be interfering. Using an Incognito/Private window can also help.
+              </AlertDescription>
+            </Alert>
           )}
 
           <Button onClick={handleLogout} variant="destructive" className="w-full font-body">
