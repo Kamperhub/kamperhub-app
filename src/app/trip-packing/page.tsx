@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useCallback, useContext } from 'react';
+import { useState, useMemo, useCallback, useContext, useRef } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, differenceInDays, parseISO, addDays } from 'date-fns';
@@ -69,6 +69,7 @@ export default function TripPackingPage() {
   const [editingItemState, setEditingItemState] = useState<{ categoryId: string; item: PackingListItem } | null>(null);
   const [weatherSuggestions, setWeatherSuggestions] = useState<WeatherPackingSuggesterOutput | null>(null);
   const [personalizedLists, setPersonalizedLists] = useState<PersonalizedPackingListOutput | null>(null);
+  const personalizedListsRef = useRef<HTMLDivElement>(null);
 
   const { data: trips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery<LoggedTrip[]>({
     queryKey: ['trips', user?.uid],
@@ -120,6 +121,9 @@ export default function TripPackingPage() {
     onSuccess: (data: PersonalizedPackingListOutput) => {
       setPersonalizedLists(data);
       toast({ title: 'Personalized Lists Created!', description: "Individual lists are ready." });
+      setTimeout(() => {
+        personalizedListsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
     },
     onError: (error: Error) => toast({ title: 'Personalization Failed', description: error.message, variant: 'destructive' }),
   });
@@ -390,7 +394,8 @@ export default function TripPackingPage() {
             <Button className="mt-4" onClick={handlePersonalizeList} disabled={!selectedTripId || packingList.length === 0 || anyMutationLoading}><Users className="mr-2 h-4 w-4"/>Personalize Lists</Button>
             {personalizeListMutation.isPending && <div className="flex items-center gap-2 mt-4"><Loader2 className="h-4 w-4 animate-spin"/><p>Personalizing...</p></div>}
             {personalizedLists && (
-              <div className="mt-4 space-y-4">
+              <div ref={personalizedListsRef} className="mt-4 space-y-4">
+                <h4 className="font-headline text-lg text-primary pt-4 border-t">Generated Lists:</h4>
                 {personalizedLists.passenger_lists.map(p => (
                   <Card key={p.passenger_id} className="bg-muted/50">
                     <CardHeader>
