@@ -355,12 +355,12 @@ export default function MyAccountPage() {
                 <Clock className="h-4 w-4 text-blue-600" />
                 <AlertTitle className="font-headline text-blue-700">Pro Trial Active!</AlertTitle>
                 <AlertDescription className="font-body text-blue-600">
-                  Your Pro trial ends on {format(parseISO(trialEndsAt), "PP")}. Subscribe to keep Pro features after your trial.
+                  Your Pro trial ends on {format(parseISO(trialEndsAt), "PP")}. Subscribe now to keep your Pro features after the trial.
                 </AlertDescription>
               </Alert>
             )}
 
-            {stripeCustomerId && (
+            {stripeCustomerId && subscriptionTier === 'pro' && (
               <div className="mt-3">
                 <p className="font-body text-sm text-muted-foreground">
                   Manage your payment methods, view invoices, or update/cancel your subscription.
@@ -376,7 +376,7 @@ export default function MyAccountPage() {
               </div>
             )}
             
-            {!hasProAccess && ( 
+            {subscriptionTier !== 'pro' && (
               <div className="mt-4 space-y-4">
                 <Card className="bg-primary/5 border-primary/20">
                     <CardHeader className="pb-2">
