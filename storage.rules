@@ -1,20 +1,29 @@
 
 rules_version = '2';
 
-// These rules control access to Firebase Cloud Storage.
 service firebase.storage {
   match /b/{bucket}/o {
-    
-    // Allow an authenticated user to read, write, and delete files
-    // within their own user-specific folder. This is useful for features
-    // like uploading profile pictures or other user-specific files.
-    match /users/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Helper function to check if the user is the owner of the resource
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+  
+    // Admins can read/write anything
+    function isAdmin() {
+      // Assumes an 'isAdmin' flag exists on the user's Firestore document
+      return request.auth != null && get(/databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
 
-    // By default, deny access to all other paths to ensure security.
-    match /{allPaths=**} {
-      allow read, write: if false;
+    // Rules for user-specific files. 
+    // Example path: /users/{userId}/profile-pictures/avatar.png
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+    
+    // Public read for specific assets if needed (e.g., logos)
+    match /public/{allPaths=**} {
+      allow read;
+      allow write: if false; // No public writes
     }
   }
 }

@@ -1,21 +1,43 @@
+
 rules_version = '2';
 
 service cloud.firestore {
-  match /databases/{database}/documents {
-    
-    // Rule 1: Manages access to the user profile document itself.
-    // A user can create their own profile, and then read, update, or delete it.
-    match /users/{userId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
+  match /databases/kamperhubv2/documents {
+  
+    // Helper functions
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
     
-    // Rule 2: Manages access to all subcollections belonging to a user.
-    // The {subcollection}/{document=**} wildcard grants access to any document
-    // within any subcollection of a user's profile document.
-    // e.g., it will match /users/abc/vehicles/xyz and allow access if the user's UID is 'abc'.
-    match /users/{userId}/{subcollection}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Admins can read/write anything
+    function isAdmin() {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    // === USERS Collection ===
+    // Users can read their own profile.
+    // Users can only create their own profile document.
+    // Users can only update their own profile document.
+    // Admins can read/write any user profile.
+    match /users/{userId} {
+      allow read, update: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      
+      // === USER Subcollections ===
+      // Logged-in users can read/write/delete data only within their own user document.
+      // This rule covers all subcollections like vehicles, caravans, trips, etc.
+      match /{subcollection}/{docId} {
+        allow read, write, delete: if isOwner(userId) || isAdmin();
+      }
+    }
+    
+    // === OAUTH STATES Collection (for Google Tasks integration) ===
+    // Only authenticated users can create a state document for themselves.
+    // The callback function (which runs with server credentials) is allowed to read and delete them.
+    match /oauthStates/{stateId} {
+        allow create: if request.auth != null;
+        allow read, delete: if true; // Server-side access is not restricted by these rules
+        allow update: if false;
     }
   }
 }
