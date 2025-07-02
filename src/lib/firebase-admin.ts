@@ -38,6 +38,7 @@ export function getFirebaseAdmin() {
       throw new Error("FATAL: The 'private_key' field is missing from your service account JSON. Please ensure you have copied the entire JSON file correctly.");
     }
     
+    // This replace call is critical for keys copied from .env files
     if (serviceAccount.private_key) {
       serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
     }

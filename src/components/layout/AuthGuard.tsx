@@ -48,7 +48,7 @@ const ErrorScreen = ({ error }: { error: string | null }) => {
   const isDbConnectionError =
     errorMessage.toLowerCase().includes('unauthenticated') ||
     errorMessage.toLowerCase().includes('permission-denied') ||
-    errorMessage.toLowerCase().includes('database has not been created') ||
+    errorMessage.toLowerCase().includes('database') ||
     errorMessage.toLowerCase().includes('not_found');
 
   const renderAdvice = () => {
@@ -56,17 +56,8 @@ const ErrorScreen = ({ error }: { error: string | null }) => {
       return (
         <div className="mt-4 border-t border-red-400/30 pt-3 text-left font-body">
           <p className="font-bold">This points to a server-to-database connection failure.</p>
-          <p>Even with correct keys, this can happen if the Firestore database hasn't been created or if permissions are missing.</p>
-          <p className="mt-2 font-semibold">Please run the following diagnostic tool:</p>
-          <a
-            href="/api/debug/create-admin-user"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block mt-2 bg-white text-black py-2 px-4 rounded-md hover:bg-gray-200 font-semibold"
-          >
-            Run Database Connection Test
-          </a>
-          <p className="text-xs mt-2">This tool will attempt to connect to the database and provide a specific success or failure message. Follow the instructions in `FIREBASE_SETUP_CHECKLIST.md` based on its output.</p>
+          <p>Even with correct keys, this can happen if the Firestore database hasn't been created, has the wrong name, or if permissions are missing.</p>
+          <p className="mt-2 font-semibold">Please follow the new <code className="bg-black/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> in your project root. It will guide you through using the diagnostic tools to fix this.</p>
         </div>
       );
     }

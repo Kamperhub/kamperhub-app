@@ -55,7 +55,7 @@ All your secret keys will live in a special file that is NOT committed to versio
 ### Step 2: Find the CORRECT Firebase Project
 
 > [!IMPORTANT]
-> This is the most critical step. Based on the error messages you are seeing, your app is currently configured for a different project than the one containing your `kamperhubv2` database. You must get **all keys** from the correct project.
+> This is the most critical step. Based on the error messages you are seeing, your app may be configured for a different project than the one containing your `kamperhubv2` database. You must get **all keys** from the correct project.
 
 1.  Go to the [Firebase Console](https://console.firebase.google.com/).
 2.  In the project list, find the project that holds your existing `kamperhubv2` database.
@@ -84,48 +84,48 @@ Now, using the **correct `kamperhubv2` project** from Step 2, find your keys and
 3.  **Generative AI Key (`GOOGLE_API_KEY`)**
     *   Go to the [Google Cloud Credentials page](https://console.cloud.google.com/apis/credentials) for your project.
     *   You need an API key that is **NOT** restricted by "HTTP referrers". Requests from the server have no referrer and will be blocked by that restriction type.
-    *   From your screenshot, keys like **"Generative Language API Key"** or **"GenAI Key"** are good candidates. The key named **"KamperHub V2 key" is incorrect** for this purpose.
+    *   A key with **"None"** or **"IP Address"** restrictions is required.
     *   Click "Show key" next to a suitable, unrestricted key. Copy it.
     *   Paste the key into the `GOOGLE_API_KEY` variable in your `.env.local` file.
-    *   **If you create a new key**, under "Application restrictions", select **"None"**. Do **NOT** select "HTTP referrers".
 
 ---
 
-### Step 4: CRITICAL - Ensure Firestore Database Exists
+### Step 4: CRITICAL - Verify Your Setup with the Diagnostic Tool
 
-The most common server error after a correct setup is `5 NOT_FOUND` or `16 UNAUTHENTICATED`. This error means your backend code tried to connect to a Firestore database, but one has not been created in your project yet. You must do this manually.
+After populating `.env.local`, you **MUST** restart your development server. The server only reads this file when it first starts.
+
+1.  Stop your server (`Ctrl + C`) and restart it (`npm run dev`).
+2.  Go to the following URL in your browser:
+    `[YOUR_APP_URL]/api/debug/env` (e.g., http://localhost:8083/api/debug/env)
+3.  This will show a JSON response indicating the status of each required environment variable. Review it carefully:
+    *   **`ADMIN_SDK_INITIALIZATION_STATUS`**: If this shows a `CRITICAL FAILURE`, the error message will tell you exactly what is wrong with your `GOOGLE_APPLICATION_CREDENTIALS_JSON`. Fix the issue in `.env.local` and restart the server.
+    *   **`PROJECT_IDS_MATCH`**: If it says `"NO - CRITICAL MISMATCH"`, it means the Project ID in your `GOOGLE_APPLICATION_CREDENTIALS_JSON` does not match your `NEXT_PUBLIC_FIREBASE_PROJECT_ID`. Go back to Step 2 and ensure you generated all keys from the same Firebase project. This is a very common cause of authentication errors.
+
+---
+
+### Step 5: CRITICAL - Verify Firestore Database Exists and Has the Correct Name
+
+The `UNAUTHENTICATED` error also occurs if the Firestore database has not been created in your project, or if it was created with a different name.
 
 1.  Go to the [Firebase Console](https://console.firebase.google.com/) and select your project from Step 2.
 2.  In the left-hand navigation under "Build", click on **Firestore Database**.
-3.  If you see a large "Create database" button, **you must create one**.
+3.  **If you see a large "Create database" button, you must create one.**
     *   Click **"Create database"**.
     *   Choose **"Start in test mode"** (you can secure it later with `firestore.rules`).
     *   Choose a location (e.g., `us-central` or one near you).
-    *   Click **Enable**.
-
-If a database already exists (you see "Data", "Rules", "Indexes" tabs), you can skip this step. This is a one-time setup for your project.
-
----
-
-### Step 5: CRITICAL - Restart Your Server
-
-After **ANY** change to your `.env.local` file, you **MUST** restart your development server. The server only reads this file when it first starts.
-
-1.  Go to your terminal where the server is running.
-2.  Press `Ctrl + C` to stop it.
-3.  Run `npm run dev` again to restart it.
+    *   Click **Enable**. This will create the database with the ID `(default)`.
+4.  **If a database already exists**, look at the top of the "Data" tab. The database ID is shown there. This application specifically tries to connect to a database named **`kamperhubv2`**. If your database is named `(default)`, please delete it and re-create it, ensuring you provide `kamperhubv2` as the **Database ID** when prompted.
 
 ---
 
-### Step 6: Verify Your Setup (Troubleshooting)
+### Step 6: CRITICAL - Verify Service Account Permissions
 
-After restarting your server, you can use the built-in diagnostic tool to confirm everything is set up correctly.
+If the above steps are correct, the final check is to ensure your service account has permission to access Firestore.
 
-1.  Go to the following URL in your browser:
-    `[YOUR_APP_URL]/api/debug/env` (e.g., http://localhost:8083/api/debug/env)
-2.  This will show a JSON response indicating the status of each required environment variable.
-3.  **Check `PROJECT_IDS_MATCH`**. If it says `"NO - MISMATCH DETECTED"`, it means the Project ID in your `GOOGLE_APPLICATION_CREDENTIALS_JSON` does not match your `NEXT_PUBLIC_FIREBASE_PROJECT_ID`. Go back to Step 2 and ensure you generated all keys from the same Firebase project.
-4.  If everything looks good here but you still have errors, proceed to the next step.
+1.  Go to the [Google Cloud Console IAM Page](https://console.cloud.google.com/iam-admin/iam) for your project.
+2.  Find the service account you are using (its email address is in the `client_email` field of your credentials JSON).
+3.  Check its "Role" column. It **must** have a role that allows Firestore access, such as **`Editor`**, **`Firebase Admin`**, or **`Cloud Datastore User`**.
+4.  If it doesn't, click the pencil icon to edit its permissions and add one of those roles.
 
 ---
 

@@ -18,6 +18,9 @@ export async function GET() {
     // Server-side Firebase Config
     GOOGLE_APPLICATION_CREDENTIALS_JSON: process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON ? 'Set' : 'Not Set',
 
+    // GenAI Key
+    GOOGLE_API_KEY: process.env.GOOGLE_API_KEY ? 'Set' : 'Not Set',
+
     // Stripe Config
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY ? 'Set' : 'Not Set',
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET ? 'Set' : 'Not Set',
@@ -38,7 +41,7 @@ export async function GET() {
   if (adminError) {
       adminSDKInitializationStatus = `CRITICAL FAILURE: The Admin SDK failed to initialize. This is the most likely cause of API route 404 or other server errors. Exact Error: ${adminError.message}`;
   } else {
-      adminSDKInitializationStatus = "SUCCESS: Firebase Admin SDK initialized successfully. Server can connect to Firebase.";
+      adminSDKInitializationStatus = "SUCCESS: Firebase Admin SDK initialized successfully. Server can connect to Firebase services.";
   }
   
   const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
@@ -56,13 +59,13 @@ export async function GET() {
   }
 
   if (serverProjectId.startsWith('Could not') || serverProjectId.startsWith('Not found')) {
-      projectIdsMatch = `Cannot determine: Server Project ID is missing or invalid.`;
+      projectIdsMatch = `Cannot determine: Server Project ID is missing or invalid. Check the GOOGLE_APPLICATION_CREDENTIALS_JSON string.`;
   } else if (clientProjectId === 'Not Set') {
-      projectIdsMatch = `Cannot determine: Client Project ID is not set.`;
+      projectIdsMatch = `Cannot determine: Client Project ID (NEXT_PUBLIC_FIREBASE_PROJECT_ID) is not set.`;
   } else if (serverProjectId === clientProjectId) {
       projectIdsMatch = `Yes - OK. Both client and server are configured for project '${clientProjectId}'.`;
   } else {
-      projectIdsMatch = `NO - CRITICAL MISMATCH. Server is for '${serverProjectId}', Client is for '${clientProjectId}'.`;
+      projectIdsMatch = `NO - CRITICAL MISMATCH. Server is for '${serverProjectId}', Client is for '${clientProjectId}'. This will cause authentication failures.`;
   }
 
   return NextResponse.json({
