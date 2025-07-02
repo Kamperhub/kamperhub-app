@@ -45,60 +45,37 @@ const LoadingScreen = ({ status }: { status: AuthStatus }) => {
 
 const ErrorScreen = ({ error }: { error: string | null }) => {
   const errorMessage = error || "An unknown error occurred.";
-  const isAdminError = errorMessage.toLowerCase().includes('admin');
-  const isConfigError = errorMessage.toLowerCase().includes('firebase client error') || errorMessage.toLowerCase().includes('unauthenticated');
-  const isTimeoutError = errorMessage.toLowerCase().includes('authentication timed out');
-  const isDbNotFoundError = errorMessage.toLowerCase().includes('database has not been created');
-  const isFailedToFetch = errorMessage.toLowerCase().includes('failed to fetch') || errorMessage.toLowerCase().includes('error reaching server');
-
+  const isDbConnectionError =
+    errorMessage.toLowerCase().includes('unauthenticated') ||
+    errorMessage.toLowerCase().includes('permission-denied') ||
+    errorMessage.toLowerCase().includes('database has not been created') ||
+    errorMessage.toLowerCase().includes('not_found');
 
   const renderAdvice = () => {
-    if (isDbNotFoundError) {
-        return (
-            <div className="mt-4 border-t border-red-400/30 pt-3 text-left font-body">
-                <p className="font-bold">This is an environment setup issue, not a code problem.</p>
-                <p>Please follow the updated instructions in <code className="bg-black/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code>, especially <strong>Step 4</strong>, which guides you to create the Firestore database in the Firebase Console.</p>
-            </div>
-        );
-    }
-    if (isAdminError) {
+    if (isDbConnectionError) {
       return (
         <div className="mt-4 border-t border-red-400/30 pt-3 text-left font-body">
-          <p className="font-bold">Action Required for Admin:</p>
-          <p>Your admin profile was not found in the database. Please use the one-time tool to create it.</p>
+          <p className="font-bold">This points to a server-to-database connection failure.</p>
+          <p>Even with correct keys, this can happen if the Firestore database hasn't been created or if permissions are missing.</p>
+          <p className="mt-2 font-semibold">Please run the following diagnostic tool:</p>
           <a
             href="/api/debug/create-admin-user"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block mt-2 bg-white text-black py-2 px-4 rounded-md hover:bg-gray-200 font-semibold"
           >
-            Create Admin Profile
+            Run Database Connection Test
           </a>
-           <p className="text-xs mt-2">After creating the profile, please refresh this page.</p>
+          <p className="text-xs mt-2">This tool will attempt to connect to the database and provide a specific success or failure message. Follow the instructions in `FIREBASE_SETUP_CHECKLIST.md` based on its output.</p>
         </div>
       );
     }
-    if (isConfigError || isTimeoutError) {
-        return (
-             <div className="mt-4 border-t border-red-400/30 pt-3 text-left font-body">
-                <p className="font-bold">This is likely a configuration issue.</p>
-                <p className="mt-2">
-                    Please use the built-in diagnostic tool at <a href="/api/debug/env" target="_blank" rel="noopener noreferrer" className="underline font-bold">/api/debug/env</a> to see the exact server-side error, then follow the instructions in the <code className="bg-black/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file to fix your <code className="bg-black/20 px-1 rounded-sm">.env.local</code> file.
-                </p>
-                 <p className="text-xs mt-2">Remember to restart your development server after any changes to <code className="bg-black/20 px-1 rounded-sm">.env.local</code>.</p>
-            </div>
-        )
-    }
-    if(isFailedToFetch) {
-        return (
-             <div className="mt-4 border-t border-red-400/30 pt-3 text-left font-body">
-                <p className="font-bold">This may be a server startup issue.</p>
-                <p>The application could not reach its backend services. This often happens if the server crashes during startup due to a configuration problem.</p>
-                <p className="mt-2">Please ensure you have followed all steps in the <code className="bg-black/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code>, especially creating the Firestore database.</p>
-            </div>
-        )
-    }
-    return null;
+    return (
+        <div className="mt-4 border-t border-red-400/30 pt-3 text-left font-body">
+            <p className="font-bold">This may be a client-side configuration issue.</p>
+            <p className="mt-2">Please ensure your <code className="bg-black/20 px-1 rounded-sm">.env.local</code> file contains the correct <code className="bg-black/20 px-1 rounded-sm">NEXT_PUBLIC_FIREBASE_*</code> variables for your project and that you have restarted the development server.</p>
+        </div>
+    );
   };
 
   return (
