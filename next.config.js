@@ -10,13 +10,13 @@ const nextConfig = {
       // Styles - Allow self, inline (for component libraries), and Google Fonts
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       // Images - Allow self, data URIs, placeholders, Firebase Storage, Google content, and Stripe
-      "img-src 'self' data: https://placehold.co https://firebasestorage.googleapis.com https://maps.gstatic.com https://maps.googleapis.com *.googleusercontent.com https://*.stripe.com",
+      "img-src 'self' data: https://placehold.co https://firebasestorage.googleapis.com https://maps.gstatic.com https://maps.googleapis.com https://*.googleusercontent.com https://*.stripe.com",
       // Fonts
       "font-src 'self' https://fonts.gstatic.com",
       // Connections - Allow self, Google APIs, local dev server, and Stripe
       "connect-src 'self' http://localhost:8083 ws://localhost:8083 https://*.googleapis.com wss://*.cloudworkstations.dev https://*.stripe.com https://m.stripe.network https://*.cloudworkstations.googleusercontent.com",
       // Workers
-      "worker-src 'self' blob: *.cloudworkstations.googleusercontent.com",
+      "worker-src 'self' blob: https://*.cloudworkstations.googleusercontent.com",
       // Frames - Allow self, Google (for Recaptcha/maps), and Stripe (for portal and payment forms)
       "frame-src 'self' https://www.google.com https://*.stripe.com https://billing.stripe.com https://m.stripe.network https://www.youtube.com https://*.cloudworkstations.googleusercontent.com",
       // Others
