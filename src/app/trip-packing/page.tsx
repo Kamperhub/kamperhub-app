@@ -109,6 +109,7 @@ export default function TripPackingPage() {
           })
         }));
         updateListMutation.mutate(newUiList, { onSuccess: () => toast({ title: 'Master Packing List Generated!', description: 'Your new master list has been saved.' }) });
+        queryClient.invalidateQueries({ queryKey: ['packingList', selectedTripId] });
       } else {
         toast({ title: 'Generation Failed', description: 'The AI returned an unexpected format.', variant: 'destructive' });
       }
@@ -151,8 +152,6 @@ export default function TripPackingPage() {
   };
 
   const handleCreateGoogleTasks = useCallback((tasksData: GoogleTasksStructure) => {
-    // This is where the actual API call to a new flow/endpoint would go.
-    // For now, we'll simulate it.
     console.log("Simulating sending to Google Tasks:", tasksData);
     toast({
       title: "Sent to Google Tasks (Simulated)",
@@ -206,8 +205,8 @@ export default function TripPackingPage() {
   };
 
   const handleClearAndRegenerate = () => {
-    if (window.confirm("Are you sure? This will clear the current list and generate a new one.")) {
-      deleteListMutation.mutate(undefined, { onSuccess: () => handleGenerateList() });
+    if (window.confirm("Are you sure? This will clear the current list and you will need to generate a new one.")) {
+      deleteListMutation.mutate();
     }
   };
 
@@ -224,11 +223,7 @@ export default function TripPackingPage() {
   
   const handleAddToCalendar = useCallback((trip: LoggedTrip) => {
     if (!trip.plannedStartDate) {
-      toast({
-        title: "Cannot Add to Calendar",
-        description: "This trip does not have a planned start date.",
-        variant: "destructive",
-      });
+      toast({ title: "Cannot Add to Calendar", description: "This trip does not have a planned start date.", variant: "destructive"});
       return;
     }
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -316,7 +311,7 @@ export default function TripPackingPage() {
         <p className="text-muted-foreground font-body mb-6">A multi-step assistant to generate, personalize, and share packing lists for your trips.</p>
       </div>
       
-      <Card><CardHeader><CardTitle>1. Select Your Trip</CardTitle><CardDescription>Choose a saved trip to generate or view a packing list for.</CardDescription></CardHeader>
+      <Card><CardHeader><CardTitle>1. Select Your Trip</CardTitle><CardDescription>Choose a saved trip to manage its packing list.</CardDescription></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           <div className="space-y-2"><Label htmlFor="trip-select">Saved Trip</Label><Select onValueChange={setSelectedTripId} value={selectedTripId}><SelectTrigger id="trip-select"><SelectValue placeholder="Choose a trip..." /></SelectTrigger><SelectContent>{trips.map(trip => <SelectItem key={trip.id} value={trip.id}>{trip.name}</SelectItem>)}</SelectContent></Select></div>
           {selectedTrip && (
@@ -329,110 +324,140 @@ export default function TripPackingPage() {
         </CardContent>
       </Card>
       
-       <Card><CardHeader><CardTitle>2. Plan Activities (Optional)</CardTitle><CardDescription>Select planned activities for more tailored packing suggestions.</CardDescription></CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-4">{activityOptions.map(group => (<div key={group.category}><h4 className="font-semibold mb-2">{group.category}</h4><div className="grid grid-cols-2 sm:grid-cols-3 gap-2">{group.activities.map(activity => (<div key={activity} className="flex items-center space-x-2"><Checkbox id={`activity-${activity.replace(/\s+/g, '-')}`} checked={selectedActivities.includes(activity)} onCheckedChange={() => handleActivityChange(activity)}/><Label htmlFor={`activity-${activity.replace(/\s+/g, '-')}`} className="text-sm font-normal cursor-pointer">{activity}</Label></div>))}</div></div>))}</div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center"><CloudRainWind className="mr-2 h-5 w-5 text-primary"/>3. Get Weather Suggestions (Optional)</CardTitle>
-          <CardDescription>Get AI-powered suggestions based on typical weather for your destination and travel month.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={handleGetWeatherSuggestions} disabled={!selectedTripId || anyMutationLoading} variant="outline">
-            {weatherSuggestMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4" />}
-            Get Weather Suggestions
-          </Button>
-          {weatherSuggestions && (
-            <Alert className="mt-4">
-              <AlertTitle className="font-headline">{weatherSuggestions.weatherSummary}</AlertTitle>
-              <AlertDescription>
-                <ul className="list-disc pl-5 mt-2 space-y-1">
-                  {weatherSuggestions.suggestedItems.map(item => (
-                    <li key={item.itemName}><strong>{item.itemName}:</strong> {item.notes}</li>
-                  ))}
-                </ul>
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card><CardHeader><CardTitle className="flex items-center"><Wand2 className="mr-2 h-5 w-5"/>4. Generate Master List</CardTitle><CardDescription>Uses all trip info to generate a comprehensive list for everyone.</CardDescription></CardHeader>
-        <CardContent className="flex gap-4 items-center">
-            <Button onClick={handleGenerateList} disabled={!selectedTripId || anyMutationLoading}><Wand2 className="mr-2 h-4 w-4" />Generate List</Button>
-            {packingList.length > 0 && <Button onClick={handleClearAndRegenerate} variant="destructive" disabled={anyMutationLoading}><RefreshCw className="mr-2 h-4 w-4" />Clear & Regenerate</Button>}
-        </CardContent>
-      </Card>
-
-      {isLoadingPackingList ? <Card><CardContent className="pt-6"><Skeleton className="h-64 w-full" /></CardContent></Card> :
-       packingListError ? <Alert variant="destructive"><AlertTitle>Error Loading List</AlertTitle><AlertDescription>{packingListError.message}</AlertDescription></Alert> :
-       selectedTripId && packingList.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Master Packing List</CardTitle>
-            <CardDescription>Check off items as you pack. Adds, edits, and deletions are saved automatically.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Accordion type="multiple" defaultValue={packingList.map(c => c.id)} className="w-full">
-            {packingList.map(category => (<AccordionItem value={category.id} key={category.id}><AccordionTrigger className="font-headline text-lg">{category.name}</AccordionTrigger>
-                <AccordionContent className="space-y-2">{category.items.map(item => (<div key={item.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50"><div className="flex items-center gap-3"><Checkbox id={item.id} checked={item.packed} onCheckedChange={() => handleTogglePacked(category.id, item.id)} disabled={anyMutationLoading}/><div className="grid gap-0.5"><Label htmlFor={item.id} className={`text-base ${item.packed ? 'line-through text-muted-foreground' : ''}`}>{item.name} <span className="text-muted-foreground">({item.quantity})</span></Label>{item.notes && <p className="text-xs text-muted-foreground">{item.notes}</p>}</div></div><div className="flex items-center"><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingItemState({ categoryId: category.id, item })} disabled={anyMutationLoading}><Edit3 className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteItem(category.id, item.id)} disabled={anyMutationLoading}><Trash2 className="h-4 w-4 text-destructive" /></Button></div></div>))}<Button variant="outline" size="sm" className="mt-2" onClick={() => handleAddItem(category.id)} disabled={anyMutationLoading}><PlusCircle className="mr-2 h-4 w-4"/>Add Item</Button></AccordionContent></AccordionItem>))}
-            </Accordion>
-          </CardContent>
-        </Card>
-       ) : null
-      }
-      
-      <Card>
-        <CardHeader>
-            <CardTitle className="flex items-center"><Sparkles className="mr-2 h-5 w-5"/>5. Personalize & Share</CardTitle>
-            <CardDescription>Creates individual packing lists for each passenger. You can then optionally send them to Google Tasks.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Button className="mt-4" onClick={handlePersonalizeList} disabled={!selectedTripId || packingList.length === 0 || anyMutationLoading}><Users className="mr-2 h-4 w-4"/>Personalize Lists</Button>
-            {personalizeListMutation.isPending && <div className="flex items-center gap-2 mt-4"><Loader2 className="h-4 w-4 animate-spin"/><p>Personalizing...</p></div>}
-            {personalizedLists && (
-              <div ref={personalizedListsRef} className="mt-4 space-y-4">
-                <h4 className="font-headline text-lg text-primary pt-4 border-t">Generated Lists:</h4>
-                {personalizedLists.passenger_lists.map(p => (
-                  <Card key={p.passenger_id} className="bg-muted/50">
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <CardTitle>{p.passenger_name}'s List</CardTitle>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div>
-                                <Button 
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleCreateGoogleTasks(p.google_tasks_structure)}
-                                  disabled={!userProfile?.googleAuth?.refreshToken}
-                                >
-                                  <SendToBack className="mr-2 h-4 w-4"/> Send to Google Tasks
-                                </Button>
+      {selectedTripId && (
+        <>
+          {isLoadingPackingList ? (
+            <Card><CardContent className="pt-6"><Skeleton className="h-64 w-full" /></CardContent></Card>
+          ) : packingListError ? (
+            <Alert variant="destructive"><AlertTitle>Error Loading List</AlertTitle><AlertDescription>{packingListError.message}</AlertDescription></Alert>
+          ) : packingList.length > 0 ? (
+            // RECALL / EDIT VIEW
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Your Packing List for "{selectedTrip?.name}"</CardTitle>
+                  <CardDescription>Review and edit your list, then personalize and share it below.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Accordion type="multiple" defaultValue={packingList.map(c => c.id)} className="w-full">
+                    {packingList.map(category => (
+                      <AccordionItem value={category.id} key={category.id}>
+                        <AccordionTrigger className="font-headline text-lg">{category.name}</AccordionTrigger>
+                        <AccordionContent className="space-y-2">
+                          {category.items.map(item => (
+                            <div key={item.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
+                              <div className="flex items-center gap-3">
+                                <Checkbox id={item.id} checked={item.packed} onCheckedChange={() => handleTogglePacked(category.id, item.id)} disabled={anyMutationLoading}/>
+                                <div className="grid gap-0.5">
+                                  <Label htmlFor={item.id} className={`text-base ${item.packed ? 'line-through text-muted-foreground' : ''}`}>{item.name} <span className="text-muted-foreground">({item.quantity})</span></Label>
+                                  {item.notes && <p className="text-xs text-muted-foreground">{item.notes}</p>}
+                                </div>
                               </div>
-                            </TooltipTrigger>
-                            {!userProfile?.googleAuth?.refreshToken && (
-                              <TooltipContent>
-                                <p>Connect Google Account in My Account page.</p>
-                              </TooltipContent>
-                            )}
-                          </Tooltip>
-                        </TooltipProvider>
+                              <div className="flex items-center">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingItemState({ categoryId: category.id, item })} disabled={anyMutationLoading}><Edit3 className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteItem(category.id, item.id)} disabled={anyMutationLoading}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              </div>
+                            </div>
+                          ))}
+                          <Button variant="outline" size="sm" className="mt-2" onClick={() => handleAddItem(category.id)} disabled={anyMutationLoading}><PlusCircle className="mr-2 h-4 w-4"/>Add Item</Button>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                  <div className="mt-6 border-t pt-4">
+                    <Button onClick={handleClearAndRegenerate} variant="destructive" disabled={anyMutationLoading}><RefreshCw className="mr-2 h-4 w-4" />Clear List & Start Over</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center"><Sparkles className="mr-2 h-5 w-5"/>Personalize & Share</CardTitle>
+                    <CardDescription>Creates individual packing lists for each passenger based on the list above.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button onClick={handlePersonalizeList} disabled={anyMutationLoading}><Users className="mr-2 h-4 w-4"/>Personalize Lists</Button>
+                    {personalizeListMutation.isPending && <div className="flex items-center gap-2 mt-4"><Loader2 className="h-4 w-4 animate-spin"/><p>Personalizing...</p></div>}
+                    {personalizedLists && (
+                      <div ref={personalizedListsRef} className="mt-4 space-y-4">
+                        <h4 className="font-headline text-lg text-primary pt-4 border-t">Generated Lists:</h4>
+                        {personalizedLists.passenger_lists.map(p => (
+                          <Card key={p.passenger_id} className="bg-muted/50">
+                            <CardHeader>
+                              <div className="flex justify-between items-start">
+                                <CardTitle>{p.passenger_name}'s List</CardTitle>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div>
+                                        <Button size="sm" variant="outline" onClick={() => handleCreateGoogleTasks(p.google_tasks_structure)} disabled={!userProfile?.googleAuth?.refreshToken}>
+                                          <SendToBack className="mr-2 h-4 w-4"/> Send to Google Tasks
+                                        </Button>
+                                      </div>
+                                    </TooltipTrigger>
+                                    {!userProfile?.googleAuth?.refreshToken && (
+                                      <TooltipContent><p>Connect Google Account in My Account page.</p></TooltipContent>
+                                    )}
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </CardHeader>
+                            <CardContent>
+                              <pre className="whitespace-pre-wrap font-sans text-sm">{p.messenger_message}</pre>
+                            </CardContent>
+                          </Card>
+                        ))}
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <pre className="whitespace-pre-wrap font-sans text-sm">{p.messenger_message}</pre>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-        </CardContent>
-      </Card>
+                    )}
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            // CREATE NEW LIST VIEW
+            <>
+              <Alert variant="default">
+                <Info className="h-4 w-4" />
+                <AlertTitle>Create a Packing List</AlertTitle>
+                <AlertDescription>No packing list found for "{selectedTrip?.name}". Follow the steps below to create one.</AlertDescription>
+              </Alert>
+              <Card><CardHeader><CardTitle>2. Plan Activities (Optional)</CardTitle><CardDescription>Select planned activities for more tailored packing suggestions.</CardDescription></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-4">{activityOptions.map(group => (<div key={group.category}><h4 className="font-semibold mb-2">{group.category}</h4><div className="grid grid-cols-2 sm:grid-cols-3 gap-2">{group.activities.map(activity => (<div key={activity} className="flex items-center space-x-2"><Checkbox id={`activity-${activity.replace(/\s+/g, '-')}`} checked={selectedActivities.includes(activity)} onCheckedChange={() => handleActivityChange(activity)}/><Label htmlFor={`activity-${activity.replace(/\s+/g, '-')}`} className="text-sm font-normal cursor-pointer">{activity}</Label></div>))}</div></div>))}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center"><CloudRainWind className="mr-2 h-5 w-5 text-primary"/>3. Get Weather Suggestions (Optional)</CardTitle>
+                  <CardDescription>Get AI-powered suggestions based on typical weather for your destination and travel month.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={handleGetWeatherSuggestions} disabled={!selectedTripId || anyMutationLoading} variant="outline">
+                    {weatherSuggestMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4" />}
+                    Get Weather Suggestions
+                  </Button>
+                  {weatherSuggestions && (
+                    <Alert className="mt-4">
+                      <AlertTitle className="font-headline">{weatherSuggestions.weatherSummary}</AlertTitle>
+                      <AlertDescription>
+                        <ul className="list-disc pl-5 mt-2 space-y-1">
+                          {weatherSuggestions.suggestedItems.map(item => (
+                            <li key={item.itemName}><strong>{item.itemName}:</strong> {item.notes}</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+              <Card><CardHeader><CardTitle className="flex items-center"><Wand2 className="mr-2 h-5 w-5"/>4. Generate Master List</CardTitle><CardDescription>Uses all trip info to generate a comprehensive list for everyone.</CardDescription></CardHeader>
+                <CardContent className="flex gap-4 items-center">
+                    <Button onClick={handleGenerateList} disabled={!selectedTripId || anyMutationLoading}><Wand2 className="mr-2 h-4 w-4" />Generate List</Button>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </>
+      )}
 
       {editingItemState && (<EditItemDialog isOpen={!!editingItemState} onClose={() => setEditingItemState(null)} itemState={editingItemState} onSave={handleUpdateItem}/>)}
     </div>
