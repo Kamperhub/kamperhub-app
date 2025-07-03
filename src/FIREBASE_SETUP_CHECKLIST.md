@@ -98,12 +98,13 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   **`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`**: This is your "Publishable key". It starts with `pk_test_...` and is safe to be exposed to the browser.
     *   **`STRIPE_SECRET_KEY`**: This is your "Secret key". It will start with `sk_test_...` for test mode or `sk_live_...` for live mode. **Never expose this key to the browser.**
     *   **`STRIPE_PRO_PRICE_ID`**: This is the ID of your subscription product's price.
-        *   In your Stripe Dashboard (in **Test Mode**), go to "Products".
-        *   Click "+ Add product". Name it "KamperHub Pro" (or similar).
-        *   Under "Pricing", add a recurring price.
-        *   After saving, click on the price to view its details. The "ID" (e.g., `price_...`) is your `STRIPE_PRO_PRICE_ID`.
+        *   In your Stripe Dashboard (in **Test Mode**), go to the **Product catalogue**.
+        *   If you haven't created one, click **+ Add product**, name it "KamperHub Pro" (or similar), and add a recurring price.
+        *   Click on the product name (e.g., "KamperHub Pro").
+        *   In the "Pricing" section, find the price you want to use. Click the "..." (more options) menu next to it and select **Copy ID**.
+        *   The copied ID will start with `price_...` and is what you need for your `.env.local` file.
         > [!IMPORTANT]
-        > You need the **Price ID** (which starts with `price_...`), not the Product ID (which starts with `prod_...`). After creating the product, you must click on the price itself to find its unique ID.
+        > You need the **Price ID** (`price_...`), not the Product ID (`prod_...`). The Price ID is for a specific price point (e.g., $10/month), while the Product ID is for the overall product.
         *   You will need to repeat this process in Live Mode to get a different Price ID for production.
     *   **`STRIPE_WEBHOOK_SECRET`**: This is essential for your app to receive subscription status updates.
         *   In your Stripe Dashboard (in **Test Mode**), go to the [Webhooks section](https://dashboard.stripe.com/webhooks).
@@ -184,6 +185,7 @@ The debug tool for creating users has been removed for security. The application
 3.  After signing up, you should be logged in and can access all features.
 
 > **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
+
 
 
 
