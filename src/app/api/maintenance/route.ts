@@ -59,7 +59,10 @@ export async function GET(req: NextRequest) {
       query = query.where('assetId', '==', assetId);
     }
       
-    const tasksSnapshot = await query.orderBy('dueDate', 'asc').get();
+    // The .orderBy('dueDate', 'asc') was removed here. It was brittle and would
+    // crash the entire API if any document was missing a 'dueDate' field.
+    // The client component already handles sorting the tasks correctly.
+    const tasksSnapshot = await query.get();
     const tasks = tasksSnapshot.docs.map(doc => doc.data()).filter(Boolean);
     const sanitizedTasks = sanitizeData(tasks);
     return NextResponse.json(sanitizedTasks, { status: 200 });
