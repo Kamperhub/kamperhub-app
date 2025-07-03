@@ -13,7 +13,8 @@ const LoadingScreen = ({ status }: { status: AuthStatus }) => {
 
   useEffect(() => {
     let timer: NodeJS.Timeout | undefined;
-    const timeoutDuration = status === 'AWAITING_PROFILE' ? 3000 : 5000;
+    // Set a more aggressive timeout for the profile fetch, as this is the most likely failure point.
+    const timeoutDuration = status === 'AWAITING_PROFILE' ? 7000 : 10000;
     
     timer = setTimeout(() => {
         setShowSlowLoadMessage(true);
@@ -25,39 +26,50 @@ const LoadingScreen = ({ status }: { status: AuthStatus }) => {
 
   const message = {
     'LOADING': 'Initializing session...',
-    'AWAITING_PROFILE': 'Verifying access...',
+    'AWAITING_PROFILE': 'Verifying access & fetching profile...',
   }[status] || 'Loading...';
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm text-foreground p-4">
       <div className="flex flex-col items-center justify-center text-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p className="text-lg font-semibold text-primary font-body">{message}</p>
+        {!showSlowLoadMessage && (
+          <>
+            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <p className="text-lg font-semibold text-primary font-body">{message}</p>
+          </>
+        )}
         
         {showSlowLoadMessage && (
           <Alert variant="destructive" className="mt-6 max-w-2xl text-left">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle className="font-headline">Stuck on Initializing?</AlertTitle>
             <AlertDescription className="font-body space-y-2 mt-2">
-              <p>If loading is taking a while, it usually points to a client-side configuration issue preventing the app from talking to the database. Please check the following:</p>
-              <ol className="list-decimal list-inside space-y-2">
+              <p>Loading is taking longer than expected. This almost always indicates a local configuration issue preventing the app from reading your user profile from the database.</p>
+              <ol className="list-decimal list-inside space-y-3">
                   <li>
-                    <strong>Firestore Security Rules Not Deployed:</strong> This is the most common cause. You must deploy the security rules to allow the app to read your user profile.
+                    <strong>CRITICAL: Firestore Security Rules Not Deployed:</strong> This is the #1 cause. Your database is locked by default.
                     <ul className="list-disc list-inside pl-4 mt-1 text-xs">
-                       <li>Open the `firestore.rules` file and copy its contents.</li>
+                       <li>Open the `firestore.rules` file in the project's root directory and copy its entire contents.</li>
                        <li>In the Firebase Console, go to your <strong>kamperhubv2</strong> database, click the "Rules" tab, paste the content, and click **Publish**.</li>
-                       <li>Ensure you've selected the correct database (`kamperhubv2`) from the dropdown before publishing.</li>
+                       <li><strong>Important:</strong> Ensure you've selected the `kamperhubv2` database from the dropdown at the top of the Firestore page before publishing the rules.</li>
                     </ul>
+                  </li>
+                  <li>
+                    <strong>CRITICAL: Incorrect Database ID:</strong> The application code specifically looks for a database named `kamperhubv2`.
+                     <ul className="list-disc list-inside pl-4 mt-1 text-xs">
+                        <li>In the Firebase Console, go to the Firestore Database page. At the top, it will show the database ID. It **must** be `kamperhubv2`.</li>
+                        <li>If it says `(default)`, you must delete the default database and create a new one with the ID `kamperhubv2`.</li>
+                     </ul>
                   </li>
                   <li>
                       <strong>App Check Not Configured:</strong> If you've enabled App Check, ensure your local development domain (`localhost`) is added to the list of allowed domains in the App Check settings in Firebase.
                   </li>
                   <li>
-                    <strong>Incorrect Environment Variables:</strong> Verify that all `NEXT_PUBLIC_FIREBASE_*` variables in your `.env.local` file are correct and that you have restarted the development server since last editing the file.
+                    <strong>Incorrect Environment Variables:</strong> Double-check that all `NEXT_PUBLIC_FIREBASE_*` variables in your `.env.local` file are correct for the `kamperhub-s4hc2` project and that you have restarted the development server since last editing the file.
                   </li>
               </ol>
                <Button variant="outline" onClick={() => window.location.reload()} className="w-full mt-4">
-                Refresh Page
+                Refresh Page After Checking
               </Button>
             </AlertDescription>
           </Alert>
