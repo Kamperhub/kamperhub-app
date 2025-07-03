@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo, useContext } from 'react';
@@ -7,13 +6,11 @@ import type { NavItem } from '@/lib/navigation';
 import { navItems as defaultNavItems } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Home as HomeIcon, Loader2, LayoutDashboard, AlertTriangle, CornerDownLeft } from 'lucide-react';
+import { Home as HomeIcon, Loader2, CornerDownLeft } from 'lucide-react';
 import Link from 'next/link';
-import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 import { updateUserPreferences } from '@/lib/api-client';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from '@/hooks/useAuth';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
@@ -102,10 +99,7 @@ function SortableNavItemCard({ item }: { item: NavItem }) {
 
 export default function DashboardPage() {
   const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>(defaultNavItems);
-  const [isMounted, setIsMounted] = useState(false);
 
-  // The AuthGuard handles loading/error states for these.
-  // We can trust they are available here.
   const { user, userProfile: userPrefs } = useAuth(); 
   
   const { toast } = useToast();
@@ -113,11 +107,10 @@ export default function DashboardPage() {
   
   const updateUserPrefsMutation = useMutation({
     mutationFn: (layout: string[]) => updateUserPreferences({ dashboardLayout: layout }),
-    onSuccess: () => {
-      // Optimistically update the userPrefs in the main auth context to prevent layout flicker
+    onSuccess: (data, variables) => {
       queryClient.setQueryData(['userPreferences', user?.uid], (oldData: any) => ({
         ...oldData,
-        dashboardLayout: orderedNavItems.map(item => item.href)
+        dashboardLayout: variables
       }));
       toast({ title: "Layout Saved", description: "Your dashboard layout has been saved." });
     },
@@ -126,10 +119,6 @@ export default function DashboardPage() {
     },
   });
   
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
   useEffect(() => {
     const mainPageNavItems = defaultNavItems; 
     const storedLayoutHrefs = userPrefs?.dashboardLayout;
@@ -155,7 +144,7 @@ export default function DashboardPage() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 10, // User must drag for 10px before drag starts, preventing accidental drags on click
+        distance: 10,
       },
     })
   );
@@ -168,7 +157,6 @@ export default function DashboardPage() {
         const newIndex = items.findIndex(item => item.href === over.id);
         const newOrder = arrayMove(items, oldIndex, newIndex);
         
-        // Persist the new order
         const newLayoutHrefs = newOrder.map(item => item.href);
         updateUserPrefsMutation.mutate(newLayoutHrefs);
 
@@ -179,36 +167,6 @@ export default function DashboardPage() {
 
   const navItemHrefs = useMemo(() => orderedNavItems.map(item => item.href), [orderedNavItems]);
   
-  // The AuthGuard handles the main loading/error state. We just show a simple skeleton if not mounted.
-  if (!isMounted) {
-     return (
-        <div className="space-y-8">
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center">
-                    <Skeleton className="mr-4 h-[60px] w-[60px] rounded-md" />
-                    <div>
-                        <h1 className="text-3xl font-headline text-primary">Welcome to KamperHub</h1>
-                        <p className="font-body text-muted-foreground">Loading dashboard...</p>
-                    </div>
-                </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
-                    <Card key={i}>
-                        <CardHeader className="pb-3">
-                            <Skeleton className="h-6 w-3/5" />
-                            <Skeleton className="h-4 w-4/5 mt-1" />
-                        </CardHeader>
-                        <CardContent>
-                            <Skeleton className="h-32 w-full rounded-md mb-2" />
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-        </div>
-     );
-  }
-
   return (
     <div className="space-y-8">
       <div className="flex items-center mb-6">
