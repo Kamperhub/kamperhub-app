@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Wrench } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -65,6 +65,13 @@ export const navItems: NavItem[] = [
     icon: Briefcase,
     description: 'A central hub to plan your routes, budgets, packing lists, and review past trips.',
     keywords: 'trip planner log packing'
+  },
+  {
+    href: '/service-log',
+    label: 'Service & Fuel Log',
+    icon: Wrench,
+    description: "Log fuel fill-ups and track maintenance schedules for your vehicles and caravans to keep them in top condition.",
+    keywords: 'maintenance fuel service'
   },
   {
     href: '/checklists',

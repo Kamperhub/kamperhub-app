@@ -6,6 +6,7 @@ import { z, ZodError } from 'zod';
 import { fuelLogSchema } from '@/types/service';
 import type { LoggedTrip } from '@/types/tripplanner';
 import type { Expense } from '@/types/expense';
+import type { firestore } from 'firebase-admin';
 
 // A robust replacer function for JSON.stringify to handle Firestore Timestamps.
 const firestoreTimestampReplacer = (key: any, value: any) => {
@@ -41,8 +42,8 @@ async function verifyUserAndGetInstances(req: NextRequest) {
   }
 }
 
-const createFuelLogSchema = fuelLogSchema.omit({ id: true, timestamp: true, litres: true });
-const updateFuelLogSchema = fuelLogSchema.omit({ timestamp: true, litres: true });
+const createFuelLogSchema = fuelLogSchema.omit({ id: true, timestamp: true });
+const updateFuelLogSchema = fuelLogSchema;
 
 // GET all fuel logs for a specific vehicle
 export async function GET(req: NextRequest) {
@@ -55,12 +56,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const logsSnapshot = await firestore
+    let query: firestore.Query = firestore
       .collection('users').doc(uid)
       .collection('vehicles').doc(vehicleId)
-      .collection('fuelLogs')
-      .get();
+      .collection('fuelLogs');
       
+    const logsSnapshot = await query.get();
     const logs = logsSnapshot.docs.map(doc => doc.data()).filter(Boolean);
     const sanitizedLogs = sanitizeData(logs);
     return NextResponse.json(sanitizedLogs, { status: 200 });
@@ -88,7 +89,6 @@ export async function POST(req: NextRequest) {
     const newLog = {
       id: newLogRef.id,
       timestamp: new Date().toISOString(),
-      litres: fuelLogDetails.totalCost / fuelLogDetails.pricePerLitre,
       ...fuelLogDetails,
       assignedTripId: assignedTripId || null,
     };
@@ -143,13 +143,14 @@ export async function PUT(req: NextRequest) {
     try {
         const body = await req.json();
         const parsedData = updateFuelLogSchema.parse(body);
-        const { id: logId, assignedTripId, ...fuelLogDetails } = parsedData;
+        const { id: logId, vehicleId, assignedTripId, ...fuelLogDetails } = parsedData;
 
-        const logRef = firestore.collection('users').doc(uid).collection('vehicles').doc(fuelLogDetails.vehicleId).collection('fuelLogs').doc(logId);
+        const logRef = firestore.collection('users').doc(uid).collection('vehicles').doc(vehicleId).collection('fuelLogs').doc(logId);
         
         const updatedLogData = {
             ...fuelLogDetails,
-            litres: fuelLogDetails.totalCost / fuelLogDetails.pricePerLitre,
+            id: logId,
+            vehicleId,
             assignedTripId: assignedTripId || null,
         };
 
@@ -182,8 +183,7 @@ export async function PUT(req: NextRequest) {
             // Note: This simplified PUT does not handle moving an expense from one trip to another.
         });
         
-        const finalLog = { id: logId, ...updatedLogData };
-        return NextResponse.json({ message: 'Fuel log updated.', fuelLog: sanitizeData(finalLog) }, { status: 200 });
+        return NextResponse.json({ message: 'Fuel log updated.', fuelLog: sanitizeData(updatedLogData) }, { status: 200 });
 
     } catch (err: any) {
         if (err instanceof ZodError) {
