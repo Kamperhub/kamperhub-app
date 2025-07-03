@@ -1,37 +1,9 @@
-
 "use client";
 
 import { Wrench, Fuel } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import dynamic from 'next/dynamic';
-import { Skeleton } from '@/components/ui/skeleton';
-
-const ServiceLogSkeleton = () => (
-    <div className="space-y-4">
-        <div className="flex justify-between items-center">
-            <Skeleton className="h-8 w-1/3" />
-            <Skeleton className="h-10 w-32" />
-        </div>
-        <Skeleton className="h-12 w-full rounded-md" />
-        <Skeleton className="h-40 w-full rounded-lg" />
-    </div>
-);
-
-const FuelLogClient = dynamic(
-  () => import('@/components/features/service/FuelLogClient').then(mod => mod.FuelLogClient),
-  { 
-    ssr: false,
-    loading: () => <ServiceLogSkeleton />
-  }
-);
-
-const MaintenanceLogClient = dynamic(
-  () => import('@/components/features/service/MaintenanceLogClient').then(mod => mod.MaintenanceLogClient),
-  { 
-    ssr: false,
-    loading: () => <ServiceLogSkeleton />
-  }
-);
+import { FuelLogClient } from '@/components/features/service/FuelLogClient';
+import { MaintenanceLogClient } from '@/components/features/service/MaintenanceLogClient';
 
 
 export default function ServiceLogPage() {
