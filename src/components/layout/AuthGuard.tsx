@@ -29,38 +29,40 @@ const LoadingScreen = ({ status }: { status: AuthStatus }) => {
   }[status] || 'Loading...';
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-250px)] text-center p-4">
-      <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-      <p className="text-lg font-semibold text-primary font-body">{message}</p>
-      
-      {showSlowLoadMessage && (
-        <Alert variant="destructive" className="mt-6 max-w-2xl text-left">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle className="font-headline">Stuck on Initializing?</AlertTitle>
-          <AlertDescription className="font-body space-y-2 mt-2">
-            <p>If loading is taking a while, it usually points to a client-side configuration issue preventing the app from talking to the database. Please check the following:</p>
-            <ol className="list-decimal list-inside space-y-2">
-                <li>
-                  <strong>Firestore Security Rules Not Deployed:</strong> This is the most common cause. You must deploy the security rules to allow the app to read your user profile.
-                  <ul className="list-disc list-inside pl-4 mt-1 text-xs">
-                     <li>Open the `firestore.rules` file and copy its contents.</li>
-                     <li>In the Firebase Console, go to your <strong>kamperhubv2</strong> database, click the "Rules" tab, paste the content, and click **Publish**.</li>
-                     <li>Ensure you've selected the correct database (`kamperhubv2`) from the dropdown before publishing.</li>
-                  </ul>
-                </li>
-                <li>
-                    <strong>App Check Not Configured:</strong> If you've enabled App Check, ensure your local development domain (`localhost`) is added to the list of allowed domains in the App Check settings in Firebase.
-                </li>
-                <li>
-                  <strong>Incorrect Environment Variables:</strong> Verify that all `NEXT_PUBLIC_FIREBASE_*` variables in your `.env.local` file are correct and that you have restarted the development server since last editing the file.
-                </li>
-            </ol>
-             <Button variant="outline" onClick={() => window.location.reload()} className="w-full mt-4">
-              Refresh Page
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm text-foreground p-4">
+      <div className="flex flex-col items-center justify-center text-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-lg font-semibold text-primary font-body">{message}</p>
+        
+        {showSlowLoadMessage && (
+          <Alert variant="destructive" className="mt-6 max-w-2xl text-left">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle className="font-headline">Stuck on Initializing?</AlertTitle>
+            <AlertDescription className="font-body space-y-2 mt-2">
+              <p>If loading is taking a while, it usually points to a client-side configuration issue preventing the app from talking to the database. Please check the following:</p>
+              <ol className="list-decimal list-inside space-y-2">
+                  <li>
+                    <strong>Firestore Security Rules Not Deployed:</strong> This is the most common cause. You must deploy the security rules to allow the app to read your user profile.
+                    <ul className="list-disc list-inside pl-4 mt-1 text-xs">
+                       <li>Open the `firestore.rules` file and copy its contents.</li>
+                       <li>In the Firebase Console, go to your <strong>kamperhubv2</strong> database, click the "Rules" tab, paste the content, and click **Publish**.</li>
+                       <li>Ensure you've selected the correct database (`kamperhubv2`) from the dropdown before publishing.</li>
+                    </ul>
+                  </li>
+                  <li>
+                      <strong>App Check Not Configured:</strong> If you've enabled App Check, ensure your local development domain (`localhost`) is added to the list of allowed domains in the App Check settings in Firebase.
+                  </li>
+                  <li>
+                    <strong>Incorrect Environment Variables:</strong> Verify that all `NEXT_PUBLIC_FIREBASE_*` variables in your `.env.local` file are correct and that you have restarted the development server since last editing the file.
+                  </li>
+              </ol>
+               <Button variant="outline" onClick={() => window.location.reload()} className="w-full mt-4">
+                Refresh Page
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
     </div>
   );
 };

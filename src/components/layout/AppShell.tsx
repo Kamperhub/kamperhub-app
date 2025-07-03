@@ -15,6 +15,24 @@ interface NavigationContextType {
 
 export const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
 
+// A new internal component to hold the main layout structure.
+// This allows AuthGuard to wrap the entire visible app.
+const MainLayout = ({ children }: { children: React.ReactNode }) => {
+  const pathname = usePathname();
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <main className="flex-grow container mx-auto px-4 py-8 pb-24 sm:pb-8">
+        {children}
+      </main>
+      {!isAuthPage && <BottomNavigation />}
+    </div>
+  );
+};
+
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const [isNavigating, setIsNavigating] = useState(false);
@@ -36,25 +54,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <p className="text-lg font-semibold text-primary">Loading...</p>
         </div>
       )}
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-grow container mx-auto px-4 py-8 pb-24 sm:pb-8">
-           <APIProvider 
-              apiKey={apiKey || "MISSING_API_KEY"} 
-              solutionChannel="GMP_visgl_rgm_reactfirebase_v1"
-              libraries={['places', 'routes']}
-            >
-              {isAuthPage ? (
-                children // Render login/signup pages without the AuthGuard
-              ) : (
-                <AuthGuard>
-                  {children}
-                </AuthGuard>
-              )}
-            </APIProvider>
-        </main>
-        {!isAuthPage && <BottomNavigation />}
-      </div>
+       <APIProvider 
+          apiKey={apiKey || "MISSING_API_KEY"} 
+          solutionChannel="GMP_visgl_rgm_reactfirebase_v1"
+          libraries={['places', 'routes']}
+        >
+          {isAuthPage ? (
+            <MainLayout>{children}</MainLayout>
+          ) : (
+            <AuthGuard>
+              <MainLayout>{children}</MainLayout>
+            </AuthGuard>
+          )}
+        </APIProvider>
     </NavigationContext.Provider>
   );
 }
