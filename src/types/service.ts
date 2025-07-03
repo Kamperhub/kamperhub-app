@@ -1,4 +1,3 @@
-
 // src/types/service.ts
 import { z } from 'zod';
 
@@ -27,7 +26,10 @@ export const maintenanceTaskSchema = z.object({
     taskName: z.string().min(1, "Task name is required"),
     category: z.enum(['Engine', 'Tyres', 'Brakes', 'Chassis', 'Electrical', 'Plumbing', 'Appliance', 'Registration', 'General']),
     dueDate: z.string().datetime({ message: "Due date must be a valid ISO date string" }).nullable().optional(),
-    dueOdometer: z.coerce.number().positive("Due odometer must be a positive number").nullable().optional(),
+    dueOdometer: z.preprocess(
+      (val) => (val === "" || val === null ? undefined : val),
+      z.coerce.number({invalid_type_error: "Must be a number"}).positive("Odometer must be a positive number.").nullable().optional()
+    ),
     notes: z.string().optional(),
     isCompleted: z.boolean().default(false),
     completedDate: z.string().datetime().nullable().optional(),
