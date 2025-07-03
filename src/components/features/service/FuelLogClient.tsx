@@ -178,6 +178,10 @@ export function FuelLogClient() {
     setIsFormOpen(true);
   };
   
+  const sortedFuelLogs = useMemo(() => {
+    return [...fuelLogs].sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
+  }, [fuelLogs]);
+  
   if (isLoadingVehicles) {
     return <Skeleton className="h-64 w-full" />;
   }
@@ -288,11 +292,11 @@ export function FuelLogClient() {
 
         {isLoadingFuelLogs && selectedVehicleId && <p>Loading logs...</p>}
 
-        {selectedVehicleId && !isLoadingFuelLogs && fuelLogs.length === 0 && (
+        {selectedVehicleId && !isLoadingFuelLogs && sortedFuelLogs.length === 0 && (
             <p className="text-center text-muted-foreground py-6">No fuel logs for this vehicle yet.</p>
         )}
 
-        {selectedVehicleId && !isLoadingFuelLogs && fuelLogs.length > 0 && (
+        {selectedVehicleId && !isLoadingFuelLogs && sortedFuelLogs.length > 0 && (
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -306,7 +310,7 @@ export function FuelLogClient() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {fuelLogs.map(log => (
+                    {sortedFuelLogs.map(log => (
                         <TableRow key={log.id}>
                             <TableCell>{format(parseISO(log.date), 'PP')}</TableCell>
                             <TableCell className="text-xs text-muted-foreground">{log.assignedTripId ? tripMap.get(log.assignedTripId) : 'N/A'}</TableCell>

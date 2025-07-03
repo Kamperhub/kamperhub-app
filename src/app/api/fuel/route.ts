@@ -59,7 +59,6 @@ export async function GET(req: NextRequest) {
       .collection('users').doc(uid)
       .collection('vehicles').doc(vehicleId)
       .collection('fuelLogs')
-      .orderBy('date', 'desc')
       .get();
       
     const logs = logsSnapshot.docs.map(doc => doc.data()).filter(Boolean);
