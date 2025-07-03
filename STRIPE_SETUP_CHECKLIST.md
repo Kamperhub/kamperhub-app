@@ -1,0 +1,85 @@
+# Stripe Setup & Verification Checklist
+
+> [!IMPORTANT]
+> This guide covers setting up Stripe for **local development**. Production setup involves similar steps but uses "Live Mode" keys and webhooks configured in the Stripe Dashboard directly.
+
+---
+
+### Step 1: Find Your Stripe API Keys (`pk_test_...`, `sk_test_...`)
+
+1.  Go to your [Stripe Developer Dashboard](https://dashboard.stripe.com/developers).
+
+2.  **CRITICAL: Ensure "Test mode" is enabled.** The toggle is usually in the top-right corner. All keys for local development must come from Test Mode.
+
+3.  Find your keys:
+    *   **`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`**: This is your "Publishable key". It starts with `pk_test_...` and is safe to be exposed to the browser.
+    *   **`STRIPE_SECRET_KEY`**: This is your "Secret key". It will start with `sk_test_...`. **Never expose this key to the browser.**
+
+4.  Copy and paste these keys into the corresponding variables in your `.env.local` file.
+
+---
+
+### Step 2: Create a Product and Get the Price ID (`price_...`)
+
+1.  In your Stripe Dashboard (still in **Test Mode**), go to the **Product catalogue**.
+
+2.  Click **+ Add product**.
+    *   **Name:** `KamperHub Pro` (or similar).
+    *   Scroll down to "Pricing" and add a recurring price.
+    *   **Price:** e.g., $10
+    *   **Billing period:** Monthly
+    *   Click **Save product**.
+
+3.  Find the **Price ID**:
+    *   After saving, you'll be on the product's detail page.
+    *   In the "Pricing" section, find the price you just created.
+    *   Click the "..." (more options) menu next to it and select **Copy ID**.
+    *   The copied ID will start with `price_...`. This is your `STRIPE_PRO_PRICE_ID`.
+
+    > [!IMPORTANT]
+    > You need the **Price ID** (`price_...`), not the Product ID (`prod_...`).
+
+4.  Paste the Price ID into your `.env.local` file.
+
+---
+
+### Step 3: Get Your Webhook Secret with the Stripe CLI (`whsec_...`)
+
+This is the most common point of failure. The webhook secret for local development comes from the **Stripe CLI**, not the dashboard.
+
+1.  **Install & Login to Stripe CLI:** If you haven't already, [install the Stripe CLI](https://stripe.com/docs/stripe-cli) and log in by running `stripe login` in your terminal.
+
+2.  **Start Your App:** Make sure your Next.js application is running (`npm run dev`). It must be running on port `8083`.
+
+3.  **Start Event Forwarding:** Open a **new, separate terminal window** (do not stop your Next.js app) and run this exact command:
+    ```bash
+    stripe listen --forward-to localhost:8083/api/stripe-webhook
+    ```
+
+4.  **Copy Your Webhook Secret:** The CLI will immediately print your webhook signing secret. It will look like `whsec_...`. This is your `STRIPE_WEBHOOK_SECRET` for local development.
+
+5.  Paste this secret into your `.env.local` file.
+
+6.  **Keep it running:** You must leave this `stripe listen` terminal running in the background while you test Stripe functionality. It's the bridge between Stripe and your local app.
+
+---
+
+### Step 4: Final Verification Checklist
+
+After you believe everything is set up, run through this checklist to catch common issues.
+
+1.  **Restart Your Development Server:** Have you stopped (`Ctrl+C`) and restarted (`npm run dev`) your Next.js application since you last saved your `.env.local` file? The server only reads these variables on startup.
+
+2.  **Check Your `.env.local` File:**
+    *   `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` must start with `pk_test_`.
+    *   `STRIPE_SECRET_KEY` must start with `sk_test_`.
+    *   `STRIPE_PRO_PRICE_ID` must start with `price_`.
+    *   `STRIPE_WEBHOOK_SECRET` must start with `whsec_` and be the one provided by the `stripe listen` command, NOT one from the Stripe Dashboard.
+
+3.  **Check Your Stripe CLI Terminal:**
+    *   Is the `stripe listen --forward-to localhost:8083/api/stripe-webhook` command still running in its own terminal window? It must be running for your local app to receive events.
+    *   When you perform actions in the app (like clicking the subscribe button), do you see event logs appearing in this terminal? If not, the connection isn't working.
+
+4.  **Check Your Stripe Dashboard:**
+    *   Are you in **Test Mode**? (The toggle is in the top-right corner). All your `pk_test_`, `sk_test_`, and `price_` IDs must come from this mode.
+    *   Does the product and price you created still exist in the "Product catalogue" in Test Mode?
