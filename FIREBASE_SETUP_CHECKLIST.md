@@ -106,15 +106,16 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
         > [!IMPORTANT]
         > You need the **Price ID** (`price_...`), not the Product ID (`prod_...`). The Price ID is for a specific price point (e.g., $10/month), while the Product ID is for the overall product.
         *   You will need to repeat this process in Live Mode to get a different Price ID for production.
-    *   **`STRIPE_WEBHOOK_SECRET`**: This is how your app securely receives subscription updates. For local testing, this secret comes from the **Stripe CLI**, not the dashboard.
-        *   **Step 1: Install & Login to Stripe CLI:** If you haven't already, [install the Stripe CLI](https://stripe.com/docs/stripe-cli) and log in by running `stripe login` in your terminal.
-        *   **Step 2: Start Event Forwarding:** With your Next.js app running (`npm run dev`), open a **new terminal window** and run:
-            ```bash
-            stripe listen --forward-to localhost:8083/api/stripe-webhook
-            ```
-        *   **Step 3: Copy Your Secret:** The CLI will immediately print your webhook signing secret. It will look like `whsec_...`. This is your `STRIPE_WEBHOOK_SECRET` for local development. Copy it and paste it into your `.env.local` file.
-        *   **Keep it running:** You must leave this `stripe listen` terminal running in the background while you test.
-        *   **For Production:** When you go live, you will create a webhook endpoint in the Stripe Dashboard (in **Live Mode**). The URL will be `YOUR_APP_URL/api/stripe-webhook`. You must select the following events: `checkout.session.completed`, `invoice.payment_succeeded`, `invoice.payment_failed`, `customer.subscription.updated`, and `customer.subscription.deleted`. The dashboard will then provide you with a different `whsec_...` secret for production.
+    *   **`STRIPE_WEBHOOK_SECRET`**: This is how your app securely receives subscription updates.
+        *   **For Local Development:** This secret comes from the **Stripe CLI**, not the dashboard.
+            *   **Step 1: Install & Login to Stripe CLI:** If you haven't already, [install the Stripe CLI](https://stripe.com/docs/stripe-cli) and log in by running `stripe login` in your terminal.
+            *   **Step 2: Start Event Forwarding:** With your Next.js app running (`npm run dev`), open a **new terminal window** and run:
+                ```bash
+                stripe listen --forward-to localhost:8083/api/stripe-webhook
+                ```
+            *   **Step 3: Copy Your Secret:** The CLI will immediately print your webhook signing secret. It will look like `whsec_...`. This is your `STRIPE_WEBHOOK_SECRET` for local development. Copy it and paste it into your `.env.local` file.
+            *   **Keep it running:** You must leave this `stripe listen` terminal running in the background while you test.
+        *   **For Production (Live App):** When your app is deployed to a public URL, you will create a webhook endpoint in the Stripe Dashboard (in **Live Mode**). You do this by clicking the **"+ Add endpoint"** button you saw in the screenshot. The URL will be `YOUR_APP_URL/api/stripe-webhook`. You must select the following events: `checkout.session.completed`, `invoice.payment_succeeded`, `invoice.payment_failed`, `customer.subscription.updated`, and `customer.subscription.deleted`. The dashboard will then provide you with a different `whsec_...` secret for production.
     > [!NOTE]
     > **Stripe's mode (Test vs. Live) does not affect the Firebase `UNAUTHENTICATED` errors.** Those errors are related to your server's access to the database, controlled by the `GOOGLE_APPLICATION_CREDENTIALS_JSON` and your Firebase project's IAM permissions.
 
