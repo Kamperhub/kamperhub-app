@@ -69,7 +69,7 @@ const LoadingScreen = ({ status }: { status: AuthStatus }) => {
 
 const ErrorScreen = ({ error }: { error: string | null }) => {
   const errorMessage = error || "An unknown error occurred.";
-  const isUnauthenticatedError = errorMessage.toLowerCase().includes('unauthenticated');
+  const isPermissionError = errorMessage.toLowerCase().includes('permission_denied') || errorMessage.toLowerCase().includes('unauthenticated');
   
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-250px)] text-center p-4">
@@ -81,16 +81,16 @@ const ErrorScreen = ({ error }: { error: string | null }) => {
             <pre className="text-xs bg-background/20 p-3 rounded-md font-mono whitespace-pre-wrap text-left">
               {errorMessage}
             </pre>
-            {isUnauthenticatedError && (
+            {isPermissionError && (
               <div className="mt-4 border-t border-destructive/30 pt-3 text-left font-body space-y-4">
-                <p className="font-bold">This is a permissions issue. It means the application is being blocked by Firestore's Security Rules. Please follow these steps:</p>
+                <p className="font-bold">This is a permissions issue. It means your app is being blocked by Firestore's Security Rules. Please follow these steps:</p>
                 <div>
                   <h3 className="font-semibold">1. Copy the Security Rules</h3>
                   <p className="text-sm">Open the file <code className="bg-background/20 px-1 rounded-sm">firestore.rules</code> from the file explorer on the left and copy its entire contents.</p>
                 </div>
                 <div>
                   <h3 className="font-semibold">2. Deploy the Rules in Firebase</h3>
-                  <p className="text-sm">Go to the Firebase Console, select your project, go to the "Firestore Database" section, and click the "Rules" tab. Paste the copied rules into the editor, replacing anything that's currently there, and click "Publish".</p>
+                  <p className="text-sm">Go to the Firebase Console, select your project (`kamperhub-s4hc2`), go to the "Firestore Database" section, select the `kamperhubv2` database, and click the "Rules" tab. Paste the copied rules into the editor, replacing anything that's currently there, and click "Publish".</p>
                 </div>
                  <p className="mt-2 text-sm">After publishing the rules, refresh this page.</p>
               </div>
