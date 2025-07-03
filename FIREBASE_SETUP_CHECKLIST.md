@@ -165,3 +165,4 @@ The debug tool for creating users has been removed for security. The application
 > **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
 
 
+

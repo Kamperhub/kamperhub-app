@@ -92,52 +92,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   Paste this key into the `GOOGLE_API_KEY` variable in your `.env.local` file.
 
 4.  **Stripe API Keys (`STRIPE_*`)**
-    *   Go to your [Stripe Developer Dashboard](https://dashboard.stripe.com/developers).
-    > [!IMPORTANT]
-    > **Test Mode vs. Live Mode:** Stripe maintains two completely separate environments. The API keys, customers, products, and webhooks you create in Test Mode do **not** exist in Live Mode. For local development, always use your **Test Mode** keys. When you go live, you will need to get a new set of keys from Live Mode and recreate your products and webhooks there.
-    *   **`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`**: This is your "Publishable key". It starts with `pk_test_...` and is safe to be exposed to the browser.
-    *   **`STRIPE_SECRET_KEY`**: This is your "Secret key". It will start with `sk_test_...` for test mode or `sk_live_...` for live mode. **Never expose this key to the browser.**
-    *   **`STRIPE_PRO_PRICE_ID`**: This is the ID of your subscription product's price.
-        *   In your Stripe Dashboard (in **Test Mode**), go to the **Product catalogue**.
-        *   If you haven't created one, click **+ Add product**, name it "KamperHub Pro" (or similar), and add a recurring price.
-        *   Click on the product name (e.g., "KamperHub Pro").
-        *   In the "Pricing" section, find the price you want to use. Click the "..." (more options) menu next to it and select **Copy ID**.
-        *   The copied ID will start with `price_...` and is what you need for your `.env.local` file.
-        > [!IMPORTANT]
-        > You need the **Price ID** (`price_...`), not the Product ID (`prod_...`). The Price ID is for a specific price point (e.g., $10/month), while the Product ID is for the overall product.
-        *   You will need to repeat this process in Live Mode to get a different Price ID for production.
-    *   **`STRIPE_WEBHOOK_SECRET`**: This is how your app securely receives subscription updates.
-        *   **For Local Development:** This secret comes from the **Stripe CLI**, not the dashboard.
-            *   **Step 1: Install & Login to Stripe CLI:** If you haven't already, [install the Stripe CLI](https://stripe.com/docs/stripe-cli) and log in by running `stripe login` in your terminal.
-            *   **Step 2: Start Event Forwarding:** With your Next.js app running (`npm run dev`), open a **new terminal window** and run:
-                ```bash
-                stripe listen --forward-to localhost:8083/api/stripe-webhook
-                ```
-            *   **Step 3: Copy Your Secret:** The CLI will immediately print your webhook signing secret. It will look like `whsec_...`. This is your `STRIPE_WEBHOOK_SECRET` for local development. Copy it and paste it into your `.env.local` file.
-            *   **Keep it running:** You must leave this `stripe listen` terminal running in the background while you test.
-        *   **For Production (Live App):** When your app is deployed to a public URL, you will create a webhook endpoint in the Stripe Dashboard (in **Live Mode**). You do this by clicking the **"+ Add endpoint"** button you saw in the screenshot. The URL will be `YOUR_APP_URL/api/stripe-webhook`. You must select the following events: `checkout.session.completed`, `invoice.payment_succeeded`, `invoice.payment_failed`, `customer.subscription.updated`, and `customer.subscription.deleted`. The dashboard will then provide you with a different `whsec_...` secret for production.
-    > [!NOTE]
-    > **Stripe's mode (Test vs. Live) does not affect the Firebase `UNAUTHENTICATED` errors.** Those errors are related to your server's access to the database, controlled by the `GOOGLE_APPLICATION_CREDENTIALS_JSON` and your Firebase project's IAM permissions.
-
-5.  **Stripe Verification Checklist (After Setup)**
-    > [!TIP]
-    > After you believe everything is set up, run through this checklist to catch common issues.
-    >
-    > 1.  **Check Your `.env.local` File:**
-    >     *   `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` must start with `pk_test_`.
-    >     *   `STRIPE_SECRET_KEY` must start with `sk_test_`.
-    >     *   `STRIPE_PRO_PRICE_ID` must start with `price_` (the Price ID, not the Product ID).
-    >     *   `STRIPE_WEBHOOK_SECRET` must start with `whsec_` and be the one provided by the `stripe listen` command, NOT one from the Stripe Dashboard.
-    >
-    > 2.  **Restart Your Development Server:** Have you stopped (`Ctrl+C`) and restarted (`npm run dev`) your Next.js application since you last saved your `.env.local` file? The server only reads these variables on startup.
-    >
-    > 3.  **Check Your Stripe CLI Terminal:**
-    >     *   Is the `stripe listen --forward-to localhost:8083/api/stripe-webhook` command still running in a separate terminal window? It must be running in the background for your local app to receive events.
-    >     *   When you perform actions in the app (like trying to subscribe), do you see event logs appearing in this terminal? If not, the connection isn't working.
-    >
-    > 4.  **Check Your Stripe Dashboard:**
-    >     *   Are you in **Test Mode**? (The toggle is in the top-right corner). All your `pk_test_`, `sk_test_`, and `price_` IDs must come from this mode.
-    >     *   Does the product and price you created still exist in the "Product catalogue" in Test Mode?
+    *   Setting up Stripe involves multiple steps for local development. For a detailed walkthrough, please refer to the separate guide: `STRIPE_SETUP_CHECKLIST.md`. This file contains instructions for finding your keys and setting up the required webhook for local testing.
 
 ---
 
@@ -208,4 +163,6 @@ The debug tool for creating users has been removed for security. The application
 3.  After signing up, you should be logged in and can access all features.
 
 > **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
+
+
 
