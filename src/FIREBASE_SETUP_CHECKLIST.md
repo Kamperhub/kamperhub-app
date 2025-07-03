@@ -118,6 +118,26 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     > [!NOTE]
     > **Stripe's mode (Test vs. Live) does not affect the Firebase `UNAUTHENTICATED` errors.** Those errors are related to your server's access to the database, controlled by the `GOOGLE_APPLICATION_CREDENTIALS_JSON` and your Firebase project's IAM permissions.
 
+5.  **Stripe Verification Checklist (After Setup)**
+    > [!TIP]
+    > After you believe everything is set up, run through this checklist to catch common issues.
+    >
+    > 1.  **Check Your `.env.local` File:**
+    >     *   `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` must start with `pk_test_`.
+    >     *   `STRIPE_SECRET_KEY` must start with `sk_test_`.
+    >     *   `STRIPE_PRO_PRICE_ID` must start with `price_` (the Price ID, not the Product ID).
+    >     *   `STRIPE_WEBHOOK_SECRET` must start with `whsec_` and be the one provided by the `stripe listen` command, NOT one from the Stripe Dashboard.
+    >
+    > 2.  **Restart Your Development Server:** Have you stopped (`Ctrl+C`) and restarted (`npm run dev`) your Next.js application since you last saved your `.env.local` file? The server only reads these variables on startup.
+    >
+    > 3.  **Check Your Stripe CLI Terminal:**
+    >     *   Is the `stripe listen --forward-to localhost:8083/api/stripe-webhook` command still running in a separate terminal window? It must be running in the background for your local app to receive events.
+    >     *   When you perform actions in the app (like trying to subscribe), do you see event logs appearing in this terminal? If not, the connection isn't working.
+    >
+    > 4.  **Check Your Stripe Dashboard:**
+    >     *   Are you in **Test Mode**? (The toggle is in the top-right corner). All your `pk_test_`, `sk_test_`, and `price_` IDs must come from this mode.
+    >     *   Does the product and price you created still exist in the "Product catalogue" in Test Mode?
+
 ---
 
 ### Step 4: CRITICAL - Verify Your Local Development Server Setup
@@ -187,6 +207,7 @@ The debug tool for creating users has been removed for security. The application
 3.  After signing up, you should be logged in and can access all features.
 
 > **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
+
 
 
 
