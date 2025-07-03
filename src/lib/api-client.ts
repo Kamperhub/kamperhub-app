@@ -22,7 +22,6 @@ import type { InventoryItem } from '@/types/inventory';
 import type { LoggedTrip } from '@/types/tripplanner';
 import type { BookingEntry } from '@/types/booking';
 import type { UserProfile } from '@/types/auth';
-import type { FuelLogEntry, MaintenanceTask } from '@/types/service';
 import type { PackingListCategory } from '@/types/packing';
 
 // ---- NEW Generic Helper ----
@@ -190,56 +189,6 @@ export async function updateUserPreferences(preferences: Partial<UserProfile>): 
     const uid = await getUid();
     await updateDoc(doc(db, 'users', uid), { ...preferences, updatedAt: new Date().toISOString() });
     return { message: 'Preferences updated.' };
-}
-
-// ---- Service Log API Functions ----
-export async function fetchFuelLogs(vehicleId: string): Promise<FuelLogEntry[]> {
-  const uid = await getUid();
-  const fuelLogsRef = collection(db, 'users', uid, 'vehicles', vehicleId, 'fuelLogs');
-  const querySnapshot = await getDocs(fuelLogsRef);
-  return querySnapshot.docs.map(doc => doc.data() as FuelLogEntry);
-}
-export async function createFuelLog(data: Omit<FuelLogEntry, 'id' | 'timestamp'>): Promise<FuelLogEntry> {
-    const uid = await getUid();
-    const fuelLogsRef = collection(db, 'users', uid, 'vehicles', data.vehicleId, 'fuelLogs');
-    const newDocRef = doc(fuelLogsRef);
-    const newLog: FuelLogEntry = { ...data, id: newDocRef.id, timestamp: new Date().toISOString() };
-    await setDoc(newDocRef, newLog);
-    return newLog;
-}
-export async function updateFuelLog(data: FuelLogEntry): Promise<{ fuelLog: FuelLogEntry }> {
-    const uid = await getUid();
-    await setDoc(doc(db, 'users', uid, 'vehicles', data.vehicleId, 'fuelLogs', data.id), data, { merge: true });
-    return { fuelLog: data };
-}
-export async function deleteFuelLog(vehicleId: string, id: string): Promise<{ message: string }> {
-    const uid = await getUid();
-    await deleteDoc(doc(db, 'users', uid, 'vehicles', vehicleId, 'fuelLogs', id));
-    return { message: 'Fuel log deleted.' };
-}
-export async function fetchMaintenanceTasks(assetId?: string): Promise<MaintenanceTask[]> {
-    const uid = await getUid();
-    const tasksRef = collection(db, 'users', uid, 'maintenanceTasks');
-    const q = assetId ? query(tasksRef, where("assetId", "==", assetId)) : tasksRef;
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => doc.data() as MaintenanceTask);
-}
-export async function createMaintenanceTask(data: Omit<MaintenanceTask, 'id' | 'timestamp'>): Promise<MaintenanceTask> {
-    const uid = await getUid();
-    const newDocRef = doc(collection(db, 'users', uid, 'maintenanceTasks'));
-    const newTask: MaintenanceTask = { ...data, id: newDocRef.id, timestamp: new Date().toISOString() };
-    await setDoc(newDocRef, newTask);
-    return newTask;
-}
-export async function updateMaintenanceTask(data: MaintenanceTask): Promise<{ maintenanceTask: MaintenanceTask }> {
-    const uid = await getUid();
-    await setDoc(doc(db, 'users', uid, 'maintenanceTasks', data.id), data, { merge: true });
-    return { maintenanceTask: data };
-}
-export async function deleteMaintenanceTask(id: string): Promise<{ message: string }> {
-    const uid = await getUid();
-    await deleteDoc(doc(db, 'users', uid, 'maintenanceTasks', id));
-    return { message: 'Task deleted.' };
 }
 
 // ---- Packing List API Functions ----

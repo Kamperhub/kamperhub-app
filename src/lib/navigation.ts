@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Wrench, Luggage, Briefcase } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -58,13 +58,6 @@ export const navItems: NavItem[] = [
     icon: Backpack,
     description: "Track items, manage weights for storage locations, and monitor compliance with ATM, GTM, and towball limits.",
     keywords: 'camping gear'
-  },
-  {
-    href: '/service-log',
-    label: 'Service Log',
-    icon: Wrench,
-    description: "Log fuel fill-ups and track maintenance tasks for your vehicles and caravans to stay on top of servicing.",
-    keywords: 'fuel maintenance service'
   },
   {
     href: '/trip-manager',
