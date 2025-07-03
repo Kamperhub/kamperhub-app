@@ -45,7 +45,7 @@
 
 ### Step 3: Get Your Webhook Secret with the Stripe CLI (`whsec_...`)
 
-This is the most common point of failure. The webhook secret for local development comes from the **Stripe CLI**, not the dashboard.
+This is the most common point of failure. The webhook secret for local development comes from the **Stripe CLI terminal output**, not the Stripe Dashboard website.
 
 1.  **Install & Login to Stripe CLI:** If you haven't already, [install the Stripe CLI](https://stripe.com/docs/stripe-cli) and log in by running `stripe login` in your terminal.
 
@@ -56,11 +56,18 @@ This is the most common point of failure. The webhook secret for local developme
     stripe listen --forward-to localhost:8083/api/stripe-webhook
     ```
 
-4.  **Copy Your Webhook Secret:** The CLI will immediately print your webhook signing secret. It will look like `whsec_...`. This is your `STRIPE_WEBHOOK_SECRET` for local development.
+4.  **CRITICAL - Find Your Secret:** The CLI will immediately print your webhook signing secret **in the terminal**. It will look like this:
+
+    ```text
+    > Ready! Your webhook signing secret is whsec_...  <-- THIS IS YOUR SECRET
+    ```
+    
+    This `whsec_...` key is your `STRIPE_WEBHOOK_SECRET` for local development.
 
 5.  Paste this secret into your `.env.local` file.
 
-6.  **Keep it running:** You must leave this `stripe listen` terminal running in the background while you test Stripe functionality. It's the bridge between Stripe and your local app.
+6.  **Keep it running:** You must leave this `stripe listen` terminal running in the background while you test Stripe functionality. It's the bridge between Stripe and your local app. When you perform actions, you will see event logs appear in this terminal.
+
 
 ---
 
