@@ -23,7 +23,7 @@ import type { LoggedTrip } from '@/types/tripplanner';
 import type { BookingEntry } from '@/types/booking';
 import type { UserProfile } from '@/types/auth';
 import type { PackingListCategory } from '@/types/packing';
-import type { FuelLogEntry, MaintenanceTask } from '@/types/service';
+// Removed service types to prevent errors
 
 // --- Generic Fetcher for API Routes (for admin/auth actions that MUST be on server) ---
 async function apiFetch(url: string, options: RequestInit = {}) {
@@ -212,19 +212,7 @@ export async function deletePackingList(tripId: string): Promise<{ message: stri
 }
 
 // ---- Service Log Functions ----
-export const fetchFuelLogs = async (vehicleId: string): Promise<FuelLogEntry[]> => apiFetch(`/api/fuel?vehicleId=${vehicleId}`);
-export const createFuelLog = (data: Omit<FuelLogEntry, 'id' | 'timestamp'>): Promise<FuelLogEntry> => apiFetch('/api/fuel', { method: 'POST', body: JSON.stringify(data) });
-export const updateFuelLog = (data: FuelLogEntry): Promise<{ fuelLog: FuelLogEntry }> => apiFetch('/api/fuel', { method: 'PUT', body: JSON.stringify(data) });
-export const deleteFuelLog = (vehicleId: string, logId: string): Promise<{ message: string }> => apiFetch('/api/fuel', { method: 'DELETE', body: JSON.stringify({ vehicleId, id: logId }) });
-
-export const fetchMaintenanceTasks = async (assetId?: string): Promise<MaintenanceTask[]> => {
-    const url = assetId ? `/api/maintenance?assetId=${assetId}` : '/api/maintenance';
-    return apiFetch(url);
-};
-export const createMaintenanceTask = (data: Omit<MaintenanceTask, 'id' | 'timestamp'>): Promise<MaintenanceTask> => apiFetch('/api/maintenance', { method: 'POST', body: JSON.stringify(data) });
-export const updateMaintenanceTask = (data: MaintenanceTask): Promise<{ maintenanceTask: MaintenanceTask }> => apiFetch('/api/maintenance', { method: 'PUT', body: JSON.stringify(data) });
-export const deleteMaintenanceTask = (taskId: string): Promise<{ message: string }> => apiFetch('/api/maintenance', { method: 'DELETE', body: JSON.stringify({ id: taskId }) });
-
+// All service log functions have been removed to restore application stability.
 
 // ---- Admin & Auth Functions (Still need API routes) ----
 export const fetchAllUsers = (): Promise<{uid: string, email: string | undefined}[]> => apiFetch('/api/admin/list-users');

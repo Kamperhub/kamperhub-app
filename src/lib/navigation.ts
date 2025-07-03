@@ -67,13 +67,6 @@ export const navItems: NavItem[] = [
     keywords: 'trip planner log packing'
   },
   {
-    href: '/service-log',
-    label: 'Service & Fuel Log',
-    icon: Wrench,
-    description: "Log fuel fill-ups and track maintenance schedules for your vehicles and caravans to keep them in top condition.",
-    keywords: 'maintenance fuel service'
-  },
-  {
     href: '/checklists',
     label: 'Checklists',
     icon: ListChecks,
