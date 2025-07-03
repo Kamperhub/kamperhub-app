@@ -2,16 +2,21 @@
 rules_version = '2';
 
 service cloud.firestore {
-  match /databases/kamperhubv2/documents {
-    // Users can only read and write their own documents.
-    // The {document=**} wildcard matches any document in any subcollection.
+  match /databases/{database}/documents {
+
+    // Allow users to access only their own data
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Authenticated users need to be able to create and check OAuth states for Google Tasks integration
+    // Allow admins to access any user's data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.token.email == 'info@kamperhub.com';
+    }
+
+    // Allow creation of oauth state documents by anyone (for Google Sign In)
     match /oauthStates/{state} {
-      allow read, create, delete: if request.auth != null;
+      allow create, read, delete: if true;
     }
   }
 }
