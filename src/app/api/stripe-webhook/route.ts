@@ -10,7 +10,7 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 let stripe: Stripe;
 if (stripeSecretKey) {
   stripe = new Stripe(stripeSecretKey, {
-    apiVersion: '2025-05-28', // Using latest stable version
+    apiVersion: '2024-04-10', // Using previous stable version
   });
 } else {
   console.error("Stripe secret key is not configured for webhook handler.");

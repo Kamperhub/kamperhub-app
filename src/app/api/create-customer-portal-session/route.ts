@@ -9,7 +9,7 @@ let stripe: Stripe;
 
 if (stripeSecretKey) {
   stripe = new Stripe(stripeSecretKey, {
-    apiVersion: '2025-05-28',
+    apiVersion: '2024-04-10',
   });
 } else {
   console.error("FATAL: STRIPE_SECRET_KEY is not set for customer portal. Portal will not work.");
