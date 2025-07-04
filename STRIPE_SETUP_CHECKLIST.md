@@ -5,21 +5,22 @@
 
 ---
 
-### Step 1: Find Your Stripe API Keys (`pk_test_...`, `sk_test_...`)
+### Step 1: Find Your Stripe Secret Key (`sk_test_...`)
 
 1.  Go to your [Stripe Developer Dashboard](https://dashboard.stripe.com/developers).
 
 2.  **CRITICAL: Ensure "Test mode" is enabled.** The toggle is usually in the top-right corner. All keys for local development must come from Test Mode.
 
-3.  Find your keys:
-    *   **`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`**: This is your "Publishable key". It starts with `pk_test_...` and is safe to be exposed to the browser.
+3.  Find your secret key:
     *   **`STRIPE_SECRET_KEY`**: This is your "Secret key". It will start with `sk_test_...`. **Never expose this key to the browser.**
 
-4.  Copy and paste these keys into the corresponding variables in your `.env.local` file.
+4.  Copy and paste this key into the corresponding `STRIPE_SECRET_KEY` variable in your `.env.local` file.
 
 ---
 
-### Step 2: Create a Product and Get the Price ID (`price_...`)
+### Step 2: Create a Product and Get the Payment Link (`https://buy.stripe.com/...`)
+
+Instead of just getting a Price ID, you will now create a shareable Payment Link for your product.
 
 1.  In your Stripe Dashboard (still in **Test Mode**), go to the **Product catalogue**.
 
@@ -30,16 +31,17 @@
     *   **Billing period:** Monthly
     *   Click **Save product**.
 
-3.  Find the **Price ID**:
-    *   After saving, you'll be on the product's detail page.
-    *   In the "Pricing" section, find the price you just created.
-    *   Click the "..." (more options) menu next to it and select **Copy ID**.
-    *   The copied ID will start with `price_...`. This is your `STRIPE_PRO_PRICE_ID`.
+3.  Find and Create the **Payment Link**:
+    *   After saving the product, you'll be on its detail page.
+    *   In the top right of the page, click the **Create payment link** button.
+    *   On the creation page, you can configure options. For local testing, the defaults are usually sufficient.
+    *   Click **Create link** in the top right.
 
-    > [!IMPORTANT]
-    > You need the **Price ID** (`price_...`), not the Product ID (`prod_...`).
+4.  Copy the Payment Link URL:
+    *   After creating the link, you will be taken to its detail page.
+    *   Click the **Copy** button to copy the full URL. It will start with `https://buy.stripe.com/...`.
 
-4.  Paste the Price ID into your `.env.local` file.
+5.  Paste this full URL into the `NEXT_PUBLIC_STRIPE_PAYMENT_LINK` variable in your `.env.local` file.
 
 ---
 
@@ -78,9 +80,8 @@ After you believe everything is set up, run through this checklist to catch comm
 1.  **Restart Your Development Server:** Have you stopped (`Ctrl+C`) and restarted (`npm run dev`) your Next.js application since you last saved your `.env.local` file? The server only reads these variables on startup.
 
 2.  **Check Your `.env.local` File:**
-    *   `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` must start with `pk_test_`.
+    *   `NEXT_PUBLIC_STRIPE_PAYMENT_LINK` must start with `https://buy.stripe.com/`.
     *   `STRIPE_SECRET_KEY` must start with `sk_test_`.
-    *   `STRIPE_PRO_PRICE_ID` must start with `price_`.
     *   `STRIPE_WEBHOOK_SECRET` must start with `whsec_` and be the one provided by the `stripe listen` command, NOT one from the Stripe Dashboard.
 
 3.  **Check Your Stripe CLI Terminal:**
@@ -88,5 +89,5 @@ After you believe everything is set up, run through this checklist to catch comm
     *   When you perform actions in the app (like clicking the subscribe button), do you see event logs appearing in this terminal? If not, the connection isn't working.
 
 4.  **Check Your Stripe Dashboard:**
-    *   Are you in **Test Mode**? (The toggle is in the top-right corner). All your `pk_test_`, `sk_test_`, and `price_` IDs must come from this mode.
-    *   Does the product and price you created still exist in the "Product catalogue" in Test Mode?
+    *   Are you in **Test Mode**? (The toggle is in the top-right corner). All your `sk_test_` keys and payment links must come from this mode.
+    *   Does the product and payment link you created still exist?

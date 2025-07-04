@@ -33,7 +33,6 @@ export default function MyAccountPage() {
 
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
-  const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
   const [isRedirectingToPortal, setIsRedirectingToPortal] = useState(false);
   const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
   const [isDisconnectingGoogle, setIsDisconnectingGoogle] = useState(false);
@@ -148,36 +147,19 @@ export default function MyAccountPage() {
       setIsSavingProfile(false);
     }
   };
-
-  const handleSubscribeToPro = async () => {
-    if (!user || !user.email) {
-      toast({ title: "Error", description: "You must be logged in to subscribe.", variant: "destructive" });
+  
+  const handleSubscribeToPro = () => {
+    const paymentLink = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK;
+    if (!paymentLink) {
+      toast({
+        title: 'Configuration Missing',
+        description: 'The Stripe Payment Link is not configured in .env.local. Please check the setup guides.',
+        variant: 'destructive',
+      });
       return;
     }
-    setIsRedirectingToCheckout(true);
-    try {
-      const idToken = await user.getIdToken(true);
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-        body: JSON.stringify({}), // Body is empty; user is identified by token
-      });
-      const session = await response.json();
-      if (response.ok && session.url) {
-        window.top.location.href = session.url;
-      } else {
-        toast({ 
-          title: session.error || "Subscription Error", 
-          description: session.details || "Could not initiate subscription. Please try again.", 
-          variant: "destructive",
-          duration: 9000, // Longer duration for detailed errors
-        });
-        setIsRedirectingToCheckout(false);
-      }
-    } catch (error: any) {
-      toast({ title: "Subscription Error", description: `An unexpected error occurred: ${error.message}. Please try again.`, variant: "destructive" });
-      setIsRedirectingToCheckout(false);
-    }
+    // Use window.location.href for external navigation
+    window.location.href = paymentLink;
   };
 
   const handleManageSubscription = async () => {
@@ -382,14 +364,9 @@ export default function MyAccountPage() {
                 <Button
                   onClick={handleSubscribeToPro}
                   className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-body animate-pulse"
-                  disabled={isRedirectingToCheckout}
                 >
-                  {isRedirectingToCheckout ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <CreditCard className="mr-2 h-4 w-4" />
-                  )}
-                  {isRedirectingToCheckout ? 'Processing...' : 'Upgrade to KamperHub Pro'}
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Upgrade to KamperHub Pro
                 </Button>
               </div>
             )}
