@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useContext } from 'react';
@@ -8,9 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { auth } from '@/lib/firebase'; 
+import { auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, type AuthError } from 'firebase/auth';
-import { LogInIcon, Mail, KeyRound, Loader2 } from 'lucide-react'; 
+import { LogInIcon, Mail, KeyRound, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import {
   Dialog,
@@ -25,9 +26,10 @@ import {
 import { NavigationContext } from '@/components/layout/AppShell';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState(''); 
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const { user, isAuthLoading } = useAuth();
@@ -64,10 +66,10 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, trimmedEmail, password);
-      router.push('/'); 
+      router.push('/');
     } catch (error: any) {
       const authError = error as AuthError;
-      let toastMessage = 'An unexpected error occurred during login. Please try again.'; 
+      let toastMessage = 'An unexpected error occurred during login. Please try again.';
 
       if (authError.code) {
         switch (authError.code) {
@@ -89,9 +91,9 @@ export default function LoginPage() {
       } else if (authError.message) {
         toastMessage = authError.message;
       }
-      
+
       toast({ title: 'Login Failed', description: toastMessage, variant: 'destructive' });
-      console.error("Firebase Login Error:", error); 
+      console.error("Firebase Login Error:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -148,15 +150,15 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <Label htmlFor="email" className="font-body">Email Address</Label> 
+              <Label htmlFor="email" className="font-body">Email Address</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /> 
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  id="email" 
-                  type="email" 
+                  id="email"
+                  type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your.email@example.com" 
+                  placeholder="your.email@example.com"
                   disabled={isSubmitting}
                   className="font-body pl-10"
                   autoComplete="email"
@@ -213,14 +215,24 @@ export default function LoginPage() {
                 <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Your password"
                   disabled={isSubmitting}
-                  className="font-body pl-10"
+                  className="font-body pl-10 pr-10"
                   autoComplete="current-password"
                 />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
               </div>
             </div>
             <Button type="submit" className="w-full font-body bg-primary text-primary-foreground hover:bg-primary/90" disabled={isSubmitting}>
