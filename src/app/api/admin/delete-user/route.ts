@@ -70,10 +70,17 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Error in admin delete-user endpoint:', error);
-    let details = error.message;
-    if (error.code === 5 || (error.details && error.details.toLowerCase().includes('database not found')) || (error.message && error.message.toLowerCase().includes('not_found'))) {
-      details = `CRITICAL: The server could not find the Firestore database named 'kamperhubv2'. Please check the setup checklist.`;
+    let errorTitle = 'Internal Server Error';
+    let errorDetails = error.message;
+
+    if (error.code === 16 || (error.message && error.message.toLowerCase().includes('unauthenticated'))) {
+      errorTitle = `16 UNAUTHENTICATED: Server not authorized`;
+      errorDetails = `The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or lack IAM permissions. Please follow the setup checklist to verify your service account role and Firestore rules, then restart the server. Original Error: ${error.message}`;
+    } else if (error.code === 5 || (error.message && error.message.toLowerCase().includes('not_found'))) {
+      errorTitle = `DATABASE NOT FOUND`;
+      errorDetails = `The server could not find the Firestore database 'kamperhubv2'. Please verify it has been created in your Firebase project. Original Error: ${error.message}`;
     }
-    return NextResponse.json({ error: 'Internal Server Error', details: details }, { status: 500 });
+    
+    return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: 500 });
   }
 }

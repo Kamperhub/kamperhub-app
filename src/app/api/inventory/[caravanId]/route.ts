@@ -1,3 +1,4 @@
+
 // src/app/api/inventory/[caravanId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -6,7 +7,7 @@ import { z, ZodError } from 'zod';
 
 // A robust replacer function for JSON.stringify to handle Firestore Timestamps.
 const firestoreTimestampReplacer = (key: any, value: any) => {
-    if (value && typeof value === 'object' && typeof value.toDate === 'function') {
+    if (value && typeof value.toDate === 'function') {
         return value.toDate().toISOString();
     }
     return value;
@@ -52,10 +53,43 @@ const updateInventorySchema = z.object({
   items: z.array(inventoryItemSchema),
 });
 
+const handleApiError = (error: any) => {
+  console.error('API Error:', error);
+  let errorTitle = 'Internal Server Error';
+  let errorDetails = 'An unexpected error occurred.';
+  let statusCode = 500;
+
+  if (error instanceof ZodError) {
+    return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
+  }
+  
+  if (error.code) {
+      switch(error.code) {
+          case 5: // NOT_FOUND
+              errorTitle = 'Database Not Found';
+              errorDetails = `The Firestore database 'kamperhubv2' could not be found. Please verify its creation in your Firebase project.`;
+              statusCode = 500;
+              break;
+          case 16: // UNAUTHENTICATED
+              errorTitle = 'Server Authentication Failed';
+              errorDetails = `The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or lack permission for Firestore. Please check your setup.`;
+              statusCode = 500;
+              break;
+          default:
+              errorDetails = error.message;
+              break;
+      }
+  } else {
+    errorDetails = error.message;
+  }
+
+  return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: statusCode });
+};
+
 // GET the inventory for a specific caravan
 export async function GET(req: NextRequest, { params }: { params: { caravanId: string } }) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
+  if (errorResponse || !uid || !firestore) return errorResponse;
 
   const { caravanId } = params;
   if (!caravanId) {
@@ -77,15 +111,14 @@ export async function GET(req: NextRequest, { params }: { params: { caravanId: s
     return NextResponse.json(serializableData, { status: 200 });
 
   } catch (err: any) {
-    console.error(`Error fetching inventory for caravan ${caravanId}:`, err);
-    return NextResponse.json({ error: 'Failed to fetch inventory.', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
 // PUT (create/replace) the inventory for a specific caravan
 export async function PUT(req: NextRequest, { params }: { params: { caravanId: string } }) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
+  if (errorResponse || !uid || !firestore) return errorResponse;
 
   const { caravanId } = params;
   if (!caravanId) {
@@ -94,23 +127,16 @@ export async function PUT(req: NextRequest, { params }: { params: { caravanId: s
 
   try {
     const body = await req.json();
-    // The body is expected to be the array of items directly.
-    // We wrap it in an object to match the updateInventorySchema.
     const parsedData = updateInventorySchema.parse({ items: body });
 
     const inventoryDocRef = firestore.collection('users').doc(uid).collection('inventories').doc(caravanId);
     
-    // Set the entire document with the new items array.
     await inventoryDocRef.set({ items: parsedData.items });
     
     const sanitizedItems = sanitizeData(parsedData.items);
     return NextResponse.json({ message: 'Inventory updated successfully.', items: sanitizedItems }, { status: 200 });
 
   } catch (err: any) {
-    console.error(`Error updating inventory for caravan ${caravanId}:`, err);
-    if (err instanceof ZodError) {
-      return NextResponse.json({ error: 'Invalid inventory data.', details: err.format() }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Failed to update inventory.', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }

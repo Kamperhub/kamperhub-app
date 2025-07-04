@@ -7,7 +7,7 @@ import { z, ZodError } from 'zod';
 
 // A robust replacer function for JSON.stringify to handle Firestore Timestamps.
 const firestoreTimestampReplacer = (key: any, value: any) => {
-    if (value && typeof value === 'object' && typeof value.toDate === 'function') {
+    if (value && typeof value.toDate === 'function') {
         return value.toDate().toISOString();
     }
     return value;
@@ -63,10 +63,43 @@ const updateVehicleSchema = createVehicleSchema.extend({
   id: z.string().min(1, "Vehicle ID is required for updates"),
 });
 
+const handleApiError = (error: any) => {
+  console.error('API Error:', error);
+  let errorTitle = 'Internal Server Error';
+  let errorDetails = 'An unexpected error occurred.';
+  let statusCode = 500;
+
+  if (error instanceof ZodError) {
+    return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
+  }
+  
+  if (error.code) {
+      switch(error.code) {
+          case 5: // NOT_FOUND
+              errorTitle = 'Database Not Found';
+              errorDetails = `The Firestore database 'kamperhubv2' could not be found. Please verify its creation in your Firebase project.`;
+              statusCode = 500;
+              break;
+          case 16: // UNAUTHENTICATED
+              errorTitle = 'Server Authentication Failed';
+              errorDetails = `The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or lack permission for Firestore. Please check your setup.`;
+              statusCode = 500;
+              break;
+          default:
+              errorDetails = error.message;
+              break;
+      }
+  } else {
+    errorDetails = error.message;
+  }
+
+  return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: statusCode });
+};
+
 // GET all vehicles for the authenticated user
 export async function GET(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
+  if (errorResponse || !uid || !firestore) return errorResponse;
 
   try {
     const vehiclesSnapshot = await firestore.collection('users').doc(uid).collection('vehicles').get();
@@ -74,15 +107,14 @@ export async function GET(req: NextRequest) {
     const sanitizedVehicles = sanitizeData(vehicles);
     return NextResponse.json(sanitizedVehicles, { status: 200 });
   } catch (err: any) {
-    console.error('Error fetching vehicles:', err);
-    return NextResponse.json({ error: 'Failed to fetch vehicles.', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
 // POST a new vehicle for the authenticated user
 export async function POST(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
+  if (errorResponse || !uid || !firestore) return errorResponse;
 
   try {
     const body = await req.json();
@@ -100,18 +132,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(sanitizedNewVehicle, { status: 201 });
 
   } catch (err: any) {
-    console.error('Error creating vehicle:', err);
-    if (err instanceof ZodError) {
-      return NextResponse.json({ error: 'Invalid vehicle data.', details: err.format() }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Failed to create vehicle.', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
 // PUT (update) an existing vehicle for the authenticated user
 export async function PUT(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
+  if (errorResponse || !uid || !firestore) return errorResponse;
   
   try {
     const body: StoredVehicle = await req.json();
@@ -123,18 +151,14 @@ export async function PUT(req: NextRequest) {
     const sanitizedParsedData = sanitizeData(parsedData);
     return NextResponse.json({ message: 'Vehicle updated successfully.', vehicle: sanitizedParsedData }, { status: 200 });
   } catch (err: any) {
-    console.error('Error updating vehicle:', err);
-    if (err instanceof ZodError) {
-      return NextResponse.json({ error: 'Invalid vehicle data for update.', details: err.format() }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Failed to update vehicle.', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
 // DELETE a vehicle for the authenticated user
 export async function DELETE(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
+  if (errorResponse || !uid || !firestore) return errorResponse;
 
   try {
     const { id } = await req.json();
@@ -146,7 +170,6 @@ export async function DELETE(req: NextRequest) {
     
     return NextResponse.json({ message: 'Vehicle deleted successfully.' }, { status: 200 });
   } catch (err: any) {
-    console.error('Error deleting vehicle:', err);
-    return NextResponse.json({ error: 'Failed to delete vehicle.', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }

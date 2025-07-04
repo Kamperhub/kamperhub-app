@@ -30,11 +30,43 @@ const updatePackingListSchema = z.object({
   list: z.array(packingListCategorySchema),
 });
 
+const handleApiError = (error: any) => {
+  console.error('API Error:', error);
+  let errorTitle = 'Internal Server Error';
+  let errorDetails = 'An unexpected error occurred.';
+  let statusCode = 500;
+
+  if (error instanceof ZodError) {
+    return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
+  }
+  
+  if (error.code) {
+      switch(error.code) {
+          case 5: // NOT_FOUND
+              errorTitle = 'Database Not Found';
+              errorDetails = `The Firestore database 'kamperhubv2' could not be found. Please verify its creation in your Firebase project.`;
+              statusCode = 500;
+              break;
+          case 16: // UNAUTHENTICATED
+              errorTitle = 'Server Authentication Failed';
+              errorDetails = `The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or lack permission for Firestore. Please check your setup.`;
+              statusCode = 500;
+              break;
+          default:
+              errorDetails = error.message;
+              break;
+      }
+  } else {
+    errorDetails = error.message;
+  }
+
+  return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: statusCode });
+};
 
 // GET the packing list for a specific trip
 export async function GET(req: NextRequest, { params }: { params: { tripId: string } }) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
+  if (errorResponse || !uid || !firestore) return errorResponse;
 
   const { tripId } = params;
   if (!tripId) {
@@ -45,7 +77,7 @@ export async function GET(req: NextRequest, { params }: { params: { tripId: stri
     const packingListDocRef = firestore.collection('users').doc(uid).collection('packingLists').doc(tripId);
     const packingListDocSnap = await packingListDocRef.get();
 
-    if (!packingListDocSnap.exists) {
+    if (!packingListDocSnap.exists()) {
       return NextResponse.json({ list: [] }, { status: 200 });
     }
     
@@ -54,15 +86,14 @@ export async function GET(req: NextRequest, { params }: { params: { tripId: stri
     return NextResponse.json({ list }, { status: 200 });
 
   } catch (err: any) {
-    console.error(`Error fetching packing list for trip ${tripId}:`, err);
-    return NextResponse.json({ error: 'Failed to fetch packing list.', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
 // PUT (create/replace) the packing list for a specific trip
 export async function PUT(req: NextRequest, { params }: { params: { tripId: string } }) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
+  if (errorResponse || !uid || !firestore) return errorResponse;
 
   const { tripId } = params;
   if (!tripId) {
@@ -80,18 +111,14 @@ export async function PUT(req: NextRequest, { params }: { params: { tripId: stri
     return NextResponse.json({ message: 'Packing list updated successfully.', list: parsedData.list }, { status: 200 });
 
   } catch (err: any) {
-    console.error(`Error updating packing list for trip ${tripId}:`, err);
-    if (err instanceof ZodError) {
-      return NextResponse.json({ error: 'Invalid packing list data.', details: err.format() }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Failed to update packing list.', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
 // DELETE the packing list for a specific trip
 export async function DELETE(req: NextRequest, { params }: { params: { tripId: string } }) {
     const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-    if (errorResponse || !uid || !firestore) return errorResponse || NextResponse.json({ error: "Internal Server Error"}, { status: 500});
+    if (errorResponse || !uid || !firestore) return errorResponse;
   
     const { tripId } = params;
     if (!tripId) {
@@ -103,7 +130,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { tripId: s
       await packingListDocRef.delete();
       return NextResponse.json({ message: 'Packing list deleted successfully.' }, { status: 200 });
     } catch (err: any) {
-      console.error(`Error deleting packing list for trip ${tripId}:`, err);
-      return NextResponse.json({ error: 'Failed to delete packing list.', details: err.message }, { status: 500 });
+      return handleApiError(err);
     }
 }
