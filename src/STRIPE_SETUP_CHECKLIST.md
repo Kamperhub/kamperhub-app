@@ -1,8 +1,49 @@
 # Stripe Setup & Verification Checklist
 
-> [!IMPORTANT]
-> This guide covers setting up Stripe for **local development**. Production setup involves similar steps but uses "Live Mode" keys and webhooks configured in the Stripe Dashboard directly.
+> [!CAUTION]
+> **Stuck on a Stripe Loading Page? Start Here!**
+> If you click the "Go Pro" button and the Stripe page never finishes loading, the issue is almost always a misconfiguration of the Payment Link in your Stripe Dashboard. Please verify the following steps **exactly**.
 
+---
+
+### **Troubleshooting: Fixing a Stuck Stripe Checkout Page**
+
+1.  **Log in to your [Stripe Dashboard](https://dashboard.stripe.com/developers).**
+
+2.  **CRITICAL: ENSURE "TEST MODE" IS ON.**
+    *   Look for the toggle in the top-right corner. It **must** say "Test mode". If it says "Live mode", click it to switch. Your test keys will only work with test links.
+
+3.  **VERIFY YOUR PRODUCT & PRICE.**
+    *   In the left menu, go to **Product catalogue**.
+    *   Find your `KamperHub Pro` product.
+    *   Make sure there is a green "Active" badge next to its name. If not, you must activate it.
+    *   Click on the product name.
+    *   In the "Pricing" section, make sure your price (e.g., $10/month) also has a green "Active" badge.
+
+4.  **VERIFY YOUR PAYMENT LINK.**
+    *   In the left menu, go to **Product catalogue** > **Payment links**.
+    *   Find the link associated with your `KamperHub Pro` product.
+    *   Make sure it has a green "Active" badge.
+    *   Click on the link name to open its details page.
+
+5.  **CRITICAL: VERIFY THE "AFTER PAYMENT" REDIRECT.**
+    *   On the Payment Link details page, look for the **"After payment"** or **"Confirmation page"** section.
+    *   Click **"Edit"**.
+    *   The selected option MUST be **"Redirect customers to your website"**.
+    *   The URL in the box MUST be exactly: `http://localhost:8083/subscribe/success`
+    *   If this is not set correctly, the application will not know the subscription was successful. **Save your changes if you made any.**
+
+6.  **RE-COPY THE VERIFIED LINK.**
+    *   Go back to the Payment Link details page.
+    *   In the top-right corner, click the **Copy** button to copy the link URL.
+
+7.  **UPDATE YOUR ENVIRONMENT FILE.**
+    *   Paste the newly copied link into your `.env.local` file for the `NEXT_PUBLIC_STRIPE_PAYMENT_LINK` variable.
+
+8.  **CRITICAL: RESTART YOUR APP SERVER.**
+    *   Stop your `npm run dev` server (`Ctrl + C`) and restart it. This is the only way it will see the updated link.
+
+---
 ---
 
 ### Step 1: Find Your Stripe Secret Key (`sk_test_...`)
