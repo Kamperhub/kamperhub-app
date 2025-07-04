@@ -159,8 +159,20 @@ export default function MyAccountPage() {
       });
       return;
     }
-    // Use window.location.href for external navigation
-    window.location.href = paymentLink;
+
+    // Attempt to open in a new tab, which provides feedback if blocked.
+    const stripeWindow = window.open(paymentLink, '_blank');
+    
+    // Check if the window was successfully opened.
+    // Some browsers return null, others might throw an error or have the window object closed immediately.
+    if (!stripeWindow) {
+      toast({
+        title: 'Pop-up Blocker Active?',
+        description: "The Stripe checkout page may have been blocked. Please check your browser's pop-up blocker settings and try again.",
+        variant: 'destructive',
+        duration: 9000,
+      });
+    }
   };
 
   const handleManageSubscription = async () => {
