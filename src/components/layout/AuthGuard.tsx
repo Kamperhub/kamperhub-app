@@ -13,7 +13,8 @@ const LoadingScreen = ({ status }: { status: AuthStatus }) => {
 
   useEffect(() => {
     let timer: NodeJS.Timeout | undefined;
-    const timeoutDuration = status === 'AWAITING_PROFILE' ? 7000 : 10000;
+    // Set a much shorter timeout to quickly show help text if stuck.
+    const timeoutDuration = status === 'AWAITING_PROFILE' ? 5000 : 7000;
     
     timer = setTimeout(() => {
         setShowSlowLoadMessage(true);
@@ -43,7 +44,7 @@ const LoadingScreen = ({ status }: { status: AuthStatus }) => {
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle className="font-headline">Stuck on Initializing?</AlertTitle>
             <AlertDescription className="font-body space-y-2 mt-2">
-              <p>Loading is taking longer than expected. This almost always indicates a local configuration issue preventing the app from reading your user profile from the database.</p>
+              <p>Loading is taking longer than expected. This almost always indicates a configuration issue preventing the app from reading your user profile from the database.</p>
               <ol className="list-decimal list-inside space-y-3">
                   <li>
                     <strong>CRITICAL: Firestore Security Rules Not Deployed:</strong> This is the #1 cause. Your database is locked by default.
@@ -56,7 +57,7 @@ const LoadingScreen = ({ status }: { status: AuthStatus }) => {
                   <li>
                     <strong>CRITICAL: Incorrect Database ID:</strong> The application code specifically looks for a database named `kamperhubv2`.
                      <ul className="list-disc list-inside pl-4 mt-1 text-xs">
-                        <li>In the Firebase Console, go to the Firestore Database page. At the top, it will show the database ID. It **must** be `kamperhubv2`.</li>
+                        <li>In the Firebase Console, go to the Firestore Database page. At the top, it will show the database ID. It **must be `kamperhubv2`**.</li>
                         <li>If it says `(default)`, you must delete the default database and create a new one with the ID `kamperhubv2`.</li>
                      </ul>
                   </li>
