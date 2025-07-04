@@ -2,16 +2,15 @@
 import { NextResponse } from 'next/server';
 
 /**
- * This API endpoint has been replaced by a direct Stripe Payment Link for simplicity and reliability.
- * It is no longer used by the application and is kept here for reference only.
- * Please configure the NEXT_PUBLIC_STRIPE_PAYMENT_LINK in your .env.local file.
+ * This API endpoint is obsolete and has been replaced by a direct Stripe Payment Link.
+ * It is kept here to gracefully handle requests from cached versions of the old client code.
  */
 export async function POST() {
   return NextResponse.json(
     { 
-      error: 'This endpoint is obsolete. Use Stripe Payment Links instead.',
-      details: 'The application now uses a direct link to a Stripe Payment Link. This API endpoint for creating checkout sessions is no longer needed.' 
+      error: 'Application Updated: Please Refresh',
+      details: 'The subscription process has been updated. Please refresh your browser page to get the latest version and try again.' 
     }, 
-    { status: 410 } // 410 Gone
+    { status: 400 } // Use 400 Bad Request to ensure the client-side catch block is triggered.
   );
 }
