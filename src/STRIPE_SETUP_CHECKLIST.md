@@ -142,3 +142,4 @@ After you believe everything is set up, run through this checklist to catch comm
 4.  **Check Your Stripe Dashboard:**
     *   Are you in **Test Mode**? (The toggle is in the top-right corner). All your `sk_test_` keys and payment links must come from this mode.
     *   Does the product and payment link you created still exist and is it **Active**?
+
