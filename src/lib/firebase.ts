@@ -50,17 +50,27 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
         console.log('[Firebase Client] App Check not initialized (NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY is not set).');
       }
 
-      enableIndexedDbPersistence(db)
-        .then(() => console.log('[Firebase Client] Firestore offline persistence enabled.'))
-        .catch((err) => {
-          if (err.code === 'failed-precondition') {
-            console.warn('[Firebase Client] Firestore offline persistence could not be enabled. Multiple tabs open?');
-          } else if (err.code === 'unimplemented') {
-            console.warn('[Firebase Client] Firestore offline persistence is not available in this browser.');
-          } else {
-             console.error("[Firebase Client] Error enabling Firestore offline persistence:", err);
-          }
-        });
+      // Attempt to enable offline persistence with improved error handling for IndexedDB issues.
+      try {
+        enableIndexedDbPersistence(db)
+          .then(() => console.log('[Firebase Client] Firestore offline persistence enabled.'))
+          .catch((err) => {
+            if (err.code === 'failed-precondition') {
+              console.warn('[Firebase Client] Firestore offline persistence could not be enabled. This can happen if you have multiple tabs open. Please close other tabs and refresh.');
+            } else if (err.code === 'unimplemented') {
+              console.warn('[Firebase Client] Firestore offline persistence is not available in this browser. The app will work, but data will not be available offline.');
+            } else {
+               console.error("[Firebase Client] Asynchronous error enabling Firestore offline persistence:", err);
+            }
+          });
+      } catch (err: any) {
+        // Catch synchronous errors, which can include IndexedDB corruption issues on startup.
+        if (err.message && (err.message.toLowerCase().includes('indexeddb') || err.message.toLowerCase().includes('corruption'))) {
+             console.warn(`[Firebase Client] A known issue with IndexedDB occurred during startup. This is often temporary and can be fixed by reloading the page. Error: ${err.message}`);
+        } else {
+             console.error('[Firebase Client] Synchronous error during Firestore persistence setup:', err);
+        }
+      }
     }
   } catch (e: any) {
     firebaseInitializationError = `Firebase failed to initialize. Please check your Firebase project configuration and API keys. Error: ${e.message}`;
