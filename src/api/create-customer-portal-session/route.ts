@@ -1,4 +1,3 @@
-
 // src/app/api/create-customer-portal-session/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -52,7 +51,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Stripe customer ID not found for this user.' }, { status: 400 });
     }
     
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8083';
     const returnUrl = `${appUrl}/my-account`;
 
     const portalSession = await stripe.billingPortal.sessions.create({
