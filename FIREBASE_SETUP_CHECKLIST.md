@@ -1,5 +1,4 @@
 
-
 # Firebase & Backend Setup Checklist
 
 > [!CAUTION]
@@ -162,6 +161,7 @@ The debug tool for creating users has been removed for security. The application
 3.  After signing up, you should be logged in and can access all features.
 
 > **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
+
 
 
 

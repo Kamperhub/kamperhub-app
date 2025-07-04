@@ -8,68 +8,36 @@ import { Loader2, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
-const LoadingScreen = ({ status }: { status: AuthStatus }) => {
+const LoadingScreen = () => {
   const [showSlowLoadMessage, setShowSlowLoadMessage] = useState(false);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout | undefined;
-    // Set a much shorter timeout to quickly show help text if stuck.
-    const timeoutDuration = status === 'AWAITING_PROFILE' ? 5000 : 7000;
-    
-    timer = setTimeout(() => {
+    const timer = setTimeout(() => {
         setShowSlowLoadMessage(true);
-    }, timeoutDuration);
+    }, 8000); // 8 seconds to show help text
     
     return () => clearTimeout(timer);
-  }, [status]);
-
-
-  const message = {
-    'LOADING': 'Initializing session...',
-    'AWAITING_PROFILE': 'Verifying access & fetching profile...',
-  }[status] || 'Loading...';
+  }, []);
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm text-foreground p-4">
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/95 backdrop-blur-sm text-foreground p-4">
       <div className="flex flex-col items-center justify-center text-center">
-        {!showSlowLoadMessage && (
+        {!showSlowLoadMessage ? (
           <>
             <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-            <p className="text-lg font-semibold text-primary font-body">{message}</p>
+            <p className="text-lg font-semibold text-primary font-body">Initializing Session...</p>
           </>
-        )}
-        
-        {showSlowLoadMessage && (
-          <Alert variant="destructive" className="mt-6 max-w-2xl text-left">
+        ) : (
+          <Alert variant="destructive" className="mt-6 max-w-2xl text-left shadow-lg">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle className="font-headline">Stuck on Initializing?</AlertTitle>
             <AlertDescription className="font-body space-y-2 mt-2">
               <p>Loading is taking longer than expected. This almost always indicates a configuration issue preventing the app from reading your user profile from the database.</p>
-              <ol className="list-decimal list-inside space-y-3">
-                  <li>
-                    <strong>CRITICAL: Firestore Security Rules Not Deployed:</strong> This is the #1 cause. Your database is locked by default.
-                    <ul className="list-disc list-inside pl-4 mt-1 text-xs">
-                       <li>Open the `firestore.rules` file in the project's root directory and copy its entire contents.</li>
-                       <li>In the Firebase Console, go to your <strong>kamperhubv2</strong> database, click the "Rules" tab, paste the content, and click **Publish**.</li>
-                       <li><strong>Important:</strong> Ensure you've selected the `kamperhubv2` database from the dropdown at the top of the Firestore page before publishing the rules.</li>
-                    </ul>
-                  </li>
-                  <li>
-                    <strong>CRITICAL: Incorrect Database ID:</strong> The application code specifically looks for a database named `kamperhubv2`.
-                     <ul className="list-disc list-inside pl-4 mt-1 text-xs">
-                        <li>In the Firebase Console, go to the Firestore Database page. At the top, it will show the database ID. It **must be `kamperhubv2`**.</li>
-                        <li>If it says `(default)`, you must delete the default database and create a new one with the ID `kamperhubv2`.</li>
-                     </ul>
-                  </li>
-                  <li>
-                      <strong>App Check Not Configured:</strong> If you've enabled App Check, ensure your local development domain (`localhost`) is added to the list of allowed domains in the App Check settings in Firebase.
-                  </li>
-                  <li>
-                    <strong>Incorrect Environment Variables:</strong> Double-check that all `NEXT_PUBLIC_FIREBASE_*` variables in your `.env.local` file are correct for the `kamperhub-s4hc2` project and that you have restarted the development server since last editing the file.
-                  </li>
-              </ol>
-               <Button variant="outline" onClick={() => window.location.reload()} className="w-full mt-4">
-                Refresh Page After Checking
+              <p>
+                <strong>Please open the file named <code className="bg-destructive/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> in the project's main folder and follow the steps carefully, especially Step 5, 6, and 7 regarding the Firestore Database ID, Permissions, and Security Rules.</strong>
+              </p>
+               <Button variant="outline" onClick={() => window.location.reload()} className="w-full mt-4 text-destructive-foreground border-destructive-foreground/50 hover:bg-destructive-foreground/10 hover:text-destructive-foreground">
+                I've fixed the configuration, now Refresh
               </Button>
             </AlertDescription>
           </Alert>
@@ -127,8 +95,8 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     }
   }, [authStatus, router]);
 
-  if (authStatus === 'LOADING' || authStatus === 'AWAITING_PROFILE') {
-    return <LoadingScreen status={authStatus} />;
+  if (authStatus === 'LOADING') {
+    return <LoadingScreen />;
   }
 
   if (authStatus === 'ERROR') {
@@ -139,6 +107,5 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     return <>{children}</>;
   }
 
-  // Fallback loading screen
-  return <LoadingScreen status="LOADING" />;
+  return <LoadingScreen />;
 };
