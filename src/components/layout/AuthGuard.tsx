@@ -13,7 +13,6 @@ const LoadingScreen = ({ status }: { status: AuthStatus }) => {
 
   useEffect(() => {
     let timer: NodeJS.Timeout | undefined;
-    // Set a more aggressive timeout for the profile fetch, as this is the most likely failure point.
     const timeoutDuration = status === 'AWAITING_PROFILE' ? 7000 : 10000;
     
     timer = setTimeout(() => {

@@ -1,21 +1,27 @@
+
 rules_version = '2';
 
 service cloud.firestore {
-  match /databases/{database}/documents {
-    // Helper function to check if the requesting user is an admin
-    function isAdmin() {
-      return request.auth.token.email == 'info@kamperhub.com';
+  match /databases/kamperhubv2/documents {
+    // Users can only read/write their own profile data.
+    match /users/{userId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
     }
 
-    // Users can only access their own data, but admins can access anything.
+    // A user can only access data within their own user document.
     match /users/{userId}/{document=**} {
-      allow read, write: if request.auth.uid == userId || isAdmin();
+      allow read, write, delete: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Allow unauthenticated users to create state documents for Google Sign-In
-    match /oauthStates/{stateId} {
-        allow create;
-        allow read, delete: if false;
+    // Allow admins to read/write all data for moderation.
+    match /{document=**} {
+        allow read, write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // OAuth states for Google sign-in
+    match /oauthStates/{state} {
+      allow read, create, delete: if request.auth != null;
     }
   }
 }
