@@ -152,7 +152,10 @@ This is the final step and solves most `UNAUTHENTICATED` errors seen on the dash
 
 ---
 
-### Step 8: Create Your User Account
+### Step 8: Create Your First User Account (One-Time Only)
+
+> [!NOTE]
+> This is a one-time step to create your initial user. Once the account exists, you will simply **log in** for future sessions. You only need to sign up again if you delete the user from Firebase.
 
 The debug tool for creating users has been removed for security. The application now handles this automatically during sign-up.
 
@@ -161,10 +164,3 @@ The debug tool for creating users has been removed for security. The application
 3.  After signing up, you should be logged in and can access all features.
 
 > **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
-
-
-
-
-
-
-
