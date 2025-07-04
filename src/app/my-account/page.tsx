@@ -150,11 +150,12 @@ export default function MyAccountPage() {
   
   const handleSubscribeToPro = () => {
     const paymentLink = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK;
-    if (!paymentLink) {
+    if (!paymentLink || !paymentLink.startsWith('https://buy.stripe.com/')) {
       toast({
-        title: 'Configuration Missing',
-        description: 'The Stripe Payment Link is not configured in .env.local. Please check the setup guides.',
+        title: 'Configuration Missing or Invalid',
+        description: 'The Stripe Payment Link is not correctly configured in .env.local. It must be a full URL starting with "https://buy.stripe.com/...".',
         variant: 'destructive',
+        duration: 8000,
       });
       return;
     }
@@ -366,7 +367,7 @@ export default function MyAccountPage() {
                   className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-body animate-pulse"
                 >
                   <CreditCard className="mr-2 h-4 w-4" />
-                  Upgrade to KamperHub Pro
+                  Go Pro with Stripe
                 </Button>
               </div>
             )}
