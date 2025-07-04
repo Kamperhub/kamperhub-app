@@ -42,6 +42,10 @@ Instead of just getting a Price ID, you will now create a shareable Payment Link
     *   Click the **Copy** button to copy the full URL. It will start with `https://buy.stripe.com/...`.
 
 5.  Paste this full URL into the `NEXT_PUBLIC_STRIPE_PAYMENT_LINK` variable in your `.env.local` file.
+    *   **CRITICAL:** Do not wrap the URL in quotes (`"` or `'`). Your `.env.local` file line should look exactly like this:
+        ```env
+        NEXT_PUBLIC_STRIPE_PAYMENT_LINK=https://buy.stripe.com/...
+        ```
 
 ---
 
@@ -80,7 +84,7 @@ After you believe everything is set up, run through this checklist to catch comm
 1.  **Restart Your Development Server:** Have you stopped (`Ctrl+C`) and restarted (`npm run dev`) your Next.js application since you last saved your `.env.local` file? The server only reads these variables on startup.
 
 2.  **Check Your `.env.local` File:**
-    *   `NEXT_PUBLIC_STRIPE_PAYMENT_LINK` must start with `https://buy.stripe.com/`.
+    *   `NEXT_PUBLIC_STRIPE_PAYMENT_LINK` must start with `https://buy.stripe.com/` and not be in quotes.
     *   `STRIPE_SECRET_KEY` must start with `sk_test_`.
     *   `STRIPE_WEBHOOK_SECRET` must start with `whsec_` and be the one provided by the `stripe listen` command, NOT one from the Stripe Dashboard.
 
