@@ -41,9 +41,10 @@ Instead of just getting a Price ID, you will now create a shareable Payment Link
         *   This ensures users are sent back to the app after a successful subscription.
     *   Click **Create link** in the top right.
 
-4.  Copy the Payment Link URL:
-    *   After creating the link, you will be taken to its detail page.
-    *   Click the **Copy** button to copy the full URL. It will start with `https://buy.stripe.com/...`.
+4.  **CRITICAL - Verify and Copy the Link**:
+    *   After creating the link, you will be on its detail page.
+    *   **Test it first:** Click the link URL at the top right. It should open a new tab showing your product's checkout page correctly. If it doesn't load or shows an error, the product or price is not configured correctly in Stripe.
+    *   **Copy it:** Once verified, click the **Copy** button to copy the full URL. It will start with `https://buy.stripe.com/...`.
 
 5.  Paste this full URL into the `NEXT_PUBLIC_STRIPE_PAYMENT_LINK` variable in your `.env.local` file.
 
@@ -94,4 +95,5 @@ After you believe everything is set up, run through this checklist to catch comm
 
 4.  **Check Your Stripe Dashboard:**
     *   Are you in **Test Mode**? (The toggle is in the top-right corner). All your `sk_test_` keys and payment links must come from this mode.
-    *   Does the product and payment link you created still exist?
+    *   Does the product and payment link you created still exist and is it **Active**?
+```
