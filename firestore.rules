@@ -1,43 +1,17 @@
-
 rules_version = '2';
-
 service cloud.firestore {
-  match /databases/kamperhubv2/documents {
-
-    // Helper function to check if the user is authenticated.
-    function isAuthenticated() {
-      return request.auth != null;
+  match /databases/{database}/documents {
+    // Users can read and write their own profile and all of its sub-collections.
+    // This is the fundamental security rule for a multi-user application.
+    // It ensures that a user can only ever access documents under /users/{their_own_id}.
+    match /users/{userId}/{documents=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Helper function to check if the requesting user is the owner of the document.
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    // Default deny all access to the root of the database.
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // USERS collection
-    // Users can read and update their own profile document.
-    // New users can create their own profile document.
-    match /users/{userId} {
-      allow read, update: if isAuthenticated() && isOwner(userId);
-      allow create: if isAuthenticated(); // Allow creation during signup
-    }
-
-    // All subcollections under a user's document.
-    // The owner can perform all actions on their own subcollections.
-    match /users/{userId}/{collection}/{docId} {
-      allow read, write, delete: if isAuthenticated() && isOwner(userId);
-    }
-    
-    // OAuth states for Google Sign-in
-    // Allow any authenticated user to create a state, and anyone to read/delete it.
-    // This is safe because the state string is a secure random value.
-    match /oauthStates/{stateId} {
-      allow read, write, delete: if true;
+    // Explicitly deny access to the oauthStates collection from the client-side.
+    // Only the server (using Admin SDK) should access this.
+    match /oauthStates/{state} {
+        allow read, write: if false;
     }
   }
 }
