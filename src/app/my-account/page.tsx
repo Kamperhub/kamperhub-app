@@ -166,7 +166,12 @@ export default function MyAccountPage() {
       if (response.ok && session.url) {
         window.top.location.href = session.url;
       } else {
-        toast({ title: "Subscription Error", description: session.error || "Could not initiate subscription. Please try again.", variant: "destructive" });
+        toast({ 
+          title: session.error || "Subscription Error", 
+          description: session.details || "Could not initiate subscription. Please try again.", 
+          variant: "destructive",
+          duration: 9000, // Longer duration for detailed errors
+        });
         setIsRedirectingToCheckout(false);
       }
     } catch (error: any) {

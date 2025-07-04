@@ -93,16 +93,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (error: any) {
     console.error('Create Checkout Session: Error in POST handler:', error);
-    let errorDetails = error.message;
     
-    // This is the specific error from the screenshot.
-    if (error.code === 16 || (error.message && error.message.toLowerCase().includes('unauthenticated'))) {
-        errorDetails = `16 UNAUTHENTICATED: The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or lack IAM permissions. Please follow the setup checklist to verify your service account role and Firestore rules, then restart the server. Original Error: ${error.message}`;
-    } else if (error.code === 5 || (error.message && error.message.toLowerCase().includes('not_found'))) {
-        errorDetails = `DATABASE NOT FOUND: The Firestore database 'kamperhubv2' could not be reached. Please verify it has been created in your Firebase project. Original Error: ${error.message}`;
-    }
+    let errorTitle = 'Internal Server Error';
+    let errorDetails = error.message;
 
-    const stripeErrorMessage = error.type ? `${error.type}: ${error.message}` : errorDetails;
-    return NextResponse.json({ error: `Internal Server Error creating Stripe session.`, details: stripeErrorMessage }, { status: 500 });
+    if (error.code === 16 || (error.message && error.message.toLowerCase().includes('unauthenticated'))) {
+      errorTitle = `16 UNAUTHENTICATED: Server not authorized`;
+      errorDetails = `The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or lack IAM permissions. Please follow the setup checklist to verify your service account role and Firestore rules, then restart the server. Original Error: ${error.message}`;
+    } else if (error.code === 5 || (error.message && error.message.toLowerCase().includes('not_found'))) {
+      errorTitle = `DATABASE NOT FOUND`;
+      errorDetails = `The server could not find the Firestore database 'kamperhubv2'. Please verify it has been created in your Firebase project. Original Error: ${error.message}`;
+    } else if (error.type) { // Stripe-specific error
+        errorTitle = `Stripe Error: ${error.type}`;
+        errorDetails = error.message;
+    }
+    
+    return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: 500 });
   }
 }
