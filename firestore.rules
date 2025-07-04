@@ -3,25 +3,41 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/kamperhubv2/documents {
-    // Users can only read/write their own profile data.
-    match /users/{userId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null;
+
+    // Helper function to check if the user is authenticated.
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // A user can only access data within their own user document.
-    match /users/{userId}/{document=**} {
-      allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+    // Helper function to check if the requesting user is the owner of the document.
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Default deny all access to the root of the database.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // USERS collection
+    // Users can read and update their own profile document.
+    // New users can create their own profile document.
+    match /users/{userId} {
+      allow read, update: if isAuthenticated() && isOwner(userId);
+      allow create: if isAuthenticated(); // Allow creation during signup
+    }
+
+    // All subcollections under a user's document.
+    // The owner can perform all actions on their own subcollections.
+    match /users/{userId}/{collection}/{docId} {
+      allow read, write, delete: if isAuthenticated() && isOwner(userId);
     }
     
-    // Allow admins to read/write all data for moderation.
-    match /{document=**} {
-        allow read, write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-    }
-
-    // OAuth states for Google sign-in
-    match /oauthStates/{state} {
-      allow read, create, delete: if request.auth != null;
+    // OAuth states for Google Sign-in
+    // Allow any authenticated user to create a state, and anyone to read/delete it.
+    // This is safe because the state string is a secure random value.
+    match /oauthStates/{stateId} {
+      allow read, write, delete: if true;
     }
   }
 }

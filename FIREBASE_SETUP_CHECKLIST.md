@@ -39,7 +39,7 @@ All your secret keys will live in a special file that is NOT committed to versio
     GOOGLE_API_KEY="YOUR_GENERATIVE_AI_API_KEY_HERE"
 
     # Stripe Configuration (for subscriptions)
-    NEXT_PUBLIC_STRIPE_PAYMENT_LINK="https://buy.stripe.com/..."
+    NEXT_PUBLIC_STRIPE_PAYMENT_LINK=https://buy.stripe.com/...
     STRIPE_SECRET_KEY="sk_test_..."
     STRIPE_WEBHOOK_SECRET="whsec_..."
     
@@ -162,6 +162,7 @@ The debug tool for creating users has been removed for security. The application
 3.  After signing up, you should be logged in and can access all features.
 
 > **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
+
 
 
 
