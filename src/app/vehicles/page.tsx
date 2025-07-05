@@ -1,4 +1,3 @@
-
 import { getSession } from '@/lib/server-session';
 import { getVehicles, getCaravans, getUserPreferences } from '@/lib/server-data-fetcher';
 import { redirect } from 'next/navigation';
