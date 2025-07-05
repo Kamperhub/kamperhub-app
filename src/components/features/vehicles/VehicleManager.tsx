@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { StoredVehicle, VehicleFormData, VehicleStorageLocation } from '@/types/vehicle';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -10,23 +11,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { VehicleForm } from './VehicleForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, Weight, Axe, Car, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Ruler, Backpack, Loader2, Disc, Settings, AlertTriangle } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, Weight, Axe, Car, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Ruler, Backpack, Loader2, Disc, Settings } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  fetchVehicles, 
   createVehicle, 
   updateVehicle, 
   deleteVehicle,
   updateUserPreferences,
-  fetchUserPreferences
 } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
 
-export function VehicleManager() {
+interface VehicleManagerProps {
+    initialVehicles: StoredVehicle[];
+    initialUserPrefs: Partial<UserProfile> | null;
+}
+
+export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
@@ -40,20 +43,12 @@ export function VehicleManager() {
     vehicleName: null,
     confirmationText: '',
   });
-  
-  const { data: vehicles = [], isLoading: isLoadingVehicles, error: vehiclesError } = useQuery<StoredVehicle[]>({
-    queryKey: ['vehicles', user?.uid],
-    queryFn: fetchVehicles,
-    enabled: !!user,
-  });
 
-  const { data: userPrefs, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
-    queryKey: ['userPreferences', user?.uid],
-    queryFn: fetchUserPreferences,
-    enabled: !!user,
-  });
+  const activeVehicleId = initialUserPrefs?.activeVehicleId;
 
-  const activeVehicleId = userPrefs?.activeVehicleId;
+  const invalidateAndRefetch = () => {
+    queryClient.invalidateQueries({ queryKey: ['allVehicleData', user?.uid] });
+  };
   
   const saveVehicleMutation = useMutation({
     mutationFn: (vehicleData: VehicleFormData | StoredVehicle) => {
@@ -61,7 +56,7 @@ export function VehicleManager() {
       return 'id' in dataToSend && dataToSend.id ? updateVehicle(dataToSend as StoredVehicle) : createVehicle(dataToSend as VehicleFormData);
     },
     onSuccess: (savedVehicle) => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles', user?.uid] });
+      invalidateAndRefetch();
       toast({
         title: editingVehicle ? "Vehicle Updated" : "Vehicle Added",
         description: `${savedVehicle.make} ${savedVehicle.model} has been saved.`,
@@ -80,38 +75,23 @@ export function VehicleManager() {
 
   const deleteVehicleMutation = useMutation({
     mutationFn: deleteVehicle,
-    onMutate: async (vehicleId: string) => {
-      await queryClient.cancelQueries({ queryKey: ['vehicles', user?.uid] });
-      const previousVehicles = queryClient.getQueryData<StoredVehicle[]>(['vehicles', user?.uid]);
-      queryClient.setQueryData<StoredVehicle[]>(['vehicles', user?.uid], (old) => old?.filter(v => v.id !== vehicleId) ?? []);
-      setDeleteDialogState({ isOpen: false, vehicleId: null, vehicleName: null, confirmationText: '' });
-      return { previousVehicles };
-    },
-    onError: (err, vehicleId, context) => {
-      queryClient.setQueryData(['vehicles', user?.uid], context?.previousVehicles);
-      toast({ title: "Delete Failed", description: (err as Error).message, variant: "destructive" });
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles', user?.uid] });
-      if (activeVehicleId === deleteDialogState.vehicleId) {
-        queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
-      }
-    },
     onSuccess: () => {
+        invalidateAndRefetch();
         toast({ title: "Vehicle Deleted" });
+        setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' });
+    },
+    onError: (err: Error) => {
+      invalidateAndRefetch();
+      toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
     },
   });
 
   const setActiveVehicleMutation = useMutation({
     mutationFn: (vehicleId: string) => updateUserPreferences({ activeVehicleId: vehicleId }),
-    onSuccess: (_, vehicleId) => {
-      queryClient.setQueryData(['userPreferences', user?.uid], (oldData: any) => ({
-          ...oldData,
-          activeVehicleId: vehicleId,
-      }));
-      queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
-      const vehicle = vehicles.find(v => v.id === vehicleId);
-      toast({ title: "Active Vehicle Set", description: `${vehicle?.make} ${vehicle?.model} is now active.` });
+    onSuccess: () => {
+      invalidateAndRefetch();
+      const vehicle = initialVehicles.find(v => v.id === activeVehicleId);
+      toast({ title: "Active Vehicle Set" });
     },
     onError: (error: Error) => {
        toast({ title: "Update Failed", description: error.message, variant: "destructive" });
@@ -167,36 +147,7 @@ export function VehicleManager() {
     return typeof value === 'number' ? `${value}${unit}` : 'N/A';
   };
 
-  if (isLoadingVehicles || isLoadingPrefs) {
-    return (
-        <Card>
-            <CardHeader>
-                <div className="flex justify-between items-center">
-                    <Skeleton className="h-8 w-1/3" />
-                    <Skeleton className="h-9 w-[180px]" />
-                </div>
-                <Skeleton className="h-4 w-2/3 mt-1" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-20 w-full" />
-            </CardContent>
-        </Card>
-    )
-  }
-
-  if (vehiclesError || prefsError) {
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-destructive flex items-center"><AlertTriangle className="mr-2 h-5 w-5"/>Error Loading Data</CardTitle>
-                <CardDescription>{(vehiclesError || prefsError)?.message}</CardDescription>
-            </CardHeader>
-        </Card>
-    );
-  }
-
-  const isAddButtonDisabled = !hasProAccess && vehicles.length >= 1;
+  const isAddButtonDisabled = !hasProAccess && initialVehicles.length >= 1;
 
   return (
     <>
@@ -234,8 +185,8 @@ export function VehicleManager() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {vehicles.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No vehicles added yet. Click "Add New Vehicle" to start.</p>}
-          {vehicles.map(vehicle => {
+          {initialVehicles.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No vehicles added yet. Click "Add New Vehicle" to start.</p>}
+          {initialVehicles.map(vehicle => {
             const vehiclePayload = (typeof vehicle.gvm === 'number' && typeof vehicle.kerbWeight === 'number' && vehicle.gvm > 0 && vehicle.kerbWeight > 0 && vehicle.gvm >= vehicle.kerbWeight) ? vehicle.gvm - vehicle.kerbWeight : null;
             return (
               <Card key={vehicle.id} className={`p-4 ${activeVehicleId === vehicle.id ? 'border-primary shadow-md' : ''}`}>

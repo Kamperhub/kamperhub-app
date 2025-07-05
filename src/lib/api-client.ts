@@ -1,3 +1,4 @@
+
 'use client';
 
 import { auth, db } from './firebase';
@@ -9,10 +10,6 @@ import {
   setDoc,
   updateDoc, 
   deleteDoc,
-  writeBatch,
-  Timestamp,
-  query,
-  where,
 } from 'firebase/firestore';
 
 import type { StoredVehicle, VehicleFormData } from '@/types/vehicle';
@@ -23,7 +20,6 @@ import type { BookingEntry } from '@/types/booking';
 import type { UserProfile } from '@/types/auth';
 import type { PackingListCategory } from '@/types/packing';
 
-// --- Generic Fetcher for API Routes (for admin/auth actions that MUST be on server) ---
 async function apiFetch(url: string, options: RequestInit = {}) {
     const user = auth.currentUser;
     if (!user) {
@@ -38,21 +34,17 @@ async function apiFetch(url: string, options: RequestInit = {}) {
     const response = await fetch(url, { ...options, headers });
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || errorData.message || 'API request failed.');
+      throw new Error(errorData.details || errorData.error || errorData.message || 'API request failed.');
     }
-    // Handle cases where the response body might be empty
     const text = await response.text();
     return text ? JSON.parse(text) : {};
 }
 
+// ---- Consolidated Vehicle Page Data Fetcher ----
+export const fetchAllVehicleData = () => apiFetch('/api/all-vehicle-data');
+
 
 // ---- Vehicle API Functions ----
-export async function fetchVehicles(): Promise<StoredVehicle[]> {
-  const uid = auth.currentUser?.uid;
-  if (!uid) throw new Error("User not authenticated.");
-  const querySnapshot = await getDocs(collection(db, 'users', uid, 'vehicles'));
-  return querySnapshot.docs.map(doc => doc.data() as StoredVehicle);
-}
 export async function createVehicle(data: VehicleFormData): Promise<StoredVehicle> {
     const uid = auth.currentUser?.uid;
     if (!uid) throw new Error("User not authenticated.");
@@ -75,12 +67,6 @@ export async function deleteVehicle(id: string): Promise<{ message: string }> {
 }
 
 // ---- Caravan API Functions ----
-export async function fetchCaravans(): Promise<StoredCaravan[]> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    const querySnapshot = await getDocs(collection(db, 'users', uid, 'caravans'));
-    return querySnapshot.docs.map(doc => doc.data() as StoredCaravan);
-}
 export async function createCaravan(data: CaravanFormData): Promise<StoredCaravan> {
     const uid = auth.currentUser?.uid;
     if (!uid) throw new Error("User not authenticated.");
@@ -146,70 +132,38 @@ export async function deleteTrip(id: string): Promise<{ message: string }> {
 
 // ---- Booking API Functions ----
 export async function fetchBookings(): Promise<BookingEntry[]> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    const querySnapshot = await getDocs(collection(db, 'users', uid, 'bookings'));
-    return querySnapshot.docs.map(doc => doc.data() as BookingEntry);
+    return apiFetch('/api/bookings').then(res => res);
 }
 export async function createBooking(data: Omit<BookingEntry, 'id' | 'timestamp'>): Promise<BookingEntry> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    const newDocRef = doc(collection(db, 'users', uid, 'bookings'));
-    const newBooking: BookingEntry = { ...data, id: newDocRef.id, timestamp: new Date().toISOString() };
-    await setDoc(newDocRef, newBooking);
-    return newBooking;
+    return apiFetch('/api/bookings', { method: 'POST', body: JSON.stringify(data) });
 }
 export async function updateBooking(data: BookingEntry): Promise<{ booking: BookingEntry }> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    await setDoc(doc(db, 'users', uid, 'bookings', data.id), data, { merge: true });
-    return { booking: data };
+    return apiFetch('/api/bookings', { method: 'PUT', body: JSON.stringify(data) });
 }
 export async function deleteBooking(id: string): Promise<{ message: string }> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    await deleteDoc(doc(db, 'users', uid, 'bookings', id));
-    return { message: 'Booking deleted successfully.' };
+    return apiFetch('/api/bookings', { method: 'DELETE', body: JSON.stringify({ id }) });
 }
 
 // ---- User Preferences API ----
 export async function fetchUserPreferences(): Promise<Partial<UserProfile>> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    const docSnap = await getDoc(doc(db, 'users', uid));
-    if (!docSnap.exists()) {
-        throw new Error("User profile document not found.");
-    }
-    return docSnap.data() as UserProfile;
+     return apiFetch('/api/user-preferences');
 }
 export async function updateUserPreferences(preferences: Partial<UserProfile>): Promise<{ message: string }> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    await updateDoc(doc(db, 'users', uid), { ...preferences, updatedAt: new Date().toISOString() });
-    return { message: 'Preferences updated.' };
+    return apiFetch('/api/user-preferences', { method: 'PUT', body: JSON.stringify(preferences) });
 }
 
 // ---- Packing List API Functions ----
 export async function fetchPackingList(tripId: string): Promise<{ list: PackingListCategory[] }> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    const docSnap = await getDoc(doc(db, 'users', uid, 'packingLists', tripId));
-    return docSnap.exists() ? docSnap.data() as { list: PackingListCategory[] } : { list: [] };
+    return apiFetch(`/api/packing-list/${tripId}`);
 }
 export async function updatePackingList(payload: { tripId: string; list: PackingListCategory[] }): Promise<{ message: string }> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    await setDoc(doc(db, 'users', uid, 'packingLists', payload.tripId), { list: payload.list });
-    return { message: 'Packing list updated.' };
+    return apiFetch(`/api/packing-list/${payload.tripId}`, { method: 'PUT', body: JSON.stringify(payload.list) });
 }
 export async function deletePackingList(tripId: string): Promise<{ message: string }> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    await deleteDoc(doc(db, 'users', uid, 'packingLists', tripId));
-    return { message: 'Packing list deleted.' };
+    return apiFetch(`/api/packing-list/${tripId}`, { method: 'DELETE' });
 }
 
-// ---- Admin & Auth Functions (Still need API routes) ----
+// ---- Admin & Auth Functions ----
 export const fetchAllUsers = (): Promise<{uid: string, email: string | undefined}[]> => apiFetch('/api/admin/list-users');
 export const generateGoogleAuthUrl = (): Promise<{ url: string }> => apiFetch('/api/auth/google/connect', { method: 'POST' });
 export const disconnectGoogleAccount = (): Promise<{ message: string }> => apiFetch('/api/auth/google/disconnect', { method: 'POST' });

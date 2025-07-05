@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { StoredCaravan, CaravanFormData } from '@/types/caravan';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -10,23 +11,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { CaravanForm } from './CaravanForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Link2 as LinkIcon, Ruler, PackagePlus, MapPin, Droplet, Weight, Axe, Loader2, FileText, Disc, Flame, AlertTriangle } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { PlusCircle, Edit3, Trash2, CheckCircle, Link2 as LinkIcon, Ruler, PackagePlus, MapPin, Droplet, Weight, Axe, Loader2, FileText, Disc, Flame } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  fetchCaravans, 
   createCaravan, 
   updateCaravan, 
   deleteCaravan,
   updateUserPreferences,
-  fetchUserPreferences
 } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
 
-export function CaravanManager() {
+interface CaravanManagerProps {
+    initialCaravans: StoredCaravan[];
+    initialUserPrefs: Partial<UserProfile> | null;
+}
+
+export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
@@ -41,19 +44,11 @@ export function CaravanManager() {
     confirmationText: '',
   });
 
-  const { data: caravans = [], isLoading: isLoadingCaravans, error: caravansError } = useQuery<StoredCaravan[]>({
-    queryKey: ['caravans', user?.uid],
-    queryFn: fetchCaravans,
-    enabled: !!user,
-  });
-
-  const { data: userPrefs, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
-    queryKey: ['userPreferences', user?.uid],
-    queryFn: fetchUserPreferences,
-    enabled: !!user,
-  });
-
-  const activeCaravanId = userPrefs?.activeCaravanId;
+  const activeCaravanId = initialUserPrefs?.activeCaravanId;
+  
+  const invalidateAndRefetch = () => {
+    queryClient.invalidateQueries({ queryKey: ['allVehicleData', user?.uid] });
+  };
 
   const saveCaravanMutation = useMutation({
     mutationFn: (caravanData: CaravanFormData | StoredCaravan) => {
@@ -61,7 +56,7 @@ export function CaravanManager() {
       return 'id' in dataToSend && dataToSend.id ? updateCaravan(dataToSend as StoredCaravan) : createCaravan(dataToSend as CaravanFormData);
     },
     onSuccess: (savedCaravan) => {
-      queryClient.invalidateQueries({ queryKey: ['caravans', user?.uid] });
+      invalidateAndRefetch();
       toast({
         title: editingCaravan ? "Caravan Updated" : "Caravan Added",
         description: `${savedCaravan.make} ${savedCaravan.model} has been saved.`,
@@ -76,42 +71,23 @@ export function CaravanManager() {
 
   const deleteCaravanMutation = useMutation({
     mutationFn: deleteCaravan,
-    onMutate: async (caravanId: string) => {
-        await queryClient.cancelQueries({ queryKey: ['caravans', user?.uid] });
-        const previousCaravans = queryClient.getQueryData<StoredCaravan[]>(['caravans', user?.uid]);
-        queryClient.setQueryData<StoredCaravan[]>(['caravans', user?.uid], (old) => old?.filter(c => c.id !== caravanId) ?? []);
-        setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' });
-        return { previousCaravans };
-    },
-    onError: (err, caravanId, context) => {
-        queryClient.setQueryData(['caravans', user?.uid], context?.previousCaravans);
-        toast({ title: "Delete Failed", description: (err as Error).message, variant: "destructive" });
-    },
-    onSettled: () => {
-        queryClient.invalidateQueries({ queryKey: ['caravans', user?.uid] });
-        if (activeCaravanId === deleteDialogState.caravanId) {
-            queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
-        }
-    },
     onSuccess: () => {
+        invalidateAndRefetch();
         toast({ title: "Caravan Deleted" });
+        setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' });
+    },
+    onError: (err: Error) => {
+        invalidateAndRefetch();
+        toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
     },
   });
 
 
   const setActiveCaravanMutation = useMutation({
-    mutationFn: (caravanId: string) => {
-      return updateUserPreferences({ activeCaravanId: caravanId });
-    },
-    onSuccess: (_, caravanId) => {
-      queryClient.setQueryData(['userPreferences', user?.uid], (oldData: any) => ({
-          ...oldData,
-          activeCaravanId: caravanId,
-      }));
-      queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
-      const caravan = caravans.find(c => c.id === caravanId);
-      let toastMessage = `${caravan?.make} ${caravan?.model} is now active.`;
-      toast({ title: "Active Caravan Set", description: toastMessage });
+    mutationFn: (caravanId: string) => updateUserPreferences({ activeCaravanId: caravanId }),
+    onSuccess: () => {
+      invalidateAndRefetch();
+      toast({ title: "Active Caravan Set" });
     },
     onError: (error: Error) => {
        toast({ title: "Update Failed", description: error.message, variant: "destructive" });
@@ -158,36 +134,7 @@ export function CaravanManager() {
     return `${longText} / ${latText}`;
   };
 
-  if (isLoadingCaravans || isLoadingPrefs) {
-     return (
-        <Card>
-            <CardHeader>
-                <div className="flex justify-between items-center">
-                    <Skeleton className="h-8 w-1/3" />
-                    <Skeleton className="h-9 w-[190px]" />
-                </div>
-                <Skeleton className="h-4 w-2/3 mt-1" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <Skeleton className="h-24 w-full" />
-                <Skeleton className="h-24 w-full" />
-            </CardContent>
-        </Card>
-     )
-  }
-
-  if (caravansError || prefsError) {
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-destructive flex items-center"><AlertTriangle className="mr-2 h-5 w-5"/>Error Loading Caravans</CardTitle>
-                <CardDescription>{(caravansError || prefsError)?.message}</CardDescription>
-            </CardHeader>
-        </Card>
-    );
-  }
-
-  const isAddButtonDisabled = !hasProAccess && caravans.length >= 1;
+  const isAddButtonDisabled = !hasProAccess && initialCaravans.length >= 1;
 
   return (
     <>
@@ -222,8 +169,8 @@ export function CaravanManager() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {caravans.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No caravans added yet.</p>}
-          {caravans.map(caravan => {
+          {initialCaravans.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No caravans added yet.</p>}
+          {initialCaravans.map(caravan => {
             const caravanGrossPayload = (typeof caravan.atm === 'number' && typeof caravan.tareMass === 'number' && caravan.atm > 0 && caravan.tareMass > 0 && caravan.atm >= caravan.tareMass) ? caravan.atm - caravan.tareMass : null;
             return (
               <Card key={caravan.id} className={`p-4 ${activeCaravanId === caravan.id ? 'border-primary shadow-lg' : 'shadow-sm'}`}>
