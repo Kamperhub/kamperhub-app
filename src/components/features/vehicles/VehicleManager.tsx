@@ -35,7 +35,7 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
-  const { user, isAuthLoading } = useAuth();
+  const { user } = useAuth();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<StoredVehicle | null>(null);
@@ -46,16 +46,15 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
     confirmationText: '',
   });
 
-  // Data is now initialized with server-fetched props, but still managed by React Query client-side
   const { data: vehicles = [], error: vehiclesError } = useQuery<StoredVehicle[]>({
     queryKey: ['vehicles', user?.uid],
-    queryFn: fetchVehicles, // This will be called on subsequent refetches, but not initially
+    queryFn: fetchVehicles,
     initialData: initialVehicles,
     enabled: !!user,
   });
-
-  // User preferences are passed directly as a prop
+  
   const activeVehicleId = initialUserPrefs?.activeVehicleId;
+  const queryError = vehiclesError;
 
   const saveVehicleMutation = useMutation({
     mutationFn: (vehicleData: VehicleFormData | StoredVehicle) => {

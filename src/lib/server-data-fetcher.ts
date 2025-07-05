@@ -33,7 +33,7 @@ async function fetchCollection<T>(userId: string, collectionName: string): Promi
   if (!firestore) throw new Error("Firestore Admin SDK not initialized.");
   const snapshot = await firestore.collection('users').doc(userId).collection(collectionName).get();
   if (snapshot.empty) return [];
-  return snapshot.docs.map(doc => serializeFirestoreData<T>(doc.data() as T));
+  return snapshot.docs.map(doc => serializeFirestoreData<T>({ id: doc.id, ...doc.data() } as T));
 }
 
 export async function getVehicles(userId: string): Promise<StoredVehicle[]> {

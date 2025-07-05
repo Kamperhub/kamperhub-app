@@ -35,7 +35,7 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
-  const { user, isAuthLoading } = useAuth();
+  const { user } = useAuth();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCaravan, setEditingCaravan] = useState<StoredCaravan | null>(null);
@@ -54,7 +54,6 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
   });
 
   const activeCaravanId = initialUserPrefs?.activeCaravanId;
-  
   const queryError = caravansError;
 
   const saveCaravanMutation = useMutation({
