@@ -20,14 +20,18 @@ import {
   createVehicle, 
   updateVehicle, 
   deleteVehicle,
-  fetchUserPreferences,
   updateUserPreferences
 } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
 
-export function VehicleManager() {
+interface VehicleManagerProps {
+  initialVehicles: StoredVehicle[];
+  initialUserPrefs: Partial<UserProfile>;
+}
+
+export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
@@ -42,21 +46,16 @@ export function VehicleManager() {
     confirmationText: '',
   });
 
-  const { data: vehicles = [], isLoading: isLoadingVehicles, error: vehiclesError } = useQuery<StoredVehicle[]>({
+  // Data is now initialized with server-fetched props, but still managed by React Query client-side
+  const { data: vehicles = [], error: vehiclesError } = useQuery<StoredVehicle[]>({
     queryKey: ['vehicles', user?.uid],
-    queryFn: fetchVehicles,
-    enabled: !!user && !isAuthLoading,
+    queryFn: fetchVehicles, // This will be called on subsequent refetches, but not initially
+    initialData: initialVehicles,
+    enabled: !!user,
   });
 
-  const { data: userPrefs, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
-    queryKey: ['userPreferences', user?.uid],
-    queryFn: fetchUserPreferences,
-    enabled: !!user && !isAuthLoading,
-  });
-  
-  const activeVehicleId = userPrefs?.activeVehicleId;
-  const isLoadingData = isAuthLoading || isLoadingVehicles || isLoadingPrefs;
-  const queryError = vehiclesError || prefsError;
+  // User preferences are passed directly as a prop
+  const activeVehicleId = initialUserPrefs?.activeVehicleId;
 
   const saveVehicleMutation = useMutation({
     mutationFn: (vehicleData: VehicleFormData | StoredVehicle) => {
@@ -108,6 +107,11 @@ export function VehicleManager() {
   const setActiveVehicleMutation = useMutation({
     mutationFn: (vehicleId: string) => updateUserPreferences({ activeVehicleId: vehicleId }),
     onSuccess: (_, vehicleId) => {
+      // Optimistically update the local userPrefs state before refetching
+      queryClient.setQueryData(['userPreferences', user?.uid], (oldData: any) => ({
+          ...oldData,
+          activeVehicleId: vehicleId,
+      }));
       queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
       const vehicle = vehicles.find(v => v.id === vehicleId);
       toast({ title: "Active Vehicle Set", description: `${vehicle?.make} ${vehicle?.model} is now active.` });
@@ -166,35 +170,12 @@ export function VehicleManager() {
     return typeof value === 'number' ? `${value}${unit}` : 'N/A';
   };
 
-  const loadingSkeleton = (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <Skeleton className="h-8 w-1/3" />
-          <Skeleton className="h-9 w-[180px]" />
-        </div>
-        <Skeleton className="h-4 w-2/3 mt-2" />
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <Skeleton className="h-24 w-full" />
-      </CardContent>
-    </Card>
-  );
-
-  if (isLoadingData) {
-    return loadingSkeleton;
-  }
-  
-  if (!user && !isAuthLoading) {
-    return null; // Don't render anything if logged out
-  }
-
-  if (queryError) {
+  if (vehiclesError) {
     return (
         <Card>
             <CardHeader>
                 <CardTitle className="text-destructive">Error Loading Vehicles</CardTitle>
-                <CardDescription>{queryError.message}</CardDescription>
+                <CardDescription>{vehiclesError.message}</CardDescription>
             </CardHeader>
         </Card>
     );
@@ -238,9 +219,7 @@ export function VehicleManager() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {vehicles.length === 0 && (
-            <p className="text-muted-foreground text-center font-body py-4">No vehicles added yet. Click "Add New Vehicle" to start.</p>
-          )}
+          {vehicles.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No vehicles added yet. Click "Add New Vehicle" to start.</p>}
           {vehicles.map(vehicle => {
             const vehiclePayload = (typeof vehicle.gvm === 'number' && typeof vehicle.kerbWeight === 'number' && vehicle.gvm > 0 && vehicle.kerbWeight > 0 && vehicle.gvm >= vehicle.kerbWeight) ? vehicle.gvm - vehicle.kerbWeight : null;
             return (

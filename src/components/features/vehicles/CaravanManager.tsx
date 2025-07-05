@@ -20,15 +20,18 @@ import {
   createCaravan, 
   updateCaravan, 
   deleteCaravan,
-  fetchUserPreferences,
   updateUserPreferences
 } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
-import Link from 'next/link';
 
-export function CaravanManager() {
+interface CaravanManagerProps {
+  initialCaravans: StoredCaravan[];
+  initialUserPrefs: Partial<UserProfile>;
+}
+
+export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
@@ -43,21 +46,16 @@ export function CaravanManager() {
     confirmationText: '',
   });
 
-  const { data: caravans = [], isLoading: isLoadingCaravans, error: caravansError } = useQuery<StoredCaravan[]>({
+  const { data: caravans = [], error: caravansError } = useQuery<StoredCaravan[]>({
     queryKey: ['caravans', user?.uid],
     queryFn: fetchCaravans,
-    enabled: !!user && !isAuthLoading,
+    initialData: initialCaravans,
+    enabled: !!user,
   });
 
-  const { data: userPrefs, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
-    queryKey: ['userPreferences', user?.uid],
-    queryFn: fetchUserPreferences,
-    enabled: !!user && !isAuthLoading,
-  });
-
-  const activeCaravanId = userPrefs?.activeCaravanId;
-  const isLoadingData = isAuthLoading || isLoadingCaravans || isLoadingPrefs;
-  const queryError = caravansError || prefsError;
+  const activeCaravanId = initialUserPrefs?.activeCaravanId;
+  
+  const queryError = caravansError;
 
   const saveCaravanMutation = useMutation({
     mutationFn: (caravanData: CaravanFormData | StoredCaravan) => {
@@ -108,6 +106,10 @@ export function CaravanManager() {
       return updateUserPreferences({ activeCaravanId: caravanId });
     },
     onSuccess: (_, caravanId) => {
+      queryClient.setQueryData(['userPreferences', user?.uid], (oldData: any) => ({
+          ...oldData,
+          activeCaravanId: caravanId,
+      }));
       queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
       const caravan = caravans.find(c => c.id === caravanId);
       let toastMessage = `${caravan?.make} ${caravan?.model} is now active.`;
@@ -157,30 +159,7 @@ export function CaravanManager() {
     const latText = { 'left': 'Left', 'center': 'Center', 'right': 'Right' }[item.lateralPosition] || item.lateralPosition;
     return `${longText} / ${latText}`;
   };
-  
-  const loadingSkeleton = (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <Skeleton className="h-8 w-1/3" />
-          <Skeleton className="h-9 w-[190px]" />
-        </div>
-        <Skeleton className="h-4 w-2/3 mt-2" />
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <Skeleton className="h-24 w-full" />
-      </CardContent>
-    </Card>
-  );
 
-  if (isLoadingData) {
-    return loadingSkeleton;
-  }
-  
-  if (!user && !isAuthLoading) {
-    return null; // Don't render anything if logged out
-  }
-  
   if (queryError) {
     return (
         <Card>
@@ -301,7 +280,7 @@ export function CaravanManager() {
                         <ul className="list-disc pl-5 space-y-1">
                           {caravan.diagrams.map(diag => (
                             <li key={diag.id}>
-                              <Link href={diag.url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent hover:underline font-body">{diag.name}</Link>
+                              <a href={diag.url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent hover:underline font-body">{diag.name}</a>
                               {diag.notes && <p className="text-xs text-muted-foreground pl-1">{diag.notes}</p>}
                             </li>
                           ))}
