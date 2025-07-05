@@ -38,51 +38,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(currentUser);
       
       if (currentUser) {
+        setAuthStatus('LOADING'); // Set to loading while we fetch profile
         setProfileError(null);
-
-        const fetchProfileWithRetries = async (uid: string, retries = 3, delay = 400): Promise<UserProfile> => {
-          for (let i = 0; i < retries; i++) {
-              try {
-                  const profileDocRef = doc(db, "users", uid);
-                  const docSnap = await getDoc(profileDocRef);
-                  if (docSnap.exists()) {
-                      return docSnap.data() as UserProfile;
-                  }
-                  console.warn(`Profile not found on attempt ${i + 1}. Retrying in ${delay * (i + 1)}ms...`);
-                  await new Promise(res => setTimeout(res, delay * (i + 1)));
-              } catch (error: any) {
-                  if (error.code === 'permission-denied') {
-                       throw error; // Fail immediately on permission errors
-                  }
-                  console.warn(`Profile fetch attempt ${i + 1} failed with error, retrying...`, error.message);
-                  if (i === retries - 1) throw error; // Throw last error
-                  await new Promise(res => setTimeout(res, delay * (i + 1)));
-              }
-          }
-          throw new Error(`User profile not found for UID: ${uid}. This can happen if the signup process was interrupted. The user record exists in Firebase Authentication, but not in the Firestore database. You may need to delete this user from the Firebase Console's 'Authentication' tab and sign up again.`);
-        };
         
         try {
-          const profile = await fetchProfileWithRetries(currentUser.uid);
-          setUserProfile(profile);
-          setSubscriptionDetails(
-            profile.subscriptionTier || 'free',
-            profile.stripeCustomerId,
-            profile.trialEndsAt
-          );
-          setAuthStatus('READY');
-        } catch (error: any) {
-          console.error("Error fetching user profile after retries:", error);
-            
-          let errorMsg = `Failed to load user profile from the database. Original error: ${error.message}`;
-           if (error.message.toLowerCase().includes('permission_denied') || error.message.toLowerCase().includes('unauthenticated') || error.message.toLowerCase().includes('permission denied')) {
-            errorMsg = "PERMISSION_DENIED: Your app is being blocked by Firestore Security Rules. Please follow the instructions in FIREBASE_SETUP_CHECKLIST.md to deploy the rules file.";
-          } else if (error.code === 5 || error.message.includes('NOT_FOUND') || error.message.toLowerCase().includes('database not found')) {
-            errorMsg = "CRITICAL: The Firestore database 'kamperhubv2' could not be found. Please check Step 5 in FIREBASE_SETUP_CHECKLIST.md to ensure it was created with the correct ID.";
-          } else if(error.message.toLowerCase().includes('user profile not found')) {
-            errorMsg = error.message; 
+          const profileDocRef = doc(db, "users", currentUser.uid);
+          const docSnap = await getDoc(profileDocRef);
+          
+          if (docSnap.exists()) {
+              const profile = docSnap.data() as UserProfile;
+              setUserProfile(profile);
+              setSubscriptionDetails(
+                profile.subscriptionTier || 'free',
+                profile.stripeCustomerId,
+                profile.trialEndsAt
+              );
+              setAuthStatus('READY');
+          } else {
+             // This is a critical error state. The user is authenticated but has no profile.
+             throw new Error(`User profile document not found in the database. This can happen if the signup process was interrupted. Please try signing up again or contact support.`);
           }
-
+        } catch (error: any) {
+          console.error("AuthGuard - Error fetching user profile:", error);
+          let errorMsg = `Failed to load user profile. Error: ${error.message}`;
+           if (error.code === 'permission-denied' || error.message.toLowerCase().includes('permission denied')) {
+            errorMsg = "PERMISSION_DENIED: Your app is being blocked by Firestore Security Rules. Please follow the instructions in FIREBASE_SETUP_CHECKLIST.md to deploy the rules file.";
+          }
           setUserProfile(null);
           setSubscriptionDetails('free');
           setProfileError(errorMsg);
