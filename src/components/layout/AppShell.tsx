@@ -8,6 +8,7 @@ import { BottomNavigation } from './BottomNavigation';
 import { AuthGuard } from './AuthGuard';
 import { APIProvider } from '@vis.gl/react-google-maps';
 import { Loader2 } from 'lucide-react';
+import { initializeFirebaseAppCheck } from '@/lib/firebase';
 
 interface NavigationContextType {
   setIsNavigating: (isNavigating: boolean) => void;
@@ -43,6 +44,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // Hide loader whenever the path changes, which signifies navigation is complete
     setIsNavigating(false);
   }, [pathname, searchParams]);
+  
+  // Initialize Firebase App Check once the component has mounted on the client.
+  useEffect(() => {
+    initializeFirebaseAppCheck();
+  }, []);
 
   const isAuthPage = pathname === '/login' || pathname === '/signup';
 

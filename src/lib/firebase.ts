@@ -2,7 +2,7 @@
 import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
-import { initializeAppCheck, ReCaptchaEnterpriseProvider } from '@firebase/app-check';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from '@firebase/app-check';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -19,6 +19,7 @@ const firebaseConfig = {
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
+let appCheck: AppCheck | undefined;
 export let firebaseInitializationError: string | null = null;
 
 if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
@@ -36,20 +37,6 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}, connecting to database 'kamperhubv2'.`);
 
     if (typeof window !== 'undefined') {
-      if (process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY) {
-        try {
-          initializeAppCheck(app, {
-            provider: new ReCaptchaEnterpriseProvider(process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY),
-            isTokenAutoRefreshEnabled: true
-          });
-          console.log('[Firebase Client] App Check initialized.');
-        } catch(e: any) {
-          console.error(`[Firebase Client] App Check initialization failed. Error: ${e.message}`);
-        }
-      } else {
-        console.log('[Firebase Client] App Check not initialized (NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY is not set).');
-      }
-
       // Attempt to enable offline persistence with improved error handling for IndexedDB issues.
       try {
         enableIndexedDbPersistence(db)
@@ -78,6 +65,30 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     app = {} as FirebaseApp;
     auth = {} as Auth;
     db = {} as Firestore;
+  }
+}
+
+/**
+ * Initializes Firebase App Check on the client side.
+ * This function is designed to be called from a useEffect hook in a top-level component
+ * to ensure the DOM is ready, preventing reCAPTCHA placeholder errors.
+ */
+export function initializeFirebaseAppCheck() {
+  if (typeof window !== 'undefined' && !appCheck) {
+    if (process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY) {
+      try {
+        // This is the variable that will hold the AppCheck instance.
+        appCheck = initializeAppCheck(app, {
+          provider: new ReCaptchaEnterpriseProvider(process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY),
+          isTokenAutoRefreshEnabled: true
+        });
+        console.log('[Firebase Client] App Check initialized.');
+      } catch(e: any) {
+        console.error(`[Firebase Client] App Check initialization failed. Error: ${e.message}`);
+      }
+    } else {
+      console.log('[Firebase Client] App Check not initialized (NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY is not set).');
+    }
   }
 }
 
