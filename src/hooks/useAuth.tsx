@@ -1,9 +1,9 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, type ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, type Unsubscribe } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { auth, db, firebaseInitializationError } from '@/lib/firebase';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from './useSubscription';
