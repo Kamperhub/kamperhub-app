@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed':
         const session = event.data.object as Stripe.Checkout.Session;
-        const userId = session.metadata?.userId;
+        const userId = session.client_reference_id;
         const stripeCustomerId = session.customer as string;
         const stripeSubscriptionId = session.subscription as string;
 
@@ -99,6 +99,7 @@ export async function POST(req: NextRequest) {
         console.log(`[Stripe Webhook] Processed checkout.session.completed for user ${userId}`);
         break;
       
+      case 'invoice.paid': // Alias for payment_succeeded
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
         if (invoice.subscription && invoice.customer) {
@@ -113,9 +114,9 @@ export async function POST(req: NextRequest) {
             trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
             updatedAt: new Date().toISOString(),
           });
-          console.log(`[Stripe Webhook] Processed invoice.payment_succeeded for customer ${invoice.customer}`);
+          console.log(`[Stripe Webhook] Processed ${event.type} for customer ${invoice.customer}`);
         } else {
-          console.warn(`[Stripe Webhook] invoice.payment_succeeded event ${invoice.id} missing subscription or customer ID.`);
+          console.warn(`[Stripe Webhook] ${event.type} event ${invoice.id} missing subscription or customer ID.`);
         }
         break;
       }
