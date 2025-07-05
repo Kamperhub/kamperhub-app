@@ -15,9 +15,14 @@ export function getFirebaseAdmin() {
 
   try {
     const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+    const clientProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
     if (!serviceAccountJsonString) {
       throw new Error("FATAL: GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is not set. The server cannot connect to Firebase services.");
+    }
+    
+    if (!clientProjectId) {
+        throw new Error("FATAL: NEXT_PUBLIC_FIREBASE_PROJECT_ID environment variable is not set. Cannot verify server-side configuration.");
     }
 
     let jsonString = serviceAccountJsonString.trim();
@@ -29,16 +34,18 @@ export function getFirebaseAdmin() {
     try {
         serviceAccount = JSON.parse(jsonString);
     } catch (e: any) {
-        // This is a new, more specific error catch for malformed JSON.
         throw new Error(`FATAL: The GOOGLE_APPLICATION_CREDENTIALS_JSON string in your .env.local file is not valid JSON. Please copy it again carefully. The JSON parser failed with: ${e.message}`);
     }
 
+    // --- NEW VALIDATION STEP ---
+    if (serviceAccount.project_id !== clientProjectId) {
+        throw new Error(`FATAL: Project ID Mismatch. The server-side service account is for project '${serviceAccount.project_id}', but the client-side configuration is for project '${clientProjectId}'. Please ensure all keys in your .env.local file are from the same Firebase project.`);
+    }
 
     if (!serviceAccount.private_key) {
       throw new Error("FATAL: The 'private_key' field is missing from your service account JSON. Please ensure you have copied the entire JSON file correctly.");
     }
     
-    // This replace call is critical for keys copied from .env files
     if (serviceAccount.private_key) {
       serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
     }
