@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { CaravanForm } from './CaravanForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Link2 as LinkIcon, Ruler, PackagePlus, MapPin, Droplet, Weight, Axe, Loader2, FileText, Disc, Flame } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, Link2 as LinkIcon, Ruler, PackagePlus, MapPin, Droplet, Weight, Axe, Loader2, FileText, Disc, Flame, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -19,18 +19,14 @@ import {
   createCaravan, 
   updateCaravan, 
   deleteCaravan,
-  updateUserPreferences
+  updateUserPreferences,
+  fetchUserPreferences
 } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
 
-interface CaravanManagerProps {
-  initialCaravans: StoredCaravan[];
-  initialUserPrefs: Partial<UserProfile>;
-}
-
-export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanManagerProps) {
+export function CaravanManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
@@ -45,15 +41,19 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
     confirmationText: '',
   });
 
-  const { data: caravans = [], error: caravansError } = useQuery<StoredCaravan[]>({
+  const { data: caravans = [], isLoading: isLoadingCaravans, error: caravansError } = useQuery<StoredCaravan[]>({
     queryKey: ['caravans', user?.uid],
     queryFn: fetchCaravans,
-    initialData: initialCaravans,
     enabled: !!user,
   });
 
-  const activeCaravanId = initialUserPrefs?.activeCaravanId;
-  const queryError = caravansError;
+  const { data: userPrefs, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
+    queryKey: ['userPreferences', user?.uid],
+    queryFn: fetchUserPreferences,
+    enabled: !!user,
+  });
+
+  const activeCaravanId = userPrefs?.activeCaravanId;
 
   const saveCaravanMutation = useMutation({
     mutationFn: (caravanData: CaravanFormData | StoredCaravan) => {
@@ -158,12 +158,30 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
     return `${longText} / ${latText}`;
   };
 
-  if (queryError) {
+  if (isLoadingCaravans || isLoadingPrefs) {
+     return (
+        <Card>
+            <CardHeader>
+                <div className="flex justify-between items-center">
+                    <Skeleton className="h-8 w-1/3" />
+                    <Skeleton className="h-9 w-[190px]" />
+                </div>
+                <Skeleton className="h-4 w-2/3 mt-1" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+            </CardContent>
+        </Card>
+     )
+  }
+
+  if (caravansError || prefsError) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-destructive">Error Loading Caravans</CardTitle>
-                <CardDescription>{queryError.message}</CardDescription>
+                <CardTitle className="text-destructive flex items-center"><AlertTriangle className="mr-2 h-5 w-5"/>Error Loading Caravans</CardTitle>
+                <CardDescription>{(caravansError || prefsError)?.message}</CardDescription>
             </CardHeader>
         </Card>
     );

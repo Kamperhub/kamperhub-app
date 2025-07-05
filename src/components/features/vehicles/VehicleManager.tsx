@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { VehicleForm } from './VehicleForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, Weight, Axe, Car, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Ruler, Backpack, Loader2, Disc, Settings } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, Fuel, Weight, Axe, Car, PackagePlus, MapPin, ArrowLeftRight, ArrowUpDown, Ruler, Backpack, Loader2, Disc, Settings, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -19,18 +19,14 @@ import {
   createVehicle, 
   updateVehicle, 
   deleteVehicle,
-  updateUserPreferences
+  updateUserPreferences,
+  fetchUserPreferences
 } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
 
-interface VehicleManagerProps {
-  initialVehicles: StoredVehicle[];
-  initialUserPrefs: Partial<UserProfile>;
-}
-
-export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleManagerProps) {
+export function VehicleManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
@@ -44,17 +40,21 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
     vehicleName: null,
     confirmationText: '',
   });
-
-  const { data: vehicles = [], error: vehiclesError } = useQuery<StoredVehicle[]>({
+  
+  const { data: vehicles = [], isLoading: isLoadingVehicles, error: vehiclesError } = useQuery<StoredVehicle[]>({
     queryKey: ['vehicles', user?.uid],
     queryFn: fetchVehicles,
-    initialData: initialVehicles,
     enabled: !!user,
   });
-  
-  const activeVehicleId = initialUserPrefs?.activeVehicleId;
-  const queryError = vehiclesError;
 
+  const { data: userPrefs, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
+    queryKey: ['userPreferences', user?.uid],
+    queryFn: fetchUserPreferences,
+    enabled: !!user,
+  });
+
+  const activeVehicleId = userPrefs?.activeVehicleId;
+  
   const saveVehicleMutation = useMutation({
     mutationFn: (vehicleData: VehicleFormData | StoredVehicle) => {
       const dataToSend = editingVehicle ? { ...editingVehicle, ...vehicleData } : vehicleData;
@@ -105,7 +105,6 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
   const setActiveVehicleMutation = useMutation({
     mutationFn: (vehicleId: string) => updateUserPreferences({ activeVehicleId: vehicleId }),
     onSuccess: (_, vehicleId) => {
-      // Optimistically update the local userPrefs state before refetching
       queryClient.setQueryData(['userPreferences', user?.uid], (oldData: any) => ({
           ...oldData,
           activeVehicleId: vehicleId,
@@ -168,12 +167,30 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
     return typeof value === 'number' ? `${value}${unit}` : 'N/A';
   };
 
-  if (vehiclesError) {
+  if (isLoadingVehicles || isLoadingPrefs) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-destructive">Error Loading Vehicles</CardTitle>
-                <CardDescription>{vehiclesError.message}</CardDescription>
+                <div className="flex justify-between items-center">
+                    <Skeleton className="h-8 w-1/3" />
+                    <Skeleton className="h-9 w-[180px]" />
+                </div>
+                <Skeleton className="h-4 w-2/3 mt-1" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+            </CardContent>
+        </Card>
+    )
+  }
+
+  if (vehiclesError || prefsError) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-destructive flex items-center"><AlertTriangle className="mr-2 h-5 w-5"/>Error Loading Data</CardTitle>
+                <CardDescription>{(vehiclesError || prefsError)?.message}</CardDescription>
             </CardHeader>
         </Card>
     );
