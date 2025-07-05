@@ -1,6 +1,7 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
   webpack: (config, { dev, isServer }) => {
     // In some environments, file system watching is unreliable.
