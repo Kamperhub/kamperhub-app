@@ -43,9 +43,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         try {
           const profileDocRef = doc(db, "users", currentUser.uid);
-          const docSnap = await getDoc(profileDocRef);
+
+          // Implement a retry mechanism to handle potential Firestore replication delay after signup.
+          let docSnap;
+          let attempts = 0;
+          const maxAttempts = 3;
+          const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+          while (attempts < maxAttempts) {
+            docSnap = await getDoc(profileDocRef);
+            if (docSnap.exists()) {
+              break; // Document found, exit loop.
+            }
+            attempts++;
+            if (attempts < maxAttempts) {
+              await delay(attempts * 500); // Wait 500ms, then 1000ms before final attempt.
+            }
+          }
           
-          if (docSnap.exists()) {
+          if (docSnap && docSnap.exists()) {
               const profile = docSnap.data() as UserProfile;
               setUserProfile(profile);
               setSubscriptionDetails(
@@ -55,7 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               );
               setAuthStatus('READY');
           } else {
-             // This is a critical error state. The user is authenticated but has no profile.
+             // This is now a more reliable error state after retries have failed.
              throw new Error(`User profile document not found in the database. This can happen if the signup process was interrupted. Please try signing up again or contact support.`);
           }
         } catch (error: any) {
