@@ -9,7 +9,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { LayoutDashboard, Settings2, Backpack, ListChecks, Route as RouteIcon, History, BedDouble, BookOpen, ShieldAlert, UserCircle, DollarSign, Wrench } from 'lucide-react';
+import { LayoutDashboard, Settings2, Backpack, ListChecks, Route as RouteIcon, History, BedDouble, BookOpen, ShieldAlert, UserCircle, DollarSign } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 export function UserManualContent() {
@@ -24,7 +24,6 @@ export function UserManualContent() {
         <li>Trip plans and logged trips, including budgets, expenses and occupants</li>
         <li>Checklists (both trip-specific and caravan defaults)</li>
         <li>Accommodation bookings</li>
-        <li>Service and Fuel Logs</li>
         <li>Customized dashboard layout</li>
       </ul>
       <p>
@@ -84,35 +83,8 @@ export function UserManualContent() {
         </>
       )
     },
-     {
-      title: "3. Service & Fuel Log",
-      icon: Wrench,
-      content: (
-         <>
-          <p>Keep a comprehensive record of your vehicle's fuel usage and maintenance tasks for all your assets to ensure they stay in top condition.</p>
-          <ul className="list-disc pl-5 space-y-2">
-            <li>
-              <h4 className="font-semibold font-headline text-md text-foreground">Maintenance Log:</h4>
-              <ul className="list-disc pl-5 space-y-1 text-sm">
-                <li><strong>Track Tasks:</strong> Add, edit, or delete maintenance tasks for any of your saved vehicles or caravans.</li>
-                <li><strong>Task Details:</strong> Each task includes a name, category (e.g., Engine, Tyres, Brakes), and due date or due odometer reading.</li>
-                <li><strong>Status:</strong> Mark tasks as completed to move them to the bottom of the list, keeping your upcoming maintenance organized.</li>
-              </ul>
-            </li>
-             <li>
-              <h4 className="font-semibold font-headline text-md text-foreground">Fuel Log:</h4>
-              <ul className="list-disc pl-5 space-y-1 text-sm">
-                <li><strong>Select Vehicle:</strong> Choose a vehicle from your saved list to view or add fuel logs.</li>
-                <li><strong>Log Entries:</strong> Record the date, odometer reading, total cost, and price per litre for each fill-up. The system automatically calculates the litres.</li>
-                <li><strong>Trip Integration:</strong> You can optionally assign a fuel log entry to a specific saved trip. This will automatically add the cost as an expense under the 'Fuel' category in that trip's budget.</li>
-              </ul>
-            </li>
-          </ul>
-        </>
-      )
-    },
     {
-      title: "4. Inventory & Weight Management",
+      title: "3. Inventory & Weight Management",
       icon: Backpack,
       content: (
          <>
@@ -134,7 +106,7 @@ export function UserManualContent() {
       )
     },
     {
-      title: "5. Trip & Expense Planner",
+      title: "4. Trip & Expense Planner",
       icon: RouteIcon,
       content: (
         <>
@@ -178,7 +150,7 @@ export function UserManualContent() {
       )
     },
     {
-      title: "6. Trip Log",
+      title: "5. Trip Log",
       icon: History,
       content: (
         <>
@@ -199,7 +171,7 @@ export function UserManualContent() {
       )
     },
     {
-      title: "7. Trip Packing Assistant",
+      title: "6. Trip Packing Assistant",
       icon: Backpack,
       content: (
         <>
@@ -228,7 +200,7 @@ export function UserManualContent() {
       )
     },
      {
-      title: "8. Checklists",
+      title: "7. Checklists",
       icon: ListChecks,
       content: (
         <>
@@ -247,7 +219,7 @@ export function UserManualContent() {
       )
     },
     {
-      title: "9. Bookings",
+      title: "8. Bookings",
       icon: BedDouble,
       content: (
         <>
@@ -262,7 +234,7 @@ export function UserManualContent() {
       )
     },
     {
-      title: "10. Support & Learn",
+      title: "9. Support & Learn",
       icon: BookOpen,
       content: (
         <>
@@ -278,7 +250,7 @@ export function UserManualContent() {
       )
     },
     {
-      title: "11. My Account & Subscriptions",
+      title: "10. My Account & Subscriptions",
       icon: UserCircle,
       content: (
          <>

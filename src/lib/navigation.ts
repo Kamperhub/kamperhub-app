@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Wrench } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase } from 'lucide-react';
 
 export interface NavItem {
   href: string;
