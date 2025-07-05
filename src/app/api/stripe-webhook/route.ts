@@ -1,4 +1,3 @@
-
 // src/app/api/stripe-webhook/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import Stripe from 'stripe';
@@ -7,15 +6,21 @@ import type { UserProfile, SubscriptionTier } from '@/types/auth';
 import type admin from 'firebase-admin';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-let stripe: Stripe;
-if (stripeSecretKey) {
-  stripe = new Stripe(stripeSecretKey, {
-    apiVersion: '2024-04-10', // Using previous stable version
-  });
-} else {
-  console.error("Stripe secret key is not configured for webhook handler.");
-}
+let stripe: Stripe | undefined;
 
+// Defensive initialization to prevent server crashes from invalid keys
+if (stripeSecretKey && stripeSecretKey.startsWith('sk_')) {
+  try {
+    stripe = new Stripe(stripeSecretKey, {
+      apiVersion: '2024-06-20',
+    });
+  } catch (e: any) {
+    console.error("FATAL: Stripe failed to initialize, likely due to an invalid or malformed secret key.", e.message);
+    stripe = undefined;
+  }
+} else {
+  console.error("Stripe secret key is not configured or is invalid (it must start with 'sk_'). Webhook handler will be disabled.");
+}
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -46,8 +51,8 @@ export async function POST(req: NextRequest) {
   }
   
   if (!stripe) {
-    console.error("Webhook Error: Stripe is not configured on the server (STRIPE_SECRET_KEY missing at runtime).");
-    return NextResponse.json({ error: 'Stripe service is not configured on the server (missing STRIPE_SECRET_KEY). See setup guide.' }, { status: 503 });
+    console.error("Webhook Error: Stripe is not configured on the server (STRIPE_SECRET_KEY missing or invalid).");
+    return NextResponse.json({ error: 'Stripe service is not configured on the server (missing or invalid STRIPE_SECRET_KEY). See setup guide.' }, { status: 503 });
   }
   if (!webhookSecret) {
     console.error("Webhook Error: Stripe webhook secret is not configured (STRIPE_WEBHOOK_SECRET missing at runtime).");
@@ -75,12 +80,12 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed':
         const session = event.data.object as Stripe.Checkout.Session;
-        const userId = session.metadata?.userId;
+        const userId = session.client_reference_id; // Correctly get the user ID from client_reference_id
         const stripeCustomerId = session.customer as string;
         const stripeSubscriptionId = session.subscription as string;
 
         if (!userId || !stripeCustomerId || !stripeSubscriptionId) {
-          console.error(`[Stripe Webhook] checkout.session.completed event ${session.id} missing required data.`);
+          console.error(`[Stripe Webhook] checkout.session.completed event ${session.id} missing required data. client_reference_id (userId): ${userId}, customer: ${stripeCustomerId}, subscription: ${stripeSubscriptionId}`);
           break;
         }
 

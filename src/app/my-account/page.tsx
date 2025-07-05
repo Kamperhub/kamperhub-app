@@ -149,6 +149,11 @@ export default function MyAccountPage() {
   };
   
   const handleSubscribeToPro = () => {
+    if (!user) {
+      toast({ title: "Not logged in", description: "You must be logged in to subscribe.", variant: "destructive" });
+      return;
+    }
+    
     const paymentLink = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK;
     if (!paymentLink || !paymentLink.startsWith('https://buy.stripe.com/')) {
       toast({
@@ -160,11 +165,11 @@ export default function MyAccountPage() {
       return;
     }
 
-    // Attempt to open in a new tab, which provides feedback if blocked.
-    const stripeWindow = window.open(paymentLink, '_blank');
+    // Append the user's ID as client_reference_id to link the Stripe session to the Firebase user
+    const finalPaymentLink = `${paymentLink}?client_reference_id=${user.uid}`;
+
+    const stripeWindow = window.open(finalPaymentLink, '_blank');
     
-    // Check if the window was successfully opened.
-    // Some browsers return null, others might throw an error or have the window object closed immediately.
     if (!stripeWindow) {
       toast({
         title: 'Pop-up Blocker Active?',
@@ -193,7 +198,7 @@ export default function MyAccountPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${idToken}` 
         },
-        body: JSON.stringify({}), // Body is now empty, user is identified by token
+        body: JSON.stringify({}),
       });
       const sessionData = await response.json();
       if (response.ok && sessionData.url) {
@@ -226,10 +231,8 @@ export default function MyAccountPage() {
   
   const isAdminUser = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  // The AuthGuard handles the main loading/error states now.
-  // We just need to ensure user and userProfile are not null before rendering.
   if (!user || !userProfile) {
-    return null; // Or a minimal loader, but AuthGuard should prevent this state from being visible for long.
+    return null;
   }
   
   const initialProfileDataForEdit: EditProfileFormData = {
