@@ -1,4 +1,3 @@
-
 'use client';
 
 import { auth, db } from './firebase';
@@ -23,7 +22,6 @@ import type { LoggedTrip } from '@/types/tripplanner';
 import type { BookingEntry } from '@/types/booking';
 import type { UserProfile } from '@/types/auth';
 import type { PackingListCategory } from '@/types/packing';
-// Removed service types to prevent errors
 
 // --- Generic Fetcher for API Routes (for admin/auth actions that MUST be on server) ---
 async function apiFetch(url: string, options: RequestInit = {}) {
@@ -210,9 +208,6 @@ export async function deletePackingList(tripId: string): Promise<{ message: stri
     await deleteDoc(doc(db, 'users', uid, 'packingLists', tripId));
     return { message: 'Packing list deleted.' };
 }
-
-// ---- Service Log Functions ----
-// All service log functions have been removed to restore application stability.
 
 // ---- Admin & Auth Functions (Still need API routes) ----
 export const fetchAllUsers = (): Promise<{uid: string, email: string | undefined}[]> => apiFetch('/api/admin/list-users');
