@@ -132,7 +132,7 @@ export default function AdminPage() {
     toast({ title: "User List Refreshed" });
   };
 
-  if (isAuthLoading || (currentUser && isLoadingUsers && !allUsers.length)) {
+  if (isAuthLoading || (currentUser && isLoadingUsers && !allUsers.length && !usersError)) {
     return (
         <div className="flex justify-center items-center min-h-screen">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -255,8 +255,8 @@ export default function AdminPage() {
               </div>
               <div>
                 <Label htmlFor="confirmationText" className="font-body">Type "DELETE" to confirm</Label>
-                <Input id="confirmationText" {...register("confirmationText")} placeholder='Type DELETE here' disabled={deleteUserMutation.isPending}/>
-                {deleteForm.formState.errors.confirmationText && <p className="text-sm text-destructive mt-1 font-body">{errors.confirmationText.message}</p>}
+                <Input id="confirmationText" {...deleteForm.register("confirmationText")} placeholder='Type DELETE here' disabled={deleteUserMutation.isPending}/>
+                {deleteForm.formState.errors.confirmationText && <p className="text-sm text-destructive mt-1 font-body">{deleteForm.formState.errors.confirmationText.message}</p>}
               </div>
               <Button type="submit" variant="destructive" className="w-full font-body" disabled={deleteUserMutation.isPending || allUsers.length === 0}>
                 {deleteUserMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash2 className="mr-2 h-4 w-4" />}
@@ -268,3 +268,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    
