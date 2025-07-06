@@ -39,7 +39,7 @@ export function getFirebaseAdmin() {
 
     // --- NEW VALIDATION STEP ---
     if (serviceAccount.project_id !== clientProjectId) {
-        throw new Error(`FATAL: Project ID Mismatch. The server-side service account is for project '${serviceAccount.project_id}', but the client-side configuration is for project '${clientProjectId}'. Please ensure all keys in your .env.local file are from the same Firebase project.`);
+        throw new Error(`FATAL: Project ID Mismatch. Server key is for project '${serviceAccount.project_id}', but client keys are for project '${clientProjectId}'. All keys in your .env.local file MUST come from the same Firebase project. Please review the 'FIREBASE_SETUP_CHECKLIST.md' guide carefully.`);
     }
 
     if (!serviceAccount.private_key) {

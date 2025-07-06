@@ -106,7 +106,7 @@ After populating `.env.local`, you **MUST** restart your local development serve
     *   `[Firebase Admin] SDK initialized successfully for project: kamperhub-s4hc2`
     *   `[Firebase Client] Successfully initialized for project: kamperhub-s4hc2...`
 3.  If you see an error like `FATAL: The GOOGLE_APPLICATION_CREDENTIALS_JSON string... is not valid JSON`, it means there's a copy-paste error in your `.env.local` file. Recopy the service account JSON carefully.
-4.  If the project IDs in the two success messages above do not match, it means your client keys and server keys are from different projects. This is a critical error that will cause authentication to fail. Go back to Step 2 and ensure all keys come from the same project.
+4.  **If the project IDs in the two success messages above do not match, or if you see an error like "FATAL: Project ID Mismatch", it means your client keys and server keys are from different projects. This is a critical error that will cause authentication to fail. Go back to Step 2 and ensure all keys come from the same project.**
 
 ---
 
