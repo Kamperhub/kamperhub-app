@@ -39,6 +39,7 @@ const vehicleSchema = z.object({
   frontAxleLimit: z.coerce.number().min(1, "Front Axle Limit must be a positive number").optional().nullable(),
   rearAxleLimit: z.coerce.number().min(1, "Rear Axle Limit must be a positive number").optional().nullable(),
   wheelbase: z.coerce.number().min(1000, "Wheelbase seems too short (min 1000mm)").optional().nullable(),
+  overallHeight: z.coerce.number().min(1, "Height must be positive").optional().nullable(),
   recommendedTyrePressureUnladenPsi: z.coerce.number().min(0).optional().nullable(),
   recommendedTyrePressureLadenPsi: z.coerce.number().min(0).optional().nullable(),
   storageLocations: z.array(vehicleStorageLocationSchema).optional(),
@@ -75,6 +76,7 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
     frontAxleLimit: null,
     rearAxleLimit: null,
     wheelbase: null,
+    overallHeight: null,
     recommendedTyrePressureUnladenPsi: null,
     recommendedTyrePressureLadenPsi: null,
     storageLocations: [],
@@ -117,6 +119,7 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
         frontAxleLimit: data.frontAxleLimit ? Number(data.frontAxleLimit) : null,
         rearAxleLimit: data.rearAxleLimit ? Number(data.rearAxleLimit) : null,
         wheelbase: data.wheelbase ? Number(data.wheelbase) : null,
+        overallHeight: data.overallHeight ? Number(data.overallHeight) : null,
         recommendedTyrePressureUnladenPsi: data.recommendedTyrePressureUnladenPsi ? Number(data.recommendedTyrePressureUnladenPsi) : null,
         recommendedTyrePressureLadenPsi: data.recommendedTyrePressureLadenPsi ? Number(data.recommendedTyrePressureLadenPsi) : null,
         storageLocations: data.storageLocations?.map(loc => ({
@@ -224,25 +227,29 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
 
       <div className="p-4 border rounded-md space-y-4 bg-muted/30">
         <h3 className="text-lg font-medium font-headline text-primary flex items-center"><Fuel className="mr-2 h-5 w-5"/> Dimensions, Fuel & Tyres</h3>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div>
-            <Label htmlFor="wheelbase" className="font-body"><Ruler className="inline h-4 w-4 mr-1"/> Wheelbase (mm) (Opt.)</Label>
+            <Label htmlFor="wheelbase" className="font-body"><Ruler className="inline h-4 w-4 mr-1"/> Wheelbase (mm)</Label>
             <Input id="wheelbase" type="number" {...register("wheelbase")} placeholder="e.g., 3220" className="font-body" />
             {errors.wheelbase && <p className="text-sm text-destructive font-body mt-1">{errors.wheelbase.message}</p>}
           </div>
           <div>
-            <Label htmlFor="fuelEfficiency" className="font-body">Fuel Efficiency (Litres/100km)</Label>
-            <Input id="fuelEfficiency" type="number" step="0.1" {...register("fuelEfficiency")} placeholder="e.g., 12.5" className="font-body" />
-            <p className="text-xs text-muted-foreground font-body mt-1">Avg. combined efficiency.</p>
-            {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
+            <Label htmlFor="overallHeight" className="font-body"><Ruler className="inline h-4 w-4 mr-1"/> Overall Height (mm)</Label>
+            <Input id="overallHeight" type="number" {...register("overallHeight")} placeholder="e.g., 1850" className="font-body" />
+            {errors.overallHeight && <p className="text-sm text-destructive font-body mt-1">{errors.overallHeight.message}</p>}
           </div>
           <div>
-            <Label htmlFor="recommendedTyrePressureUnladenPsi" className="font-body"><Disc className="inline h-4 w-4 mr-1"/> Tyre PSI (Unladen) (Opt.)</Label>
+            <Label htmlFor="fuelEfficiency" className="font-body">Fuel L/100km</Label>
+            <Input id="fuelEfficiency" type="number" step="0.1" {...register("fuelEfficiency")} placeholder="e.g., 12.5" className="font-body" />
+            {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
+          </div>
+          <div className="md:col-start-1">
+            <Label htmlFor="recommendedTyrePressureUnladenPsi" className="font-body"><Disc className="inline h-4 w-4 mr-1"/> Tyre PSI (Unladen)</Label>
             <Input id="recommendedTyrePressureUnladenPsi" type="number" {...register("recommendedTyrePressureUnladenPsi")} placeholder="e.g., 36" className="font-body" />
             {errors.recommendedTyrePressureUnladenPsi && <p className="text-sm text-destructive font-body mt-1">{errors.recommendedTyrePressureUnladenPsi.message}</p>}
           </div>
           <div>
-            <Label htmlFor="recommendedTyrePressureLadenPsi" className="font-body"><Disc className="inline h-4 w-4 mr-1"/> Tyre PSI (Laden) (Opt.)</Label>
+            <Label htmlFor="recommendedTyrePressureLadenPsi" className="font-body"><Disc className="inline h-4 w-4 mr-1"/> Tyre PSI (Laden)</Label>
             <Input id="recommendedTyrePressureLadenPsi" type="number" {...register("recommendedTyrePressureLadenPsi")} placeholder="e.g., 42" className="font-body" />
             {errors.recommendedTyrePressureLadenPsi && <p className="text-sm text-destructive font-body mt-1">{errors.recommendedTyrePressureLadenPsi.message}</p>}
           </div>

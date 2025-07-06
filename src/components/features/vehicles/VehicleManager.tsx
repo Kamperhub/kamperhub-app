@@ -202,6 +202,7 @@ export function VehicleManager({ vehicles, userPrefs }: VehicleManagerProps) {
                       <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 rotate-90"/> F Axle: {formatDimension(vehicle.frontAxleLimit)}</span>
                       <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 -rotate-90"/> R Axle: {formatDimension(vehicle.rearAxleLimit)}</span>
                       <span className="flex items-center"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Wheelbase: {formatDimension(vehicle.wheelbase, 'mm')}</span>
+                      <span className="flex items-center"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Height: {formatDimension(vehicle.overallHeight, 'mm')}</span>
                       <span className="flex items-center"><Fuel className="w-3 h-3 mr-1 text-primary/70"/> {vehicle.fuelEfficiency} Litres/100km</span>
                       <span className="flex items-center col-span-full sm:col-span-2"><Disc className="w-3 h-3 mr-1 text-primary/70"/> Tyre PSI: {vehicle.recommendedTyrePressureUnladenPsi ?? 'N/A'} (Unladen) / {vehicle.recommendedTyrePressureLadenPsi ?? 'N/A'} (Laden)</span>
                     </div>
