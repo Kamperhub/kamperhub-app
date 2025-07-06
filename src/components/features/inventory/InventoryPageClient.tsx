@@ -167,4 +167,3 @@ export function InventoryPageClient({ initialData }: InventoryPageClientProps) {
     </div>
   );
 }
-
