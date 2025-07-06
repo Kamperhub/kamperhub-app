@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { LoggedTrip } from '@/types/tripplanner';
@@ -14,7 +13,7 @@ interface TripLogItemProps {
   onRecall: (trip: LoggedTrip) => void;
   onAddToCalendar: (trip: LoggedTrip) => void;
   onStartTrip: (tripId: string) => void;
-  onToggleComplete: (tripId: string) => void; // New prop
+  onToggleComplete: (tripId: string) => void;
 }
 
 export function TripLogItem({ trip, onDelete, onRecall, onAddToCalendar, onStartTrip, onToggleComplete }: TripLogItemProps) {
@@ -85,29 +84,29 @@ export function TripLogItem({ trip, onDelete, onRecall, onAddToCalendar, onStart
         <Button 
             variant={trip.isCompleted ? "outline" : "default"} 
             size="sm" 
-            onClick={() => onStartTrip(trip.id)} 
+            onClick={(e) => { e.stopPropagation(); onStartTrip(trip.id); }}
             className={`font-body ${trip.isCompleted ? '' : 'bg-green-600 hover:bg-green-700 text-white'}`}
         >
           <PlayCircle className="mr-2 h-4 w-4" /> {trip.isCompleted ? "View Checklists" : "Start Trip"}
         </Button>
         
         {trip.isCompleted ? (
-            <Button variant="outline" size="sm" onClick={() => onToggleComplete(trip.id)} className="font-body">
+            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onToggleComplete(trip.id); }} className="font-body">
                 <RotateCcw className="mr-2 h-4 w-4" /> Reopen Trip
             </Button>
         ) : (
-            <Button variant="outline" size="sm" onClick={() => onToggleComplete(trip.id)} className="font-body">
+            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onToggleComplete(trip.id); }} className="font-body">
                 <CheckSquare className="mr-2 h-4 w-4" /> Mark Completed
             </Button>
         )}
 
-        <Button variant="ghost" size="sm" onClick={() => onAddToCalendar(trip)} className="font-body text-primary" disabled={!trip.plannedStartDate}>
+        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onAddToCalendar(trip); }} className="font-body text-primary" disabled={!trip.plannedStartDate}>
           <CalendarPlus className="mr-2 h-4 w-4" /> Add to Calendar
         </Button>
-        <Button variant="outline" size="sm" onClick={() => onRecall(trip)} className="font-body">
+        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onRecall(trip); }} className="font-body">
           <Repeat className="mr-2 h-4 w-4" /> Recall
         </Button>
-        <Button variant="destructive" size="sm" onClick={() => onDelete(trip.id)} className="font-body">
+        <Button variant="destructive" size="sm" onClick={(e) => { e.stopPropagation(); onDelete(trip.id); }} className="font-body">
           <Trash2 className="mr-2 h-4 w-4" /> Delete
         </Button>
       </CardFooter>
