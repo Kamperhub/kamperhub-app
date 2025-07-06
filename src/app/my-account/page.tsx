@@ -271,21 +271,13 @@ export default function MyAccountPage() {
            <div className="p-4 border rounded-md bg-muted/30 space-y-2">
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-lg font-headline text-foreground">Account Details:</h3>
-              <Dialog open={isEditProfileOpen} onOpenChange={setIsEditProfileOpen}>
+              <Dialog open={isEditProfileOpen} onOpenChange={setIsEditProfileOpen} modal={false}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm" className="font-body">
                     <Edit3 className="mr-2 h-4 w-4" /> Edit Profile
                   </Button>
                 </DialogTrigger>
-                <DialogContent
-                  className="sm:max-w-[625px]"
-                  onInteractOutside={(e) => {
-                    const target = e.target as HTMLElement;
-                    if (target.closest('.pac-container')) {
-                      e.preventDefault();
-                    }
-                  }}
-                >
+                <DialogContent className="sm:max-w-[625px]">
                   <DialogHeader>
                     <DialogTitle className="font-headline">Edit Your Profile</DialogTitle>
                   </DialogHeader>
