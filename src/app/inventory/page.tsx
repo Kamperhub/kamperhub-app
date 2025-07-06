@@ -41,7 +41,7 @@ async function getInventoryPageData(uid: string) {
         ]);
 
         const data = {
-            userProfile: userSnap.exists() ? userSnap.data() as UserProfile : null,
+            userProfile: userSnap.exists ? userSnap.data() as UserProfile : null,
             caravans: caravansSnap.docs.map(doc => doc.data() as StoredCaravan),
             vehicles: vehiclesSnap.docs.map(doc => doc.data() as StoredVehicle),
             trips: tripsSnap.docs.map(doc => doc.data() as LoggedTrip),

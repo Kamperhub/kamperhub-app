@@ -25,11 +25,11 @@ import type { UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
 
 interface VehicleManagerProps {
-    initialVehicles: StoredVehicle[];
-    initialUserPrefs: Partial<UserProfile> | null;
+    vehicles: StoredVehicle[];
+    userPrefs: Partial<UserProfile> | null;
 }
 
-export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleManagerProps) {
+export function VehicleManager({ vehicles, userPrefs }: VehicleManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
@@ -44,7 +44,7 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
     confirmationText: '',
   });
 
-  const activeVehicleId = initialUserPrefs?.activeVehicleId;
+  const activeVehicleId = userPrefs?.activeVehicleId;
 
   const invalidateAndRefetch = () => {
     queryClient.invalidateQueries({ queryKey: ['allVehicleData', user?.uid] });
@@ -78,7 +78,7 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
     onSuccess: () => {
         invalidateAndRefetch();
         toast({ title: "Vehicle Deleted" });
-        setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' });
+        setDeleteDialogState({ isOpen: false, vehicleId: null, vehicleName: null, confirmationText: '' });
     },
     onError: (err: Error) => {
       invalidateAndRefetch();
@@ -90,7 +90,6 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
     mutationFn: (vehicleId: string) => updateUserPreferences({ activeVehicleId: vehicleId }),
     onSuccess: () => {
       invalidateAndRefetch();
-      const vehicle = initialVehicles.find(v => v.id === activeVehicleId);
       toast({ title: "Active Vehicle Set" });
     },
     onError: (error: Error) => {
@@ -147,7 +146,7 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
     return typeof value === 'number' ? `${value}${unit}` : 'N/A';
   };
 
-  const isAddButtonDisabled = !hasProAccess && initialVehicles.length >= 1;
+  const isAddButtonDisabled = !hasProAccess && vehicles.length >= 1;
 
   return (
     <>
@@ -185,8 +184,8 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {initialVehicles.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No vehicles added yet. Click "Add New Vehicle" to start.</p>}
-          {initialVehicles.map(vehicle => {
+          {vehicles.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No vehicles added yet. Click "Add New Vehicle" to start.</p>}
+          {vehicles.map(vehicle => {
             const vehiclePayload = (typeof vehicle.gvm === 'number' && typeof vehicle.kerbWeight === 'number' && vehicle.gvm > 0 && vehicle.kerbWeight > 0 && vehicle.gvm >= vehicle.kerbWeight) ? vehicle.gvm - vehicle.kerbWeight : null;
             return (
               <Card key={vehicle.id} className={`p-4 ${activeVehicleId === vehicle.id ? 'border-primary shadow-md' : ''}`}>
