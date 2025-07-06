@@ -184,6 +184,8 @@ export function CaravanManager({ caravans, userPrefs }: CaravanManagerProps) {
                       <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> GTM: {caravan.gtm}kg</span>
                       <span className="flex items-center"><Axe className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Axle Rating: {caravan.axleGroupRating}kg</span>
                       <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Towball: {caravan.maxTowballDownload}kg</span>
+                      <span className="flex items-center"><Ruler className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Length: {formatDimension(caravan.overallLength)}</span>
+                      <span className="flex items-center"><Ruler className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Height: {formatDimension(caravan.overallHeight)}</span>
                       {caravan.numberOfGasBottles && caravan.gasBottleCapacityKg && <span className="flex items-center"><Flame className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Gas: {caravan.numberOfGasBottles} x {caravan.gasBottleCapacityKg}kg</span>}
                       <span className="flex items-center col-span-full sm:col-span-2 md:col-span-1"><Disc className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Tyres: {caravan.tyreSize || 'N/A'} @ {caravan.recommendedTyrePressurePsi || 'N/A'} PSI</span>
                       {caravan.wdh && <span className="flex items-center col-span-full sm:col-span-1 md:col-span-1"><LinkIcon className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> WDH: {caravan.wdh.name}</span>}
