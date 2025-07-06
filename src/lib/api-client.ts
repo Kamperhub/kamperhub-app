@@ -60,10 +60,7 @@ export async function updateVehicle(data: StoredVehicle): Promise<{ vehicle: Sto
     return { vehicle: data };
 }
 export async function deleteVehicle(id: string): Promise<{ message: string }> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    await deleteDoc(doc(db, 'users', uid, 'vehicles', id));
-    return { message: 'Vehicle deleted successfully.' };
+    return apiFetch('/api/vehicles', { method: 'DELETE', body: JSON.stringify({ id }) });
 }
 
 // ---- Caravan API Functions ----
@@ -82,10 +79,7 @@ export async function updateCaravan(data: StoredCaravan): Promise<{ caravan: Sto
     return { caravan: data };
 }
 export async function deleteCaravan(id: string): Promise<{ message: string }> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    await deleteDoc(doc(db, 'users', uid, 'caravans', id));
-    return { message: 'Caravan deleted successfully.' };
+    return apiFetch('/api/caravans', { method: 'DELETE', body: JSON.stringify({ id }) });
 }
 
 // ---- Inventory API Functions ----
@@ -124,7 +118,7 @@ export async function updateTrip(data: LoggedTrip): Promise<{ trip: LoggedTrip }
     return { trip: data };
 }
 export async function deleteTrip(id: string): Promise<{ message: string }> {
-    return apiFetch('/api/trips', { method: 'DELETE', body: JSON.stringify({ id }) });
+    return apiFetch(`/api/trips?id=${id}`, { method: 'DELETE' });
 }
 
 // ---- Booking API Functions ----

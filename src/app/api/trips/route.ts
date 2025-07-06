@@ -66,14 +66,14 @@ const waypointSchema = z.object({
 });
 
 const routeDetailsSchema = z.object({
-  distance: z.string(),
-  duration: z.string(),
-  distanceValue: z.number(),
-  startAddress: z.string().optional(),
-  endAddress: z.string().optional(),
-  startLocation: latLngSchema.optional(),
-  endLocation: latLngSchema.optional(),
+  distance: z.object({ text: z.string(), value: z.number() }),
+  duration: z.object({ text: z.string(), value: z.number() }),
+  startLocation: latLngSchema.optional().nullable(),
+  endLocation: latLngSchema.optional().nullable(),
+  polyline: z.string().optional().nullable(),
+  warnings: z.array(z.string()).optional().nullable(),
 });
+
 
 const fuelEstimateSchema = z.object({
   fuelNeeded: z.string(),
@@ -118,6 +118,8 @@ const createTripSchema = z.object({
   checklists: tripChecklistSetSchema.optional(),
   budget: z.array(budgetCategorySchema).optional(),
   occupants: z.array(occupantSchema).min(1, "At least one occupant (e.g., the driver) is required.").optional(),
+  activeCaravanIdAtTimeOfCreation: z.string().nullable().optional(),
+  activeCaravanNameAtTimeOfCreation: z.string().nullable().optional(),
 });
 
 const updateTripSchema = createTripSchema.extend({
@@ -229,9 +231,11 @@ export async function DELETE(req: NextRequest) {
   if (errorResponse || !uid || !firestore) return errorResponse;
 
   try {
-    const { id } = await req.json();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    
     if (!id || typeof id !== 'string') {
-      return NextResponse.json({ error: 'Trip ID is required for deletion.' }, { status: 400 });
+      return NextResponse.json({ error: 'Trip ID is required as a query parameter.' }, { status: 400 });
     }
     
     await firestore.collection('users').doc(uid).collection('trips').doc(id).delete();
