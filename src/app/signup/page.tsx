@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase'; 
 import { createUserWithEmailAndPassword, updateProfile, type User as FirebaseUser, type AuthError, deleteUser } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, type DocumentReference } from 'firebase/firestore';
 import { UserPlus, Mail, User, KeyRound, MapPin, Building, Globe, Loader2, CheckSquare } from 'lucide-react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -49,6 +49,31 @@ const signupSchema = z.object({
 });
 
 type SignupFormData = z.infer<typeof signupSchema>;
+
+/**
+ * A wrapper for Firestore's setDoc that adds a timeout.
+ * This prevents the app from hanging if the database is misconfigured.
+ * @param docRef The document reference to write to.
+ * @param data The data to write.
+ * @param timeout The timeout in milliseconds.
+ * @returns A promise that resolves on successful write.
+ */
+async function setDocWithTimeout(docRef: DocumentReference, data: any, timeout: number): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Firestore write request timed out after ${timeout}ms. This usually means a problem connecting to the database. Please check your internet connection and ensure the database name in your configuration ('kamperhubv2') is correct in the Firebase Console.`));
+    }, timeout);
+
+    setDoc(docRef, data).then(() => {
+      clearTimeout(timer);
+      resolve();
+    }).catch((error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+  });
+}
+
 
 export default function SignupPage() {
   const { register, handleSubmit, formState: { errors }, control } = useForm<SignupFormData>({
@@ -116,7 +141,8 @@ export default function SignupPage() {
         trialEndsAt: isAdmin ? null : trialEndDate.toISOString(),
       };
 
-      await setDoc(doc(db, "users", newFirebaseUser.uid), userProfileData);
+      // Use the new setDocWithTimeout function here
+      await setDocWithTimeout(doc(db, "users", newFirebaseUser.uid), userProfileData, 7000);
       
       toast({
         title: isAdmin ? 'Admin Account Created!' : 'Account Created & Trial Started!',
@@ -140,7 +166,7 @@ export default function SignupPage() {
             break;
         }
       } else {
-        toastMessage = `Could not save your profile to the database. This might be due to a network issue or database permissions. Error: ${error.message}`;
+        toastMessage = `Could not save your profile to the database. ${error.message}`;
       }
 
       if (newFirebaseUser) {
