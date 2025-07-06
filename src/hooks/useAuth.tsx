@@ -71,8 +71,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               );
               setAuthStatus('READY');
           } else {
-             // This is now a more reliable error state after retries have failed.
-             throw new Error(`User profile document not found in the database. This can happen if the signup process was interrupted. Please try signing up again or contact support.`);
+             // Handle orphaned user: Auth record exists but Firestore doc is missing.
+             // This is a more robust solution than throwing an error.
+             console.warn(`Orphaned User Detected: Auth user ${currentUser.uid} exists, but the Firestore document is missing. Logging user out to enforce a clean signup or login.`);
+             await auth.signOut();
+             // The onAuthStateChanged listener will re-trigger with a null user, which will correctly set the status to UNAUTHENTICATED.
+             // No need to set state here, as it would be immediately overwritten by the next auth state change event.
           }
         } catch (error: any) {
           console.error("AuthGuard - Error fetching user profile:", error);
