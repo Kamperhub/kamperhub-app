@@ -341,6 +341,13 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
         <div className="space-y-4 pt-4">
           <h3 className="text-xl font-headline">Weight Summary &amp; Compliance</h3>
           <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+            <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+            <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">For Accurate Calculations</AlertTitle>
+            <AlertDescription className="font-body text-blue-700 dark:text-blue-300 text-xs">
+              The precision of these weight figures, especially the Calculated Towball Mass, depends directly on the accuracy of your inventory. Ensure each item's weight is correct and that items are assigned to the appropriate storage location. "Unassigned" items are assumed to be centered over the axles and will not contribute to the towball moment calculation.
+            </AlertDescription>
+          </Alert>
+          <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
               <Wand className="h-4 w-4 text-blue-700 dark:text-blue-300" />
               <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">About these calculations</AlertTitle>
               <AlertDescription className="font-body text-blue-700 dark:text-blue-300 text-xs">
