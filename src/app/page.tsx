@@ -94,7 +94,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex gap-2 flex-shrink-0">
           <StartTripDialog>
-            <Button className="font-body bg-accent hover:bg-accent/90 text-accent-foreground animate-pulse"><Car className="mr-2 h-4 w-4"/>Start a Trip</Button>
+            <Button className="font-body animate-pulse"><Car className="mr-2 h-4 w-4"/>Start a Trip</Button>
           </StartTripDialog>
           <ReturnTripDialog>
             <Button className="font-body" variant="outline"><CornerDownLeft className="mr-2 h-4 w-4"/>Plan Return</Button>
