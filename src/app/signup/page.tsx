@@ -155,7 +155,10 @@ export default function SignupPage() {
       let toastMessage = 'An unexpected error occurred. Please try again.';
       const authError = error as AuthError;
 
-      if (authError.code) {
+      // NEW: Check for the specific timeout error message
+      if (typeof error.message === 'string' && error.message.includes('Firestore write request timed out')) {
+        toastMessage = `Could not save your profile. ${error.message}`;
+      } else if (authError.code) {
         switch (authError.code) {
           case 'auth/email-already-in-use':
             toastMessage = 'This email address is already in use by another account.';
