@@ -124,10 +124,7 @@ export async function updateTrip(data: LoggedTrip): Promise<{ trip: LoggedTrip }
     return { trip: data };
 }
 export async function deleteTrip(id: string): Promise<{ message: string }> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    await deleteDoc(doc(db, 'users', uid, 'trips', id));
-    return { message: 'Trip deleted successfully.' };
+    return apiFetch('/api/trips', { method: 'DELETE', body: JSON.stringify({ id }) });
 }
 
 // ---- Booking API Functions ----
