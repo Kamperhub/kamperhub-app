@@ -7,7 +7,7 @@ import type { NavItem } from '@/lib/navigation';
 import { navItems as defaultNavItems } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Home as HomeIcon, Loader2, CornerDownLeft } from 'lucide-react';
+import { Home as HomeIcon, Loader2, CornerDownLeft, Rocket } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { updateUserPreferences } from '@/lib/api-client';
@@ -16,29 +16,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { NavigationContext } from '@/components/layout/AppShell';
 import { StartTripDialog } from '@/components/features/dashboard/StartTripDialog';
 import { ReturnTripDialog } from '@/components/features/dashboard/ReturnTripDialog';
-
-const CarAndCaravanIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-        <path d="M5.613 11.395A3.492 3.492 0 0 1 8.875 9H13.5"/>
-        <path d="M13.5 9V7.125c0-.982.684-1.808 1.637-2.052a3.5 3.5 0 0 1 3.425.404L21.5 7.5V11h-1.5"/>
-        <path d="M8.875 9H3.5a2 2 0 0 0-2 2v7h1.938"/>
-        <path d="m20.5 11-1.407 1.407a2 2 0 0 1-1.414.593H16.5v6H22v-3.5a2 2 0 0 0-2-2Z"/>
-        <circle cx="6.5" cy="18.5" r="2.5"/>
-        <circle cx="18.5" cy="18.5" r="2.5"/>
-    </svg>
-);
-
 
 function NavItemCard({ item }: { item: NavItem }) {
   const navContext = useContext(NavigationContext);
@@ -99,19 +76,29 @@ export default function DashboardPage() {
   
   return (
     <div className="space-y-8">
-      <div className="flex items-center mb-6">
-        <Image
-          src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.firebasestorage.app/o/KamperHub%20512x512.jpg?alt=media&token=00bf2acd-dbca-4cc2-984e-58461f67fdbd"
-          alt="KamperHub Logo"
-          width={60}
-          height={60}
-          className="mr-4 rounded-md"
-          priority
-          data-ai-hint="logo brand"
-        />
-        <div>
-          <h1 className="text-3xl font-headline text-primary">Welcome to KamperHub</h1>
-          <p className="font-body text-muted-foreground">Your ultimate travelling companion for everyone.</p>
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+        <div className="flex items-center">
+          <Image
+            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.firebasestorage.app/o/KamperHub%20512x512.jpg?alt=media&token=00bf2acd-dbca-4cc2-984e-58461f67fdbd"
+            alt="KamperHub Logo"
+            width={60}
+            height={60}
+            className="mr-4 rounded-md"
+            priority
+            data-ai-hint="logo brand"
+          />
+          <div>
+            <h1 className="text-3xl font-headline text-primary">Welcome to KamperHub</h1>
+            <p className="font-body text-muted-foreground">Your ultimate travelling companion for everyone.</p>
+          </div>
+        </div>
+        <div className="flex gap-2 flex-shrink-0">
+          <StartTripDialog>
+            <Button className="font-body" variant="outline"><Rocket className="mr-2 h-4 w-4"/>Start a Trip</Button>
+          </StartTripDialog>
+          <ReturnTripDialog>
+            <Button className="font-body" variant="outline"><CornerDownLeft className="mr-2 h-4 w-4"/>Plan Return</Button>
+          </ReturnTripDialog>
         </div>
       </div>
       
