@@ -1,4 +1,3 @@
-
 // src/app/api/trips/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -232,15 +231,25 @@ export async function DELETE(req: NextRequest) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
+    const tripId = searchParams.get('id');
     
-    if (!id || typeof id !== 'string') {
+    if (!tripId || typeof tripId !== 'string') {
       return NextResponse.json({ error: 'Trip ID is required as a query parameter.' }, { status: 400 });
     }
     
-    await firestore.collection('users').doc(uid).collection('trips').doc(id).delete();
+    // Create references to both the trip and its associated packing list
+    const tripDocRef = firestore.collection('users').doc(uid).collection('trips').doc(tripId);
+    const packingListDocRef = firestore.collection('users').doc(uid).collection('packingLists').doc(tripId);
+
+    // Use a batch to delete both atomically. If one fails, neither is deleted.
+    const batch = firestore.batch();
     
-    return NextResponse.json({ message: 'Trip deleted successfully.' }, { status: 200 });
+    batch.delete(tripDocRef);
+    batch.delete(packingListDocRef); // This will succeed even if the doc doesn't exist
+
+    await batch.commit();
+    
+    return NextResponse.json({ message: 'Trip and its associated packing list deleted successfully.' }, { status: 200 });
   } catch (err: any) {
     return handleApiError(err);
   }
