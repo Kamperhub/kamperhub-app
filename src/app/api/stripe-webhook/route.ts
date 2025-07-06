@@ -6,21 +6,15 @@ import type { UserProfile, SubscriptionTier } from '@/types/auth';
 import type admin from 'firebase-admin';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-let stripe: Stripe | undefined;
-
-// Defensive initialization to prevent server crashes from invalid keys
-if (stripeSecretKey && stripeSecretKey.startsWith('sk_')) {
-  try {
-    stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2024-06-20',
-    });
-  } catch (e: any) {
-    console.error("FATAL: Stripe failed to initialize, likely due to an invalid or malformed secret key.", e.message);
-    stripe = undefined;
-  }
+let stripe: Stripe;
+if (stripeSecretKey) {
+  stripe = new Stripe(stripeSecretKey, {
+    apiVersion: '2024-06-20', // Using latest stable version
+  });
 } else {
-  console.error("Stripe secret key is not configured or is invalid (it must start with 'sk_'). Webhook handler will be disabled.");
+  console.error("Stripe secret key is not configured for webhook handler.");
 }
+
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -44,15 +38,15 @@ async function updateUserSubscriptionStatus(
 
 
 export async function POST(req: NextRequest) {
-  const { firestore, error: adminError } = getFirebaseAdmin();
-  if (adminError || !firestore) {
+  const { auth, firestore, error: adminError } = getFirebaseAdmin();
+  if (adminError || !auth || !firestore) {
     console.error("Webhook Error: Firebase Admin SDK failed to initialize:", adminError?.message);
     return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
   }
   
   if (!stripe) {
-    console.error("Webhook Error: Stripe is not configured on the server (STRIPE_SECRET_KEY missing or invalid).");
-    return NextResponse.json({ error: 'Stripe service is not configured on the server (missing or invalid STRIPE_SECRET_KEY). See setup guide.' }, { status: 503 });
+    console.error("Webhook Error: Stripe is not configured on the server (STRIPE_SECRET_KEY missing at runtime).");
+    return NextResponse.json({ error: 'Stripe service is not configured on the server (missing STRIPE_SECRET_KEY). See setup guide.' }, { status: 503 });
   }
   if (!webhookSecret) {
     console.error("Webhook Error: Stripe webhook secret is not configured (STRIPE_WEBHOOK_SECRET missing at runtime).");
@@ -80,12 +74,27 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed':
         const session = event.data.object as Stripe.Checkout.Session;
-        const userId = session.client_reference_id; // Correctly get the user ID from client_reference_id
+        let userId = session.client_reference_id;
         const stripeCustomerId = session.customer as string;
         const stripeSubscriptionId = session.subscription as string;
 
+        // NEW: If the UID wasn't passed, try to look up the user by email from the Stripe session.
+        if (!userId && session.customer_details?.email && auth) {
+            try {
+                const userRecord = await auth.getUserByEmail(session.customer_details.email);
+                userId = userRecord.uid;
+                console.log(`[Stripe Webhook] Found user by email during checkout: ${session.customer_details.email} -> UID: ${userId}`);
+            } catch (e: any) {
+                if (e.code === 'auth/user-not-found') {
+                    console.warn(`[Stripe Webhook] User with email ${session.customer_details.email} from Stripe checkout does not exist in Firebase Auth. Cannot link subscription automatically.`);
+                } else {
+                    console.error('[Stripe Webhook] Error looking up user by email:', e);
+                }
+            }
+        }
+
         if (!userId || !stripeCustomerId || !stripeSubscriptionId) {
-          console.error(`[Stripe Webhook] checkout.session.completed event ${session.id} missing required data. client_reference_id (userId): ${userId}, customer: ${stripeCustomerId}, subscription: ${stripeSubscriptionId}`);
+          console.error(`[Stripe Webhook] checkout.session.completed event ${session.id} missing required data.`);
           break;
         }
 
@@ -105,6 +114,7 @@ export async function POST(req: NextRequest) {
         console.log(`[Stripe Webhook] Processed checkout.session.completed for user ${userId}`);
         break;
       
+      case 'invoice.paid': // Alias for payment_succeeded
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
         if (invoice.subscription && invoice.customer) {
@@ -119,9 +129,9 @@ export async function POST(req: NextRequest) {
             trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
             updatedAt: new Date().toISOString(),
           });
-          console.log(`[Stripe Webhook] Processed invoice.payment_succeeded for customer ${invoice.customer}`);
+          console.log(`[Stripe Webhook] Processed ${event.type} for customer ${invoice.customer}`);
         } else {
-          console.warn(`[Stripe Webhook] invoice.payment_succeeded event ${invoice.id} missing subscription or customer ID.`);
+          console.warn(`[Stripe Webhook] ${event.type} event ${invoice.id} missing subscription or customer ID.`);
         }
         break;
       }
