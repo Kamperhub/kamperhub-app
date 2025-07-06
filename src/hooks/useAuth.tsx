@@ -84,9 +84,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               setAuthStatus('READY');
           } else {
              // Handle orphaned user: Auth record exists but Firestore doc is missing.
-             console.warn(`Orphaned User Detected: Auth user ${currentUser.uid} exists, but the Firestore document is missing. Logging user out to enforce a clean signup or login.`);
-             await auth.signOut();
-             // The onAuthStateChanged listener will re-trigger with a null user, which will correctly set the status to UNAUTHENTICATED.
+             const errorMsg = `User profile not found. Your authentication record for '${currentUser.email}' exists, but your profile data is missing from the database. This can happen if signup was interrupted. Please ask the administrator to delete this user from the Firebase Authentication console, then sign up again.`;
+             console.error(errorMsg);
+             setProfileError(errorMsg);
+             setAuthStatus('ERROR');
           }
         } catch (error: any) {
           console.error("AuthGuard - Error fetching user profile:", error);
