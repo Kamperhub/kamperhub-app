@@ -255,7 +255,7 @@ export default function AdminPage() {
               </div>
               <div>
                 <Label htmlFor="confirmationText" className="font-body">Type "DELETE" to confirm</Label>
-                <Input id="confirmationText" {...deleteForm.register("confirmationText")} placeholder='Type DELETE here' disabled={deleteUserMutation.isPending}/>
+                <Input id="confirmationText" {...register("confirmationText")} placeholder='Type DELETE here' disabled={deleteUserMutation.isPending}/>
                 {deleteForm.formState.errors.confirmationText && <p className="text-sm text-destructive mt-1 font-body">{deleteForm.formState.errors.confirmationText.message}</p>}
               </div>
               <Button type="submit" variant="destructive" className="w-full font-body" disabled={deleteUserMutation.isPending || allUsers.length === 0}>
@@ -269,4 +269,3 @@ export default function AdminPage() {
   );
 }
 
-    
