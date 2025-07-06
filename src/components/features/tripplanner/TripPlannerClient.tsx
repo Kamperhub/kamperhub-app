@@ -27,7 +27,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
-import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Trash2, PlusCircle, Users, AlertTriangle, XCircle, Edit3, Car, Settings, TowerControl } from 'lucide-react';
+import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Trash2, PlusCircle, Users, AlertTriangle, XCircle, Edit3, Car, Settings, TowerControl, Home } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from "date-fns";
@@ -364,6 +364,7 @@ export function TripPlannerClient() {
         title: "Occupant Required",
         description: "Please add at least one occupant (e.g., the driver) before saving.",
         variant: "destructive",
+        duration: 6000,
       });
       return;
     }
@@ -475,7 +476,22 @@ export function TripPlannerClient() {
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                    <GooglePlacesAutocompleteInput control={control} name="startLocation" label="Start Location" placeholder="e.g., Sydney, NSW" errors={errors} setValue={setValue} isApiReady={isGoogleApiReady} />
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                          <Label htmlFor="startLocation" className="font-body">Start Location</Label>
+                          {userPrefs?.homeAddress && (
+                              <Button
+                                  type="button"
+                                  variant="link"
+                                  className="p-0 h-auto text-xs font-body flex items-center"
+                                  onClick={() => setValue('startLocation', userPrefs.homeAddress || '', { shouldValidate: true })}
+                              >
+                                  <Home className="mr-1 h-3 w-3"/> Set to Home
+                              </Button>
+                          )}
+                      </div>
+                      <GooglePlacesAutocompleteInput control={control} name="startLocation" label="" placeholder="e.g., Sydney, NSW" errors={errors} setValue={setValue} isApiReady={isGoogleApiReady} />
+                    </div>
                     <GooglePlacesAutocompleteInput control={control} name="endLocation" label="End Location" placeholder="e.g., Melbourne, VIC" errors={errors} setValue={setValue} isApiReady={isGoogleApiReady} />
                     <div>
                       <Label htmlFor="dateRange" className="font-body">Planned Date Range</Label>

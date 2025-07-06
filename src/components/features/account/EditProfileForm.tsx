@@ -8,8 +8,9 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, XCircle, Mail, User, MapPin, Building, Globe, UserCircle as UserCircleIcon } from 'lucide-react';
+import { Save, XCircle, Mail, User, MapPin, Building, Globe, UserCircle as UserCircleIcon, Home } from 'lucide-react';
 import type { UserProfile } from '@/types/auth';
+import { Separator } from '@/components/ui/separator';
 
 // Schema for the fields that can be edited
 export const editProfileSchema = z.object({
@@ -22,6 +23,7 @@ export const editProfileSchema = z.object({
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State / Region is required"),
   country: z.string().min(1, "Country is required"),
+  homeAddress: z.string().optional().nullable(),
 });
 
 export type EditProfileFormData = z.infer<typeof editProfileSchema>;
@@ -44,6 +46,7 @@ export function EditProfileForm({ initialData, onSave, onCancel, isLoading }: Ed
       city: initialData.city || '',
       state: initialData.state || '',
       country: initialData.country || '',
+      homeAddress: initialData.homeAddress || '',
     }
   });
 
@@ -128,6 +131,16 @@ export function EditProfileForm({ initialData, onSave, onCancel, isLoading }: Ed
           {errors.country && <p className="text-xs text-destructive font-body mt-1">{errors.country.message}</p>}
         </div>
       </div>
+      <Separator className="my-4"/>
+       <div>
+          <Label htmlFor="editHomeAddress" className="font-body">Home Address (for Trip Planner)</Label>
+          <div className="relative">
+            <Home className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input id="editHomeAddress" {...register("homeAddress")} placeholder="e.g., 123 Main St, Anytown" className="font-body pl-10" disabled={isLoading}/>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">This allows you to quickly set your start location.</p>
+          {errors.homeAddress && <p className="text-xs text-destructive font-body mt-1">{errors.homeAddress.message}</p>}
+        </div>
 
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading} className="font-body">

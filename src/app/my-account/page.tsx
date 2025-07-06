@@ -15,7 +15,7 @@ import { format, isAfter, parseISO } from 'date-fns';
 import type { UserProfile } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, UserCog, AlertTriangle, RotateCw, Clock, Sparkles, Link as LinkIcon, Check, Trash2 } from 'lucide-react';
+import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, UserCog, AlertTriangle, RotateCw, Clock, Sparkles, Link as LinkIcon, Check, Trash2, Home } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -111,6 +111,7 @@ export default function MyAccountPage() {
         city: data.city,
         state: data.state,
         country: data.country,
+        homeAddress: data.homeAddress,
       });
 
       if (auth.currentUser) await auth.currentUser.reload();
@@ -243,6 +244,7 @@ export default function MyAccountPage() {
     city: userProfile.city || '',
     state: userProfile.state || '',
     country: userProfile.country || '',
+    homeAddress: userProfile.homeAddress || '',
   };
   
   const fullName = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ');
@@ -312,6 +314,10 @@ export default function MyAccountPage() {
              <p className="font-body text-sm flex items-center">
                 <Globe className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
                 <strong>Country:</strong>&nbsp;{userProfile.country || '[Not Provided]'}
+            </p>
+            <p className="font-body text-sm flex items-center">
+                <Home className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
+                <strong>Home Address:</strong>&nbsp;{userProfile.homeAddress || '[Not Set]'}
             </p>
           </div>
 
