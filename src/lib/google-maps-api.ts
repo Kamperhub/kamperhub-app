@@ -1,4 +1,3 @@
-
 'use server';
 
 import type { RouteDetails } from '@/types/tripplanner';
@@ -25,10 +24,11 @@ function formatDuration(isoDuration: string): string {
 }
 
 export async function calculateRoute(origin: string, destination: string, vehicleHeight?: number): Promise<RouteDetails> {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  // Use the server-side GOOGLE_API_KEY, which should not have HTTP referrer restrictions.
+  const apiKey = process.env.GOOGLE_API_KEY;
 
   if (!apiKey) {
-    throw new Error('Google Maps API key is not configured on the server.');
+    throw new Error('Server-side GOOGLE_API_KEY is not configured. This key is required for route calculations and should not have HTTP referrer restrictions. See setup guide.');
   }
 
   const parsedBody = directionsRequestSchema.safeParse({ origin, destination, vehicleHeight });
