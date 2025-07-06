@@ -204,6 +204,33 @@ export function TripPlannerClient() {
     }
   }, [isTowing, allCaravans, allVehicles, userPrefs, setValue]);
 
+  // Effect to draw route polyline on the map when details change
+  useEffect(() => {
+    if (polylineRef.current) {
+      polylineRef.current.setMap(null);
+    }
+    if (routeDetails?.polyline && map && window.google?.maps?.geometry) {
+      try {
+        const decodedPath = window.google.maps.geometry.encoding.decodePath(routeDetails.polyline);
+        const newPolyline = new window.google.maps.Polyline({
+          path: decodedPath,
+          strokeColor: 'hsl(var(--primary))',
+          strokeOpacity: 0.8,
+          strokeWeight: 6,
+        });
+        newPolyline.setMap(map);
+        polylineRef.current = newPolyline;
+
+        const bounds = new window.google.maps.LatLngBounds();
+        decodedPath.forEach(point => bounds.extend(point));
+        map.fitBounds(bounds);
+      } catch (e) {
+        console.error("Error decoding or drawing polyline:", e);
+        setError("Could not draw the route on the map.");
+      }
+    }
+  }, [routeDetails, map]); // Depends on routeDetails and map readiness
+
   const onSubmit: SubmitHandler<TripPlannerFormValues> = async (data) => {
     setIsLoading(true);
     setRouteDetails(null);
@@ -228,19 +255,6 @@ export function TripPlannerClient() {
         }
         
         setRouteDetails(result);
-
-        if (result.polyline && map && window.google?.maps?.geometry) {
-            const decodedPath = window.google.maps.geometry.encoding.decodePath(result.polyline);
-            if (polylineRef.current) polylineRef.current.setMap(null);
-            
-            const newPolyline = new window.google.maps.Polyline({ path: decodedPath, strokeColor: 'hsl(var(--primary))', strokeOpacity: 0.8, strokeWeight: 6 });
-            newPolyline.setMap(map);
-            polylineRef.current = newPolyline;
-            
-            const bounds = new window.google.maps.LatLngBounds();
-            decodedPath.forEach(point => bounds.extend(point));
-            map.fitBounds(bounds);
-        }
         
         if (tripOccupants.length === 0 && user) {
           const defaultDriver: Occupant = {
