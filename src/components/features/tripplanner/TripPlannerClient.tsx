@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -84,7 +85,6 @@ export function TripPlannerClient() {
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [fuelEstimate, setFuelEstimate] = useState<FuelEstimate | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [routeWarnings, setRouteWarnings] = useState<string[]>([]);
   const { toast } = useToast();
   const pathname = usePathname();
   const queryClient = useQueryClient();
@@ -132,7 +132,6 @@ export function TripPlannerClient() {
     setIsTowing(true);
     setRouteDetails(null);
     setFuelEstimate(null);
-    setRouteWarnings([]);
     setActiveTrip(null);
     setTripBudget([]);
     setTripExpenses([]);
@@ -210,7 +209,6 @@ export function TripPlannerClient() {
     setRouteDetails(null);
     setFuelEstimate(null);
     setError(null);
-    setRouteWarnings([]);
     if (polylineRef.current) polylineRef.current.setMap(null);
 
     try {
@@ -224,21 +222,12 @@ export function TripPlannerClient() {
             }),
         });
 
-        const result = await response.json();
+        const result: RouteDetails = await response.json();
         if (!response.ok) {
-            throw new Error(result.error || 'Failed to calculate route.');
+            throw new Error((result as any).error || 'Failed to calculate route.');
         }
         
-        const distanceValue = result.distance.value;
-
-        const newRouteDetails: RouteDetails = {
-            distance: result.distance.text,
-            duration: result.duration.text,
-            distanceValue,
-            startLocation: result.startLocation,
-            endLocation: result.endLocation,
-        };
-        setRouteDetails(newRouteDetails);
+        setRouteDetails(result);
 
         if (result.polyline && map && window.google?.maps?.geometry) {
             const decodedPath = window.google.maps.geometry.encoding.decodePath(result.polyline);
@@ -252,11 +241,7 @@ export function TripPlannerClient() {
             decodedPath.forEach(point => bounds.extend(point));
             map.fitBounds(bounds);
         }
-
-        if(result.warnings && result.warnings.length > 0) {
-            setRouteWarnings(result.warnings);
-        }
-
+        
         if (tripOccupants.length === 0 && user) {
           const defaultDriver: Occupant = {
             id: `driver_${Date.now()}`,
@@ -274,8 +259,8 @@ export function TripPlannerClient() {
           });
         }
 
-        if (distanceValue > 0 && data.fuelEfficiency > 0) {
-          const fuelNeeded = (distanceValue / 1000 / 100) * data.fuelEfficiency;
+        if (result.distance.value > 0 && data.fuelEfficiency > 0) {
+          const fuelNeeded = (result.distance.value / 1000 / 100) * data.fuelEfficiency;
           const estimatedCost = fuelNeeded * data.fuelPrice;
           setFuelEstimate({ fuelNeeded: `${fuelNeeded.toFixed(1)} L`, estimatedCost: `$${estimatedCost.toFixed(2)}` });
 
@@ -579,11 +564,11 @@ export function TripPlannerClient() {
                 </Map>
               </div></CardContent></Card>
               {error && <Alert variant="destructive"><AlertTitle className="font-headline">Error</AlertTitle><AlertDescription className="font-body">{error}</AlertDescription></Alert>}
-              {routeWarnings.length > 0 && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle className="font-headline">Route Warnings</AlertTitle><AlertDescription className="font-body space-y-1">{routeWarnings.map((warning, i) => <p key={i}>{warning}</p>)}</AlertDescription></Alert>}
+              {routeDetails?.warnings && routeDetails.warnings.length > 0 && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle className="font-headline">Route Warnings</AlertTitle><AlertDescription className="font-body space-y-1">{routeDetails.warnings.map((warning, i) => <p key={i}>{warning}</p>)}</AlertDescription></Alert>}
               {isLoading && !routeDetails && <Card><CardHeader><CardTitle className="font-headline">Trip Summary</CardTitle></CardHeader><CardContent className="space-y-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-4 w-1/2" /><Skeleton className="h-4 w-2/3" /></CardContent></Card>}
               {routeDetails && <Card><CardHeader><CardTitle className="font-headline">Trip Summary</CardTitle></CardHeader><CardContent className="space-y-2">
-                  <div className="font-body text-sm"><strong>Distance:</strong> {routeDetails.distance}</div>
-                  <div className="font-body text-sm"><strong>Est. Duration:</strong> {routeDetails.duration}</div>
+                  <div className="font-body text-sm"><strong>Distance:</strong> {routeDetails.distance.text}</div>
+                  <div className="font-body text-sm"><strong>Est. Duration:</strong> {routeDetails.duration.text}</div>
                   {fuelEstimate && <>
                     <div className="font-body text-sm"><strong>Est. Fuel Needed:</strong> {fuelEstimate.fuelNeeded}</div>
                     <div className="font-body text-sm"><strong>Est. Fuel Cost:</strong> {fuelEstimate.estimatedCost}</div>

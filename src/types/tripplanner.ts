@@ -10,17 +10,16 @@ export interface TripPlannerFormValues {
   fuelEfficiency: number; // Litres/100km
   fuelPrice: number; // Price per litre
   dateRange?: DateRange | null;
+  maxHeight?: number;
 }
 
 export interface RouteDetails {
-  distance: string; // e.g., "100 km"
-  duration: string; // e.g., "1 hour 30 mins"
-  distanceValue: number; // distance in meters
-  startAddress?: string;
-  endAddress?: string;
+  distance: { text: string; value: number };
+  duration: { text: string; value: number };
   startLocation?: google.maps.LatLngLiteral;
   endLocation?: google.maps.LatLngLiteral;
-  // Note: For multi-stop, 'legs' array from DirectionsResult might be stored or processed here later
+  polyline?: string;
+  warnings?: string[];
 }
 
 export interface FuelEstimate {

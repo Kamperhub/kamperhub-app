@@ -63,7 +63,7 @@ export function TripLogItem({ trip, onDelete, onRecall, onAddToCalendar, onStart
         )}
         <div className="flex items-center text-sm text-muted-foreground">
           <Route className="mr-2 h-4 w-4 text-primary" />
-          <span>{trip.routeDetails.distance} ({trip.routeDetails.duration})</span>
+          <span>{trip.routeDetails.distance.text} ({trip.routeDetails.duration.text})</span>
         </div>
         {trip.fuelEstimate && (
           <div className="flex items-center text-sm text-muted-foreground">

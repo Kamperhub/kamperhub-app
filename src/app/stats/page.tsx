@@ -72,7 +72,7 @@ export default function StatsPage() {
     let tripWithHighestSpend: { name: string; totalSpend: number } | null = null;
 
     loggedTrips.forEach(trip => {
-      const tripDistanceKm = trip.routeDetails?.distanceValue / 1000 || 0;
+      const tripDistanceKm = (trip.routeDetails?.distance?.value || 0) / 1000;
       totalKilometers += tripDistanceKm;
 
       if (trip.isCompleted) {
@@ -252,7 +252,7 @@ export default function StatsPage() {
                   <div>
                       <h3 className="text-md font-semibold font-body text-foreground">Longest Trip by Distance:</h3>
                       <p className="text-sm text-muted-foreground font-body">
-                      "{stats.longestTripByDistance.name}" - {stats.longestTripByDistance.routeDetails.distance} ({stats.longestTripByDistance.routeDetails.duration})
+                      "{stats.longestTripByDistance.name}" - {stats.longestTripByDistance.routeDetails.distance.text} ({stats.longestTripByDistance.routeDetails.duration.text})
                       </p>
                   </div>
                 )}
