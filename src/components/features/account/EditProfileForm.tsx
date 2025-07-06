@@ -133,12 +133,12 @@ export function EditProfileForm({ initialData, onSave, onCancel, isLoading }: Ed
       </div>
       <Separator className="my-4"/>
        <div>
-          <Label htmlFor="editHomeAddress" className="font-body">Home Address (for Trip Planner)</Label>
+          <Label htmlFor="editHomeAddress" className="font-body">Home Address (Optional)</Label>
           <div className="relative">
             <Home className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input id="editHomeAddress" {...register("homeAddress")} placeholder="e.g., 123 Main St, Anytown" className="font-body pl-10" disabled={isLoading}/>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">This allows you to quickly set your start location.</p>
+          <p className="text-xs text-muted-foreground mt-1">For trip planning purposes only. This allows you to quickly set your start location.</p>
           {errors.homeAddress && <p className="text-xs text-destructive font-body mt-1">{errors.homeAddress.message}</p>}
         </div>
 
