@@ -1,3 +1,4 @@
+
 'use server';
 
 import type { RouteDetails } from '@/types/tripplanner';
@@ -24,7 +25,6 @@ function formatDuration(isoDuration: string): string {
 }
 
 export async function calculateRoute(origin: string, destination: string, vehicleHeight?: number): Promise<RouteDetails> {
-  // Use the server-side GOOGLE_API_KEY, which should not have HTTP referrer restrictions.
   const apiKey = process.env.GOOGLE_API_KEY;
 
   if (!apiKey) {
@@ -67,19 +67,36 @@ export async function calculateRoute(origin: string, destination: string, vehicl
       body: JSON.stringify(requestBody)
   });
 
-  const data = await response.json();
-
   if (!response.ok) {
-      console.error("Google Routes API Error:", data);
-      let errorMessage = "Failed to calculate route from Google Routes API.";
-      if (data.error?.message) {
-          errorMessage = data.error.message;
-          if (errorMessage.includes("Routes API has not been used in project")) {
-              errorMessage = "The Google Routes API is not enabled for this project. Please enable it in the Google Cloud Console and ensure your API key has permissions for it.";
-          }
+    const errorBody = await response.text();
+    console.error("Google Routes API Error Response Body:", errorBody);
+    
+    let errorMessage = `Google Routes API request failed with status ${response.status}.`;
+    
+    // Try to parse as JSON to get structured error, but fallback to text.
+    try {
+      const errorData = JSON.parse(errorBody);
+      if (errorData.error?.message) {
+        errorMessage = errorData.error.message;
+        if (errorMessage.includes("Routes API has not been used in project")) {
+          errorMessage = "The Google Routes API is not enabled for this project. Please enable it in the Google Cloud Console and ensure your API key has permissions for it.";
+        } else if (errorMessage.toLowerCase().includes('api_key_not_valid')) {
+           errorMessage = "The provided GOOGLE_API_KEY is invalid. Please check the key in your .env.local file.";
+        }
       }
-      throw new Error(errorMessage);
+    } catch(e) {
+      // If parsing as JSON fails, it's likely an HTML error page.
+      if (errorBody.toLowerCase().includes('api key not valid')) {
+        errorMessage = "The provided GOOGLE_API_KEY is invalid. Please check the key in your .env.local file and restart the server.";
+      } else if (errorBody.toLowerCase().includes('http referrer')) {
+        errorMessage = 'The GOOGLE_API_KEY has "HTTP referrer" restrictions. Use a key with "None" or "IP Address" restrictions as explained in the setup guide.';
+      }
+    }
+    
+    throw new Error(errorMessage);
   }
+  
+  const data = await response.json();
   
   if (data.routes && data.routes.length > 0) {
       const route = data.routes[0];
