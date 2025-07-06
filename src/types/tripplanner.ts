@@ -58,6 +58,7 @@ export interface LoggedTrip {
   plannedEndDate?: string | null; // Stored as ISO string
   notes?: string; // Optional notes field
   isCompleted?: boolean; // New field for completion status
+  isVehicleOnly?: boolean; // New field to mark trips without a caravan
   checklists?: TripChecklistSet; // A trip can have its own checklist set
   
   // New fields for expense tracking

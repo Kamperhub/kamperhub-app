@@ -11,7 +11,7 @@ import { RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import type { StoredVehicle } from '@/types/vehicle';
 import type { StoredCaravan } from '@/types/caravan';
 import type { CaravanDefaultChecklistSet, ChecklistItem, ChecklistCategory, TripChecklistSet } from '@/types/checklist';
-import { initialChecklists as globalDefaultChecklistTemplate } from '@/types/checklist';
+import { initialChecklists as globalDefaultChecklistTemplate, vehicleOnlyChecklists } from '@/types/checklist';
 import type { BudgetCategory, Expense } from '@/types/expense';
 import { BudgetTab } from '@/components/features/tripplanner/BudgetTab';
 import { ExpenseTab } from '@/components/features/tripplanner/ExpenseTab';
@@ -19,6 +19,7 @@ import { ExpenseTab } from '@/components/features/tripplanner/ExpenseTab';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -83,6 +84,7 @@ export function TripPlannerClient() {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isTowing, setIsTowing] = useState(true);
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [fuelEstimate, setFuelEstimate] = useState<FuelEstimate | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -138,6 +140,7 @@ export function TripPlannerClient() {
 
   const clearPlanner = useCallback((resetForm = true) => {
     if(resetForm) reset();
+    setIsTowing(true);
     setRouteDetails(null);
     setFuelEstimate(null);
     setDirectionsResponse(null);
@@ -158,6 +161,7 @@ export function TripPlannerClient() {
         if (recalledTripJson) {
           const recalledTrip: LoggedTrip = JSON.parse(recalledTripJson);
           setActiveTrip(recalledTrip);
+          setIsTowing(!recalledTrip.isVehicleOnly);
           setTripBudget(recalledTrip.budget || []);
           setTripExpenses(recalledTrip.expenses || []);
           setTripOccupants(recalledTrip.occupants || []);
@@ -359,9 +363,15 @@ export function TripPlannerClient() {
     }
 
     const tempTripId = Date.now().toString();
-    const sourceChecklistSet = userPrefs?.activeCaravanId && userPrefs.caravanDefaultChecklists?.[userPrefs.activeCaravanId]
-      ? userPrefs.caravanDefaultChecklists[userPrefs.activeCaravanId]
-      : globalDefaultChecklistTemplate;
+    
+    let sourceChecklistSet;
+    if (isTowing) {
+      sourceChecklistSet = userPrefs?.activeCaravanId && userPrefs.caravanDefaultChecklists?.[userPrefs.activeCaravanId]
+        ? userPrefs.caravanDefaultChecklists[userPrefs.activeCaravanId]
+        : globalDefaultChecklistTemplate;
+    } else {
+      sourceChecklistSet = vehicleOnlyChecklists;
+    }
 
     const newTripChecklistSet: TripChecklistSet = {
       preDeparture: createChecklistCopyForTrip(sourceChecklistSet.preDeparture, tempTripId, 'pd'),
@@ -387,8 +397,9 @@ export function TripPlannerClient() {
       budget: tripBudget,
       expenses: tripExpenses,
       occupants: tripOccupants,
-      activeCaravanIdAtTimeOfCreation: activeCaravan?.id || null,
-      activeCaravanNameAtTimeOfCreation: activeCaravan ? `${activeCaravan.year} ${activeCaravan.make} ${activeCaravan.model}` : null,
+      isVehicleOnly: !isTowing,
+      activeCaravanIdAtTimeOfCreation: isTowing ? (activeCaravan?.id || null) : null,
+      activeCaravanNameAtTimeOfCreation: isTowing ? (activeCaravan ? `${activeCaravan.year} ${activeCaravan.make} ${activeCaravan.model}` : null) : null,
     };
     
     if (activeTrip) {
@@ -397,7 +408,7 @@ export function TripPlannerClient() {
     } else {
         createTripMutation.mutate(tripData);
     }
-  }, [routeDetails, getValues, fuelEstimate, toast, pendingTripName, pendingTripNotes, userPrefs, createTripMutation, updateTripMutation, activeTrip, tripBudget, tripExpenses, tripOccupants, allCaravans]);
+  }, [routeDetails, getValues, fuelEstimate, toast, pendingTripName, pendingTripNotes, userPrefs, createTripMutation, updateTripMutation, activeTrip, tripBudget, tripExpenses, tripOccupants, allCaravans, isTowing]);
 
 
   const mapHeight = "400px"; 
@@ -504,6 +515,10 @@ export function TripPlannerClient() {
                         <Controller name="fuelPrice" control={control} render={({ field }) => (<Input id="fuelPrice" type="number" step="0.01" {...field} value={field.value ?? ''} className="font-body" />)} />
                         {errors.fuelPrice && <p className="text-sm text-destructive font-body mt-1">{errors.fuelPrice.message}</p>}
                       </div>
+                    </div>
+                    <div className="flex items-center space-x-2 pt-2">
+                      <Switch id="towing-switch" checked={isTowing} onCheckedChange={setIsTowing} disabled={isLoading}/>
+                      <Label htmlFor="towing-switch" className="font-body">Towing a caravan for this trip?</Label>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
                         <Button type="button" variant="outline" onClick={() => clearPlanner(true)} disabled={isLoading} className="w-full font-body">

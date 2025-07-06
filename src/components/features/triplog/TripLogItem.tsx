@@ -5,7 +5,7 @@ import type { LoggedTrip } from '@/types/tripplanner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Repeat, Route, Fuel, CalendarDays as CalendarIconLucide, CalendarPlus, StickyNote, PlayCircle, CheckSquare, RotateCcw } from 'lucide-react';
+import { Trash2, Repeat, Route, Fuel, CalendarDays as CalendarIconLucide, CalendarPlus, StickyNote, PlayCircle, CheckSquare, RotateCcw, Car } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 interface TripLogItemProps {
@@ -40,7 +40,10 @@ export function TripLogItem({ trip, onDelete, onRecall, onAddToCalendar, onStart
     <Card className={`flex flex-col h-full shadow-lg hover:shadow-xl transition-shadow duration-300 ${trip.isCompleted ? 'bg-muted/50' : ''}`}>
       <CardHeader>
         <div className="flex justify-between items-start">
-            <CardTitle className="font-headline text-xl text-primary">{trip.name}</CardTitle>
+            <CardTitle className="font-headline text-xl text-primary flex items-center">
+              {trip.isVehicleOnly && <Car className="h-5 w-5 mr-2 text-accent" />}
+              {trip.name}
+            </CardTitle>
             {trip.isCompleted && <Badge variant="default" className="bg-green-600 text-white font-body">Completed</Badge>}
         </div>
         <CardDescription className="font-body text-sm text-muted-foreground flex items-center">

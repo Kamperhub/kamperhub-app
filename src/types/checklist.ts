@@ -32,6 +32,26 @@ export const initialChecklists: Readonly<Record<ChecklistCategory, readonly Chec
   ],
 };
 
+// New template for vehicle-only trips
+export const vehicleOnlyChecklists: Readonly<Record<ChecklistCategory, readonly ChecklistItem[]>> = {
+  preDeparture: [
+    { id: 'vehicle_pd1_tpl', text: 'Check vehicle tyre pressures', completed: false },
+    { id: 'vehicle_pd2_tpl', text: 'Check vehicle fluids (oil, water, washer fluid)', completed: false },
+    { id: 'vehicle_pd3_tpl', text: 'Secure all items inside vehicle', completed: false },
+    { id: 'vehicle_pd4_tpl', text: 'Check vehicle lights', completed: false },
+  ],
+  campsiteSetup: [
+    { id: 'vehicle_cs1_tpl', text: 'Find level parking spot', completed: false },
+    { id: 'vehicle_cs2_tpl', text: 'Unpack necessary gear', completed: false },
+  ],
+  packDown: [
+    { id: 'vehicle_pk1_tpl', text: 'Pack and secure all items in vehicle', completed: false },
+    { id: 'vehicle_pk2_tpl', text: 'Clean up campsite/area', completed: false },
+    { id: 'vehicle_pk3_tpl', text: 'Final walk-around check of vehicle', completed: false },
+  ],
+};
+
+
 // For storing checklists associated with a specific trip. This is now part of the LoggedTrip object.
 export interface TripChecklistSet {
   preDeparture: ChecklistItem[];
