@@ -1,87 +1,45 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // ---------------------------------------------------------------------------------------------
-    // Global Helper Functions: Efficient & Reliable Authentication and Role Checks
-    // ---------------------------------------------------------------------------------------------
-
-    // Checks if the user is authenticated.
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    // Checks if the requesting user's UID matches the resource's owner UID.
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
-    // Checks if the requesting user has the 'admin' custom claim set on their Auth token.
-    // This is the FAST, SECURE, and RELIABLE way to manage roles in rules.
-    // Requires a Cloud Function to set this custom claim on the user's Firebase Auth token.
-    // Example: admin.auth().setCustomUserClaims(uid, { admin: true });
-    function isAdmin() {
-      // If request.auth.token.admin exists and is true, returns true. Otherwise, false.
-      return request.auth.token.admin == true;
-    }
-
-    // ---------------------------------------------------------------------------------------------
-    // Default Deny All: Safety Net
-    // Any collection or document path not explicitly matched below will be denied access.
-    // This is a crucial security best practice.
-    // ---------------------------------------------------------------------------------------------
+    
+    // By default, deny all access.
     match /{document=**} {
-      allow read, write: if false; // Deny all by default
+      allow read, write: if false;
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Collection: 'users' (User Profiles)
-    // Manages access to top-level user profile documents (e.g., /users/someUid).
-    // ---------------------------------------------------------------------------------------------
+    // Rules for the 'users' collection documents
     match /users/{userId} {
-      // Allow a user to create their OWN profile document upon signup.
-      // This is vital for the onboarding flow and resolves "initializing session" issues.
-      // The rule checks that the user ID in the path matches the authenticated user's UID.
-      allow create: if isOwner(userId);
+      // 1. Allow a user to read their own document.
+      // 2. Allow an admin to read any user's document.
+      allow get: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
 
-      // Allow a user to read their OWN profile.
-      // Admins can read ANY user's profile for administrative/support purposes.
-      // This check is reliable because it does not rely on the document existing for the 'owner' part,
-      // and the 'isAdmin' check is based on the Auth token, not a document read.
-      allow read: if isOwner(userId) || isAdmin();
+      // 1. Allow a user to update their own document.
+      // 2. Allow an admin to update any user's document.
+      allow update: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
+      
+      // Allow any authenticated user to create their own user document during signup.
+      // The UID must match the new document's ID.
+      allow create: if request.auth != null && request.auth.uid == userId;
 
-      // Allow a user to update or delete their OWN profile.
-      // Admins should not directly delete user profiles via client rules; use a Cloud Function.
-      // Allowing admin to update here could be debated, but generally, admin actions via client
-      // rules are risky.
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId); // Only allow user to delete their own account/profile.
+      // Only admins can delete user documents.
+      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+
+      // Only admins can list all user documents.
+      allow list: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Collection: Subcollections under 'users/{userId}'
-    // Manages access to user-specific data like vehicles, trips, etc.
-    // Examples: /users/{userId}/vehicles/{vehicleId}, /users/{userId}/trips/{tripId}
-    // ---------------------------------------------------------------------------------------------
-    match /users/{userId}/{subcollection=**} { // Wildcard for all subcollections under a user
-      // A user can read all documents within their own subcollections.
-      // Admins can read all documents in any user's subcollections.
-      allow read: if isOwner(userId) || isAdmin();
-
-      // A user can write (create, update, delete) documents within their own subcollections.
-      // Admins should typically manage user data via trusted Cloud Functions.
-      allow write: if isOwner(userId);
+    // Rules for all subcollections under a user document (e.g., vehicles, caravans)
+    match /users/{userId}/{subcollection}/{docId} {
+       // Allow a user to perform any action on documents in their own subcollections.
+       // Also allow an admin to do the same for any user.
+       allow read, write, create, update, delete: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
     }
-
-    // ---------------------------------------------------------------------------------------------
-    // Collection: 'oauthStates'
-    // This collection was mentioned in your project facts. It's likely used for OAuth flow
-    // state management. Given it's sensitive, it should typically be managed by the server (Admin SDK).
-    // Client-side access should generally be denied unless explicitly required and secure.
-    // Your previous rules had 'allow read, write, delete: if true;', which is highly insecure.
-    // If your app relies on client-side read/write/delete of these for a Google Sign-in flow,
-    // ensure the 'state string is a secure random value' as mentioned previously.
-    // FOR SECURITY, I'm setting this to deny client access by default.
+    
+    // Rules for OAuth state management during Google integration
+    match /oauthStates/{stateId} {
+      allow read, create, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
   }
 }
