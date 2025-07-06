@@ -230,11 +230,10 @@ export async function DELETE(req: NextRequest) {
   if (errorResponse || !uid || !firestore) return errorResponse;
 
   try {
-    const { searchParams } = new URL(req.url);
-    const tripId = searchParams.get('id');
+    const { id: tripId } = await req.json();
     
     if (!tripId || typeof tripId !== 'string') {
-      return NextResponse.json({ error: 'Trip ID is required as a query parameter.' }, { status: 400 });
+      return NextResponse.json({ error: 'Trip ID is required in the request body.' }, { status: 400 });
     }
     
     // Create references to both the trip and its associated packing list

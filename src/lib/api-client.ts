@@ -33,7 +33,7 @@ async function apiFetch(url: string, options: RequestInit = {}) {
     }
     const response = await fetch(url, { ...options, headers });
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({ error: 'API request failed with a non-JSON response.' }));
       throw new Error(errorData.details || errorData.error || errorData.message || 'API request failed.');
     }
     const text = await response.text();
@@ -118,7 +118,7 @@ export async function updateTrip(data: LoggedTrip): Promise<{ trip: LoggedTrip }
     return { trip: data };
 }
 export async function deleteTrip(id: string): Promise<{ message: string }> {
-    return apiFetch(`/api/trips?id=${id}`, { method: 'DELETE' });
+    return apiFetch(`/api/trips`, { method: 'DELETE', body: JSON.stringify({ id }) });
 }
 
 // ---- Booking API Functions ----
