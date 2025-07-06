@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { UserCog, ShieldAlert, AlertTriangle, Loader2, Send, Mail, UserX, Trash2, Info } from 'lucide-react';
+import { UserCog, ShieldAlert, AlertTriangle, Loader2, Send, Mail, UserX, Trash2, Info, RefreshCw } from 'lucide-react';
 import type { SubscriptionTier } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -127,7 +127,12 @@ export default function AdminPage() {
     deleteUserMutation.mutate(data.deleteUserEmail);
   };
   
-  if (isAuthLoading || (currentUser && isLoadingUsers)) {
+  const handleRefreshUsers = () => {
+    queryClient.invalidateQueries({ queryKey: ['allUsers', currentUser?.uid] });
+    toast({ title: "User List Refreshed" });
+  };
+
+  if (isAuthLoading || (currentUser && isLoadingUsers && !allUsers.length)) {
     return (
         <div className="flex justify-center items-center min-h-screen">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -203,7 +208,20 @@ export default function AdminPage() {
 
             <form onSubmit={deleteForm.handleSubmit(onDeleteSubmit)} className="space-y-4">
               <div>
-                <Label htmlFor="deleteUserEmail" className="font-body">User Email to Delete</Label>
+                <div className="flex justify-between items-center mb-1">
+                    <Label htmlFor="deleteUserEmail" className="font-body">User Email to Delete</Label>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRefreshUsers}
+                        disabled={isLoadingUsers}
+                        className="font-body"
+                    >
+                        <RefreshCw className={cn("mr-2 h-4 w-4", isLoadingUsers && "animate-spin")} />
+                        Refresh List
+                    </Button>
+                </div>
                 <Controller
                     name="deleteUserEmail"
                     control={deleteForm.control}
@@ -237,8 +255,8 @@ export default function AdminPage() {
               </div>
               <div>
                 <Label htmlFor="confirmationText" className="font-body">Type "DELETE" to confirm</Label>
-                <Input id="confirmationText" {...deleteForm.register("confirmationText")} placeholder='Type DELETE here' disabled={deleteUserMutation.isPending}/>
-                {deleteForm.formState.errors.confirmationText && <p className="text-sm text-destructive mt-1 font-body">{deleteForm.formState.errors.confirmationText.message}</p>}
+                <Input id="confirmationText" {...register("confirmationText")} placeholder='Type DELETE here' disabled={deleteUserMutation.isPending}/>
+                {deleteForm.formState.errors.confirmationText && <p className="text-sm text-destructive mt-1 font-body">{errors.confirmationText.message}</p>}
               </div>
               <Button type="submit" variant="destructive" className="w-full font-body" disabled={deleteUserMutation.isPending || allUsers.length === 0}>
                 {deleteUserMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash2 className="mr-2 h-4 w-4" />}
