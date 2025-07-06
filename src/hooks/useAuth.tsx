@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, type DocumentReference, type DocumentSnapshot } from 'firebase/firestore';
 import { auth, db, firebaseInitializationError } from '@/lib/firebase';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from './useSubscription';
@@ -19,6 +19,32 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+/**
+ * A wrapper for Firestore's getDoc that adds a timeout.
+ * This prevents the app from hanging indefinitely if the database is misconfigured (e.g., wrong name).
+ * @param docRef The document reference to fetch.
+ * @param timeout The timeout in milliseconds.
+ * @returns A promise that resolves with the DocumentSnapshot.
+ */
+function getDocWithTimeout(docRef: DocumentReference, timeout: number): Promise<DocumentSnapshot> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Firestore request timed out after ${timeout}ms. This usually means a problem connecting to the database. Please check your internet connection and ensure the database name in your configuration ('kamperhubv2') is correct in the Firebase Console.`));
+    }, timeout);
+
+    getDoc(docRef).then(
+      (snapshot) => {
+        clearTimeout(timer);
+        resolve(snapshot);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -38,30 +64,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(currentUser);
       
       if (currentUser) {
-        setAuthStatus('LOADING'); // Set to loading while we fetch profile
+        setAuthStatus('LOADING');
         setProfileError(null);
         
         try {
           const profileDocRef = doc(db, "users", currentUser.uid);
-
-          // Implement a retry mechanism to handle potential Firestore replication delay after signup.
-          let docSnap;
-          let attempts = 0;
-          const maxAttempts = 3;
-          const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
-
-          while (attempts < maxAttempts) {
-            docSnap = await getDoc(profileDocRef);
-            if (docSnap.exists()) {
-              break; // Document found, exit loop.
-            }
-            attempts++;
-            if (attempts < maxAttempts) {
-              await delay(attempts * 500); // Wait 500ms, then 1000ms before final attempt.
-            }
-          }
           
-          if (docSnap && docSnap.exists()) {
+          // Use the timeout function to prevent the app from hanging
+          const docSnap = await getDocWithTimeout(profileDocRef, 7000);
+
+          if (docSnap.exists()) {
               const profile = docSnap.data() as UserProfile;
               setUserProfile(profile);
               setSubscriptionDetails(
@@ -72,11 +84,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               setAuthStatus('READY');
           } else {
              // Handle orphaned user: Auth record exists but Firestore doc is missing.
-             // This is a more robust solution than throwing an error.
              console.warn(`Orphaned User Detected: Auth user ${currentUser.uid} exists, but the Firestore document is missing. Logging user out to enforce a clean signup or login.`);
              await auth.signOut();
              // The onAuthStateChanged listener will re-trigger with a null user, which will correctly set the status to UNAUTHENTICATED.
-             // No need to set state here, as it would be immediately overwritten by the next auth state change event.
           }
         } catch (error: any) {
           console.error("AuthGuard - Error fetching user profile:", error);
