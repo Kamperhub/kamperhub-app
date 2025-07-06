@@ -45,6 +45,12 @@ export const fetchAllVehicleData = () => apiFetch('/api/all-vehicle-data');
 
 
 // ---- Vehicle API Functions ----
+export async function fetchVehicles(): Promise<StoredVehicle[]> {
+    const uid = auth.currentUser?.uid;
+    if (!uid) throw new Error("User not authenticated.");
+    const querySnapshot = await getDocs(collection(db, 'users', uid, 'vehicles'));
+    return querySnapshot.docs.map(doc => doc.data() as StoredVehicle);
+}
 export async function createVehicle(data: VehicleFormData): Promise<StoredVehicle> {
     const uid = auth.currentUser?.uid;
     if (!uid) throw new Error("User not authenticated.");
@@ -64,6 +70,12 @@ export async function deleteVehicle(id: string): Promise<{ message: string }> {
 }
 
 // ---- Caravan API Functions ----
+export async function fetchCaravans(): Promise<StoredCaravan[]> {
+    const uid = auth.currentUser?.uid;
+    if (!uid) throw new Error("User not authenticated.");
+    const querySnapshot = await getDocs(collection(db, 'users', uid, 'caravans'));
+    return querySnapshot.docs.map(doc => doc.data() as StoredCaravan);
+}
 export async function createCaravan(data: CaravanFormData): Promise<StoredCaravan> {
     const uid = auth.currentUser?.uid;
     if (!uid) throw new Error("User not authenticated.");
