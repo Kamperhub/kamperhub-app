@@ -24,6 +24,11 @@ This document tracks the development priorities, future features, and completed 
 
 ## **Completed Milestones**
 
+### ✅ **Feature: Height-Aware Trip Routing**
+*   **Status:** Complete
+*   **Objective:** Ensure trips planned in the app consider vehicle height to avoid low clearance obstacles.
+*   **Details:** The Trip Planner now uses Google's advanced Routes API via a secure backend endpoint. It automatically includes the height of the active vehicle/caravan in route calculations and will display warnings for any potential height restrictions, such as low bridges.
+
 ### ✅ **Feature: Advanced Weight Distribution Calculator**
 *   **Status:** Complete
 *   **Objective:** Provide a more accurate, physics-based calculation for Tow Ball Mass (TBM).

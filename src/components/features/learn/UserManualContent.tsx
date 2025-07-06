@@ -120,6 +120,7 @@ export function UserManualContent() {
                 <ul className="list-circle pl-5 space-y-1">
                     <li><strong>Inputs:</strong> Provide Start and End Locations (with Google Places Autocomplete), Planned Date Range, Vehicle Fuel Efficiency (L/100km), and Current Fuel Price.</li>
                     <li><strong>Vehicle-Only Trips:</strong> Use the "Towing a caravan?" switch to specify if your trip involves a caravan. If disabled, the trip will be saved as "Vehicle Only" and will use a simplified checklist template.</li>
+                    <li><strong>Height-Aware Routing:</strong> The planner automatically uses the 'Overall Height' from your active vehicle or caravan. It then uses Google's advanced Routes API to check for height restrictions on the proposed route. Any warnings (e.g., low bridges) will be clearly displayed.</li>
                     <li><strong>Route Calculation:</strong> Displays the route on an interactive map, showing total distance, estimated duration, and calculated fuel cost.</li>
                     <li><strong>Saving Trips:</strong> Saves the entire plan—including the route, fuel estimates, dates, budget, expenses, and notes—to your "Trip Log." This also creates a unique, editable checklist for the trip.</li>
                 </ul>
@@ -149,7 +150,7 @@ export function UserManualContent() {
                 </ul>
             </li>
         </ul>
-        <p className="mt-2"><strong>API Key Note:</strong> The Trip Planner requires a Google Maps API Key for map rendering, place autocomplete, and route calculation features.</p>
+        <p className="mt-2"><strong>API Key Note:</strong> The Trip Planner requires a Google Maps API Key with the "Routes API" enabled for map rendering, place autocomplete, and route calculation features.</p>
         </>
       )
     },
