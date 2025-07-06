@@ -8,7 +8,7 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 let stripe: Stripe;
 if (stripeSecretKey) {
   stripe = new Stripe(stripeSecretKey, {
-    apiVersion: '2024-06-20',
+    apiVersion: '2025-05-28',
   });
 } else {
   console.error("Stripe secret key is not configured for user deletion.");
