@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase'; 
 import { createUserWithEmailAndPassword, updateProfile, type User as FirebaseUser, type AuthError, deleteUser } from 'firebase/auth';
 import { doc, setDoc, type DocumentReference } from 'firebase/firestore';
-import { UserPlus, Mail, User, KeyRound, MapPin, Building, Globe, Loader2, CheckSquare } from 'lucide-react';
+import { UserPlus, Mail, User, KeyRound, MapPin, Building, Globe, Loader2, CheckSquare, Eye, EyeOff } from 'lucide-react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -93,6 +93,8 @@ export default function SignupPage() {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const { user, isAuthLoading } = useAuth();
@@ -282,13 +284,23 @@ export default function SignupPage() {
                 <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   {...register("password")}
                   placeholder="Enter your password"
                   disabled={isLoading}
-                  className="font-body pl-10"
+                  className="font-body pl-10 pr-10"
                   autoComplete="new-password"
                 />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-1 font-body">
                 Min. 8 characters. Must include uppercase, lowercase, number, and special character.
@@ -301,13 +313,23 @@ export default function SignupPage() {
                 <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="confirmPassword"
-                  type="password"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   {...register("confirmPassword")}
                   placeholder="Re-enter your password"
                   disabled={isLoading}
-                  className="font-body pl-10"
+                  className="font-body pl-10 pr-10"
                   autoComplete="new-password" 
                 />
+                 <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:bg-transparent"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
               </div>
               {errors.confirmPassword && <p className="text-xs text-destructive font-body mt-1">{errors.confirmPassword.message}</p>}
             </div>
