@@ -1,3 +1,4 @@
+
 // src/app/api/stripe-webhook/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import Stripe from 'stripe';
@@ -9,7 +10,7 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 let stripe: Stripe;
 if (stripeSecretKey) {
   stripe = new Stripe(stripeSecretKey, {
-    apiVersion: '2024-06-20', // Using latest stable version
+    apiVersion: '2025-05-28', // Using latest stable version
   });
 } else {
   console.error("Stripe secret key is not configured for webhook handler.");
@@ -38,8 +39,8 @@ async function updateUserSubscriptionStatus(
 
 
 export async function POST(req: NextRequest) {
-  const { firestore, error: adminError } = getFirebaseAdmin();
-  if (adminError || !firestore) {
+  const { auth, firestore, error: adminError } = getFirebaseAdmin();
+  if (adminError || !auth || !firestore) {
     console.error("Webhook Error: Firebase Admin SDK failed to initialize:", adminError?.message);
     return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
   }
@@ -74,9 +75,24 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed':
         const session = event.data.object as Stripe.Checkout.Session;
-        const userId = session.client_reference_id;
+        let userId = session.client_reference_id;
         const stripeCustomerId = session.customer as string;
         const stripeSubscriptionId = session.subscription as string;
+
+        // NEW: If the UID wasn't passed, try to look up the user by email from the Stripe session.
+        if (!userId && session.customer_details?.email && auth) {
+            try {
+                const userRecord = await auth.getUserByEmail(session.customer_details.email);
+                userId = userRecord.uid;
+                console.log(`[Stripe Webhook] Found user by email during checkout: ${session.customer_details.email} -> UID: ${userId}`);
+            } catch (e: any) {
+                if (e.code === 'auth/user-not-found') {
+                    console.warn(`[Stripe Webhook] User with email ${session.customer_details.email} from Stripe checkout does not exist in Firebase Auth. Cannot link subscription automatically.`);
+                } else {
+                    console.error('[Stripe Webhook] Error looking up user by email:', e);
+                }
+            }
+        }
 
         if (!userId || !stripeCustomerId || !stripeSubscriptionId) {
           console.error(`[Stripe Webhook] checkout.session.completed event ${session.id} missing required data.`);
