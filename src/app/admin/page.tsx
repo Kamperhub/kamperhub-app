@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -14,11 +15,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { UserCog, ShieldAlert, AlertTriangle, Loader2, Send, Mail, UserX, Trash2, Info, RefreshCw, DatabaseZap } from 'lucide-react';
+import { UserCog, ShieldAlert, AlertTriangle, Loader2, Send, Mail, UserX, Trash2, Info, RefreshCw, DatabaseZap, Users } from 'lucide-react';
 import type { SubscriptionTier } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchAllUsers } from '@/lib/api-client';
+import { Badge } from '@/components/ui/badge';
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
@@ -46,7 +48,7 @@ export default function AdminPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: allUsers = [], isLoading: isLoadingUsers, error: usersError } = useQuery({
+  const { data: allUsers = [], isLoading: isLoadingUsers, error: usersError } = useQuery<{uid: string, email: string | undefined, tripCount: number | string}[]>({
     queryKey: ['allUsers', currentUser?.uid],
     queryFn: fetchAllUsers,
     enabled: !!currentUser && currentUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase(),
@@ -213,6 +215,34 @@ export default function AdminPage() {
                     To manage or delete your own admin account's test trips (for example, to clean up entries made with the old API), please use the main <Link href="/triplog" className="font-semibold underline">Trip Log</Link> page. The functionality there works for all users, including admins.
                 </AlertDescription>
             </Alert>
+        </CardContent>
+      </Card>
+
+      <Card className="max-w-2xl mx-auto shadow-xl">
+        <CardHeader>
+          <CardTitle className="font-headline text-2xl text-primary flex items-center"><Users className="mr-3 h-7 w-7" /> User Trip Overview</CardTitle>
+          <CardDescription className="font-body">A list of all users and the number of trips they have created.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoadingUsers ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              <p>Loading user data...</p>
+            </div>
+          ) : allUsers.length > 0 ? (
+            <ul className="space-y-2">
+              {allUsers.map(u => (
+                <li key={u.uid} className="flex justify-between items-center p-2 rounded-md bg-muted/50">
+                  <span className="font-body text-sm">{u.email}</span>
+                  <Badge variant={u.tripCount === 0 ? "secondary" : "default"}>
+                    {u.tripCount} {u.tripCount === 1 ? 'Trip' : 'Trips'}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-muted-foreground text-center font-body py-4">No other users found in the system.</p>
+          )}
         </CardContent>
       </Card>
 

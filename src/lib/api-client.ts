@@ -155,6 +155,6 @@ export async function deletePackingList(tripId: string): Promise<{ message: stri
 }
 
 // ---- Admin & Auth Functions ----
-export const fetchAllUsers = (): Promise<{uid: string, email: string | undefined}[]> => apiFetch('/api/admin/list-users');
+export const fetchAllUsers = (): Promise<{uid: string, email: string | undefined, tripCount: number | string}[]> => apiFetch('/api/admin/list-users');
 export const generateGoogleAuthUrl = (): Promise<{ url: string }> => apiFetch('/api/auth/google/connect', { method: 'POST' });
 export const disconnectGoogleAccount = (): Promise<{ message: string }> => apiFetch('/api/auth/google/disconnect', { method: 'POST' });
