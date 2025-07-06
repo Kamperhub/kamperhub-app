@@ -10,8 +10,8 @@ import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip, Occ
 import { RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import type { StoredVehicle } from '@/types/vehicle';
 import type { StoredCaravan } from '@/types/caravan';
-import type { CaravanDefaultChecklistSet, ChecklistItem, ChecklistCategory, TripChecklistSet } from '@/types/checklist';
-import { initialChecklists as globalDefaultChecklistTemplate, vehicleOnlyChecklists } from '@/types/checklist';
+import type { TripChecklistSet } from '@/types/checklist';
+import { vehicleOnlyChecklists, globalDefaultChecklistTemplate } from '@/types/checklist';
 import type { BudgetCategory, Expense } from '@/types/expense';
 import { BudgetTab } from '@/components/features/tripplanner/BudgetTab';
 import { ExpenseTab } from '@/components/features/tripplanner/ExpenseTab';
@@ -26,7 +26,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
-import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Trash2, PlusCircle, Users, AlertTriangle, XCircle, Edit3, Car, Settings } from 'lucide-react';
+import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Trash2, PlusCircle, Users, AlertTriangle, XCircle, Edit3, Car, Settings, TowerControl } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from "date-fns";
@@ -52,6 +52,7 @@ const tripPlannerSchema = z.object({
   endLocation: z.string().min(3, "End location is required (min 3 chars)"),
   fuelEfficiency: z.coerce.number().positive("Fuel efficiency must be a positive number (Litres/100km)"),
   fuelPrice: z.coerce.number().positive("Fuel price must be a positive number (per litre)"),
+  maxHeight: z.coerce.number().min(0, "Height must be a non-negative number.").optional(),
   dateRange: z.object({
     from: z.date().optional().nullable(),
     to: z.date().optional().nullable(),
@@ -66,10 +67,6 @@ const tripPlannerSchema = z.object({
   path: ["dateRange"],
 });
 
-const createChecklistCopyForTrip = (items: readonly ChecklistItem[], tripId: string, categoryPrefix: string): ChecklistItem[] => {
-  return items.map(item => ({ ...item, id: `trip${tripId.substring(0,4)}_${categoryPrefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}` }));
-};
-
 
 export function TripPlannerClient() {
   const { control, handleSubmit, formState: { errors }, setValue, getValues, reset } = useForm<TripPlannerFormValues>({
@@ -79,6 +76,7 @@ export function TripPlannerClient() {
       endLocation: '',
       fuelEfficiency: 10,
       fuelPrice: 1.80,
+      maxHeight: 0,
       dateRange: { from: undefined, to: undefined }
     }
   });
@@ -88,7 +86,7 @@ export function TripPlannerClient() {
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [fuelEstimate, setFuelEstimate] = useState<FuelEstimate | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
+  const [routeWarnings, setRouteWarnings] = useState<string[]>([]);
   const { toast } = useToast();
   const pathname = usePathname();
   const queryClient = useQueryClient();
@@ -126,24 +124,17 @@ export function TripPlannerClient() {
 
   const map = useMap();
   const polylineRef = useRef<google.maps.Polyline | null>(null);
-  const directionsServiceRef = useRef<google.maps.DirectionsService | null>(null);
-  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
-  const [pointsOfInterest, setPointsOfInterest] = useState<google.maps.places.PlaceResult[]>([]);
-  const [isSearchingPOIs, setIsSearchingPOIs] = useState(false);
-
 
   const isGoogleApiReady = !!map &&
                            typeof window.google !== 'undefined' &&
-                           !!window.google.maps?.places?.Autocomplete &&
-                           !!window.google.maps?.DirectionsService &&
-                           !!window.google.maps?.places?.PlacesService;
+                           !!window.google.maps?.places?.Autocomplete;
 
   const clearPlanner = useCallback((resetForm = true) => {
     if(resetForm) reset();
     setIsTowing(true);
     setRouteDetails(null);
     setFuelEstimate(null);
-    setDirectionsResponse(null);
+    setRouteWarnings([]);
     setPointsOfInterest([]);
     setActiveTrip(null);
     setTripBudget([]);
@@ -151,6 +142,7 @@ export function TripPlannerClient() {
     setTripOccupants([]);
     setPendingTripName('');
     setPendingTripNotes('');
+    if (polylineRef.current) polylineRef.current.setMap(null);
   }, [reset]);
 
   useEffect(() => {
@@ -199,61 +191,74 @@ export function TripPlannerClient() {
       }
     }
   }, [reset, setValue, toast, pathname, getValues, userPrefs, allVehicles]); 
-
-
+  
   useEffect(() => {
-    if (map && typeof window.google !== 'undefined' && window.google.maps) {
-        if (!directionsServiceRef.current && window.google.maps.DirectionsService) {
-            directionsServiceRef.current = new window.google.maps.DirectionsService();
-        }
-        if (!placesServiceRef.current && window.google.maps.places && window.google.maps.places.PlacesService) {
-            placesServiceRef.current = new window.google.maps.places.PlacesService(map);
-        }
-    }
-  }, [map]);
-
-
-  useEffect(() => {
-    if (!map) return;
-    if (polylineRef.current) polylineRef.current.setMap(null);
-    if (directionsResponse?.routes?.length) {
-      const route = directionsResponse.routes[0];
-      if (route.overview_path) {
-        const newPolyline = new window.google.maps.Polyline({ path: route.overview_path, strokeColor: 'hsl(var(--primary))', strokeOpacity: 0.8, strokeWeight: 6 });
-        newPolyline.setMap(map);
-        polylineRef.current = newPolyline;
+    if (isTowing && allCaravans.length > 0 && userPrefs?.activeCaravanId) {
+      const activeCaravan = allCaravans.find(c => c.id === userPrefs.activeCaravanId);
+      if (activeCaravan?.overallHeight) {
+        setValue('maxHeight', activeCaravan.overallHeight / 1000, { shouldValidate: false }); // convert mm to m
       }
-      if (route.bounds) map.fitBounds(route.bounds);
+    } else if (!isTowing && allVehicles.length > 0 && userPrefs?.activeVehicleId) {
+      const activeVehicle = allVehicles.find(v => v.id === userPrefs.activeVehicleId);
+      if (activeVehicle?.overallHeight) {
+        setValue('maxHeight', activeVehicle.overallHeight / 1000, { shouldValidate: false });
+      }
+    } else {
+      setValue('maxHeight', 0);
     }
-    return () => { if (polylineRef.current) polylineRef.current.setMap(null); };
-  }, [map, directionsResponse]);
-
+  }, [isTowing, allCaravans, allVehicles, userPrefs, setValue]);
 
   const onSubmit: SubmitHandler<TripPlannerFormValues> = async (data) => {
-    if (!directionsServiceRef.current) {
-      setError("Map services are not ready.");
-      return;
-    }
-
     setIsLoading(true);
     setRouteDetails(null);
     setFuelEstimate(null);
-    setDirectionsResponse(null);
     setError(null);
-    
+    setRouteWarnings([]);
+    if (polylineRef.current) polylineRef.current.setMap(null);
+
     try {
-      const results = await directionsServiceRef.current.route({ origin: data.startLocation, destination: data.endLocation, travelMode: window.google.maps.TravelMode.DRIVING });
-      if (results.routes?.length) {
-        const leg = results.routes[0].legs[0];
-        const distanceValue = leg?.distance?.value || 0;
-        setRouteDetails({
-          distance: leg?.distance?.text || 'N/A',
-          duration: leg?.duration?.text || 'N/A',
-          distanceValue,
-          startAddress: leg?.start_address, endAddress: leg?.end_address,
-          startLocation: leg?.start_location?.toJSON(), endLocation: leg?.end_location?.toJSON()
+        const response = await fetch('/api/directions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                origin: data.startLocation,
+                destination: data.endLocation,
+                vehicleHeight: data.maxHeight,
+            }),
         });
-        setDirectionsResponse(results);
+
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to calculate route.');
+        }
+        
+        const distanceValue = result.distance.value;
+
+        const newRouteDetails: RouteDetails = {
+            distance: result.distance.text,
+            duration: result.duration.text,
+            distanceValue,
+            startLocation: result.startLocation,
+            endLocation: result.endLocation,
+        };
+        setRouteDetails(newRouteDetails);
+
+        if (result.polyline && map && window.google?.maps?.geometry) {
+            const decodedPath = window.google.maps.geometry.encoding.decodePath(result.polyline);
+            if (polylineRef.current) polylineRef.current.setMap(null);
+            
+            const newPolyline = new window.google.maps.Polyline({ path: decodedPath, strokeColor: 'hsl(var(--primary))', strokeOpacity: 0.8, strokeWeight: 6 });
+            newPolyline.setMap(map);
+            polylineRef.current = newPolyline;
+            
+            const bounds = new window.google.maps.LatLngBounds();
+            decodedPath.forEach(point => bounds.extend(point));
+            map.fitBounds(bounds);
+        }
+
+        if(result.warnings && result.warnings.length > 0) {
+            setRouteWarnings(result.warnings);
+        }
 
         if (tripOccupants.length === 0 && user) {
           const defaultDriver: Occupant = {
@@ -288,9 +293,12 @@ export function TripPlannerClient() {
             return newBudget;
           });
         }
-      } else { setError("No routes found."); }
-    } catch (e: any) { setError(`Error calculating route: ${e.message || 'Unknown error'}`); } 
-    finally { setIsLoading(false); }
+    } catch (e: any) { 
+        setError(`Error calculating route: ${e.message}`);
+        console.error("Route Calculation Error:", e);
+    } finally { 
+        setIsLoading(false); 
+    }
   };
 
   const createTripMutation = useMutation({
@@ -362,21 +370,16 @@ export function TripPlannerClient() {
       return;
     }
 
-    const tempTripId = Date.now().toString();
-    
-    let sourceChecklistSet;
-    if (isTowing) {
-      sourceChecklistSet = userPrefs?.activeCaravanId && userPrefs.caravanDefaultChecklists?.[userPrefs.activeCaravanId]
-        ? userPrefs.caravanDefaultChecklists[userPrefs.activeCaravanId]
-        : globalDefaultChecklistTemplate;
-    } else {
-      sourceChecklistSet = vehicleOnlyChecklists;
-    }
+    const sourceChecklistSet = isTowing
+      ? (userPrefs?.activeCaravanId && userPrefs.caravanDefaultChecklists?.[userPrefs.activeCaravanId]
+          ? userPrefs.caravanDefaultChecklists[userPrefs.activeCaravanId]
+          : globalDefaultChecklistTemplate)
+      : vehicleOnlyChecklists;
 
     const newTripChecklistSet: TripChecklistSet = {
-      preDeparture: createChecklistCopyForTrip(sourceChecklistSet.preDeparture, tempTripId, 'pd'),
-      campsiteSetup: createChecklistCopyForTrip(sourceChecklistSet.campsiteSetup, tempTripId, 'cs'),
-      packDown: createChecklistCopyForTrip(sourceChecklistSet.packDown, tempTripId, 'pk'),
+      preDeparture: sourceChecklistSet.preDeparture.map(item => ({...item})),
+      campsiteSetup: sourceChecklistSet.campsiteSetup.map(item => ({...item})),
+      packDown: sourceChecklistSet.packDown.map(item => ({...item})),
     };
     
     const currentFormData = getValues();
@@ -520,6 +523,12 @@ export function TripPlannerClient() {
                       <Switch id="towing-switch" checked={isTowing} onCheckedChange={setIsTowing} disabled={isLoading}/>
                       <Label htmlFor="towing-switch" className="font-body">Towing a caravan for this trip?</Label>
                     </div>
+                    <div>
+                      <Label htmlFor="maxHeight" className="font-body">Max Vehicle Height (m)</Label>
+                      <Input id="maxHeight" type="number" step="0.1" {...register("maxHeight")} placeholder="e.g., 4.3" className="font-body" />
+                      <p className="text-xs text-muted-foreground font-body mt-1">Leave at 0 to ignore height restrictions.</p>
+                      {errors.maxHeight && <p className="text-sm text-destructive font-body mt-1">{errors.maxHeight.message}</p>}
+                    </div>
                     <div className="flex flex-col sm:flex-row gap-2">
                         <Button type="button" variant="outline" onClick={() => clearPlanner(true)} disabled={isLoading} className="w-full font-body">
                           <XCircle className="mr-2 h-4 w-4" /> Reset
@@ -566,11 +575,12 @@ export function TripPlannerClient() {
                   <CardTitle className="font-headline flex items-center"><MapPin className="mr-2 h-6 w-6 text-primary" /> Route Map</CardTitle>
               </CardHeader><CardContent className="p-0"><div style={{ height: mapHeight }} className="bg-muted rounded-b-lg overflow-hidden relative">
                 <Map defaultCenter={{ lat: -25.2744, lng: 133.7751 }} defaultZoom={4} gestureHandling={'greedy'} disableDefaultUI={true} mapId={'DEMO_MAP_ID'} className="h-full w-full">
-                  {routeDetails?.startLocation && <AdvancedMarker position={routeDetails.startLocation} title={`Start: ${routeDetails.startAddress || ''}`}><Pin background={'hsl(var(--primary))'} borderColor={'hsl(var(--primary))'} glyphColor={'hsl(var(--primary-foreground))'} /></AdvancedMarker>}
-                  {routeDetails?.endLocation && <AdvancedMarker position={routeDetails.endLocation} title={`End: ${routeDetails.endAddress || ''}`}><Pin background={'hsl(var(--accent))'} borderColor={'hsl(var(--accent))'} glyphColor={'hsl(var(--accent-foreground))'} /></AdvancedMarker>}
+                  {routeDetails?.startLocation && <AdvancedMarker position={routeDetails.startLocation} title={`Start`}><Pin background={'hsl(var(--primary))'} borderColor={'hsl(var(--primary))'} glyphColor={'hsl(var(--primary-foreground))'} /></AdvancedMarker>}
+                  {routeDetails?.endLocation && <AdvancedMarker position={routeDetails.endLocation} title={`End`}><Pin background={'hsl(var(--accent))'} borderColor={'hsl(var(--accent))'} glyphColor={'hsl(var(--accent-foreground))'} /></AdvancedMarker>}
                 </Map>
               </div></CardContent></Card>
               {error && <Alert variant="destructive"><AlertTitle className="font-headline">Error</AlertTitle><AlertDescription className="font-body">{error}</AlertDescription></Alert>}
+              {routeWarnings.length > 0 && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle className="font-headline">Route Warnings</AlertTitle><AlertDescription className="font-body space-y-1">{routeWarnings.map((warning, i) => <p key={i}>{warning}</p>)}</AlertDescription></Alert>}
               {isLoading && !routeDetails && <Card><CardHeader><CardTitle className="font-headline">Trip Summary</CardTitle></CardHeader><CardContent className="space-y-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-4 w-1/2" /><Skeleton className="h-4 w-2/3" /></CardContent></Card>}
               {routeDetails && <Card><CardHeader><CardTitle className="font-headline">Trip Summary</CardTitle></CardHeader><CardContent className="space-y-2">
                   <div className="font-body text-sm"><strong>Distance:</strong> {routeDetails.distance}</div>
