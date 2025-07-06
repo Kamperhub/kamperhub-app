@@ -279,7 +279,7 @@ export default function MyAccountPage() {
                 </DialogTrigger>
                 <DialogContent
                   className="sm:max-w-[625px]"
-                  onPointerDownOutside={(e) => {
+                  onInteractOutside={(e) => {
                     const target = e.target as HTMLElement;
                     if (target.closest('.pac-container')) {
                       e.preventDefault();
