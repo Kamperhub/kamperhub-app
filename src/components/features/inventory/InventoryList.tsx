@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, Settings2, Link2 as Link2Icon, StickyNote, PackageSearch, Droplet, Archive, Info, PackagePlus, Users } from 'lucide-react';
+import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, Settings2, Link2 as Link2Icon, StickyNote, PackageSearch, Droplet, Archive, Info, PackagePlus, Users, Wand } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label as RechartsLabel } from 'recharts';
@@ -129,67 +129,109 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
     return userPreferences.caravanWaterLevels[activeCaravan.id] || {};
   }, [activeCaravan, userPreferences?.caravanWaterLevels]);
   
+  const enrichedCombinedStorageLocations = useMemo(() => {
+    const formatPosition = (pos: { longitudinalPosition: string; lateralPosition: string; }) => {
+      const longText = {
+        'front-of-axles': 'Front', 'over-axles': 'Over Axles', 'rear-of-axles': 'Rear',
+        'front-of-front-axle': 'Front of F.Axle', 'between-axles': 'Between Axles', 'rear-of-rear-axle': 'Rear of R.Axle', 'roof-center': 'Roof Center'
+      }[pos.longitudinalPosition] || pos.longitudinalPosition;
+      const latText = { 'left': 'Left', 'center': 'Center', 'right': 'Right' }[pos.lateralPosition] || pos.lateralPosition;
+      return `(${longText} / ${latText})`;
+    };
+    const caravanLocs = (activeCaravan?.storageLocations || []).map(loc => ({ id: `cv-${loc.id}`, name: `CV: ${loc.name}`, details: formatPosition(loc), maxWeightCapacityKg: loc.maxWeightCapacityKg, distanceFromAxleCenterMm: loc.distanceFromAxleCenterMm, type: 'caravan' as 'caravan' | 'vehicle' }));
+    const vehicleLocs = (activeVehicle?.storageLocations || []).map(loc => ({ id: `veh-${loc.id}`, name: `VEH: ${loc.name}`, details: formatPosition(loc), maxWeightCapacityKg: loc.maxWeightCapacityKg, distanceFromAxleCenterMm: loc.distanceFromRearAxleMm, type: 'vehicle' as 'caravan' | 'vehicle' }));
+    return [...caravanLocs, ...vehicleLocs];
+  }, [activeCaravan?.storageLocations, activeVehicle?.storageLocations]);
+  
+  const { totalCaravanInventoryWeight, unassignedWeight } = useMemo(() => {
+    return items.reduce((acc, item) => {
+      const itemTotalWeight = item.weight * item.quantity;
+      const location = enrichedCombinedStorageLocations.find(loc => loc.id === item.locationId);
+      if (location?.type === 'caravan') {
+        acc.totalCaravanInventoryWeight += itemTotalWeight;
+      } else if (!location) {
+        acc.unassignedWeight += itemTotalWeight;
+      }
+      return acc;
+    }, { totalCaravanInventoryWeight: 0, unassignedWeight: 0 });
+  }, [items, enrichedCombinedStorageLocations]);
+
+  const totalVehicleInventoryWeight = useMemo(() => {
+    return items.reduce((sum, item) => {
+      const location = enrichedCombinedStorageLocations.find(loc => loc.id === item.locationId);
+      return location?.type === 'vehicle' ? sum + (item.weight * item.quantity) : sum;
+    }, 0);
+  }, [items, enrichedCombinedStorageLocations]);
+
   const totalWaterWeight = useMemo(() => {
     return (activeCaravan?.waterTanks || []).reduce((sum, tank) => {
       const levelPercentage = waterTankLevels[tank.id] || 0;
       return sum + (tank.capacityLitres * (levelPercentage / 100));
     }, 0);
   }, [activeCaravan?.waterTanks, waterTankLevels]);
-  
-  const { totalCaravanInventoryWeight, totalVehicleInventoryWeight, unassignedWeight } = useMemo(() => {
-    return items.reduce((acc, item) => {
-      const itemTotalWeight = item.weight * item.quantity;
-      if (item.locationId?.startsWith('cv-')) {
-        acc.totalCaravanInventoryWeight += itemTotalWeight;
-      } else if (item.locationId?.startsWith('veh-')) {
-        acc.totalVehicleInventoryWeight += itemTotalWeight;
-      } else {
-        acc.unassignedWeight += itemTotalWeight;
-      }
-      return acc;
-    }, { totalCaravanInventoryWeight: 0, totalVehicleInventoryWeight: 0, unassignedWeight: 0 });
-  }, [items]);
-
-  const totalInventoryWeight = totalCaravanInventoryWeight + totalVehicleInventoryWeight + unassignedWeight;
-  const totalOccupantWeight = useMemo(() => (occupants || []).reduce((sum, occ) => sum + occ.weight, 0), [occupants]);
 
   const caravanSpecs = activeCaravan ? {
     tareMass: activeCaravan.tareMass, atm: activeCaravan.atm, gtm: activeCaravan.gtm,
-    maxTowballDownload: activeCaravan.maxTowballDownload, numberOfAxles: activeCaravan.numberOfAxles, axleGroupRating: activeCaravan.axleGroupRating
-  } : defaultCaravanSpecs;
+    maxTowballDownload: activeCaravan.maxTowballDownload, numberOfAxles: activeCaravan.numberOfAxles, axleGroupRating: activeCaravan.axleGroupRating,
+    hitchToAxleCenterDistance: activeCaravan.hitchToAxleCenterDistance,
+  } : { ...defaultCaravanSpecs, hitchToAxleCenterDistance: null };
+  const { tareMass, atm: atmLimit, gtm: gtmLimit, maxTowballDownload: caravanMaxTowballDownloadLimit, axleGroupRating, hitchToAxleCenterDistance } = caravanSpecs;
 
-  const { tareMass, atm: atmLimit, gtm: gtmLimit, maxTowballDownload: caravanMaxTowballDownloadLimit, axleGroupRating } = caravanSpecs;
-  
   const caravanPayload = totalCaravanInventoryWeight + unassignedWeight + totalWaterWeight;
-
   const currentCaravanMass = tareMass + caravanPayload;
+
+  const calculatedTowballMass = useMemo(() => {
+    if (!activeCaravan || !hitchToAxleCenterDistance) {
+      return (totalCaravanInventoryWeight + unassignedWeight + totalWaterWeight) * 0.1;
+    }
+    let totalMoment = 0; // in kg.mm
+    items.forEach(item => {
+      const location = enrichedCombinedStorageLocations.find(loc => loc.id === item.locationId);
+      if (location?.type === 'caravan' && typeof location.distanceFromAxleCenterMm === 'number') {
+        totalMoment += (item.weight * item.quantity) * location.distanceFromAxleCenterMm;
+      }
+    });
+    (activeCaravan.waterTanks || []).forEach(tank => {
+      if (typeof tank.distanceFromAxleCenterMm === 'number') {
+        const waterWeight = (tank.capacityLitres * (waterTankLevels[tank.id] || 0)) / 100;
+        totalMoment += waterWeight * tank.distanceFromAxleCenterMm;
+      }
+    });
+    const gasWeight = (activeCaravan.numberOfGasBottles || 0) * (activeCaravan.gasBottleCapacityKg || 0);
+    if (gasWeight > 0) {
+      const gasBottlePosition = hitchToAxleCenterDistance * 0.9;
+      totalMoment += gasWeight * gasBottlePosition;
+    }
+    const calculatedTBM = totalMoment / hitchToAxleCenterDistance;
+    return isNaN(calculatedTBM) ? 0 : calculatedTBM;
+  }, [items, activeCaravan, enrichedCombinedStorageLocations, waterTankLevels, totalCaravanInventoryWeight, unassignedWeight, totalWaterWeight, hitchToAxleCenterDistance]);
+
   const remainingPayloadATM = atmLimit > 0 ? atmLimit - currentCaravanMass : 0;
-  
-  const estimatedTowballDownload = caravanPayload * 0.1;
-  
-  const currentLoadOnAxles = currentCaravanMass - estimatedTowballDownload;
+  const currentLoadOnAxles = currentCaravanMass - calculatedTowballMass;
   const axleLoadLimit = Math.min(gtmLimit || Infinity, axleGroupRating || Infinity);
+  
+  const totalOccupantWeight = useMemo(() => (occupants || []).reduce((sum, occ) => sum + occ.weight, 0), [occupants]);
   
   const vehicleKerbWeight = activeVehicle?.kerbWeight ?? 0;
   const vehicleGVM = activeVehicle?.gvm ?? 0;
   const vehicleGCM = activeVehicle?.gcm ?? 0;
 
-  const vehicleAddedPayload = totalVehicleInventoryWeight + estimatedTowballDownload + totalOccupantWeight;
+  const vehicleAddedPayload = totalVehicleInventoryWeight + calculatedTowballMass + totalOccupantWeight;
   const currentVehicleMass = vehicleKerbWeight + vehicleAddedPayload;
 
   const vehicleMaxTowCapacity = activeVehicle?.maxTowCapacity ?? 0;
   const vehicleMaxTowballMass = activeVehicle?.maxTowballMass ?? 0;
   
   const isOverMaxTowCapacity = vehicleMaxTowCapacity > 0 && currentCaravanMass > vehicleMaxTowCapacity;
-  const isOverVehicleMaxTowball = vehicleMaxTowballMass > 0 && estimatedTowballDownload > vehicleMaxTowballMass;
+  const isOverVehicleMaxTowball = vehicleMaxTowballMass > 0 && calculatedTowballMass > vehicleMaxTowballMass;
   
   const currentGCM = currentCaravanMass + (activeVehicle?.gvm || 0);
   const isGCMOverLimit = vehicleGCM > 0 && activeVehicle?.gvm && currentGCM > vehicleGCM;
 
   const wdhMaxCapacity = wdh?.maxCapacityKg ?? 0;
   const wdhMinCapacity = wdh?.minCapacityKg ?? null;
-  const isTowballOverWdhMax = wdhMaxCapacity > 0 && estimatedTowballDownload > wdhMaxCapacity;
-  const isTowballUnderWdhMin = wdhMinCapacity !== null && wdhMinCapacity > 0 && estimatedTowballDownload < wdhMinCapacity;
+  const isTowballOverWdhMax = wdhMaxCapacity > 0 && calculatedTowballMass > wdhMaxCapacity;
+  const isTowballUnderWdhMin = wdhMinCapacity !== null && wdhMinCapacity > 0 && calculatedTowballMass < wdhMinCapacity;
 
   const handleAddItem = () => {
     if (!activeCaravan) {
@@ -244,22 +286,8 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
 
   const atmChart = prepareChartData(currentCaravanMass, atmLimit);
   const axleLoadChart = prepareChartData(currentLoadOnAxles, axleLoadLimit);
-  const towballChart = prepareChartData(estimatedTowballDownload, caravanMaxTowballDownloadLimit);
+  const towballChart = prepareChartData(calculatedTowballMass, caravanMaxTowballDownloadLimit);
   
-  const enrichedCombinedStorageLocations = useMemo(() => {
-    const formatPosition = (pos: { longitudinalPosition: string; lateralPosition: string; }) => {
-      const longText = {
-        'front-of-axles': 'Front', 'over-axles': 'Over Axles', 'rear-of-axles': 'Rear',
-        'front-of-front-axle': 'Front of F.Axle', 'between-axles': 'Between Axles', 'rear-of-rear-axle': 'Rear of R.Axle', 'roof-center': 'Roof Center'
-      }[pos.longitudinalPosition] || pos.longitudinalPosition;
-      const latText = { 'left': 'Left', 'center': 'Center', 'right': 'Right' }[pos.lateralPosition] || pos.lateralPosition;
-      return `(${longText} / ${latText})`;
-    };
-    const caravanLocs = (activeCaravan?.storageLocations || []).map(loc => ({ id: `cv-${loc.id}`, name: `CV: ${loc.name}`, details: formatPosition(loc), maxWeightCapacityKg: loc.maxWeightCapacityKg, type: 'caravan' as 'caravan' | 'vehicle' }));
-    const vehicleLocs = (activeVehicle?.storageLocations || []).map(loc => ({ id: `veh-${loc.id}`, name: `VEH: ${loc.name}`, details: formatPosition(loc), maxWeightCapacityKg: loc.maxWeightCapacityKg, type: 'vehicle' as 'caravan' | 'vehicle' }));
-    return [...caravanLocs, ...vehicleLocs];
-  }, [activeCaravan?.storageLocations, activeVehicle?.storageLocations]);
-
   const getLocationNameById = (locationId: string | null | undefined) => !locationId ? 'Unassigned' : enrichedCombinedStorageLocations.find(loc => loc.id === locationId)?.name || 'Unknown';
   
   const capacityTrackedLocations = useMemo(() => enrichedCombinedStorageLocations.filter(loc => typeof loc.maxWeightCapacityKg === 'number' && loc.maxWeightCapacityKg > 0), [enrichedCombinedStorageLocations]);
@@ -302,7 +330,7 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
         {items.length > 0 && (
           <Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Qty</TableHead><TableHead>Total Wt.</TableHead><TableHead>Location</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
             <TableBody>{items.map(item => (<TableRow key={item.id}><TableCell>{item.name}</TableCell><TableCell>{item.quantity}</TableCell><TableCell>{(item.weight * item.quantity).toFixed(1)}kg</TableCell><TableCell>{getLocationNameById(item.locationId)}</TableCell><TableCell><Button variant="ghost" size="icon" onClick={() => handleEditItem(item)}><Edit3 className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell></TableRow>))}</TableBody>
-             <TableCaption>Total Inventory Weight (Caravan & Vehicle): {totalInventoryWeight.toFixed(1)} kg</TableCaption>
+             <TableCaption>Total Inventory Weight (Caravan & Vehicle): {(totalCaravanInventoryWeight + unassignedWeight + totalVehicleInventoryWeight).toFixed(1)} kg</TableCaption>
           </Table>)}
         
         {activeCaravan?.waterTanks && activeCaravan.waterTanks.length > 0 && (
@@ -313,10 +341,14 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
         <div className="space-y-4 pt-4">
           <h3 className="text-xl font-headline">Weight Summary &amp; Compliance</h3>
           <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
-              <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+              <Wand className="h-4 w-4 text-blue-700 dark:text-blue-300" />
               <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">About these calculations</AlertTitle>
               <AlertDescription className="font-body text-blue-700 dark:text-blue-300 text-xs">
-                  All calculations are estimates based on your inputs. For GVM, this tool accounts for added inventory, selected trip occupants, and towball mass against the vehicle's kerb weight; it does not include other accessories. Always verify your actual weights at a certified weighbridge for full legal compliance and safety.
+                  {hitchToAxleCenterDistance ? 
+                  "Tow Ball Mass is now calculated based on the position of items. This provides a more accurate estimate than the simple percentage method. Unassigned items are assumed to be over the axle." :
+                  "Tow Ball Mass is a simple 10% estimate of payload. For a more accurate calculation, edit your active caravan and provide the 'Hitch to Axle Center' distance."
+                  }
+                  Always verify weights at a certified weighbridge.
               </AlertDescription>
           </Alert>
            {wdh && (
@@ -348,7 +380,7 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 my-6">
             <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={150}><PieChart><Pie data={atmChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={60} innerRadius={40} dataKey="value" stroke="hsl(var(--background))">{atmChart.data.map((_, i) => (<Cell key={`cell-atm-${i}`} fill={atmChart.colors[i % atmChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="ATM" value={currentCaravanMass} limit={atmLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
             <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={150}><PieChart><Pie data={axleLoadChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={60} innerRadius={40} dataKey="value" stroke="hsl(var(--background))">{axleLoadChart.data.map((_, i) => (<Cell key={`cell-axle-${i}`} fill={axleLoadChart.colors[i % axleLoadChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Axle Load" value={currentLoadOnAxles} limit={axleLoadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
-            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={150}><PieChart><Pie data={towballChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={60} innerRadius={40} dataKey="value" stroke="hsl(var(--background))">{towballChart.data.map((_, i) => (<Cell key={`cell-towball-${i}`} fill={towballChart.colors[i % towballChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Est. Towball" value={estimatedTowballDownload} limit={caravanMaxTowballDownloadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
+            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={150}><PieChart><Pie data={towballChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={60} innerRadius={40} dataKey="value" stroke="hsl(var(--background))">{towballChart.data.map((_, i) => (<Cell key={`cell-towball-${i}`} fill={towballChart.colors[i % towballChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Calc. Towball" value={calculatedTowballMass} limit={caravanMaxTowballDownloadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
           </div>
         </div>
       </CardContent>
