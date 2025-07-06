@@ -426,6 +426,13 @@ export default function MyAccountPage() {
             </Alert>
           )}
 
+          {/* TEMPORARY LINK FOR TESTING */}
+          <Link href="/subscribe/success" passHref onClick={handleNavigation}>
+            <Button variant="outline" className="w-full font-body">
+              View Success Page (Test Link)
+            </Button>
+          </Link>
+
           <Button onClick={handleLogout} variant="destructive" className="w-full font-body">
             <LogOut className="mr-2 h-4 w-4" /> Log Out
           </Button>
