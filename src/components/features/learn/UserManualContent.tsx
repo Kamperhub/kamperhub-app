@@ -32,6 +32,7 @@ export function UserManualContent() {
       <ul className="list-disc pl-5 my-2 space-y-1">
         <li><strong>Your data is safe and backed up.</strong> It won't be lost if you clear your browser's cache or use a different computer.</li>
         <li><strong>Your data is synced across devices.</strong> You can log in on your phone or laptop and access the same information.</li>
+        <li><strong>Faster Performance:</strong> Key pages like "Vehicles" and "Inventory" now use server-side data fetching, meaning they load their content instantly without waiting for client-side spinners.</li>
       </ul>
     </>
   );
@@ -89,19 +90,21 @@ export function UserManualContent() {
       content: (
          <>
           <p>This powerful tool helps you track items loaded into your active caravan and vehicle, manage their weights, and monitor compliance with various weight limits (ATM, GTM, Towball Mass, GVM, GCM).</p>
-          <ul className="list-disc pl-5 space-y-1">
+          <ul className="list-disc pl-5 space-y-2">
             <li><strong>Active Selections:</strong> This page relies heavily on the "Active" caravan and "Active" tow vehicle set in the "Vehicle & Caravan Setup" section. Ensure these are correctly selected for accurate calculations and relevant storage locations.</li>
             <li><strong>Adding Items:</strong> Input item name, weight (per item), quantity, and assign it to a predefined storage location from your active caravan or vehicle. Items assigned to the caravan contribute to its payload, while items in the vehicle contribute to its GVM.</li>
             <li><strong>Occupant Weight:</strong> You can select a saved trip to automatically include the weight of the occupants from that trip in the vehicle's GVM calculation.</li>
             <li><strong>Water Tank Levels:</strong> Adjust the fill percentage for each water tank defined for your active caravan. The weight of the water (1kg per liter) is automatically calculated and added to your caravan's total mass.</li>
-            <li><strong>Weight Summary & Compliance:</strong>
-                <ul className="list-disc pl-5 space-y-1">
-                    <li><strong>Visual Charts:</strong> Donut charts provide a quick visual overview of your Caravan ATM, Axle Load, and estimated Towball Mass against their respective limits.</li>
-                    <li><strong>Detailed Alerts & Status:</strong> The system provides alerts for Caravan Compliance (ATM, Axle Load), Vehicle GVM, and Towing Capacity.</li>
-                </ul>
+            <li>
+              <h4 className="font-semibold font-headline text-md text-foreground">Advanced Weight Summary & Compliance:</h4>
+              <ul className="list-circle pl-5 space-y-1 text-sm">
+                <li><strong>Physics-Based Towball Mass:</strong> The "Calculated Towball Mass" is now derived from a precise moment calculation. It considers the weight of each item and its distance from the caravan's axle center. This provides a much more accurate estimate than a simple percentage. For this to work, you must enter the 'Hitch to Axle Center' distance in your caravan's setup.</li>
+                <li><strong>Visual Charts:</strong> Donut charts provide a quick visual overview of your Caravan ATM, Axle Load, and the Calculated Towball Mass against their respective limits.</li>
+                <li><strong>Detailed Alerts & Status:</strong> The system provides alerts for Caravan Compliance (ATM, Axle Load), Vehicle GVM, and Towing Capacity, all using the more accurate weight data.</li>
+              </ul>
             </li>
-            <li><strong>Weighbridge Notice:</strong> Always verify your actual weights at a certified weighbridge. KamperHub provides estimates based on your input, but real-world weights can vary.</li>
-        </ul>
+            <li><strong>Weighbridge Notice:</strong> Always verify your actual weights at a certified weighbridge. KamperHub provides excellent estimates based on your input, but real-world weights can vary.</li>
+          </ul>
         </>
       )
     },
@@ -116,6 +119,7 @@ export function UserManualContent() {
                 <strong>Itinerary Planning:</strong>
                 <ul className="list-circle pl-5 space-y-1">
                     <li><strong>Inputs:</strong> Provide Start and End Locations (with Google Places Autocomplete), Planned Date Range, Vehicle Fuel Efficiency (L/100km), and Current Fuel Price.</li>
+                    <li><strong>Vehicle-Only Trips:</strong> Use the "Towing a caravan?" switch to specify if your trip involves a caravan. If disabled, the trip will be saved as "Vehicle Only" and will use a simplified checklist template.</li>
                     <li><strong>Route Calculation:</strong> Displays the route on an interactive map, showing total distance, estimated duration, and calculated fuel cost.</li>
                     <li><strong>Saving Trips:</strong> Saves the entire plan—including the route, fuel estimates, dates, budget, expenses, and notes—to your "Trip Log." This also creates a unique, editable checklist for the trip.</li>
                 </ul>
