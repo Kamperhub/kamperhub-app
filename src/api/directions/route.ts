@@ -26,7 +26,7 @@ function formatDuration(isoDuration: string): string {
 }
 
 export async function POST(req: NextRequest) {
-  // Use the unrestricted server-side GOOGLE_API_KEY
+  // Use the unrestricted server-side GOOGLE_API_KEY for server-to-server calls
   const apiKey = process.env.GOOGLE_API_KEY;
 
   if (!apiKey) {
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     if (vehicleHeight && vehicleHeight > 0) {
       requestBody.routeModifiers = {
         vehicleInfo: {
-          vehicleHeight: {
+          height: {
             value: vehicleHeight,
             unit: 'METERS',
           },
@@ -94,8 +94,6 @@ export async function POST(req: NextRequest) {
               errorMessage = "The Google Routes API is not enabled for this project. Please enable it in the Google Cloud Console and ensure your API key has permissions for it.";
             } else if (errorMessage.toLowerCase().includes('api_key_not_valid')) {
                errorMessage = "The provided GOOGLE_API_KEY is invalid. Please check the key in your .env.local file.";
-            } else if (errorMessage.toLowerCase().includes('unknown name "height"')) {
-                errorMessage = `Invalid request structure for vehicle height. ${errorMessage}`;
             }
           }
         } catch(e) {
