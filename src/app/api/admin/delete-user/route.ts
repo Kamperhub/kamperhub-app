@@ -64,18 +64,18 @@ export async function POST(req: NextRequest) {
     const userDoc = userQuerySnapshot.docs[0];
     const userData = userDoc.data();
     const userIdToDelete = userDoc.id;
-    const stripeSubscriptionId = userData?.stripeSubscriptionId;
+    const stripeCustomerId = userData?.stripeCustomerId;
 
     let stripeMessage = '';
-    // --- NEW: Cancel Stripe Subscription ---
-    if (stripeSubscriptionId && stripe) {
+    // --- NEW: Delete the Stripe Customer, which cancels all subscriptions ---
+    if (stripeCustomerId && stripe) {
       try {
-        await stripe.subscriptions.cancel(stripeSubscriptionId);
-        stripeMessage = `Stripe subscription ${stripeSubscriptionId} was successfully canceled.`;
+        await stripe.customers.del(stripeCustomerId);
+        stripeMessage = `Stripe customer ${stripeCustomerId} and all associated subscriptions were successfully deleted.`;
         console.log(`[Admin Delete] ${stripeMessage}`);
       } catch (stripeError: any) {
-        // Don't block deletion if Stripe fails (e.g., sub already canceled)
-        stripeMessage = `Warning: Could not cancel Stripe subscription ${stripeSubscriptionId}. It may have already been canceled. Error: ${stripeError.message}`;
+        // Don't block deletion if Stripe fails (e.g., customer already deleted)
+        stripeMessage = `Warning: Could not delete Stripe customer ${stripeCustomerId}. Error: ${stripeError.message}`;
         console.warn(`[Admin Delete] ${stripeMessage}`);
       }
     }
