@@ -277,7 +277,15 @@ export default function MyAccountPage() {
                     <Edit3 className="mr-2 h-4 w-4" /> Edit Profile
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[625px]">
+                <DialogContent
+                  className="sm:max-w-[625px]"
+                  onPointerDownOutside={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (target.closest('.pac-container')) {
+                      e.preventDefault();
+                    }
+                  }}
+                >
                   <DialogHeader>
                     <DialogTitle className="font-headline">Edit Your Profile</DialogTitle>
                   </DialogHeader>
