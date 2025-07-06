@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo, useContext } from 'react';
+import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import type { NavItem } from '@/lib/navigation';
 import { navItems as defaultNavItems } from '@/lib/navigation';
@@ -12,9 +13,6 @@ import Image from 'next/image';
 import { updateUserPreferences } from '@/lib/api-client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { NavigationContext } from '@/components/layout/AppShell';
 import { StartTripDialog } from '@/components/features/dashboard/StartTripDialog';
 import { ReturnTripDialog } from '@/components/features/dashboard/ReturnTripDialog';
@@ -50,7 +48,7 @@ function NavItemCard({ item }: { item: NavItem }) {
 
   return (
     <Link href={item.href} className="block h-full no-underline group" draggable="false" onClick={handleNavigation}>
-      <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-grab active:cursor-grabbing">
+      <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
         <CardHeader className="pb-3">
             <CardTitle className="font-headline text-xl text-primary flex items-center">
                 <item.icon className="w-6 h-6 mr-3 text-primary" />
@@ -73,51 +71,9 @@ function NavItemCard({ item }: { item: NavItem }) {
   );
 }
 
-function SortableNavItemCard({ item }: { item: NavItem }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: item.href });
-
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition: transition || 'none',
-    zIndex: isDragging ? 10 : 'auto',
-    opacity: isDragging ? 0.8 : 1,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <NavItemCard item={item} />
-    </div>
-  );
-}
-
 export default function DashboardPage() {
   const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>(defaultNavItems);
-
   const { user, userProfile: userPrefs } = useAuth(); 
-  
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
-  const updateUserPrefsMutation = useMutation({
-    mutationFn: (layout: string[]) => updateUserPreferences({ dashboardLayout: layout }),
-    onSuccess: (data, variables) => {
-      queryClient.setQueryData(['userPreferences', user?.uid], (oldData: any) => ({
-        ...oldData,
-        dashboardLayout: variables
-      }));
-      toast({ title: "Layout Saved", description: "Your dashboard layout has been saved." });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error Saving Layout", description: error.message, variant: "destructive" });
-    },
-  });
   
   useEffect(() => {
     const mainPageNavItems = defaultNavItems; 
@@ -141,32 +97,6 @@ export default function DashboardPage() {
     }
   }, [userPrefs]);
   
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 10,
-      },
-    })
-  );
-
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setOrderedNavItems((items) => {
-        const oldIndex = items.findIndex(item => item.href === active.id);
-        const newIndex = items.findIndex(item => item.href === over.id);
-        const newOrder = arrayMove(items, oldIndex, newIndex);
-        
-        const newLayoutHrefs = newOrder.map(item => item.href);
-        updateUserPrefsMutation.mutate(newLayoutHrefs);
-
-        return newOrder;
-      });
-    }
-  }, [updateUserPrefsMutation]);
-
-  const navItemHrefs = useMemo(() => orderedNavItems.map(item => item.href), [orderedNavItems]);
-  
   return (
     <div className="space-y-8">
       <div className="flex items-center mb-6">
@@ -185,34 +115,11 @@ export default function DashboardPage() {
         </div>
       </div>
       
-      <div className="my-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4">
-        <StartTripDialog>
-            <Button size="lg" className="h-14 px-10 text-xl font-headline bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg animate-pulse">
-                <CarAndCaravanIcon className="mr-3 h-6 w-6" />
-                Start a Trip!
-            </Button>
-        </StartTripDialog>
-        <ReturnTripDialog>
-            <Button size="lg" variant="outline" className="h-14 px-10 text-xl font-headline shadow-lg">
-                <CornerDownLeft className="mr-3 h-6 w-6" />
-                Plan Return
-            </Button>
-        </ReturnTripDialog>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {orderedNavItems.map((item) => (
+          <NavItemCard key={item.href} item={item} />
+        ))}
       </div>
-
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext items={navItemHrefs} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {orderedNavItems.map((item) => (
-              <SortableNavItemCard key={item.href} item={item} />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
     </div>
   );
 }
