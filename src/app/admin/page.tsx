@@ -1,7 +1,7 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -201,6 +201,23 @@ export default function AdminPage() {
     <div className="space-y-8">
       <Card className="max-w-2xl mx-auto shadow-xl">
         <CardHeader>
+            <CardTitle className="font-headline text-xl text-primary flex items-center">
+                <Info className="mr-3 h-6 w-6" /> Admin Notes
+            </CardTitle>
+        </CardHeader>
+        <CardContent>
+            <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Managing Your Own Trips</AlertTitle>
+                <AlertDescription>
+                    To manage or delete your own admin account's test trips (for example, to clean up entries made with the old API), please use the main <Link href="/triplog" className="font-semibold underline">Trip Log</Link> page. The functionality there works for all users, including admins.
+                </AlertDescription>
+            </Alert>
+        </CardContent>
+      </Card>
+
+      <Card className="max-w-2xl mx-auto shadow-xl">
+        <CardHeader>
           <CardTitle className="font-headline text-2xl text-primary flex items-center"><UserCog className="mr-3 h-7 w-7" /> Admin - User Subscription Management</CardTitle>
           <CardDescription className="font-body">Update subscription details for a specific user by their email address.</CardDescription>
         </CardHeader>
@@ -289,7 +306,7 @@ export default function AdminPage() {
               </div>
               <div>
                 <Label htmlFor="confirmationText" className="font-body">Type "DELETE" to confirm</Label>
-                <Input id="confirmationText" {...deleteForm.register("confirmationText")} placeholder='Type DELETE here' disabled={deleteUserMutation.isPending}/>
+                <Input id="confirmationText" {...register("confirmationText")} placeholder='Type DELETE here' disabled={deleteUserMutation.isPending}/>
                 {deleteForm.formState.errors.confirmationText && <p className="text-sm text-destructive mt-1 font-body">{deleteForm.formState.errors.confirmationText.message}</p>}
               </div>
               <Button type="submit" variant="destructive" className="w-full font-body" disabled={deleteUserMutation.isPending || allUsers.length === 0}>
