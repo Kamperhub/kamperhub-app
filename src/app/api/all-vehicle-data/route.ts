@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
 
         const vehicles = vehiclesSnapshot.docs.map(doc => doc.data() as StoredVehicle);
         const caravans = caravansSnapshot.docs.map(doc => doc.data() as StoredCaravan);
-        const userProfile = userDocSnap.exists() ? userDocSnap.data() as UserProfile : null;
+        const userProfile = userDocSnap.exists ? userDocSnap.data() as UserProfile : null;
 
         const data = {
             vehicles,
