@@ -1,216 +1,77 @@
 
-"use client"; 
-
-import { useState, useMemo, useContext } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import type { StoredCaravan } from '@/types/caravan'; 
-import type { StoredVehicle } from '@/types/vehicle';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getSession } from '@/lib/server-session';
+import { redirect } from 'next/navigation';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
+import { InventoryPageClient } from '@/components/features/inventory/InventoryPageClient';
 import type { UserProfile } from '@/types/auth';
+import type { StoredVehicle } from '@/types/vehicle';
+import type { StoredCaravan } from '@/types/caravan';
 import type { LoggedTrip } from '@/types/tripplanner';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import Link from 'next/link';
-import { Settings, Loader2, Car, HomeIcon, Link2 as Link2Icon, Backpack, Users } from 'lucide-react';
-import dynamic from 'next/dynamic';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { fetchUserPreferences, fetchCaravans, fetchVehicles, fetchTrips } from '@/lib/api-client';
-import { useAuth } from '@/hooks/useAuth';
-import { NavigationContext } from '@/components/layout/AppShell';
 
-const InventoryListClient = dynamic(
-  () => import('@/components/features/inventory/InventoryList').then(mod => mod.InventoryList),
-  {
-    ssr: false,
-    loading: () => (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-8 w-1/2" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-40 w-full" />
-        </CardContent>
-      </Card>
-    ),
-  }
-);
-
-export default function InventoryPage() {
-  const { user, isAuthLoading } = useAuth();
-  const navContext = useContext(NavigationContext);
-
-  const { data: userPrefs, isLoading: isLoadingPrefs, error: prefsError } = useQuery<Partial<UserProfile>>({
-    queryKey: ['userPreferences', user?.uid],
-    queryFn: fetchUserPreferences,
-    enabled: !!user,
-  });
-
-  const { data: allCaravans = [], isLoading: isLoadingCaravans, error: caravansError } = useQuery<StoredCaravan[]>({
-    queryKey: ['caravans', user?.uid],
-    queryFn: fetchCaravans,
-    enabled: !!user,
-  });
-
-  const { data: allVehicles = [], isLoading: isLoadingVehicles, error: vehiclesError } = useQuery<StoredVehicle[]>({
-    queryKey: ['vehicles', user?.uid],
-    queryFn: fetchVehicles,
-    enabled: !!user,
-  });
-  
-  const { data: allTrips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery<LoggedTrip[]>({
-    queryKey: ['trips', user?.uid],
-    queryFn: fetchTrips,
-    enabled: !!user,
-  });
-
-  const [selectedTripId, setSelectedTripId] = useState<string>('none');
-
-  const activeCaravanId = userPrefs?.activeCaravanId;
-  const activeVehicleId = userPrefs?.activeVehicleId;
-
-  const activeCaravan = activeCaravanId ? allCaravans.find(c => c.id === activeCaravanId) : null;
-  const activeVehicle = activeVehicleId ? allVehicles.find(v => v.id === activeVehicleId) : null;
-  const activeWdh = activeCaravan?.wdh;
-  
-  const selectedTrip = useMemo(() => allTrips.find(trip => trip.id === selectedTripId), [allTrips, selectedTripId]);
-  
-  const isLoading = isAuthLoading || isLoadingPrefs || isLoadingCaravans || isLoadingVehicles || isLoadingTrips;
-  const queryError = prefsError || caravansError || vehiclesError || tripsError;
-
-  const handleNavigation = () => {
-    navContext?.setIsNavigating(true);
-  };
-
-  const getDescriptiveText = () => {
-    let text = "Track your caravan's load, manage items, and stay compliant with weight limits. Calculations consider active caravan, tow vehicle, and WDH specifications if selected. Water tank levels also contribute to the total weight.";
-    if (activeCaravan && activeVehicle) {
-      text += ` Using specs for your ${activeCaravan.year} ${activeCaravan.make} ${activeCaravan.model} towed by ${activeVehicle.year} ${activeVehicle.make} ${activeVehicle.model}.`;
-    } else if (activeCaravan) {
-      text += ` Using specs for your ${activeCaravan.year} ${activeCaravan.make} ${activeCaravan.model}. Select an active tow vehicle in 'Vehicles' for full compliance checks.`;
-    } else if (activeVehicle) {
-       text += ` Current tow vehicle: ${activeVehicle.year} ${activeVehicle.make} ${activeVehicle.model}. Set an active caravan for accurate calculations.`;
-    } else {
-       text += " Please set an active caravan and tow vehicle in 'Vehicles' for accurate weight management. Current calculations use default zero values.";
+const firestoreTimestampReplacer = (key: any, value: any) => {
+    if (value && typeof value.toDate === 'function') {
+        return value.toDate().toISOString();
     }
-    if (activeWdh) {
-      text += ` Active WDH: ${activeWdh.name}.`;
+    return value;
+};
+
+const sanitizeData = (data: any) => {
+    try {
+        const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
+        return JSON.parse(jsonString);
+    } catch (error: any) {
+        console.error('Error in sanitizeData:', error);
+        throw new Error(`Failed to serialize data: ${error.message}`);
     }
-    return text;
-  };
-  
-  if (isLoading) {
-    return (
-      <div className="space-y-8">
-        <h1 className="text-3xl font-headline mb-6 text-foreground flex items-center">
-          <Backpack className="mr-3 h-8 w-8" /> Inventory & Weight Management
-        </h1>
-        <div className="flex items-center justify-center py-10">
-          <Loader2 className="h-8 w-8 animate-spin text-foreground mr-3" />
-          <p className="font-body text-lg">Loading specifications &amp; inventory...</p>
-        </div>
-      </div>
-    );
-  }
+};
 
-  if (queryError) {
-     return (
-        <Alert variant="destructive" className="mb-6">
-          <Settings className="h-4 w-4" />
-          <AlertTitle className="font-headline text-destructive">Error Loading Data</AlertTitle>
-          <AlertDescription className="font-body">
-            There was a problem loading your vehicle or preference data from the server. Error: {queryError.message}
-          </AlertDescription>
-        </Alert>
-     );
-  }
+async function getInventoryPageData(uid: string) {
+    const { firestore, error } = getFirebaseAdmin();
+    if (error || !firestore) {
+        throw new Error("Server configuration error, unable to fetch data.");
+    }
+    try {
+        const [vehiclesSnap, caravansSnap, userSnap, tripsSnap] = await Promise.all([
+            firestore.collection('users').doc(uid).collection('vehicles').get(),
+            firestore.collection('users').doc(uid).collection('caravans').get(),
+            firestore.collection('users').doc(uid).get(),
+            firestore.collection('users').doc(uid).collection('trips').get()
+        ]);
 
-  return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-headline mb-6 text-foreground flex items-center">
-          <Backpack className="mr-3 h-8 w-8" /> Inventory & Weight Management
-        </h1>
-        <p className="text-muted-foreground font-body mb-6">
-          {getDescriptiveText()}
-        </p>
-      </div>
+        const data = {
+            userProfile: userSnap.exists() ? userSnap.data() as UserProfile : null,
+            caravans: caravansSnap.docs.map(doc => doc.data() as StoredCaravan),
+            vehicles: vehiclesSnap.docs.map(doc => doc.data() as StoredVehicle),
+            trips: tripsSnap.docs.map(doc => doc.data() as LoggedTrip),
+        };
+        
+        return sanitizeData(data);
+    } catch (err: any) {
+        console.error('API Error in server-side fetch for inventory page:', err);
+        throw new Error(`Failed to fetch inventory page data: ${err.message}`);
+    }
+}
 
-      {!activeCaravan && (
-        <Alert variant="default" className="mb-6 bg-muted border-border">
-          <Settings className="h-4 w-4 text-foreground" />
-          <AlertTitle className="font-headline text-foreground">Active Caravan Required</AlertTitle>
-          <AlertDescription className="font-body text-muted-foreground">
-            Please add a caravan and set it as active in the 'Vehicles' section to manage its inventory and see accurate weight calculations.
-            <Link href="/vehicles" passHref onClick={handleNavigation}>
-              <Button variant="link" className="p-0 h-auto ml-1 text-foreground hover:underline font-body">Go to Vehicles</Button>
-            </Link>
-          </AlertDescription>
-        </Alert>
-      )}
-      {!activeVehicle && (
-        <Alert variant="default" className="mb-6 bg-muted border-border">
-          <Settings className="h-4 w-4 text-foreground" />
-          <AlertTitle className="font-headline text-foreground">Active Tow Vehicle Recommended</AlertTitle>
-          <AlertDescription className="font-body text-muted-foreground">
-            For full towing compliance checks, please add a tow vehicle and set it as active in 'Vehicles'.
-            <Link href="/vehicles" passHref onClick={handleNavigation}>
-              <Button variant="link" className="p-0 h-auto ml-1 text-foreground hover:underline font-body">Go to Vehicles</Button>
-            </Link>
-          </AlertDescription>
-        </Alert>
-      )}
+export default async function InventoryPage() {
+    const session = await getSession();
+    if (!session) {
+        redirect('/login');
+    }
 
-      {activeCaravan && (
-         <Alert variant="default" className="mb-6 bg-secondary/30 border-secondary/50">
-            <HomeIcon className="h-4 w-4 text-foreground" />
-            <AlertTitle className="font-headline font-bold text-foreground">Active Caravan: {activeCaravan.year} {activeCaravan.make} {activeCaravan.model}</AlertTitle>
-         </Alert>
-      )}
-      {activeVehicle && (
-         <Alert variant="default" className="mb-6 bg-secondary/30 border-secondary/50">
-            <Car className="h-4 w-4 text-foreground" />
-            <AlertTitle className="font-headline font-bold text-foreground">Active Tow Vehicle: {activeVehicle.year} {activeVehicle.make} {activeVehicle.model}</AlertTitle>
-         </Alert>
-      )}
-      {activeWdh && (
-         <Alert variant="default" className="mb-6 bg-secondary/30 border-secondary/50">
-            <Link2Icon className="h-4 w-4 text-foreground" />
-            <AlertTitle className="font-headline font-bold text-foreground">Active WDH: {activeWdh.name} ({activeWdh.type}, Max: {activeWdh.maxCapacityKg}kg)</AlertTitle>
-         </Alert>
-      )}
-
-      <Card className="bg-muted/30">
-          <CardHeader>
-              <CardTitle className="font-headline flex items-center"><Users className="mr-2 h-5 w-5"/>Occupant Weight</CardTitle>
-              <CardDescription>Select a trip to include occupant weights in the GVM calculation.</CardDescription>
-          </CardHeader>
-          <CardContent>
-               <div className="max-w-sm">
-                    <Label htmlFor="trip-occupants-select">Include Occupants from Trip</Label>
-                    <Select value={selectedTripId} onValueChange={setSelectedTripId}>
-                        <SelectTrigger id="trip-occupants-select">
-                            <SelectValue placeholder="Select a trip..."/>
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="none">None (No Occupant Weight)</SelectItem>
-                            {allTrips.map(trip => <SelectItem key={trip.id} value={trip.id}>{trip.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-               </div>
-          </CardContent>
-      </Card>
-      
-      <InventoryListClient 
-        activeCaravan={activeCaravan}
-        activeVehicle={activeVehicle}
-        wdh={activeWdh}
-        userPreferences={userPrefs}
-        occupants={selectedTrip?.occupants}
-      />
-    </div>
-  );
+    try {
+        const data = await getInventoryPageData(session.uid);
+        return <InventoryPageClient initialData={data} />;
+    } catch (error: any) {
+        return (
+            <div className="container mx-auto py-8">
+                <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Error Loading Page Data</AlertTitle>
+                    <AlertDescription>{error.message}</AlertDescription>
+                </Alert>
+            </div>
+        );
+    }
 }
