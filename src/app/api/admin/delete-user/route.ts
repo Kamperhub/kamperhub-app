@@ -2,6 +2,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import { z } from 'zod';
+import Stripe from 'stripe';
+
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+let stripe: Stripe;
+if (stripeSecretKey) {
+  stripe = new Stripe(stripeSecretKey, {
+    apiVersion: '2024-06-20',
+  });
+} else {
+  console.error("Stripe secret key is not configured for user deletion.");
+}
+
 
 const deleteUserSchema = z.object({
   email: z.string().email("A valid user email is required."),
@@ -42,7 +54,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Admin user cannot be deleted.' }, { status: 400 });
     }
 
-    // Use a 'where' query for efficiency. This requires a Firestore index on the 'email' field.
     const usersQuery = firestore.collection('users').where('email', '==', targetEmail).limit(1);
     const userQuerySnapshot = await usersQuery.get();
 
@@ -51,7 +62,24 @@ export async function POST(req: NextRequest) {
     }
     
     const userDoc = userQuerySnapshot.docs[0];
+    const userData = userDoc.data();
     const userIdToDelete = userDoc.id;
+    const stripeSubscriptionId = userData?.stripeSubscriptionId;
+
+    let stripeMessage = '';
+    // --- NEW: Cancel Stripe Subscription ---
+    if (stripeSubscriptionId && stripe) {
+      try {
+        await stripe.subscriptions.cancel(stripeSubscriptionId);
+        stripeMessage = `Stripe subscription ${stripeSubscriptionId} was successfully canceled.`;
+        console.log(`[Admin Delete] ${stripeMessage}`);
+      } catch (stripeError: any) {
+        // Don't block deletion if Stripe fails (e.g., sub already canceled)
+        stripeMessage = `Warning: Could not cancel Stripe subscription ${stripeSubscriptionId}. It may have already been canceled. Error: ${stripeError.message}`;
+        console.warn(`[Admin Delete] ${stripeMessage}`);
+      }
+    }
+    // --- END NEW ---
 
     await userDoc.ref.delete();
     
@@ -62,11 +90,13 @@ export async function POST(req: NextRequest) {
         console.log(`Info: User with UID ${userIdToDelete} was not found in Firebase Auth (already deleted or orphaned), but their Firestore data has been removed.`);
       } else {
         console.error(`Error deleting user ${userIdToDelete} from Firebase Auth:`, authError);
-        return NextResponse.json({ message: `Successfully deleted Firestore data for ${targetEmail}. However, an error occurred while removing them from Authentication: ${authError.message}` }, { status: 207 }); // 207 Multi-Status
+        const finalMessage = `Successfully deleted Firestore data for ${targetEmail}. However, an error occurred while removing them from Authentication: ${authError.message}. ${stripeMessage}`;
+        return NextResponse.json({ message: finalMessage }, { status: 207 }); // 207 Multi-Status
       }
     }
 
-    return NextResponse.json({ message: `Successfully deleted user ${targetEmail} (UID: ${userIdToDelete}) from Firestore and Authentication (if they existed there).` }, { status: 200 });
+    const successMessage = `Successfully deleted user ${targetEmail} from Firestore and Auth. ${stripeMessage}`;
+    return NextResponse.json({ message: successMessage }, { status: 200 });
 
   } catch (error: any) {
     console.error('Error in admin delete-user endpoint:', error);
