@@ -8,10 +8,9 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, XCircle, Mail, User, MapPin, Building, Globe, UserCircle as UserCircleIcon } from 'lucide-react';
+import { Save, XCircle, Mail, User, MapPin, Building, Globe, UserCircle as UserCircleIcon, Home } from 'lucide-react';
 import type { UserProfile } from '@/types/auth';
 import { Separator } from '@/components/ui/separator';
-import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesAutocompleteInput';
 
 // Schema for the fields that can be edited
 export const editProfileSchema = z.object({
@@ -34,11 +33,10 @@ interface EditProfileFormProps {
   onSave: (data: EditProfileFormData) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
-  isPlacesApiReady?: boolean;
 }
 
-export function EditProfileForm({ initialData, onSave, onCancel, isLoading, isPlacesApiReady = false }: EditProfileFormProps) {
-  const { register, handleSubmit, formState: { errors }, control, setValue } = useForm<EditProfileFormData>({
+export function EditProfileForm({ initialData, onSave, onCancel, isLoading }: EditProfileFormProps) {
+  const { register, handleSubmit, formState: { errors } } = useForm<EditProfileFormData>({
     resolver: zodResolver(editProfileSchema),
     defaultValues: {
       firstName: initialData.firstName || '',
@@ -135,16 +133,19 @@ export function EditProfileForm({ initialData, onSave, onCancel, isLoading, isPl
       </div>
       <Separator className="my-4"/>
        <div>
-          <GooglePlacesAutocompleteInput
-            control={control}
-            name="homeAddress"
-            label="Home Address (Optional)"
-            placeholder="e.g., 123 Main St, Anytown"
-            errors={errors}
-            setValue={setValue}
-            isApiReady={isPlacesApiReady}
-          />
-          <p className="text-xs text-muted-foreground mt-1">For trip planning purposes only. This allows you to quickly set your start location.</p>
+            <Label htmlFor="homeAddress" className="font-body">Home Address (Optional)</Label>
+            <div className="relative">
+                <Home className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                    id="homeAddress"
+                    {...register("homeAddress")}
+                    placeholder="e.g., 123 Main St, Anytown"
+                    className="font-body pl-10"
+                    disabled={isLoading}
+                />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">For trip planning purposes only. This allows you to quickly set your start location.</p>
+            {errors.homeAddress && <p className="text-xs text-destructive font-body mt-1">{errors.homeAddress.message}</p>}
         </div>
 
       <div className="flex justify-end gap-2 pt-4">

@@ -11,7 +11,6 @@ import { auth } from '@/lib/firebase';
 import { updateProfile, updateEmail } from 'firebase/auth';
 import { updateUserPreferences, generateGoogleAuthUrl, disconnectGoogleAccount } from '@/lib/api-client';
 import { format, isAfter, parseISO } from 'date-fns';
-import { useMapsLibrary } from '@vis.gl/react-google-maps';
 
 import type { UserProfile } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
@@ -31,7 +30,6 @@ export default function MyAccountPage() {
   const { hasProAccess, subscriptionTier, stripeCustomerId, isTrialActive, trialEndsAt } = useSubscription();
   const queryClient = useQueryClient();
   const navContext = useContext(NavigationContext);
-  const placesLibrary = useMapsLibrary('places');
 
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -42,7 +40,6 @@ export default function MyAccountPage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const isPlacesApiReady = !!placesLibrary;
 
   const handleNavigation = () => {
     navContext?.setIsNavigating(true);
@@ -271,7 +268,7 @@ export default function MyAccountPage() {
            <div className="p-4 border rounded-md bg-muted/30 space-y-2">
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-lg font-headline text-foreground">Account Details:</h3>
-              <Dialog open={isEditProfileOpen} onOpenChange={setIsEditProfileOpen} modal={false}>
+              <Dialog open={isEditProfileOpen} onOpenChange={setIsEditProfileOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm" className="font-body">
                     <Edit3 className="mr-2 h-4 w-4" /> Edit Profile
@@ -286,7 +283,6 @@ export default function MyAccountPage() {
                     onSave={handleSaveProfile}
                     onCancel={() => setIsEditProfileOpen(false)}
                     isLoading={isSavingProfile}
-                    isPlacesApiReady={isPlacesApiReady}
                   />
                 </DialogContent>
               </Dialog>
