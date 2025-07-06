@@ -68,7 +68,7 @@ const tripPlannerSchema = z.object({
 
 
 export function TripPlannerClient() {
-  const { control, handleSubmit, formState: { errors }, setValue, getValues, reset } = useForm<TripPlannerFormValues>({
+  const { control, handleSubmit, formState: { errors }, setValue, getValues, reset, register } = useForm<TripPlannerFormValues>({
     resolver: zodResolver(tripPlannerSchema),
     defaultValues: {
       startLocation: '',
