@@ -63,6 +63,7 @@ export async function POST(req: NextRequest) {
         vehicleInfo: {
           height: {
             value: vehicleHeight,
+            unit: 'METERS',
           },
         },
       };

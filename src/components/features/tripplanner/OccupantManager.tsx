@@ -68,6 +68,14 @@ export function OccupantManager({ occupants, onUpdate, disabled }: OccupantManag
     };
 
     const handleDeleteOccupant = (id: string) => {
+        if (occupants.length === 1) {
+            toast({
+                title: "Cannot Remove Last Occupant",
+                description: "A trip must have at least one occupant (e.g., the driver).",
+                variant: "destructive"
+            });
+            return;
+        }
         onUpdate(occupants.filter(occ => occ.id !== id));
         toast({ title: "Occupant Removed" });
     };
