@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { UserCog, ShieldAlert, AlertTriangle, Loader2, Send, Mail, UserX, Trash2, Info, RefreshCw, DatabaseZap, Users } from 'lucide-react';
+import { UserCog, ShieldAlert, AlertTriangle, Loader2, Send, Mail, UserX, Trash2, Info, RefreshCw, Users } from 'lucide-react';
 import type { SubscriptionTier } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -77,41 +77,6 @@ export default function AdminPage() {
         toast({ title: "Deletion Failed", description: error.message, variant: "destructive" });
     }
   });
-  
-  const migrateTripsMutation = useMutation({
-    mutationFn: async () => {
-        const idToken = await currentUser!.getIdToken(true);
-        const response = await fetch('/api/admin/migrate-trips', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${idToken}`},
-        });
-        const result = await response.json();
-        if (!response.ok) {
-            throw new Error(result.error || 'Failed to start migration.');
-        }
-        return result;
-    },
-    onSuccess: (result) => {
-        toast({
-            title: "Migration Complete",
-            description: result.message,
-            duration: 9000
-        });
-        if (result.errors && result.errors.length > 0) {
-            console.error("Migration Errors:", result.errors);
-            toast({
-                title: "Migration Had Errors",
-                description: `Encountered ${result.errors.length} errors. Check the console for details.`,
-                variant: "destructive",
-                duration: 9000
-            });
-        }
-    },
-    onError: (error: Error) => {
-        toast({ title: "Migration Failed", description: error.message, variant: "destructive" });
-    }
-  });
-
 
   const updateForm = useForm<UpdateSubscriptionFormData>({
     resolver: zodResolver(updateSubscriptionFormSchema),
@@ -344,40 +309,6 @@ export default function AdminPage() {
                 {deleteUserMutation.isPending ? 'Deleting User...' : 'Delete User Permanently'}
               </Button>
             </form>
-        </CardContent>
-      </Card>
-
-      <Card className="max-w-2xl mx-auto shadow-xl">
-        <CardHeader>
-            <CardTitle className="font-headline text-2xl text-primary flex items-center"><DatabaseZap className="mr-3 h-7 w-7" /> Admin - Data Migration</CardTitle>
-            <CardDescription className="font-body">One-time tools to update data structures across all users.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Alert variant="default" className="mb-6 bg-blue-50 border-blue-200">
-                <AlertTriangle className="h-4 w-4 text-blue-600"/>
-                <AlertTitle className="font-headline">Update Trip Route Data</AlertTitle>
-                <AlertDescription className="font-body text-sm">
-                    <p>An older version of the app saved trip route details in a different format. This tool will scan all user trips and update them to the new, more detailed format.</p>
-                    <p className="mt-2"><strong>This is a one-time operation.</strong> It may take a few moments depending on the number of users and trips.</p>
-                </AlertDescription>
-            </Alert>
-            <Button
-                onClick={() => migrateTripsMutation.mutate()}
-                disabled={migrateTripsMutation.isPending}
-                className="w-full font-body"
-            >
-                {migrateTripsMutation.isPending ? (
-                    <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Migrating...
-                    </>
-                ) : (
-                    <>
-                        <DatabaseZap className="mr-2 h-4 w-4" />
-                        Migrate Old Trip Data
-                    </>
-                )}
-            </Button>
         </CardContent>
       </Card>
     </div>
