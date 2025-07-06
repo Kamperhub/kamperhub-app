@@ -11,6 +11,7 @@ import { auth } from '@/lib/firebase';
 import { updateProfile, updateEmail } from 'firebase/auth';
 import { updateUserPreferences, generateGoogleAuthUrl, disconnectGoogleAccount } from '@/lib/api-client';
 import { format, isAfter, parseISO } from 'date-fns';
+import { useMapsLibrary } from '@vis.gl/react-google-maps';
 
 import type { UserProfile } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
@@ -30,6 +31,7 @@ export default function MyAccountPage() {
   const { hasProAccess, subscriptionTier, stripeCustomerId, isTrialActive, trialEndsAt } = useSubscription();
   const queryClient = useQueryClient();
   const navContext = useContext(NavigationContext);
+  const placesLibrary = useMapsLibrary('places');
 
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -39,6 +41,8 @@ export default function MyAccountPage() {
   
   const router = useRouter();
   const { toast } = useToast();
+  
+  const isPlacesApiReady = !!placesLibrary;
 
   const handleNavigation = () => {
     navContext?.setIsNavigating(true);
@@ -282,6 +286,7 @@ export default function MyAccountPage() {
                     onSave={handleSaveProfile}
                     onCancel={() => setIsEditProfileOpen(false)}
                     isLoading={isSavingProfile}
+                    isPlacesApiReady={isPlacesApiReady}
                   />
                 </DialogContent>
               </Dialog>
