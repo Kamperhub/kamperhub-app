@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { LoggedTrip } from '@/types/tripplanner';
@@ -6,6 +7,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Repeat, Route, Fuel, CalendarDays as CalendarIconLucide, CalendarPlus, StickyNote, PlayCircle, CheckSquare, RotateCcw, Car } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 
 interface TripLogItemProps {
   trip: LoggedTrip;
@@ -106,9 +119,27 @@ export function TripLogItem({ trip, onDelete, onRecall, onAddToCalendar, onStart
         <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onRecall(trip); }} className="font-body">
           <Repeat className="mr-2 h-4 w-4" /> Recall
         </Button>
-        <Button variant="destructive" size="sm" onClick={(e) => { e.stopPropagation(); onDelete(trip.id); }} className="font-body">
-          <Trash2 className="mr-2 h-4 w-4" /> Delete
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" size="sm" className="font-body" onClick={e => e.stopPropagation()}>
+              <Trash2 className="mr-2 h-4 w-4" /> Delete
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent onClick={e => e.stopPropagation()}>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the trip "{trip.name}" and its associated packing list.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => onDelete(trip.id)}>
+                Continue
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardFooter>
     </Card>
   );

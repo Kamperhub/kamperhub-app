@@ -70,9 +70,8 @@ export default function TripLogPage() {
   });
 
   const handleDeleteTrip = useCallback((id: string) => {
-    if (window.confirm("Are you sure you want to delete this trip? This action cannot be undone.")) {
-        deleteTripMutation.mutate(id);
-    }
+    // Confirmation is now handled in the UI, so we just call the mutation.
+    deleteTripMutation.mutate(id);
   }, [deleteTripMutation]);
 
   const handleRecallTrip = useCallback((trip: LoggedTrip) => {
