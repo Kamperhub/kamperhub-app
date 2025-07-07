@@ -103,12 +103,15 @@ export async function POST(req: NextRequest) {
     
     if (data.routes && data.routes.length > 0) {
         const route = data.routes[0];
+        const startLocation = route.legs[0]?.startLocation?.latLng;
+        const endLocation = route.legs[0]?.endLocation?.latLng;
+
         // Adapt the response to a simpler structure for the client
         const adaptedResponse = {
             distance: { text: `${(route.distanceMeters / 1000).toFixed(1)} km`, value: route.distanceMeters },
             duration: { text: formatDuration(route.duration), value: parseInt(route.duration.slice(0,-1), 10)},
-            startLocation: route.legs[0]?.startLocation?.latLng,
-            endLocation: route.legs[0]?.endLocation?.latLng,
+            startLocation: startLocation ? { lat: startLocation.latitude, lng: startLocation.longitude } : undefined,
+            endLocation: endLocation ? { lat: endLocation.latitude, lng: endLocation.longitude } : undefined,
             polyline: route.polyline.encodedPolyline,
             warnings: route.warnings || [],
         };
