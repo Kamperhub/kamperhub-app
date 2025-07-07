@@ -55,13 +55,13 @@ export async function POST(req: NextRequest) {
       units: 'METRIC',
     };
 
-    // Correctly nested structure as per Google's documentation
+    // Correctly nested structure as per Google's documentation for height restrictions.
+    // NOTE: The API was returning an "Unknown name 'dimensions'" error.
+    // Based on that specific error, we are trying the height property directly under vehicleInfo.
     if (vehicleHeight && vehicleHeight > 0) {
       requestBody.routeModifiers = {
         vehicleInfo: {
-          dimensions: {
-            height: vehicleHeight, // Height is a number in meters
-          },
+          height: vehicleHeight, // Height is a number in meters
         },
       };
     }
