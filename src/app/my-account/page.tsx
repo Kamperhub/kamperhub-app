@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useContext } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,9 +36,37 @@ export default function MyAccountPage() {
   const [isRedirectingToPortal, setIsRedirectingToPortal] = useState(false);
   const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
   const [isDisconnectingGoogle, setIsDisconnectingGoogle] = useState(false);
+  const [googleConnectError, setGoogleConnectError] = useState<string | null>(null);
   
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    const successParam = searchParams.get('success');
+
+    if (errorParam) {
+      const decodedError = decodeURIComponent(errorParam);
+      setGoogleConnectError(decodedError);
+      toast({
+        title: "Google Connection Failed",
+        description: decodedError.startsWith("403") ? "Access denied. Please check your Google Cloud project's OAuth configuration." : decodedError,
+        variant: "destructive",
+        duration: 9000,
+      });
+      router.replace('/my-account', { scroll: false });
+    }
+
+    if (successParam) {
+      toast({
+        title: "Google Account Connected",
+        description: "You can now use Google-integrated features like sending packing lists to Tasks.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['userProfile', user?.uid] });
+      router.replace('/my-account', { scroll: false });
+    }
+  }, [searchParams, router, toast, queryClient, user?.uid]);
   
 
   const handleNavigation = () => {
@@ -217,6 +245,7 @@ export default function MyAccountPage() {
 
   const handleConnectGoogleTasks = async () => {
     if (!user) return;
+    setGoogleConnectError(null);
     setIsConnectingGoogle(true);
     try {
       const { url } = await generateGoogleAuthUrl();
@@ -324,6 +353,16 @@ export default function MyAccountPage() {
 
           <div className="p-4 border rounded-md bg-muted/30">
             <h3 className="text-lg font-headline text-foreground mb-2">Integrations</h3>
+             {googleConnectError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle className="font-headline">Google Connection Error</AlertTitle>
+                  <AlertDescription className="font-body text-xs">
+                    Could not connect to Google. This is usually due to a project configuration issue.
+                    Please review <strong>Step 3.6</strong> in the <code className="bg-destructive/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file carefully.
+                  </AlertDescription>
+                </Alert>
+              )}
               {isGoogleTasksConnected ? (
                  <Alert variant="default" className="bg-green-100 border-green-300">
                     <Check className="h-4 w-4 text-green-700"/>

@@ -100,6 +100,13 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
         *   Create or identify a key that **DOES NOT** have HTTP referrer restrictions. A key with "None" or "IP Address" restrictions is required.
         *   Paste this key into both the `GOOGLE_API_KEY` and `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variables in your `.env.local` file. Using the same secure key for both simplifies management.
 
+4.  **Google OAuth Keys (`GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`)**
+    *   Go to the [Google Cloud Credentials page](https://console.cloud.google.com/apis/credentials) for your `kamperhub-s4hc2` project.
+    *   Find or create credentials of type **"OAuth 2.0 Client ID"**.
+    *   **CRITICAL: If creating a new one, select "Web application" as the application type.**
+    *   On the details page for your Client ID, you will find the **Client ID** and **Client Secret**.
+    *   Copy and paste these into the `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` variables in your `.env.local` file.
+
 ---
 
 ### Step 3.5: CRITICAL - Verify Google Cloud APIs Are Enabled
@@ -108,7 +115,7 @@ Many app features depend on Google services. An incorrect API key or disabled se
 
 1.  **Go to the [Google Cloud APIs & Services Dashboard](https://console.cloud.google.com/apis/dashboard) for your `kamperhub-s4hc2` project.**
 
-2.  Click **"Enable APIs and Services"** at the top. You must search for and enable the following **four APIs** one by one if they are not already enabled.
+2.  Click **"Enable APIs and Services"** at the top. You must search for and enable the following **five APIs** one by one if they are not already enabled.
 
 3.  **Search for and Enable "Maps JavaScript API"**:
     *   **Required for:** Displaying the interactive map in the Trip Planner.
@@ -129,11 +136,44 @@ Many app features depend on Google services. An incorrect API key or disabled se
     *   **Required for:** All AI features, including the Chatbot and the Packing Assistant.
     *   If it's not enabled, click **"Enable"**.
 
-7.  **Verify your API Key Permissions**:
+7.  **Search for and Enable "Google Tasks API"**:
+    *   **Required for:** The "Send to Google Tasks" feature on the Trip Packing page.
+    *   **CRITICAL:** If this is not enabled, the integration will fail. Click **"Enable"**.
+
+8.  **Verify your API Key Permissions**:
     *   Go back to the [Credentials page](https://console.cloud.google.com/apis/credentials).
     *   Find the key you are using for `GOOGLE_API_KEY`.
     *   Click its name to see its details.
-    *   Under **"API restrictions"**, ensure it has permission to use all four of the APIs listed above. If it's unrestricted ("Don't restrict key"), that is fine for local development.
+    *   Under **"API restrictions"**, ensure it has permission to use all five of the APIs listed above. If it's unrestricted ("Don't restrict key"), that is fine for local development.
+
+---
+
+### Step 3.6: CRITICAL - Configure OAuth Consent Screen & Credentials
+
+> [!WARNING]
+> **If you see a `403 That's an error... you do not have access` page from Google when trying to connect your account, it means this step was missed or done incorrectly.**
+
+This step is mandatory for allowing users to connect their Google Accounts (for features like Google Tasks).
+
+1.  **Go to the [OAuth Consent Screen page](https://console.cloud.google.com/apis/credentials/consent) in the Google Cloud Console for your `kamperhub-s4hc2` project.**
+2.  **Set User Type:** If prompted, select **"External"** and click **Create**.
+3.  **Fill in App Information:**
+    *   **App name:** KamperHub
+    *   **User support email:** Select your email address.
+    *   **Developer contact information:** Enter your email address again.
+    *   Click **"SAVE AND CONTINUE"** through the "Scopes" and "Optional Info" pages. You do not need to add scopes here.
+4.  **Publish the App:** On the summary page, you should see a **"Publish App"** button. Click it and confirm. This will change the status from "Testing" to "In production". This is required to allow any Google user to connect.
+5.  **Add Test Users (During Development):**
+    *   While your app is in "Testing" mode, you can only log in with specified test users.
+    *   On the OAuth Consent Screen page, go to the **"Test users"** section.
+    *   Click **"+ ADD USERS"** and enter the email address of the Google account you will be using to test the app (e.g., your personal gmail.com account). This allows that account to bypass the "unverified app" screen during login.
+6.  **Verify Redirect URI:**
+    *   Go back to the [Credentials page](https://console.cloud.google.com/apis/credentials).
+    *   Click on the name of your **OAuth 2.0 Client ID** (the one you used for `GOOGLE_CLIENT_ID`).
+    *   Under **"Authorized redirect URIs"**, click **"+ ADD URI"**.
+    *   Enter the URL that matches your `NEXT_PUBLIC_APP_URL` from your `.env.local` file, followed by `/api/auth/google/callback`.
+    *   **Example:** If your `NEXT_PUBLIC_APP_URL` is `http://localhost:8083`, you must enter `http://localhost:8083/api/auth/google/callback`.
+    *   Click **Save**.
 
 ---
 
@@ -207,3 +247,4 @@ The debug tool for creating users has been removed for security. The application
 3.  After signing up, you should be logged in and can access all features.
 
 > **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
+
