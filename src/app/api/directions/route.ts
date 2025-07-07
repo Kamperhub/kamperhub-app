@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     };
 
     // If height is provided, add it to the request to check for restrictions.
-    // The API requires height to be nested within a 'dimensions' object.
+    // This is the documented correct structure: vehicleInfo > dimensions > height.
     if (vehicleHeight && vehicleHeight > 0) {
       requestBody.routeModifiers = {
         vehicleInfo: {
@@ -69,13 +69,17 @@ export async function POST(req: NextRequest) {
       };
     }
     
+    // --- DIAGNOSTIC LOGGING ---
+    // Log the exact request body being sent to Google for debugging purposes.
+    console.log("Sending to Google Routes API. Request Body:", JSON.stringify(requestBody, null, 2));
+    // --- END DIAGNOSTIC LOGGING ---
+
     const response = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-Goog-Api-Key': apiKey,
-            // Field mask to request specific fields, reducing data transfer and cost
-            'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.warnings,routes.polyline.encodedPolyline,routes.legs(startLocation,endLocation)',
+            // Field mask is removed to simplify the request for debugging.
         },
         body: JSON.stringify(requestBody)
     });
