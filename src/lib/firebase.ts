@@ -21,6 +21,8 @@ let db: Firestore;
 let appCheck: AppCheck | undefined;
 export let firebaseInitializationError: string | null = null;
 
+console.log("[Firebase Client] Starting initialization...");
+
 if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   firebaseInitializationError = "CRITICAL ERROR: Firebase client-side configuration is missing. Please ensure all NEXT_PUBLIC_FIREBASE_* variables are set in your .env.local file and that you have restarted the development server. The application cannot connect to Firebase.";
   console.error(`[Firebase Client] ${firebaseInitializationError}`);
@@ -36,27 +38,18 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}, connecting to database 'kamperhubv2'.`);
 
     if (typeof window !== 'undefined') {
-      // Attempt to enable offline persistence with improved error handling for IndexedDB issues.
-      try {
-        enableIndexedDbPersistence(db)
-          .then(() => console.log('[Firebase Client] Firestore offline persistence enabled.'))
-          .catch((err) => {
-            if (err.code === 'failed-precondition') {
-              console.warn('[Firebase Client] Firestore offline persistence could not be enabled. This can happen if you have multiple tabs open. Please close other tabs and refresh.');
-            } else if (err.code === 'unimplemented') {
-              console.warn('[Firebase Client] Firestore offline persistence is not available in this browser. The app will work, but data will not be available offline.');
-            } else {
-               console.error("[Firebase Client] Asynchronous error enabling Firestore offline persistence:", err);
-            }
-          });
-      } catch (err: any) {
-        // Catch synchronous errors, which can include IndexedDB corruption issues on startup.
-        if (err.message && (err.message.toLowerCase().includes('indexeddb') || err.message.toLowerCase().includes('corruption'))) {
-             console.warn(`[Firebase Client] A known issue with IndexedDB occurred during startup. This is often temporary and can be fixed by reloading the page. Error: ${err.message}`);
-        } else {
-             console.error('[Firebase Client] Synchronous error during Firestore persistence setup:', err);
-        }
-      }
+      console.log('[Firebase Client] Attempting to enable offline persistence...');
+      enableIndexedDbPersistence(db)
+        .then(() => console.log('[Firebase Client] Firestore offline persistence enabled.'))
+        .catch((err) => {
+          if (err.code === 'failed-precondition') {
+            console.warn('[Firebase Client] Firestore offline persistence could not be enabled. This can happen if you have multiple tabs open. Please close other tabs and refresh.');
+          } else if (err.code === 'unimplemented') {
+            console.warn('[Firebase Client] Firestore offline persistence is not available in this browser. The app will work, but data will not be available offline.');
+          } else {
+              console.error("[Firebase Client] Error enabling Firestore offline persistence:", err);
+          }
+        });
     }
   } catch (e: any) {
     firebaseInitializationError = `Firebase failed to initialize. Please check your Firebase project configuration and API keys. Error: ${e.message}`;
@@ -76,7 +69,6 @@ export function initializeFirebaseAppCheck() {
   if (typeof window !== 'undefined' && !appCheck) {
     if (process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY) {
       try {
-        // This is the variable that will hold the AppCheck instance.
         appCheck = initializeAppCheck(app, {
           provider: new ReCaptchaEnterpriseProvider(process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY),
           isTokenAutoRefreshEnabled: true

@@ -15,18 +15,11 @@ interface AuthContextType {
   userProfile: UserProfile | null;
   authStatus: AuthStatus;
   profileError: string | null;
-  isAuthLoading: boolean; // Simplified loading state for consumers
+  isAuthLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/**
- * A wrapper for Firestore's getDoc that adds a timeout.
- * This prevents the app from hanging indefinitely if the database is misconfigured (e.g., wrong name).
- * @param docRef The document reference to fetch.
- * @param timeout The timeout in milliseconds.
- * @returns A promise that resolves with the DocumentSnapshot.
- */
 function getDocWithTimeout(docRef: DocumentReference, timeout: number): Promise<DocumentSnapshot> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
@@ -54,43 +47,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { setSubscriptionDetails } = useSubscription();
   
   useEffect(() => {
+    console.log("AuthProvider: Mounting and setting up auth state listener.");
     if (firebaseInitializationError) {
+      console.error("AuthProvider: Firebase initialization failed.", firebaseInitializationError);
       setAuthStatus('ERROR');
       setProfileError(`Firebase Client Error: ${firebaseInitializationError}`);
       return;
     }
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+      console.log("AuthProvider: Auth state changed.");
       setUser(currentUser);
       
       if (currentUser) {
+        console.log(`AuthProvider: User is logged in (UID: ${currentUser.uid}). Setting status to LOADING.`);
         setAuthStatus('LOADING');
         setProfileError(null);
         
         try {
           const profileDocRef = doc(db, "users", currentUser.uid);
+          console.log(`AuthProvider: Fetching user profile from Firestore at path: users/${currentUser.uid}`);
           
-          // Use the timeout function to prevent the app from hanging
           const docSnap = await getDocWithTimeout(profileDocRef, 7000);
 
           if (docSnap.exists()) {
+              console.log("AuthProvider: User profile document found.");
               const profile = docSnap.data() as UserProfile;
               setUserProfile(profile);
+              console.log("AuthProvider: User profile state updated.", profile);
               setSubscriptionDetails(
                 profile.subscriptionTier || 'free',
                 profile.stripeCustomerId,
                 profile.trialEndsAt
               );
+              console.log("AuthProvider: Subscription details updated. Setting status to READY.");
               setAuthStatus('READY');
           } else {
-             // Handle orphaned user: Auth record exists but Firestore doc is missing.
              const errorMsg = `User profile not found. Your authentication record for '${currentUser.email}' exists, but your profile data is missing from the database. This can happen if signup was interrupted. Please ask the administrator to delete this user from the Firebase Authentication console, then sign up again.`;
-             console.error(errorMsg);
+             console.error(`AuthProvider: ${errorMsg}`);
              setProfileError(errorMsg);
              setAuthStatus('ERROR');
           }
         } catch (error: any) {
-          console.error("AuthGuard - Error fetching user profile:", error);
+          console.error("AuthProvider: Error fetching user profile:", error);
           let errorMsg = `Failed to load user profile. Error: ${error.message}`;
            if (error.code === 'permission-denied' || error.message.toLowerCase().includes('permission denied')) {
             errorMsg = "PERMISSION_DENIED: Your app is being blocked by Firestore Security Rules. Please follow the instructions in FIREBASE_SETUP_CHECKLIST.md to deploy the rules file.";
@@ -101,18 +100,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setAuthStatus('ERROR');
         }
       } else {
+        console.log("AuthProvider: No user is logged in. Setting status to UNAUTHENTICATED.");
         setUserProfile(null);
         setSubscriptionDetails('free');
         setAuthStatus('UNAUTHENTICATED');
         setProfileError(null);
       }
     }, (error) => {
-        console.error("Firebase auth state error:", error);
+        console.error("AuthProvider: Firebase auth state listener encountered an error:", error);
         setProfileError(`An error occurred during authentication. Please refresh the page. Error: ${error.message}`);
         setAuthStatus('ERROR');
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+      console.log("AuthProvider: Unmounting and cleaning up auth listener.");
+      unsubscribeAuth();
+    }
   }, [setSubscriptionDetails]);
   
   const isAuthLoading = authStatus === 'LOADING';

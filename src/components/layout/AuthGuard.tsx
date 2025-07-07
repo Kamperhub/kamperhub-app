@@ -32,12 +32,15 @@ const LoadingScreen = () => {
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle className="font-headline">Stuck on Initializing?</AlertTitle>
             <AlertDescription className="font-body space-y-2 mt-2">
-              <p>Loading is taking longer than expected. This almost always indicates a configuration issue preventing the app from reading your user profile from the database.</p>
+              <p>Loading is taking longer than expected. This usually means there's a problem connecting to the Firestore database to read your user profile.</p>
               <p>
-                <strong>Please open the file named <code className="bg-destructive/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> in the project's main folder and follow the steps carefully, especially Step 5, 6, and 7 regarding the Firestore Database ID, Permissions, and Security Rules.</strong>
+                <strong>Action 1: Check the Browser Console.</strong> Press F12 to open Developer Tools, go to the "Console" tab, and look for error messages from "AuthProvider" or "Firebase Client". These logs will tell us exactly where it's failing.
+              </p>
+              <p>
+                <strong>Action 2: Verify Setup.</strong> Please open the file named <code className="bg-destructive/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> and carefully verify steps 5, 6, and 7.
               </p>
                <Button variant="outline" onClick={() => window.location.reload()} className="w-full mt-4 text-destructive-foreground border-destructive-foreground/50 hover:bg-destructive-foreground/10 hover:text-destructive-foreground">
-                I've fixed the configuration, now Refresh
+                I've verified the setup, Refresh Page
               </Button>
             </AlertDescription>
           </Alert>

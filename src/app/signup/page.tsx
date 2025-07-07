@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase'; 
 import { createUserWithEmailAndPassword, updateProfile, type User as FirebaseUser, type AuthError, deleteUser } from 'firebase/auth';
-import { doc, setDoc, type DocumentReference } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { UserPlus, Mail, User, KeyRound, MapPin, Building, Globe, Loader2, CheckSquare, Eye, EyeOff } from 'lucide-react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -49,30 +49,6 @@ const signupSchema = z.object({
 });
 
 type SignupFormData = z.infer<typeof signupSchema>;
-
-/**
- * A wrapper for Firestore's setDoc that adds a timeout.
- * This prevents the app from hanging if the database is misconfigured.
- * @param docRef The document reference to write to.
- * @param data The data to write.
- * @param timeout The timeout in milliseconds.
- * @returns A promise that resolves on successful write.
- */
-async function setDocWithTimeout(docRef: DocumentReference, data: any, timeout: number): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(`Firestore write request timed out after ${timeout}ms. This usually means a problem connecting to the database. Please check your internet connection and ensure the database name in your configuration ('kamperhubv2') is correct in the Firebase Console.`));
-    }, timeout);
-
-    setDoc(docRef, data).then(() => {
-      clearTimeout(timer);
-      resolve();
-    }).catch((error) => {
-      clearTimeout(timer);
-      reject(error);
-    });
-  });
-}
 
 
 export default function SignupPage() {
@@ -143,8 +119,13 @@ export default function SignupPage() {
         trialEndsAt: isAdmin ? null : trialEndDate.toISOString(),
       };
 
-      // Use the new setDocWithTimeout function here
-      await setDocWithTimeout(doc(db, "users", newFirebaseUser.uid), userProfileData, 7000);
+      try {
+        await setDoc(doc(db, "users", newFirebaseUser.uid), userProfileData);
+      } catch (firestoreError: any) {
+        console.error("Firestore write failed:", firestoreError);
+        // This is a critical error, we must roll back the user creation
+        throw new Error(`Could not save your profile to the database. ${firestoreError.message}`);
+      }
       
       toast({
         title: isAdmin ? 'Admin Account Created!' : 'Account Created & Trial Started!',
@@ -155,23 +136,13 @@ export default function SignupPage() {
       router.push('/'); 
     } catch (error: any) {
       let toastMessage = 'An unexpected error occurred. Please try again.';
+      if (error instanceof Error) {
+        toastMessage = error.message;
+      }
       const authError = error as AuthError;
-
-      // NEW: Check for the specific timeout error message
-      if (typeof error.message === 'string' && error.message.includes('Firestore write request timed out')) {
-        toastMessage = `Could not save your profile. ${error.message}`;
-      } else if (authError.code) {
-        switch (authError.code) {
-          case 'auth/email-already-in-use':
-            toastMessage = 'This email address is already in use by another account.';
-            newFirebaseUser = null; 
-            break;
-          default:
-            toastMessage = `An error occurred during signup: ${authError.message}`;
-            break;
-        }
-      } else {
-        toastMessage = `Could not save your profile to the database. ${error.message}`;
+      if (authError.code === 'auth/email-already-in-use') {
+        toastMessage = 'This email address is already in use by another account.';
+        newFirebaseUser = null; 
       }
 
       if (newFirebaseUser) {
