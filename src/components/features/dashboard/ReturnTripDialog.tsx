@@ -5,19 +5,18 @@ import { useState, useContext }from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { fetchTrips, createTrip, fetchUserPreferences } from '@/lib/api-client';
+import { fetchTrips, createTrip } from '@/lib/api-client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, AlertCircle, ChevronsUpDown, ChevronRight, CornerDownLeft } from 'lucide-react';
+import { Loader2, AlertCircle, ChevronRight, CornerDownLeft } from 'lucide-react';
 import type { LoggedTrip, TripChecklistSet } from '@/types/tripplanner';
 import { RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
-import type { CaravanDefaultChecklistSet, ChecklistItem } from '@/types/checklist';
-import { initialChecklists as globalDefaultChecklistTemplate } from '@/types/checklist';
+import type { ChecklistItem } from '@/types/checklist';
+import { initialChecklists as globalDefaultChecklistTemplate, vehicleOnlyChecklists } from '@/types/checklist';
 import { useToast } from '@/hooks/use-toast';
 import { NavigationContext } from '@/components/layout/AppShell';
 import Link from 'next/link';
-import { format, parseISO } from 'date-fns';
 import type { UserProfile } from '@/types/auth';
 
 const createChecklistCopyForTrip = (items: readonly ChecklistItem[], tripId: string, categoryPrefix: string): ChecklistItem[] => {
@@ -34,7 +33,7 @@ export function ReturnTripDialog({ children }: { children: React.ReactNode }) {
 
   const { data: userPrefs } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
-    queryFn: fetchUserPreferences,
+    queryFn: () => fetchUserPreferences(),
     enabled: !!user && isOpen,
   });
 
@@ -45,12 +44,11 @@ export function ReturnTripDialog({ children }: { children: React.ReactNode }) {
   });
 
   const createTripMutation = useMutation({
-    mutationFn: createTrip,
+    mutationFn: (newTripData: Omit<LoggedTrip, 'id' | 'timestamp'>) => createTrip(newTripData),
     onSuccess: (savedTrip) => {
       queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
       toast({ title: "Return Trip Created!", description: `"${savedTrip.name}" is ready in the Trip Planner.` });
       
-      // Load the new trip into the planner
       try {
         localStorage.setItem(RECALLED_TRIP_DATA_KEY, JSON.stringify(savedTrip));
         navContext?.setIsNavigating(true);
@@ -71,12 +69,15 @@ export function ReturnTripDialog({ children }: { children: React.ReactNode }) {
   };
 
   const handleCreateReturnTrip = (trip: LoggedTrip) => {
-    // 1. Reverse the trip data
     const newTripName = `Return: ${trip.name}`;
     
-    const sourceChecklistSet = userPrefs?.activeCaravanId && userPrefs.caravanDefaultChecklists?.[userPrefs.activeCaravanId]
-      ? userPrefs.caravanDefaultChecklists[userPrefs.activeCaravanId]
-      : globalDefaultChecklistTemplate;
+    const isVehicleOnlyReturn = trip.isVehicleOnly ?? false;
+
+    const sourceChecklistSet = !isVehicleOnlyReturn
+      ? (userPrefs?.activeCaravanId && userPrefs.caravanDefaultChecklists?.[userPrefs.activeCaravanId]
+          ? userPrefs.caravanDefaultChecklists[userPrefs.activeCaravanId]
+          : globalDefaultChecklistTemplate)
+      : vehicleOnlyChecklists;
 
     const newTripChecklistSet: TripChecklistSet = {
       preDeparture: createChecklistCopyForTrip(sourceChecklistSet.preDeparture, 'ret', 'pd'),
@@ -88,28 +89,28 @@ export function ReturnTripDialog({ children }: { children: React.ReactNode }) {
         name: newTripName,
         startLocationDisplay: trip.endLocationDisplay,
         endLocationDisplay: trip.startLocationDisplay,
-        waypoints: trip.waypoints?.slice().reverse(), // Reverse waypoints array if it exists
+        waypoints: trip.waypoints ? trip.waypoints.slice().reverse() : [],
         fuelEfficiency: trip.fuelEfficiency,
         fuelPrice: trip.fuelPrice,
         routeDetails: {
             ...trip.routeDetails,
-            startAddress: trip.routeDetails.endAddress,
-            endAddress: trip.routeDetails.startAddress,
             startLocation: trip.routeDetails.endLocation,
             endLocation: trip.routeDetails.startLocation,
         },
         fuelEstimate: trip.fuelEstimate,
-        plannedStartDate: null, // Reset dates
+        plannedStartDate: null,
         plannedEndDate: null,
         notes: `Return journey for trip: "${trip.name}"`,
         isCompleted: false,
+        isVehicleOnly: isVehicleOnlyReturn,
         checklists: newTripChecklistSet,
-        budget: [], // Start with a fresh budget
-        expenses: [], // Start with fresh expenses
-        occupants: trip.occupants || [], // Carry over occupants
+        budget: [], 
+        expenses: [],
+        occupants: trip.occupants || [],
+        activeCaravanIdAtTimeOfCreation: trip.activeCaravanIdAtTimeOfCreation,
+        activeCaravanNameAtTimeOfCreation: trip.activeCaravanNameAtTimeOfCreation
     };
 
-    // 2. Call the mutation
     createTripMutation.mutate(newTripData);
   };
   
