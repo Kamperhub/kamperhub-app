@@ -51,7 +51,6 @@ const tripPlannerSchema = z.object({
   endLocation: z.string().min(3, "End location is required (min 3 chars)"),
   fuelEfficiency: z.coerce.number().positive("Fuel efficiency must be a positive number (Litres/100km)"),
   fuelPrice: z.coerce.number().positive("Fuel price must be a positive number (per litre)"),
-  maxHeight: z.coerce.number().min(0, "Height must be a non-negative number.").optional(),
   dateRange: z.object({
     from: z.date().optional().nullable(),
     to: z.date().optional().nullable(),
@@ -75,7 +74,6 @@ export function TripPlannerClient() {
       endLocation: '',
       fuelEfficiency: 10,
       fuelPrice: 1.80,
-      maxHeight: 0,
       dateRange: { from: undefined, to: undefined }
     }
   });
@@ -187,22 +185,6 @@ export function TripPlannerClient() {
       }
     }
   }, [reset, setValue, toast, pathname, getValues, userPrefs, allVehicles]); 
-  
-  useEffect(() => {
-    if (isTowing && allCaravans.length > 0 && userPrefs?.activeCaravanId) {
-      const activeCaravan = allCaravans.find(c => c.id === userPrefs.activeCaravanId);
-      if (activeCaravan?.overallHeight) {
-        setValue('maxHeight', activeCaravan.overallHeight / 1000, { shouldValidate: false }); // convert mm to m
-      }
-    } else if (!isTowing && allVehicles.length > 0 && userPrefs?.activeVehicleId) {
-      const activeVehicle = allVehicles.find(v => v.id === userPrefs.activeVehicleId);
-      if (activeVehicle?.overallHeight) {
-        setValue('maxHeight', activeVehicle.overallHeight / 1000, { shouldValidate: false });
-      }
-    } else {
-      setValue('maxHeight', 0);
-    }
-  }, [isTowing, allCaravans, allVehicles, userPrefs, setValue]);
 
   // Effect to draw route polyline on the map when details change
   useEffect(() => {
@@ -245,7 +227,6 @@ export function TripPlannerClient() {
             body: JSON.stringify({
                 origin: data.startLocation,
                 destination: data.endLocation,
-                vehicleHeight: data.maxHeight,
             }),
         });
 
@@ -537,12 +518,6 @@ export function TripPlannerClient() {
                       <Switch id="towing-switch" checked={isTowing} onCheckedChange={setIsTowing} disabled={isLoading}/>
                       <Label htmlFor="towing-switch" className="font-body">Towing a caravan for this trip?</Label>
                     </div>
-                    <div>
-                      <Label htmlFor="maxHeight" className="font-body">Max Vehicle Height (m)</Label>
-                      <Input id="maxHeight" type="number" step="0.1" {...register("maxHeight")} placeholder="e.g., 4.3" className="font-body" />
-                      <p className="text-xs text-muted-foreground font-body mt-1">Leave at 0 to ignore height restrictions.</p>
-                      {errors.maxHeight && <p className="text-sm text-destructive font-body mt-1">{errors.maxHeight.message}</p>}
-                    </div>
                     <div className="flex flex-col sm:flex-row gap-2">
                         <Button type="button" variant="outline" onClick={() => clearPlanner(true)} disabled={isLoading} className="w-full font-body">
                           <XCircle className="mr-2 h-4 w-4" /> Reset
@@ -662,4 +637,3 @@ export function TripPlannerClient() {
     </>
   );
 }
-

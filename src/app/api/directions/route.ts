@@ -7,7 +7,6 @@ import { z } from 'zod';
 const directionsRequestSchema = z.object({
   origin: z.string(),
   destination: z.string(),
-  vehicleHeight: z.number().positive().optional(),
 });
 
 // Helper to format ISO 8601 duration string (e.g., "3600s") into human-readable format
@@ -42,7 +41,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body.', details: parsedBody.error.format() }, { status: 400 });
     }
 
-    const { origin, destination, vehicleHeight } = parsedBody.data;
+    const { origin, destination } = parsedBody.data;
 
     // Base request body for Google's Routes API
     const requestBody: any = {
@@ -54,17 +53,6 @@ export async function POST(req: NextRequest) {
       languageCode: 'en-US',
       units: 'METRIC',
     };
-
-    // Correctly nested structure as per Google's documentation for height restrictions.
-    // NOTE: The API was returning an "Unknown name 'dimensions'" error.
-    // Based on that specific error, we are trying the height property directly under vehicleInfo.
-    if (vehicleHeight && vehicleHeight > 0) {
-      requestBody.routeModifiers = {
-        vehicleInfo: {
-          height: vehicleHeight, // Height is a number in meters
-        },
-      };
-    }
     
     const response = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
         method: 'POST',
