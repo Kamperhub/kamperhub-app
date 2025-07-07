@@ -58,11 +58,13 @@ export async function POST(req: NextRequest) {
     };
 
     // If height is provided, add it to the request to check for restrictions.
-    // The API requires a `vehicleInfo` object containing the height.
+    // The API requires height to be nested within a 'dimensions' object.
     if (vehicleHeight && vehicleHeight > 0) {
       requestBody.routeModifiers = {
         vehicleInfo: {
-          height: vehicleHeight,
+          dimensions: {
+            height: vehicleHeight,
+          },
         },
       };
     }
