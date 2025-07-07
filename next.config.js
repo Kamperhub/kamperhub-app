@@ -1,7 +1,9 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
+  experimental: {
+    instrumentationHook: false, // This disables Next.js's default OpenTelemetry instrumentation
+  },
   webpack: (config, { dev, isServer }) => {
     // In some environments, file system watching is unreliable.
     // Polling is a more robust, albeit slightly more resource-intensive, method to detect changes.
