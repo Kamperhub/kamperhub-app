@@ -335,7 +335,9 @@ export function TripPlannerClient() {
       toast({ title: "Cannot Save", description: "No trip details to save. Plan a trip first.", variant: "destructive" });
       return;
     }
-    setPendingTripName(activeTrip?.name || `Trip to ${getValues("endLocation") || 'Destination'}`);
+    const start = getValues("startLocation") || 'Start';
+    const end = getValues("endLocation") || 'Destination';
+    setPendingTripName(activeTrip?.name || `Trip from ${start} to ${end}`);
     setPendingTripNotes(activeTrip?.notes || '');
     setIsSaveTripDialogOpen(true);
   }, [routeDetails, getValues, activeTrip, toast]);
