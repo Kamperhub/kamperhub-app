@@ -113,6 +113,9 @@ Many app features depend on Google Maps services. An incorrect API key or disabl
 5.  **Search for and Enable "Routes API"**:
     *   **This is CRITICAL for the Trip Planner.** It is required for calculating driving directions, distance, duration, and height-aware routing.
     *   If this is not enabled, the Trip Planner will fail with an error. Click **"Enable"**.
+    > [!WARNING]
+    > **"Routes API" vs. "Directions API"**
+    > You must enable the **Routes API**. The older **Directions API** is **not** sufficient and will cause errors. Your provided screenshot clearly shows the "Routes API" is currently disabled. Please find it in the list and click its "Enable" button.
 
 6.  **Verify your API Key Permissions**:
     *   Go back to the [Credentials page](https://console.cloud.google.com/apis/credentials).
