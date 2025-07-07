@@ -53,6 +53,7 @@ const LoadingScreen = () => {
 const ErrorScreen = ({ error }: { error: string | null }) => {
   const errorMessage = error || "An unknown error occurred.";
   const isPermissionError = errorMessage.toLowerCase().includes('permission_denied') || errorMessage.toLowerCase().includes('unauthenticated');
+  const isTimeoutError = errorMessage.toLowerCase().includes('timed out');
   
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-250px)] text-center p-4">
@@ -64,7 +65,18 @@ const ErrorScreen = ({ error }: { error: string | null }) => {
             <pre className="text-xs bg-background/20 p-3 rounded-md font-mono whitespace-pre-wrap text-left">
               {errorMessage}
             </pre>
-            {isPermissionError && (
+            {isTimeoutError && (
+               <div className="mt-4 border-t border-destructive/30 pt-3 text-left font-body space-y-4">
+                <p className="font-bold">This is a timeout error. It almost always means the app cannot connect to the Firestore database named `kamperhubv2`.</p>
+                <p>This is the most common and critical setup issue. Please follow these steps exactly:</p>
+                <ul className="list-decimal pl-5 space-y-2">
+                  <li>Open the file <code className="bg-background/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code>.</li>
+                  <li>Carefully follow the instructions in <strong>Step 5: CRITICAL - Verify Firestore Database Exists (with ID `kamperhubv2`)</strong>.</li>
+                  <li>Your database ID <strong>must be `kamperhubv2`</strong>, not `(default)`. If it is `(default)`, you must delete it and create a new one with the correct ID.</li>
+                </ul>
+              </div>
+            )}
+            {isPermissionError && !isTimeoutError && (
               <div className="mt-4 border-t border-destructive/30 pt-3 text-left font-body space-y-4">
                 <p className="font-bold">This is a permissions issue. It means your app is being blocked by Firestore's Security Rules. Please follow these steps:</p>
                 <div>
