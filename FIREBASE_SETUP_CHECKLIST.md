@@ -94,6 +94,34 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 
 ---
 
+### Step 3.5: CRITICAL - Verify Google Maps Platform APIs
+
+Many app features depend on Google Maps services. An incorrect API key or disabled services will cause features like route planning to fail.
+
+1.  **Go to the [Google Cloud APIs & Services Dashboard](https://console.cloud.google.com/apis/dashboard) for your `kamperhub-s4hc2` project.**
+
+2.  Click **"Enable APIs and Services"** at the top. You will search for and enable the following three APIs one by one if they are not already enabled.
+
+3.  **Search for and Enable "Maps JavaScript API"**:
+    *   This is required to display maps in the browser.
+    *   If it's not enabled, click **"Enable"**.
+
+4.  **Search for and Enable "Places API"**:
+    *   This is required for the address autocomplete search boxes.
+    *   If it's not enabled, click **"Enable"**.
+
+5.  **Search for and Enable "Routes API"**:
+    *   **This is CRITICAL for the Trip Planner.** It is required for calculating driving directions, distance, duration, and height-aware routing.
+    *   If this is not enabled, the Trip Planner will fail with an error. Click **"Enable"**.
+
+6.  **Verify your API Key Permissions**:
+    *   Go back to the [Credentials page](https://console.cloud.google.com/apis/credentials).
+    *   Find the key you are using for `GOOGLE_API_KEY` (the one **without** HTTP referrer restrictions).
+    *   Click its name to see its details.
+    *   Under **"API restrictions"**, ensure it has permission to use the "Routes API". If it's unrestricted, that's fine. If it's restricted, you must explicitly add "Routes API" to its list of allowed APIs.
+
+---
+
 ### Step 4: CRITICAL - Verify Your Local Development Server Setup
 
 After populating `.env.local`, you **MUST** restart your local development server. The server only reads this file when it first starts.

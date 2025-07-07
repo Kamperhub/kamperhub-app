@@ -91,12 +91,15 @@ export async function POST(req: NextRequest) {
           if (errorData.error?.message) {
             errorMessage = errorData.error.message;
             if (errorMessage.includes("Routes API has not been used in project")) {
-              errorMessage = "The Google Routes API is not enabled for this project. Please enable it in the Google Cloud Console and ensure your API key has permissions for it.";
+              errorMessage = "The Google Routes API is not enabled for this project. Please enable it in the Google Cloud Console (see Step 3.5 in the setup guide) and ensure your API key has permissions for it.";
             } else if (errorMessage.toLowerCase().includes('api_key_not_valid')) {
                errorMessage = "The provided GOOGLE_API_KEY is invalid. Please check the key in your .env.local file.";
+            } else if (errorMessage.toLowerCase().includes('invalid json payload')) {
+                errorMessage = `The app sent an invalid request to the Google Routes API. ${errorMessage}`;
             }
           }
         } catch(e) {
+          // This block catches if JSON.parse fails
           if (errorBody.toLowerCase().includes('api key not valid')) {
             errorMessage = "The provided GOOGLE_API_KEY is invalid. Please check the key in your .env.local file and restart the server.";
           } else if (errorBody.toLowerCase().includes('http referrer')) {
