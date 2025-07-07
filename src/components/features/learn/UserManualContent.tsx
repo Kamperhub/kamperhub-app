@@ -209,16 +209,23 @@ export function UserManualContent() {
       icon: ListChecks,
       content: (
         <>
-          <p>KamperHub offers a flexible checklist system to ensure you don't miss crucial steps. All checklist data is saved to your account and available across devices.</p>
+          <p>KamperHub's checklist feature has been redesigned into a guided, procedural flow to ensure you complete every step in the correct order for maximum safety and convenience. All checklist data is saved to your account and available across devices.</p>
           <ul className="list-disc pl-5 space-y-2">
             <li>
-              <strong>Two Types of Checklists:</strong>
-              <ol className="list-decimal pl-5 space-y-1">
-                <li><strong>Caravan Default Checklists:</strong> Define a default set of checklists (Pre-Departure, Campsite Setup, Pack-Down) for each of your caravans. This template will be used for new trips planned with that specific caravan.</li>
-                <li><strong>Trip-Specific Checklists:</strong> When you save a trip, a unique checklist set is created for it, copied from the active caravan's default. Modifications here only affect this specific trip.</li>
-              </ol>
+              <strong>Selecting a Trip:</strong> The page now starts with a dropdown menu where you select the trip you're preparing for. All checklists are now tied to a specific trip.
             </li>
-            <li><strong>Using Checklists:</strong> You can add, delete, reorder, and mark items as completed. The completion status is saved for each specific trip's checklist or caravan default.</li>
+            <li>
+              <strong>Procedural Flow:</strong> Instead of tabs, the checklist is a single page that you scroll through. It's broken down into logical stages (e.g., "Vehicle Pre-Travel Checks," "Caravan Interior Secure," "Hitching Up"). This guides you from the very first check to your final departure.
+            </li>
+            <li>
+              <strong>Visual Progress Tracking:</strong> At the top of the page, an "Overall Progress" bar shows your total completion. Each stage also has its own progress bar and item count (e.g., "3 / 5 Completed"), so you always know where you stand.
+            </li>
+            <li>
+              <strong>Start Navigation:</strong> A large "Start Navigation" button is prominently displayed. For safety, this button is disabled until <strong>all items</strong> in every stage are checked off. Once the overall progress reaches 100%, the button becomes active, allowing you to launch Google Maps with your pre-planned route.
+            </li>
+            <li>
+              <strong>Customization:</strong> You can still add new items or delete existing ones within each stage for any specific trip, tailoring the list to your exact needs for that journey.
+            </li>
           </ul>
         </>
       )
