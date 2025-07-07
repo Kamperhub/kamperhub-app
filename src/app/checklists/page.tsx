@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Info, ListChecks, PlusCircle, Trash2, Edit3, ChevronLeft, CheckCircle } from 'lucide-react';
+import { Loader2, Info, ListChecks, PlusCircle, Trash2, Edit3, ChevronLeft, CheckCircle, Navigation } from 'lucide-react';
 import Link from 'next/link';
 
 import type { LoggedTrip } from '@/types/tripplanner';
@@ -25,29 +25,30 @@ import { fullRigChecklist, vehicleOnlyChecklist } from '@/types/checklist';
 
 // Utility to migrate old checklist format to new stage-based format
 function migrateLegacyChecklist(legacyChecklist: any): ChecklistStage[] {
-  if (!legacyChecklist || Array.isArray(legacyChecklist)) {
-    return (legacyChecklist || []).map(stage => ({
-      ...stage,
-      items: stage.items.map((item: any) => ({...item})) // deep copy
-    }));
+  if (!legacyChecklist || !Array.isArray(legacyChecklist) || legacyChecklist.some(stage => !stage.title || !Array.isArray(stage.items))) {
+    // This is likely the old format { preDeparture: [], ... } or something unexpected.
+    const stages: ChecklistStage[] = [];
+    if (legacyChecklist?.preDeparture) {
+      stages.push({ title: "Pre-Departure", items: legacyChecklist.preDeparture });
+    }
+    if (legacyChecklist?.campsiteSetup) {
+      stages.push({ title: "Campsite Setup", items: legacyChecklist.campsiteSetup });
+    }
+    if (legacyChecklist?.packDown) {
+      stages.push({ title: "Pack-Down", items: legacyChecklist.packDown });
+    }
+    if (stages.length > 0) {
+      return stages;
+    }
+    // If migration fails or it's an unknown format, return a default
+    return vehicleOnlyChecklist.map(stage => ({...stage, items: [...stage.items].map(item => ({...item}))}));
   }
   
-  const stages: ChecklistStage[] = [];
-  if (legacyChecklist.preDeparture) {
-    stages.push({ title: "Pre-Departure", items: legacyChecklist.preDeparture });
-  }
-  if (legacyChecklist.campsiteSetup) {
-    stages.push({ title: "Campsite Setup", items: legacyChecklist.campsiteSetup });
-  }
-  if (legacyChecklist.packDown) {
-    stages.push({ title: "Pack-Down", items: legacyChecklist.packDown });
-  }
-  
-  if (stages.length > 0) {
-    return stages;
-  }
-  // If migration fails or it's an unknown format, return a default
-  return vehicleOnlyChecklist.map(stage => ({...stage, items: [...stage.items]}));
+  // If it's already the new format, just ensure it's a deep copy
+  return legacyChecklist.map(stage => ({
+    ...stage,
+    items: stage.items.map((item: any) => ({...item})) 
+  }));
 }
 
 
@@ -74,12 +75,12 @@ export default function ChecklistsPage() {
   // Load and migrate checklist when a trip is selected
   useEffect(() => {
     if (selectedTrip) {
-      if (selectedTrip.checklists) {
+      if (selectedTrip.checklists && Array.isArray(selectedTrip.checklists)) {
          setChecklist(migrateLegacyChecklist(selectedTrip.checklists));
       } else {
         // If no checklist exists, create one from default templates
         const defaultChecklist = selectedTrip.isVehicleOnly ? vehicleOnlyChecklist : fullRigChecklist;
-        setChecklist(defaultChecklist.map(stage => ({...stage, items: [...stage.items]}))); // Deep copy
+        setChecklist(defaultChecklist.map(stage => ({...stage, items: [...stage.items].map(item => ({...item}))}))); // Deep copy
       }
     } else {
       setChecklist([]);
@@ -143,6 +144,28 @@ export default function ChecklistsPage() {
     handleUpdateChecklist(newChecklist);
   };
 
+  const handleStartNavigation = useCallback(() => {
+    if (!selectedTrip) return;
+
+    const baseUrl = 'https://www.google.com/maps/dir/?api=1';
+    const origin = `origin=${encodeURIComponent(selectedTrip.startLocationDisplay)}`;
+    const destination = `destination=${encodeURIComponent(selectedTrip.endLocationDisplay)}`;
+    
+    let waypointsParam = '';
+    if (selectedTrip.waypoints && selectedTrip.waypoints.length > 0) {
+        const waypointsString = selectedTrip.waypoints.map(wp => encodeURIComponent(wp.address)).join('|');
+        waypointsParam = `&waypoints=${waypointsString}`;
+    }
+
+    const googleMapsUrl = `${baseUrl}&${origin}&${destination}${waypointsParam}`;
+    
+    window.open(googleMapsUrl, '_blank');
+    toast({
+        title: "Opening Google Maps",
+        description: "Your route is opening in a new tab.",
+    });
+  }, [selectedTrip, toast]);
+
   const { totalItems, completedItems } = useMemo(() => {
     let total = 0;
     let completed = 0;
@@ -199,6 +222,10 @@ export default function ChecklistsPage() {
 
       {selectedTripId && selectedTrip && (
         <div className="space-y-6">
+          <Button onClick={handleStartNavigation} size="lg" className="w-full font-body bg-green-600 hover:bg-green-700 text-white animate-pulse">
+            <Navigation className="mr-2 h-5 w-5" /> Start Navigation
+          </Button>
+
           <Card>
             <CardHeader>
               <CardTitle className="font-headline">Overall Progress for: {selectedTrip.name}</CardTitle>
