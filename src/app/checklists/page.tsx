@@ -22,6 +22,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { fetchTrips, updateTrip } from '@/lib/api-client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fullRigChecklist, vehicleOnlyChecklist } from '@/types/checklist';
+import { cn } from '@/lib/utils';
 
 // Utility to migrate old checklist format to new stage-based format
 function migrateLegacyChecklist(legacyChecklist: any): ChecklistStage[] {
@@ -222,7 +223,18 @@ export default function ChecklistsPage() {
 
       {selectedTripId && selectedTrip && (
         <div className="space-y-6">
-          <Button onClick={handleStartNavigation} size="lg" className="w-full font-body bg-green-600 hover:bg-green-700 text-white animate-pulse">
+          <Button
+            onClick={handleStartNavigation}
+            size="lg"
+            className={cn(
+              "w-full font-body text-white animate-pulse",
+              overallProgress === 100
+                ? "bg-green-600 hover:bg-green-700"
+                : overallProgress > 0
+                ? "bg-yellow-500 hover:bg-yellow-600"
+                : "bg-destructive hover:bg-destructive/90"
+            )}
+          >
             <Navigation className="mr-2 h-5 w-5" /> Start Navigation
           </Button>
 
