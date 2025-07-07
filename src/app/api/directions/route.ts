@@ -1,4 +1,3 @@
-
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -57,29 +56,24 @@ export async function POST(req: NextRequest) {
       polylineEncoding: 'ENCODED_POLYLINE',
     };
 
-    // If height is provided, add it to the request to check for restrictions.
-    // This is the documented correct structure: vehicleInfo > dimensions > height.
+    // Correctly nested structure as per Google's documentation
     if (vehicleHeight && vehicleHeight > 0) {
       requestBody.routeModifiers = {
         vehicleInfo: {
           dimensions: {
-            height: vehicleHeight,
+            height: vehicleHeight, // Height is a number in meters
           },
         },
       };
     }
     
-    // --- DIAGNOSTIC LOGGING ---
-    // Log the exact request body being sent to Google for debugging purposes.
-    console.log("Sending to Google Routes API. Request Body:", JSON.stringify(requestBody, null, 2));
-    // --- END DIAGNOSTIC LOGGING ---
-
     const response = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-Goog-Api-Key': apiKey,
-            // Field mask is removed to simplify the request for debugging.
+            // Field mask to request specific fields, reducing data transfer and cost
+            'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.warnings,routes.polyline.encodedPolyline,routes.legs(startLocation,endLocation)',
         },
         body: JSON.stringify(requestBody)
     });
