@@ -10,47 +10,65 @@ export type ChecklistCategory = 'preDeparture' | 'campsiteSetup' | 'packDown';
 // This remains the global default template for new trips if no caravan default is found.
 export const initialChecklists: Readonly<Record<ChecklistCategory, readonly ChecklistItem[]>> = {
   preDeparture: [
-    { id: 'global_pd1_tpl', text: 'Hitch up caravan & check connection', completed: false },
-    { id: 'global_pd2_tpl', text: 'Connect safety chains and breakaway cable', completed: false },
-    { id: 'global_pd3_tpl', text: 'Check lights, indicators, and brake lights', completed: false },
-    { id: 'global_pd4_tpl', text: 'Check tyre pressures (vehicle & caravan)', completed: false },
-    { id: 'global_pd5_tpl', text: 'Retract and lock awning', completed: false },
-    { id: 'global_pd6_tpl', text: 'Retract and secure stabiliser legs', completed: false },
-    { id: 'global_pd7_tpl', text: 'Secure all items inside (cupboards, fridge)', completed: false },
-    { id: 'global_pd8_tpl', text: 'Turn off gas appliances and close gas bottles', completed: false },
-    { id: 'global_pd9_tpl', text: 'Close and lock all windows, hatches, and door', completed: false },
-    { id: 'global_pd10_tpl', text: 'Fill/empty water tanks as required', completed: false },
-    { id: 'global_pd11_tpl', text: 'Check mirrors for visibility', completed: false },
-    { id: 'global_pd12_tpl', text: 'Test brake controller functionality', completed: false },
-    { id: 'global_pd13_tpl', text: 'Final walk-around of rig', completed: false },
+    // --- Inside Checks ---
+    { id: 'global_pd1_tpl', text: 'Secure all loose items in cupboards and on benches', completed: false },
+    { id: 'global_pd2_tpl', text: 'Lock refrigerator door', completed: false },
+    { id: 'global_pd3_tpl', text: 'Turn off all internal lights and 12V accessories', completed: false },
+    { id: 'global_pd4_tpl', text: 'Close and lock all internal doors', completed: false },
+    // --- System Checks ---
+    { id: 'global_pd5_tpl', text: 'Turn off gas appliances and close gas bottles', completed: false },
+    { id: 'global_pd6_tpl', text: 'Switch fridge to appropriate travel power source (12V/Gas)', completed: false },
+    { id: 'global_pd7_tpl', text: 'Fill fresh water tanks / Empty grey & black tanks as needed', completed: false },
+    // --- Exterior Checks ---
+    { id: 'global_pd8_tpl', text: 'Retract and lock awning securely', completed: false },
+    { id: 'global_pd9_tpl', text: 'Close and lock all windows and roof hatches', completed: false },
+    { id: 'global_pd10_tpl', text: 'Retract and secure stabiliser legs', completed: false },
+    { id: 'global_pd11_tpl', text: 'Disconnect and stow power lead, water hoses, and drain hoses', completed: false },
+    // --- Hitching and Final Checks ---
+    { id: 'global_pd12_tpl', text: 'Hitch caravan to tow vehicle securely', completed: false },
+    { id: 'global_pd13_tpl', text: 'Connect safety chains and breakaway cable', completed: false },
+    { id: 'global_pd14_tpl', text: 'Connect 7/12-pin plug and check all lights (indicators, brake, tail)', completed: false },
+    { id: 'global_pd15_tpl', text: 'Retract jockey wheel fully', completed: false },
+    { id: 'global_pd16_tpl', text: 'Check tyre pressures (vehicle & caravan)', completed: false },
+    { id: 'global_pd17_tpl', text: 'Check mirrors for visibility and test brake controller', completed: false },
+    { id: 'global_pd18_tpl', text: 'Perform final walk-around of rig and check for obstacles', completed: false },
   ],
   campsiteSetup: [
-    { id: 'global_cs1_tpl', text: 'Position caravan on site (check for hazards)', completed: false },
-    { id: 'global_cs2_tpl', text: 'Chock wheels securely', completed: false },
-    { id: 'global_cs3_tpl', text: 'Unhitch from vehicle', completed: false },
-    { id: 'global_cs4_tpl', text: 'Level caravan side-to-side (using ramps)', completed: false },
+    // --- Positioning & Securing ---
+    { id: 'global_cs1_tpl', text: 'Position caravan on site (check for hazards/obstacles)', completed: false },
+    { id: 'global_cs2_tpl', text: 'Level caravan side-to-side (using ramps)', completed: false },
+    { id: 'global_cs3_tpl', text: 'Chock wheels securely', completed: false },
+    // --- Unhitching & Levelling ---
+    { id: 'global_cs4_tpl', text: 'Unhitch from vehicle (disconnect chains, power, etc.)', completed: false },
     { id: 'global_cs5_tpl', text: 'Level caravan front-to-back (using jockey wheel)', completed: false },
     { id: 'global_cs6_tpl', text: 'Deploy stabiliser legs (do not use for lifting)', completed: false },
-    { id: 'global_cs7_tpl', text: 'Connect power lead (van side first)', completed: false },
+    // --- Connecting Utilities ---
+    { id: 'global_cs7_tpl', text: 'Connect power lead (van side first, then pole)', completed: false },
     { id: 'global_cs8_tpl', text: 'Connect water hose (with filter if needed)', completed: false },
     { id: 'global_cs9_tpl', text: 'Connect grey water hose/container', completed: false },
+    // --- Final Setup ---
     { id: 'global_cs10_tpl', text: 'Turn on gas bottles', completed: false },
-    { id: 'global_cs11_tpl', text: 'Deploy awning', completed: false },
-    { id: 'global_cs12_tpl', text: 'Set up outdoor area (mats, chairs, table)', completed: false },
-    { id: 'global_cs13_tpl', text: 'Switch fridge to appropriate power source (240V/Gas)', completed: false },
+    { id: 'global_cs11_tpl', text: 'Switch fridge to appropriate power source (240V/Gas)', completed: false },
+    { id: 'global_cs12_tpl', text: 'Deploy awning', completed: false },
+    { id: 'global_cs13_tpl', text: 'Set up outdoor area (mats, chairs, table)', completed: false },
   ],
   packDown: [
+    // --- Internal & Waste ---
     { id: 'global_pk1_tpl', text: 'Clean and empty toilet cassette', completed: false },
-    { id: 'global_pk2_tpl', text: 'Stow all outdoor gear (furniture, BBQ, mats)', completed: false },
-    { id: 'global_pk3_tpl', text: 'Retract and secure awning', completed: false },
-    { id: 'global_pk4_tpl', text: 'Switch fridge to 12V/Off for travel', completed: false },
-    { id: 'global_pk5_tpl', text: 'Disconnect grey water hose', completed: false },
-    { id: 'global_pk6_tpl', text: 'Disconnect fresh water hose', completed: false },
-    { id: 'global_pk7_tpl', text: 'Disconnect power lead (van side first)', completed: false },
-    { id: 'global_pk8_tpl', text: 'Turn off gas bottles', completed: false },
-    { id: 'global_pk9_tpl', text: 'Secure all items inside caravan', completed: false },
+    { id: 'global_pk2_tpl', text: 'Switch fridge to 12V/Off for travel', completed: false },
+    { id: 'global_pk3_tpl', text: 'Secure all items inside caravan', completed: false },
+    // --- External Area ---
+    { id: 'global_pk4_tpl', text: 'Stow all outdoor gear (furniture, BBQ, mats)', completed: false },
+    { id: 'global_pk5_tpl', text: 'Retract and secure awning', completed: false },
+    // --- Disconnect Utilities ---
+    { id: 'global_pk6_tpl', text: 'Disconnect grey water hose', completed: false },
+    { id: 'global_pk7_tpl', text: 'Disconnect fresh water hose', completed: false },
+    { id: 'global_pk8_tpl', text: 'Disconnect power lead (van side first)', completed: false },
+    // --- Secure Van for Travel ---
+    { id: 'global_pk9_tpl', text: 'Turn off gas bottles', completed: false },
     { id: 'global_pk10_tpl', text: 'Close and lock all windows, hatches, and door', completed: false },
     { id: 'global_pk11_tpl', text: 'Retract stabiliser legs completely', completed: false },
+    // --- Hitching & Departure ---
     { id: 'global_pk12_tpl', text: 'Hitch up to vehicle and connect electrics/chains', completed: false },
     { id: 'global_pk13_tpl', text: 'Perform light check', completed: false },
     { id: 'global_pk14_tpl', text: 'Remove wheel chocks', completed: false },
