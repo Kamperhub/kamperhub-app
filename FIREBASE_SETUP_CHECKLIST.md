@@ -47,6 +47,8 @@ All your secret keys will live in a special file that is NOT committed to versio
     GOOGLE_CLIENT_SECRET="YOUR_GOOGLE_CLIENT_SECRET"
 
     # Google Maps API Key
+    # NOTE: It's often best practice to use the same key for Maps and AI to simplify management,
+    # as long as that key does not have HTTP referrer restrictions.
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="YOUR_GOOGLE_MAPS_API_KEY_HERE"
     ```
 
@@ -81,13 +83,15 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   **CRITICAL: The `project_id` field inside this JSON file must also be `kamperhub-s4hc2`.**
     *   **CRITICAL: The `private_key` field in the JSON contains `\n` characters. The app is now designed to handle these correctly, so you should not need to modify them manually.**
 
-3.  **Generative AI Key (`GOOGLE_API_KEY`)**
+3.  **Google API Keys (`GOOGLE_API_KEY` & `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)**
     *   Go to the [Google Cloud Credentials page](https://console.cloud.google.com/apis/credentials) for your `kamperhub-s4hc2` project.
-    *   **CRITICAL: Use the correct key.** Based on your provided screenshot:
-        *   ✅ **CORRECT Key to Use:** The key named **`Generative Language API Key`**. Its "Restrictions" column shows "—", which means it correctly has **no** "HTTP referrer" restrictions.
-        *   ❌ **INCORRECT Key to Use:** The key named **`KamperHub V2 key`**. Its "Restrictions" column shows "HTTP referrers". This key will **not** work for the AI features and will cause an `API_KEY_HTTP_REFERRER_BLOCKED` error.
-    *   Click "Show key" next to the correct **`Generative Language API Key`**. Copy it.
-    *   Paste this key into the `GOOGLE_API_KEY` variable in your `.env.local` file.
+    *   **CRITICAL - Understand Key Restrictions:**
+        *   **HTTP referrer restrictions** are for client-side browser use only. They will cause an `API_KEY_HTTP_REFERRER_BLOCKED` error for server-side calls like AI and Directions.
+        *   **IP address restrictions** are for secure server-side use. This is the best practice for production.
+        *   **No restrictions** keys work on both client and server, which is convenient for local development but less secure for production.
+    *   **ACTION:**
+        *   Create or identify a key that **DOES NOT** have HTTP referrer restrictions. A key with "None" or "IP address" restrictions is required.
+        *   Paste this key into both the `GOOGLE_API_KEY` and `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variables in your `.env.local` file. Using the same secure key for both simplifies management.
 
 4.  **Stripe API Keys (`STRIPE_*`)**
     *   Setting up Stripe involves multiple steps for local development. For a detailed walkthrough, please refer to the separate guide: `STRIPE_SETUP_CHECKLIST.md`. This file contains instructions for finding your keys and setting up the required webhook for local testing.
@@ -115,13 +119,13 @@ Many app features depend on Google Maps services. An incorrect API key or disabl
     *   If this is not enabled, the Trip Planner will fail with an error. Click **"Enable"**.
     > [!WARNING]
     > **"Routes API" vs. "Directions API"**
-    > You must enable the **Routes API**. The older **Directions API** is **not** sufficient and will cause errors. Your provided screenshot clearly shows the "Routes API" is currently disabled. Please find it in the list and click its "Enable" button.
+    > You must enable the **Routes API**. The older **Directions API** is **not** sufficient and will cause errors.
 
 6.  **Verify your API Key Permissions**:
     *   Go back to the [Credentials page](https://console.cloud.google.com/apis/credentials).
-    *   Find the key you are using for `GOOGLE_API_KEY` (the one **without** HTTP referrer restrictions).
+    *   Find the key you are using for `GOOGLE_API_KEY`.
     *   Click its name to see its details.
-    *   Under **"API restrictions"**, ensure it has permission to use the "Routes API". If it's unrestricted, that's fine. If it's restricted, you must explicitly add "Routes API" to its list of allowed APIs.
+    *   Under **"API restrictions"**, ensure it has permission to use the "Maps JavaScript API", "Places API", and "Routes API". If it's unrestricted ("Don't restrict key"), that is fine for local development.
 
 ---
 

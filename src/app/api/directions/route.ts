@@ -1,3 +1,4 @@
+
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
 
   if (!apiKey) {
     console.error("Directions API Error: GOOGLE_API_KEY is not configured on the server.");
-    return NextResponse.json({ error: 'The server-side GOOGLE_API_KEY is not configured. This key is required for route calculations and should not have HTTP referrer restrictions. See setup guide.' }, { status: 500 });
+    return NextResponse.json({ error: 'The server-side GOOGLE_API_KEY is not configured. This key is required for route calculations. See setup guide.' }, { status: 500 });
   }
 
   try {
@@ -50,10 +51,8 @@ export async function POST(req: NextRequest) {
       travelMode: 'DRIVE',
       routingPreference: 'TRAFFIC_AWARE',
       computeAlternativeRoutes: false,
-      extraComputations: ['TOLLS'],
       languageCode: 'en-US',
       units: 'METRIC',
-      polylineEncoding: 'ENCODED_POLYLINE',
     };
 
     // Correctly nested structure as per Google's documentation
@@ -72,8 +71,6 @@ export async function POST(req: NextRequest) {
         headers: {
             'Content-Type': 'application/json',
             'X-Goog-Api-Key': apiKey,
-            // Field mask to request specific fields, reducing data transfer and cost
-            'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.warnings,routes.polyline.encodedPolyline,routes.legs(startLocation,endLocation)',
         },
         body: JSON.stringify(requestBody)
     });
@@ -92,16 +89,14 @@ export async function POST(req: NextRequest) {
               errorMessage = "The Google Routes API is not enabled for this project. Please enable it in the Google Cloud Console (see Step 3.5 in the setup guide) and ensure your API key has permissions for it.";
             } else if (errorMessage.toLowerCase().includes('api_key_not_valid')) {
                errorMessage = "The provided GOOGLE_API_KEY is invalid. Please check the key in your .env.local file.";
-            } else if (errorMessage.toLowerCase().includes('invalid json payload')) {
-                errorMessage = `The app sent an invalid request to the Google Routes API. ${errorMessage}`;
+            } else if (errorMessage.toLowerCase().includes('api_key_http_referrer_blocked')) {
+                errorMessage = 'The GOOGLE_API_KEY has "HTTP referrer" restrictions, which is not allowed for server-to-server API calls. Use a key with "None" or "IP Address" restrictions as explained in the setup guide.';
             }
           }
         } catch(e) {
-          // This block catches if JSON.parse fails
+          // This block catches if JSON.parse fails, which can happen with non-JSON error responses from proxies etc.
           if (errorBody.toLowerCase().includes('api key not valid')) {
             errorMessage = "The provided GOOGLE_API_KEY is invalid. Please check the key in your .env.local file and restart the server.";
-          } else if (errorBody.toLowerCase().includes('http referrer')) {
-            errorMessage = 'The GOOGLE_API_KEY has "HTTP referrer" restrictions. Use a key with "None" or "IP Address" restrictions as explained in the setup guide.';
           }
         }
         
@@ -112,7 +107,6 @@ export async function POST(req: NextRequest) {
     
     if (data.routes && data.routes.length > 0) {
         const route = data.routes[0];
-        // Adapt the response to a simpler structure for the client
         const adaptedResponse = {
             distance: { text: `${(route.distanceMeters / 1000).toFixed(1)} km`, value: route.distanceMeters },
             duration: { text: formatDuration(route.duration), value: parseInt(route.duration.slice(0,-1), 10)},
