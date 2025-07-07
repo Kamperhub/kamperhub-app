@@ -192,7 +192,11 @@ export async function POST(req: NextRequest) {
       isVehicleOnly: parsedData.isVehicleOnly || false,
       expenses: [],
       budget: parsedData.budget || [],
-      occupants: parsedData.occupants || [],
+      occupants: (parsedData.occupants || []).map(occ => ({
+        ...occ,
+        age: occ.age ?? null,
+        notes: occ.notes ?? null,
+      })),
     };
     
     await newTripRef.set(newTrip);
@@ -215,9 +219,20 @@ export async function PUT(req: NextRequest) {
     const parsedData = updateTripSchema.parse(body);
 
     const tripRef = firestore.collection('users').doc(uid).collection('trips').doc(parsedData.id);
-    await tripRef.set(parsedData, { merge: true });
     
-    const sanitizedParsedData = sanitizeData(parsedData);
+    // Clean up occupant data to prevent 'undefined' values being sent to Firestore
+    const dataToSet = {
+        ...parsedData,
+        occupants: (parsedData.occupants || []).map(occ => ({
+            ...occ,
+            age: occ.age ?? null,
+            notes: occ.notes ?? null,
+        })),
+    };
+
+    await tripRef.set(dataToSet, { merge: true });
+    
+    const sanitizedParsedData = sanitizeData(dataToSet);
     return NextResponse.json({ message: 'Trip updated successfully.', trip: sanitizedParsedData }, { status: 200 });
   } catch (err: any) {
     return handleApiError(err);
