@@ -37,6 +37,13 @@ All your secret keys will live in a special file that is NOT committed to versio
     # IMPORTANT: This key MUST NOT have "HTTP referrer" restrictions. Use a key with no restrictions or IP address restrictions.
     GOOGLE_API_KEY="YOUR_GENERATIVE_AI_API_KEY_HERE"
 
+    # Application URL
+    # This MUST match the base URL of your application when it's running.
+    # In the dev environment, check the terminal: if it says "started server on ... http://localhost:3000",
+    # the exposed URL is http://localhost:8083. If it says "http://localhost:3001", the URL is http://localhost:8084.
+    # This URL is used by services like Stripe to redirect the user back to your app.
+    NEXT_PUBLIC_APP_URL="http://localhost:8083"
+
     # Stripe Configuration (for subscriptions)
     NEXT_PUBLIC_STRIPE_PAYMENT_LINK=https://buy.stripe.com/...
     STRIPE_SECRET_KEY="sk_test_..."
