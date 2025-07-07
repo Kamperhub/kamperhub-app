@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { NavigationContext } from '@/components/layout/AppShell';
 import Link from 'next/link';
 import type { UserProfile } from '@/types/auth';
+import type { BudgetCategory } from '@/types/expense';
 
 const createChecklistCopyForTrip = (items: readonly ChecklistItem[], tripId: string, categoryPrefix: string): ChecklistItem[] => {
     return items.map(item => ({ ...item, id: `trip${tripId.substring(0,4)}_${categoryPrefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}` }));
@@ -85,6 +86,19 @@ export function ReturnTripDialog({ children }: { children: React.ReactNode }) {
       packDown: createChecklistCopyForTrip(sourceChecklistSet.packDown, 'ret', 'pk'),
     };
 
+    const initialBudget: BudgetCategory[] = [];
+    if (trip.fuelEstimate && trip.fuelEstimate.estimatedCost) {
+      const fuelCostString = trip.fuelEstimate.estimatedCost.replace('$', '').trim();
+      const fuelCost = parseFloat(fuelCostString);
+      if (!isNaN(fuelCost)) {
+        initialBudget.push({
+          id: `fuel_${Date.now()}`,
+          name: 'Fuel',
+          budgetedAmount: fuelCost,
+        });
+      }
+    }
+
     const newTripData: Omit<LoggedTrip, 'id' | 'timestamp'> = {
         name: newTripName,
         startLocationDisplay: trip.endLocationDisplay,
@@ -104,7 +118,7 @@ export function ReturnTripDialog({ children }: { children: React.ReactNode }) {
         isCompleted: false,
         isVehicleOnly: isVehicleOnlyReturn,
         checklists: newTripChecklistSet,
-        budget: [], 
+        budget: initialBudget,
         expenses: [],
         occupants: (trip.occupants || []).map(occ => ({
             ...occ,
