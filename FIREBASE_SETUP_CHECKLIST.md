@@ -151,7 +151,7 @@ Many app features depend on Google services. An incorrect API key or disabled se
 ### Step 3.6: CRITICAL - Configure OAuth Consent Screen & Credentials
 
 > [!WARNING]
-> **If you see a `403 That's an error... you do not have access` page from Google when trying to connect your account, it means this step was missed or done incorrectly.**
+> **If you see a `403 That's an error... you do not have access` or `redirect_uri_mismatch` page from Google when trying to connect your account, it means this step was missed or done incorrectly.**
 
 This step is mandatory for allowing users to connect their Google Accounts (for features like Google Tasks).
 
@@ -174,8 +174,12 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
     *   Go back to the [Credentials page](https://console.cloud.google.com/apis/credentials).
     *   Click on the name of your **OAuth 2.0 Client ID** (the one you used for `GOOGLE_CLIENT_ID`).
     *   Under **"Authorized redirect URIs"**, click **"+ ADD URI"**.
+    > [!WARNING]
+    > **Port `8083` is Required for OAuth**
+    > In this development environment, your app runs internally on port 3000, but it is **exposed externally on port 8083**. Google's services connect to this external port.
+    > You **MUST** use the URL with port **8083** for your redirect URI to work. Do **NOT** use port 3000.
     *   Enter the URL that matches your `NEXT_PUBLIC_APP_URL` from your `.env.local` file, followed by `/api/auth/google/callback`.
-    *   **Example:** If your `NEXT_PUBLIC_APP_URL` is `http://localhost:8083`, you must enter `http://localhost:8083/api/auth/google/callback`.
+    *   **Example:** Your `NEXT_PUBLIC_APP_URL` must be `http://localhost:8083`, and the redirect URI you enter must be `http://localhost:8083/api/auth/google/callback`.
     *   Click **Save**.
 
 ---
@@ -250,5 +254,6 @@ The debug tool for creating users has been removed for security. The application
 3.  After signing up, you should be logged in and can access all features.
 
 > **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
+
 
 
