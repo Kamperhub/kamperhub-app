@@ -27,7 +27,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
-import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Trash2, PlusCircle, Users, AlertTriangle, XCircle, Edit3, Car, Settings, TowerControl, Home } from 'lucide-react';
+import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Trash2, PlusCircle, Users, AlertTriangle, XCircle, Edit3, Car, Settings, TowerControl, Home, Info } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from "date-fns";
@@ -561,6 +561,15 @@ export function TripPlannerClient() {
                     <CardDescription>Add travelers to account for their weight and personalize packing lists.</CardDescription>
                 </CardHeader>
                 <CardContent>
+                    {!routeDetails && !activeTrip && (
+                        <Alert variant="default" className="mb-4 bg-muted/50">
+                            <Info className="h-4 w-4" />
+                            <AlertTitle className="font-headline">Plan Itinerary First</AlertTitle>
+                            <AlertDescription className="font-body">
+                                This section will unlock after you calculate a route.
+                            </AlertDescription>
+                        </Alert>
+                    )}
                     {routeDetails && tripOccupants.length === 0 && !activeTrip && (
                         <Alert variant="destructive" className="mb-4">
                             <AlertTriangle className="h-4 w-4" />
@@ -653,3 +662,4 @@ export function TripPlannerClient() {
     </>
   );
 }
+
