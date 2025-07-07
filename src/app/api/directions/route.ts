@@ -34,8 +34,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'The server-side GOOGLE_API_KEY is not configured. This key is required for route calculations and should not have HTTP referrer restrictions. See setup guide.' }, { status: 500 });
   }
 
-  let requestBody: any;
-
   try {
     const body = await req.json();
     const parsedBody = directionsRequestSchema.safeParse(body);
@@ -47,7 +45,7 @@ export async function POST(req: NextRequest) {
     const { origin, destination, vehicleHeight } = parsedBody.data;
 
     // Base request body for Google's Routes API
-    requestBody = {
+    const requestBody: any = {
       origin: { address: origin },
       destination: { address: destination },
       travelMode: 'DRIVE',
@@ -59,12 +57,14 @@ export async function POST(req: NextRequest) {
       polylineEncoding: 'ENCODED_POLYLINE',
     };
 
-    // If height is provided, add it to the request to check for restrictions
-    // The API requires the height to be a string with the unit, not a structured object.
+    // If height is provided, add it to the request to check for restrictions.
+    // The API requires a `dimensions` object containing the height as a number.
     if (vehicleHeight && vehicleHeight > 0) {
       requestBody.routeModifiers = {
         vehicleInfo: {
-          height: `${vehicleHeight}m`,
+          dimensions: {
+            height: vehicleHeight,
+          },
         },
       };
     }
@@ -91,12 +91,15 @@ export async function POST(req: NextRequest) {
           if (errorData.error?.message) {
             errorMessage = errorData.error.message;
             if (errorMessage.includes("Routes API has not been used in project")) {
-              errorMessage = "The Google Routes API is not enabled for this project. Please enable it in the Google Cloud Console and ensure your API key has permissions for it.";
+              errorMessage = "The Google Routes API is not enabled for this project. Please enable it in the Google Cloud Console (see Step 3.5 in the setup guide) and ensure your API key has permissions for it.";
             } else if (errorMessage.toLowerCase().includes('api_key_not_valid')) {
                errorMessage = "The provided GOOGLE_API_KEY is invalid. Please check the key in your .env.local file.";
+            } else if (errorMessage.toLowerCase().includes('invalid json payload')) {
+                errorMessage = `The app sent an invalid request to the Google Routes API. ${errorMessage}`;
             }
           }
         } catch(e) {
+          // This block catches if JSON.parse fails
           if (errorBody.toLowerCase().includes('api key not valid')) {
             errorMessage = "The provided GOOGLE_API_KEY is invalid. Please check the key in your .env.local file and restart the server.";
           } else if (errorBody.toLowerCase().includes('http referrer')) {
