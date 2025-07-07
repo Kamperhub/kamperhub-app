@@ -107,6 +107,17 @@ export default function ChecklistsPage() {
     }
   }, [searchParams, loggedTrips, selectedTripId]);
 
+  const { totalItems, completedItems } = useMemo(() => {
+    let total = 0;
+    let completed = 0;
+    checklist.forEach(stage => {
+      total += stage.items.length;
+      completed += stage.items.filter(item => item.completed).length;
+    });
+    return { totalItems: total, completedItems: completed };
+  }, [checklist]);
+  const overallProgress = totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
+
   const handleUpdateChecklist = (updatedChecklist: ChecklistStage[]) => {
     setChecklist(updatedChecklist);
     if(selectedTrip) {
@@ -147,6 +158,12 @@ export default function ChecklistsPage() {
 
   const handleStartNavigation = useCallback(() => {
     if (!selectedTrip) return;
+    
+    if (overallProgress < 100) {
+      if (!window.confirm("Your pre-departure checklist is not fully complete. Are you sure you want to start navigation?")) {
+        return; // Abort if user clicks "Cancel"
+      }
+    }
 
     const baseUrl = 'https://www.google.com/maps/dir/?api=1';
     const origin = `origin=${encodeURIComponent(selectedTrip.startLocationDisplay)}`;
@@ -165,18 +182,7 @@ export default function ChecklistsPage() {
         title: "Opening Google Maps",
         description: "Your route is opening in a new tab.",
     });
-  }, [selectedTrip, toast]);
-
-  const { totalItems, completedItems } = useMemo(() => {
-    let total = 0;
-    let completed = 0;
-    checklist.forEach(stage => {
-      total += stage.items.length;
-      completed += stage.items.filter(item => item.completed).length;
-    });
-    return { totalItems: total, completedItems: completed };
-  }, [checklist]);
-  const overallProgress = totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
+  }, [selectedTrip, toast, overallProgress]);
 
   if (isLoadingTrips || isAuthLoading) {
     return (
@@ -285,3 +291,4 @@ export default function ChecklistsPage() {
     </div>
   );
 }
+
