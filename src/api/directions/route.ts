@@ -61,9 +61,8 @@ export async function POST(req: NextRequest) {
     if (vehicleHeight && vehicleHeight > 0) {
       requestBody.routeModifiers = {
         vehicleInfo: {
-          height: {
-            value: vehicleHeight,
-            unit: 'METERS',
+          dimensions: {
+            height: vehicleHeight,
           },
         },
       };
