@@ -21,7 +21,7 @@ const nextConfig = {
     const cspHeader = [
       "default-src 'self'",
       // Scripts - Allow self, inline, eval (for Next.js), Google Maps, Stripe, and Cloud IDE resources
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://www.gstatic.com https://*.stripe.com https://m.stripe.network https://*.cloudworkstations.googleusercontent.com https://vscode-resource.vscode-cdn.net",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://www.gstatic.com https://*.stripe.com https://m.stripe.network https://*.cloudworkstations.googleusercontent.com https://vscode-resource.vscode-cdn.net https://*.cloudworkstations.dev",
       // Styles - Allow self, inline (for component libraries), and Google Fonts
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       // Images - Allow self, data URIs, placeholders, Firebase Storage, Google content, and Stripe
