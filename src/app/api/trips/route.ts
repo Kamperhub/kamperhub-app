@@ -189,6 +189,7 @@ export async function POST(req: NextRequest) {
       id: newTripRef.id,
       timestamp: new Date().toISOString(),
       ...parsedData,
+      waypoints: parsedData.waypoints || [],
       notes: parsedData.notes || null,
       isVehicleOnly: parsedData.isVehicleOnly || false,
       expenses: [],
@@ -223,6 +224,7 @@ export async function PUT(req: NextRequest) {
     
     const dataToSet = {
         ...parsedData,
+        waypoints: parsedData.waypoints || [],
         notes: parsedData.notes || null,
         occupants: (parsedData.occupants || []).map(occ => ({
             ...occ,

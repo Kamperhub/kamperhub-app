@@ -65,6 +65,37 @@ const tripPlannerSchema = z.object({
   path: ["dateRange"],
 });
 
+const RouteRenderer = ({ routeDetails }: { routeDetails: RouteDetails | null }) => {
+  const map = useMap();
+  const polylineRef = useRef<google.maps.Polyline | null>(null);
+
+  useEffect(() => {
+    if (polylineRef.current) {
+      polylineRef.current.setMap(null);
+    }
+    if (routeDetails?.polyline && map && window.google?.maps?.geometry) {
+      try {
+        const decodedPath = window.google.maps.geometry.encoding.decodePath(routeDetails.polyline);
+        const newPolyline = new window.google.maps.Polyline({
+          path: decodedPath,
+          strokeColor: 'hsl(var(--primary))',
+          strokeOpacity: 0.8,
+          strokeWeight: 6,
+        });
+        newPolyline.setMap(map);
+        polylineRef.current = newPolyline;
+
+        const bounds = new window.google.maps.LatLngBounds();
+        decodedPath.forEach(point => bounds.extend(point));
+        map.fitBounds(bounds);
+      } catch (e) {
+        console.error("Error decoding or drawing polyline:", e);
+      }
+    }
+  }, [routeDetails, map]);
+
+  return null; // This component does not render anything itself
+};
 
 export function TripPlannerClient() {
   const { control, handleSubmit, formState: { errors }, setValue, getValues, reset, register } = useForm<TripPlannerFormValues>({
@@ -119,7 +150,6 @@ export function TripPlannerClient() {
 
 
   const map = useMap();
-  const polylineRef = useRef<google.maps.Polyline | null>(null);
 
   const isGoogleApiReady = !!map &&
                            typeof window.google !== 'undefined' &&
@@ -136,7 +166,6 @@ export function TripPlannerClient() {
     setTripOccupants([]);
     setPendingTripName('');
     setPendingTripNotes('');
-    if (polylineRef.current) polylineRef.current.setMap(null);
   }, [reset]);
 
   useEffect(() => {
@@ -149,6 +178,7 @@ export function TripPlannerClient() {
            const sanitizedTrip: LoggedTrip = {
               ...recalledTrip,
               notes: recalledTrip.notes || null,
+              waypoints: recalledTrip.waypoints || [],
               occupants: (recalledTrip.occupants || []).map(occ => ({
                   ...occ,
                   age: occ.age ?? null,
@@ -195,39 +225,11 @@ export function TripPlannerClient() {
     }
   }, [reset, setValue, toast, pathname, getValues, userPrefs, allVehicles]); 
 
-  // Effect to draw route polyline on the map when details change
-  useEffect(() => {
-    if (polylineRef.current) {
-      polylineRef.current.setMap(null);
-    }
-    if (routeDetails?.polyline && map && window.google?.maps?.geometry) {
-      try {
-        const decodedPath = window.google.maps.geometry.encoding.decodePath(routeDetails.polyline);
-        const newPolyline = new window.google.maps.Polyline({
-          path: decodedPath,
-          strokeColor: 'hsl(var(--primary))',
-          strokeOpacity: 0.8,
-          strokeWeight: 6,
-        });
-        newPolyline.setMap(map);
-        polylineRef.current = newPolyline;
-
-        const bounds = new window.google.maps.LatLngBounds();
-        decodedPath.forEach(point => bounds.extend(point));
-        map.fitBounds(bounds);
-      } catch (e) {
-        console.error("Error decoding or drawing polyline:", e);
-        setError("Could not draw the route on the map.");
-      }
-    }
-  }, [routeDetails, map]); // Depends on routeDetails and map readiness
-
   const onSubmit: SubmitHandler<TripPlannerFormValues> = async (data) => {
     setIsLoading(true);
     setRouteDetails(null);
     setFuelEstimate(null);
     setError(null);
-    if (polylineRef.current) polylineRef.current.setMap(null);
 
     try {
         const response = await fetch('/api/directions', {
@@ -390,7 +392,11 @@ export function TripPlannerClient() {
       checklists: newTripChecklistSet,
       budget: tripBudget,
       expenses: tripExpenses,
-      occupants: tripOccupants,
+      occupants: tripOccupants.map(occ => ({
+          ...occ,
+          age: occ.age ?? null,
+          notes: occ.notes ?? null,
+      })),
       isVehicleOnly: !isTowing,
       activeCaravanIdAtTimeOfCreation: isTowing ? (activeCaravan?.id || null) : null,
       activeCaravanNameAtTimeOfCreation: isTowing ? (activeCaravan ? `${activeCaravan.year} ${activeCaravan.make} ${activeCaravan.model}` : null) : null,
@@ -584,6 +590,7 @@ export function TripPlannerClient() {
                   <CardTitle className="font-headline flex items-center"><MapPin className="mr-2 h-6 w-6 text-primary" /> Route Map</CardTitle>
               </CardHeader><CardContent className="p-0"><div style={{ height: mapHeight }} className="bg-muted rounded-b-lg overflow-hidden relative">
                 <Map defaultCenter={{ lat: -25.2744, lng: 133.7751 }} defaultZoom={4} gestureHandling={'greedy'} disableDefaultUI={true} mapId={'DEMO_MAP_ID'} className="h-full w-full">
+                  <RouteRenderer routeDetails={routeDetails} />
                   {routeDetails?.startLocation && <AdvancedMarker position={routeDetails.startLocation} title={`Start`}><Pin background={'hsl(var(--primary))'} borderColor={'hsl(var(--primary))'} glyphColor={'hsl(var(--primary-foreground))'} /></AdvancedMarker>}
                   {routeDetails?.endLocation && <AdvancedMarker position={routeDetails.endLocation} title={`End`}><Pin background={'hsl(var(--accent))'} borderColor={'hsl(var(--accent))'} glyphColor={'hsl(var(--accent-foreground))'} /></AdvancedMarker>}
                 </Map>

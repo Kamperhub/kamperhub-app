@@ -5,7 +5,7 @@ import { useState, useContext }from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { fetchTrips, createTrip } from '@/lib/api-client';
+import { fetchTrips, createTrip, fetchUserPreferences } from '@/lib/api-client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -106,7 +106,11 @@ export function ReturnTripDialog({ children }: { children: React.ReactNode }) {
         checklists: newTripChecklistSet,
         budget: [], 
         expenses: [],
-        occupants: trip.occupants || [],
+        occupants: (trip.occupants || []).map(occ => ({
+            ...occ,
+            age: occ.age ?? null,
+            notes: occ.notes ?? null,
+        })),
         activeCaravanIdAtTimeOfCreation: trip.activeCaravanIdAtTimeOfCreation,
         activeCaravanNameAtTimeOfCreation: trip.activeCaravanNameAtTimeOfCreation
     };
