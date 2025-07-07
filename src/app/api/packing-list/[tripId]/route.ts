@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import { packingListCategorySchema } from '@/types/packing';
@@ -77,7 +76,7 @@ export async function GET(req: NextRequest, { params }: { params: { tripId: stri
     const packingListDocRef = firestore.collection('users').doc(uid).collection('packingLists').doc(tripId);
     const packingListDocSnap = await packingListDocRef.get();
 
-    if (!packingListDocSnap.exists()) {
+    if (!packingListDocSnap.exists) {
       return NextResponse.json({ list: [] }, { status: 200 });
     }
     

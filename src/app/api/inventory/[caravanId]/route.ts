@@ -1,4 +1,3 @@
-
 // src/app/api/inventory/[caravanId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -100,7 +99,7 @@ export async function GET(req: NextRequest, { params }: { params: { caravanId: s
     const inventoryDocRef = firestore.collection('users').doc(uid).collection('inventories').doc(caravanId);
     const inventoryDocSnap = await inventoryDocRef.get();
 
-    if (!inventoryDocSnap.exists()) {
+    if (!inventoryDocSnap.exists) {
       // If no inventory exists for this caravan, return an empty array, which is a valid state.
       return NextResponse.json({ items: [] }, { status: 200 });
     }
