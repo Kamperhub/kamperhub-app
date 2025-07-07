@@ -56,11 +56,6 @@ const PersonalizedPackingListOutputSchema = z.object({
 });
 export type PersonalizedPackingListOutput = z.infer<typeof PersonalizedPackingListOutputSchema>;
 
-
-export async function generatePersonalizedPackingLists(input: PersonalizedPackingListInput): Promise<PersonalizedPackingListOutput> {
-  return personalizedPackingListFlow(input);
-}
-
 const prompt = ai.definePrompt({
   name: 'personalizedPackingListPrompt',
   input: {schema: PersonalizedPackingListInputSchema},
@@ -134,3 +129,7 @@ const personalizedPackingListFlow = ai.defineFlow(
     }
   }
 );
+
+export async function generatePersonalizedPackingLists(input: PersonalizedPackingListInput): Promise<PersonalizedPackingListOutput> {
+  return personalizedPackingListFlow(input);
+}
