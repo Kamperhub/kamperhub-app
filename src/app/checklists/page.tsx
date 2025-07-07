@@ -156,33 +156,38 @@ export default function ChecklistsPage() {
     handleUpdateChecklist(newChecklist);
   };
 
-  const handleStartNavigation = useCallback(() => {
+  const handleStartNavigation = () => {
     if (!selectedTrip) return;
     
-    if (overallProgress < 100) {
-      if (!window.confirm("Your pre-departure checklist is not fully complete. Are you sure you want to start navigation?")) {
-        return; // Abort if user clicks "Cancel"
+    const startNavigationAction = () => {
+      const baseUrl = 'https://www.google.com/maps/dir/?api=1';
+      const origin = `origin=${encodeURIComponent(selectedTrip.startLocationDisplay)}`;
+      const destination = `destination=${encodeURIComponent(selectedTrip.endLocationDisplay)}`;
+      
+      let waypointsParam = '';
+      if (selectedTrip.waypoints && selectedTrip.waypoints.length > 0) {
+          const waypointsString = selectedTrip.waypoints.map(wp => encodeURIComponent(wp.address)).join('|');
+          waypointsParam = `&waypoints=${waypointsString}`;
       }
-    }
+  
+      const googleMapsUrl = `${baseUrl}&${origin}&${destination}${waypointsParam}`;
+      
+      window.open(googleMapsUrl, '_blank');
+      toast({
+          title: "Opening Google Maps",
+          description: "Your route is opening in a new tab.",
+      });
+    };
 
-    const baseUrl = 'https://www.google.com/maps/dir/?api=1';
-    const origin = `origin=${encodeURIComponent(selectedTrip.startLocationDisplay)}`;
-    const destination = `destination=${encodeURIComponent(selectedTrip.endLocationDisplay)}`;
-    
-    let waypointsParam = '';
-    if (selectedTrip.waypoints && selectedTrip.waypoints.length > 0) {
-        const waypointsString = selectedTrip.waypoints.map(wp => encodeURIComponent(wp.address)).join('|');
-        waypointsParam = `&waypoints=${waypointsString}`;
+    if (overallProgress < 100) {
+      if (window.confirm("Your pre-departure checklist is not fully complete. Are you sure you want to start navigation?")) {
+        startNavigationAction();
+      }
+    } else {
+      startNavigationAction();
     }
+  };
 
-    const googleMapsUrl = `${baseUrl}&${origin}&${destination}${waypointsParam}`;
-    
-    window.open(googleMapsUrl, '_blank');
-    toast({
-        title: "Opening Google Maps",
-        description: "Your route is opening in a new tab.",
-    });
-  }, [selectedTrip, toast, overallProgress]);
 
   if (isLoadingTrips || isAuthLoading) {
     return (
@@ -291,4 +296,3 @@ export default function ChecklistsPage() {
     </div>
   );
 }
-
