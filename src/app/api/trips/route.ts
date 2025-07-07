@@ -189,6 +189,7 @@ export async function POST(req: NextRequest) {
       id: newTripRef.id,
       timestamp: new Date().toISOString(),
       ...parsedData,
+      notes: parsedData.notes || null,
       isVehicleOnly: parsedData.isVehicleOnly || false,
       expenses: [],
       budget: parsedData.budget || [],
@@ -220,9 +221,9 @@ export async function PUT(req: NextRequest) {
 
     const tripRef = firestore.collection('users').doc(uid).collection('trips').doc(parsedData.id);
     
-    // Clean up occupant data to prevent 'undefined' values being sent to Firestore
     const dataToSet = {
         ...parsedData,
+        notes: parsedData.notes || null,
         occupants: (parsedData.occupants || []).map(occ => ({
             ...occ,
             age: occ.age ?? null,
