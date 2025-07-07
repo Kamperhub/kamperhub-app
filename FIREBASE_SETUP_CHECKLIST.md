@@ -162,10 +162,13 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
     *   **User support email:** Select your email address.
     *   **Developer contact information:** Enter your email address again.
     *   Click **"SAVE AND CONTINUE"** through the "Scopes" and "Optional Info" pages. You do not need to add scopes here.
-4.  **Publish the App:** On the summary page, you should see a **"Publish App"** button. Click it and confirm. This will change the status from "Testing" to "In production". This is required to allow any Google user to connect.
-5.  **Add Test Users (During Development):**
-    *   While your app is in "Testing" mode, you can only log in with specified test users.
-    *   On the OAuth Consent Screen page, go to the **"Test users"** section.
+4.  **Publishing Status - VERY IMPORTANT**:
+    *   On the OAuth Consent Screen summary page, check the "Publishing status".
+    *   If it says **"Testing"**: You can ONLY log in with Google accounts you have explicitly added as "Test users".
+    *   If it says **"In production"**: Any Google user can connect to the app.
+5.  **Add Test Users (If Status is "Testing")**:
+    *   While your app is in "Testing" mode, you must add your own Google account as a test user.
+    *   On the OAuth Consent Screen page, go to the **"Test users"** section on the left menu (or find the "+ ADD USERS" button).
     *   Click **"+ ADD USERS"** and enter the email address of the Google account you will be using to test the app (e.g., your personal gmail.com account). This allows that account to bypass the "unverified app" screen during login.
 6.  **Verify Redirect URI:**
     *   Go back to the [Credentials page](https://console.cloud.google.com/apis/credentials).
@@ -247,4 +250,5 @@ The debug tool for creating users has been removed for security. The application
 3.  After signing up, you should be logged in and can access all features.
 
 > **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
+
 

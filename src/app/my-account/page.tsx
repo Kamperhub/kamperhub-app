@@ -47,18 +47,28 @@ export default function MyAccountPage() {
     const successParam = searchParams.get('success');
 
     if (errorParam) {
-      const decodedError = decodeURIComponent(errorParam);
-      setGoogleConnectError(decodedError);
-      toast({
-        title: "Google Connection Failed",
-        description: decodedError.startsWith("403") ? "Access denied. Please check your Google Cloud project's OAuth configuration." : decodedError,
-        variant: "destructive",
-        duration: 9000,
-      });
-      router.replace('/my-account', { scroll: false });
+        const decodedError = decodeURIComponent(errorParam);
+        let userFriendlyMessage = `An error occurred: ${decodedError}`;
+
+        if (decodedError.includes('access_denied')) {
+            userFriendlyMessage = "Access was denied by Google. This usually means your app is in 'Testing' mode on the OAuth Consent Screen and your email has not been added as a Test User. Please review Step 3.6 in the setup guide.";
+        } else if (decodedError.includes('redirect_uri_mismatch')) {
+            userFriendlyMessage = "Redirect URI Mismatch. The redirect URI in your Google Cloud project's OAuth settings does not exactly match the one your app is using. Please review Step 3.6 in the setup guide.";
+        } else if (decodedError.startsWith("403")) {
+            userFriendlyMessage = `Access Denied (Error 403). Please check your Google Cloud project's OAuth configuration, specifically the Consent Screen and Client ID settings as described in Step 3.6 of the setup guide.`;
+        }
+
+        setGoogleConnectError(userFriendlyMessage);
+        toast({
+            title: "Google Connection Failed",
+            description: userFriendlyMessage,
+            variant: "destructive",
+            duration: 9000,
+        });
+        router.replace('/my-account', { scroll: false });
     }
 
-    if (successParam) {
+    if (successParam === 'google_auth_connected') {
       toast({
         title: "Google Account Connected",
         description: "You can now use Google-integrated features like sending packing lists to Tasks.",
@@ -358,8 +368,7 @@ export default function MyAccountPage() {
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle className="font-headline">Google Connection Error</AlertTitle>
                   <AlertDescription className="font-body text-xs">
-                    Could not connect to Google. This is usually due to a project configuration issue.
-                    Please review <strong>Step 3.6</strong> in the <code className="bg-destructive/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code> file carefully.
+                    {googleConnectError}
                   </AlertDescription>
                 </Alert>
               )}
