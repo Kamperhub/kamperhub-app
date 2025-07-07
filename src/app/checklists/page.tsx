@@ -156,37 +156,27 @@ export default function ChecklistsPage() {
     handleUpdateChecklist(newChecklist);
   };
 
-  const handleStartNavigation = () => {
+  const handleStartNavigation = useCallback(() => {
     if (!selectedTrip) return;
     
-    const startNavigationAction = () => {
-      const baseUrl = 'https://www.google.com/maps/dir/?api=1';
-      const origin = `origin=${encodeURIComponent(selectedTrip.startLocationDisplay)}`;
-      const destination = `destination=${encodeURIComponent(selectedTrip.endLocationDisplay)}`;
-      
-      let waypointsParam = '';
-      if (selectedTrip.waypoints && selectedTrip.waypoints.length > 0) {
-          const waypointsString = selectedTrip.waypoints.map(wp => encodeURIComponent(wp.address)).join('|');
-          waypointsParam = `&waypoints=${waypointsString}`;
-      }
-  
-      const googleMapsUrl = `${baseUrl}&${origin}&${destination}${waypointsParam}`;
-      
-      window.open(googleMapsUrl, '_blank');
-      toast({
-          title: "Opening Google Maps",
-          description: "Your route is opening in a new tab.",
-      });
-    };
-
-    if (overallProgress < 100) {
-      if (window.confirm("Your pre-departure checklist is not fully complete. Are you sure you want to start navigation?")) {
-        startNavigationAction();
-      }
-    } else {
-      startNavigationAction();
+    const baseUrl = 'https://www.google.com/maps/dir/?api=1';
+    const origin = `origin=${encodeURIComponent(selectedTrip.startLocationDisplay)}`;
+    const destination = `destination=${encodeURIComponent(selectedTrip.endLocationDisplay)}`;
+    
+    let waypointsParam = '';
+    if (selectedTrip.waypoints && selectedTrip.waypoints.length > 0) {
+        const waypointsString = selectedTrip.waypoints.map(wp => encodeURIComponent(wp.address)).join('|');
+        waypointsParam = `&waypoints=${waypointsString}`;
     }
-  };
+
+    const googleMapsUrl = `${baseUrl}&${origin}&${destination}${waypointsParam}`;
+    
+    window.open(googleMapsUrl, '_blank');
+    toast({
+        title: "Opening Google Maps",
+        description: "Your route is opening in a new tab.",
+    });
+  }, [selectedTrip, toast]);
 
 
   if (isLoadingTrips || isAuthLoading) {
@@ -234,20 +224,29 @@ export default function ChecklistsPage() {
 
       {selectedTripId && selectedTrip && (
         <div className="space-y-6">
-          <Button
-            onClick={handleStartNavigation}
-            size="lg"
-            className={cn(
-              "w-full font-body text-white animate-pulse",
-              overallProgress === 100
-                ? "bg-green-600 hover:bg-green-700"
-                : overallProgress > 0
-                ? "bg-yellow-500 hover:bg-yellow-600"
-                : "bg-destructive hover:bg-destructive/90"
+          <div className="text-center">
+            <Button
+              onClick={handleStartNavigation}
+              size="lg"
+              disabled={overallProgress < 100}
+              className={cn(
+                "w-full font-body text-white animate-pulse",
+                "disabled:animate-none disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed",
+                overallProgress === 100
+                  ? "bg-green-600 hover:bg-green-700"
+                  : overallProgress > 0
+                  ? "bg-yellow-500 hover:bg-yellow-600"
+                  : "bg-destructive hover:bg-destructive/90"
+              )}
+            >
+              <Navigation className="mr-2 h-5 w-5" /> Start Navigation
+            </Button>
+            {overallProgress < 100 && (
+                <p className="text-xs text-muted-foreground mt-2 font-body">
+                    Please complete all checklist items to enable navigation.
+                </p>
             )}
-          >
-            <Navigation className="mr-2 h-5 w-5" /> Start Navigation
-          </Button>
+          </div>
 
           <Card>
             <CardHeader>
