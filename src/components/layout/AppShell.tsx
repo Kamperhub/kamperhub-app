@@ -63,7 +63,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
        <APIProvider 
           apiKey={apiKey || "MISSING_API_KEY"} 
           solutionChannel="GMP_visgl_rgm_reactfirebase_v1"
-          libraries={['places', 'routes']}
+          libraries={['places', 'routes', 'geometry']}
         >
           {isAuthPage ? (
             <MainLayout>{children}</MainLayout>
