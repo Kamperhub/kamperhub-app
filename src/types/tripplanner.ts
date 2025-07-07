@@ -1,6 +1,6 @@
 
 import type { DateRange } from 'react-day-picker';
-import type { TripChecklistSet } from '@/types/checklist';
+import type { ChecklistStage } from '@/types/checklist';
 import type { BudgetCategory, Expense } from '@/types/expense';
 
 export interface TripPlannerFormValues {
@@ -55,10 +55,10 @@ export interface LoggedTrip {
   fuelEstimate: FuelEstimate | null;
   plannedStartDate?: string | null; // Stored as ISO string
   plannedEndDate?: string | null; // Stored as ISO string
-  notes?: string; // Optional notes field
+  notes?: string | null; // Optional notes field
   isCompleted?: boolean; // New field for completion status
   isVehicleOnly?: boolean; // New field to mark trips without a caravan
-  checklists?: TripChecklistSet; // A trip can have its own checklist set
+  checklists?: ChecklistStage[] | { preDeparture: any[]; campsiteSetup: any[]; packDown: any[]; }; // A trip can have its own checklist set, supports old and new format for migration
   
   // New fields for expense tracking
   budget?: BudgetCategory[];

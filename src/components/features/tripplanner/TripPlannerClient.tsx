@@ -10,8 +10,8 @@ import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip, Occ
 import { RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import type { StoredVehicle } from '@/types/vehicle';
 import type { StoredCaravan } from '@/types/caravan';
-import type { TripChecklistSet } from '@/types/checklist';
-import { vehicleOnlyChecklists, globalDefaultChecklistTemplate } from '@/types/checklist';
+import type { ChecklistStage } from '@/types/checklist';
+import { vehicleOnlyChecklist, fullRigChecklist } from '@/types/checklist';
 import type { BudgetCategory, Expense } from '@/types/expense';
 import { BudgetTab } from '@/components/features/tripplanner/BudgetTab';
 import { ExpenseTab } from '@/components/features/tripplanner/ExpenseTab';
@@ -363,17 +363,9 @@ export function TripPlannerClient() {
       return;
     }
 
-    const sourceChecklistSet = isTowing
-      ? (userPrefs?.activeCaravanId && userPrefs.caravanDefaultChecklists?.[userPrefs.activeCaravanId]
-          ? userPrefs.caravanDefaultChecklists[userPrefs.activeCaravanId]
-          : globalDefaultChecklistTemplate)
-      : vehicleOnlyChecklists;
-
-    const newTripChecklistSet: TripChecklistSet = {
-      preDeparture: sourceChecklistSet.preDeparture.map(item => ({...item})),
-      campsiteSetup: sourceChecklistSet.campsiteSetup.map(item => ({...item})),
-      packDown: sourceChecklistSet.packDown.map(item => ({...item})),
-    };
+    const newTripChecklistSet: ChecklistStage[] = isTowing
+        ? fullRigChecklist.map(stage => ({ ...stage, items: [...stage.items] }))
+        : vehicleOnlyChecklist.map(stage => ({ ...stage, items: [...stage.items] }));
     
     const currentFormData = getValues();
     const activeCaravan = userPrefs?.activeCaravanId ? allCaravans.find(c => c.id === userPrefs.activeCaravanId) : null;
@@ -400,6 +392,7 @@ export function TripPlannerClient() {
       isVehicleOnly: !isTowing,
       activeCaravanIdAtTimeOfCreation: isTowing ? (activeCaravan?.id || null) : null,
       activeCaravanNameAtTimeOfCreation: isTowing ? (activeCaravan ? `${activeCaravan.year} ${activeCaravan.make} ${activeCaravan.model}` : null) : null,
+      waypoints: [], // Default to empty array
     };
     
     if (activeTrip) {

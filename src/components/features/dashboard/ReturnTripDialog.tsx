@@ -5,24 +5,18 @@ import { useState, useContext }from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { fetchTrips, createTrip, fetchUserPreferences } from '@/lib/api-client';
+import { fetchTrips, createTrip } from '@/lib/api-client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, AlertCircle, ChevronRight, CornerDownLeft } from 'lucide-react';
-import type { LoggedTrip, TripChecklistSet } from '@/types/tripplanner';
+import type { LoggedTrip, ChecklistStage } from '@/types/tripplanner';
 import { RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
-import type { ChecklistItem } from '@/types/checklist';
-import { initialChecklists as globalDefaultChecklistTemplate, vehicleOnlyChecklists } from '@/types/checklist';
+import { fullRigChecklist, vehicleOnlyChecklist } from '@/types/checklist';
 import { useToast } from '@/hooks/use-toast';
 import { NavigationContext } from '@/components/layout/AppShell';
 import Link from 'next/link';
-import type { UserProfile } from '@/types/auth';
 import type { BudgetCategory } from '@/types/expense';
-
-const createChecklistCopyForTrip = (items: readonly ChecklistItem[], tripId: string, categoryPrefix: string): ChecklistItem[] => {
-    return items.map(item => ({ ...item, id: `trip${tripId.substring(0,4)}_${categoryPrefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}` }));
-};
 
 export function ReturnTripDialog({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -31,12 +25,6 @@ export function ReturnTripDialog({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const navContext = useContext(NavigationContext);
-
-  const { data: userPrefs } = useQuery<Partial<UserProfile>>({
-    queryKey: ['userPreferences', user?.uid],
-    queryFn: () => fetchUserPreferences(),
-    enabled: !!user && isOpen,
-  });
 
   const { data: trips = [], isLoading, error } = useQuery<LoggedTrip[]>({
     queryKey: ['trips', user?.uid],
@@ -74,17 +62,14 @@ export function ReturnTripDialog({ children }: { children: React.ReactNode }) {
     
     const isVehicleOnlyReturn = trip.isVehicleOnly ?? false;
 
-    const sourceChecklistSet = !isVehicleOnlyReturn
-      ? (userPrefs?.activeCaravanId && userPrefs.caravanDefaultChecklists?.[userPrefs.activeCaravanId]
-          ? userPrefs.caravanDefaultChecklists[userPrefs.activeCaravanId]
-          : globalDefaultChecklistTemplate)
-      : vehicleOnlyChecklists;
+    const sourceChecklistSet: readonly ChecklistStage[] = isVehicleOnlyReturn
+      ? vehicleOnlyChecklist
+      : fullRigChecklist;
 
-    const newTripChecklistSet: TripChecklistSet = {
-      preDeparture: createChecklistCopyForTrip(sourceChecklistSet.preDeparture, 'ret', 'pd'),
-      campsiteSetup: createChecklistCopyForTrip(sourceChecklistSet.campsiteSetup, 'ret', 'cs'),
-      packDown: createChecklistCopyForTrip(sourceChecklistSet.packDown, 'ret', 'pk'),
-    };
+    const newTripChecklistSet: ChecklistStage[] = sourceChecklistSet.map(stage => ({
+        ...stage,
+        items: stage.items.map(item => ({ ...item, completed: false })) // Ensure items are fresh copies and unchecked
+    }));
 
     const initialBudget: BudgetCategory[] = [];
     if (trip.fuelEstimate && trip.fuelEstimate.estimatedCost) {
