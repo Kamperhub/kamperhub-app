@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useCallback, useContext, useRef } from 'react';
@@ -155,7 +156,7 @@ export default function TripPackingPage() {
     onError: (error: Error) => toast({ title: 'Suggestion Failed', description: error.message, variant: 'destructive' }),
   });
   
-  const createGoogleTasksMutation = useMutation({
+  const { mutate: createGoogleTasks, isPending: isCreatingTasks, variables: creatingTasksVariables } = useMutation({
     mutationFn: async (tasksData: GoogleTasksStructure) => {
       if (!user) throw new Error("User not authenticated");
       const idToken = await user.getIdToken(true);
@@ -191,11 +192,7 @@ export default function TripPackingPage() {
   const handleNavigation = () => {
     navContext?.setIsNavigating(true);
   };
-
-  const handleCreateGoogleTasks = useCallback((tasksData: GoogleTasksStructure) => {
-    createGoogleTasksMutation.mutate(tasksData);
-  }, [createGoogleTasksMutation]);
-
+  
   const handleSendMasterListToGoogle = useCallback(() => {
     if (!selectedTrip) return;
     const tasksData: GoogleTasksStructure = {
@@ -205,8 +202,8 @@ export default function TripPackingPage() {
         items: category.items.map(item => `${item.quantity}x ${item.name}${item.notes ? ` (${item.notes})` : ''}`)
       }))
     };
-    createGoogleTasksMutation.mutate(tasksData);
-  }, [selectedTrip, packingList, createGoogleTasksMutation]);
+    createGoogleTasks(tasksData);
+  }, [selectedTrip, packingList, createGoogleTasks]);
 
   const handleGenerateList = () => {
     if (!selectedTrip || !selectedTrip.plannedStartDate || !selectedTrip.plannedEndDate) {
@@ -341,7 +338,7 @@ export default function TripPackingPage() {
     setSelectedActivities(prev => prev.includes(activity) ? prev.filter(a => a !== activity) : [...prev, activity]);
   };
   
-  const anyMutationLoading = generateListMutation.isPending || updateListMutation.isPending || deleteListMutation.isPending || weatherSuggestMutation.isPending || personalizeListMutation.isPending || createGoogleTasksMutation.isPending;
+  const anyMajorMutationLoading = generateListMutation.isPending || updateListMutation.isPending || deleteListMutation.isPending || personalizeListMutation.isPending;
   const isGoogleTasksConnected = !!userProfile?.googleAuth?.refreshToken;
 
   if (isLoadingTrips) return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-48 w-full" /></div>;
@@ -397,31 +394,32 @@ export default function TripPackingPage() {
                           {category.items.map(item => (
                             <div key={item.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
                               <div className="flex items-center gap-3">
-                                <Checkbox id={item.id} checked={item.packed} onCheckedChange={() => handleTogglePacked(category.id, item.id)} disabled={anyMutationLoading}/>
+                                <Checkbox id={item.id} checked={item.packed} onCheckedChange={() => handleTogglePacked(category.id, item.id)} disabled={updateListMutation.isPending}/>
                                 <div className="grid gap-0.5">
                                   <Label htmlFor={item.id} className={`text-base ${item.packed ? 'line-through text-muted-foreground' : ''}`}>{item.name} <span className="text-muted-foreground">({item.quantity})</span></Label>
                                   {item.notes && <p className="text-xs text-muted-foreground">{item.notes}</p>}
                                 </div>
                               </div>
                               <div className="flex items-center">
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingItemState({ categoryId: category.id, item })} disabled={anyMutationLoading}><Edit3 className="h-4 w-4" /></Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteItem(category.id, item.id)} disabled={anyMutationLoading}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingItemState({ categoryId: category.id, item })} disabled={updateListMutation.isPending}><Edit3 className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteItem(category.id, item.id)} disabled={updateListMutation.isPending}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                               </div>
                             </div>
                           ))}
-                          <Button variant="outline" size="sm" className="mt-2" onClick={() => handleAddItem(category.id)} disabled={anyMutationLoading}><PlusCircle className="mr-2 h-4 w-4"/>Add Item</Button>
+                          <Button variant="outline" size="sm" className="mt-2" onClick={() => handleAddItem(category.id)} disabled={updateListMutation.isPending}><PlusCircle className="mr-2 h-4 w-4"/>Add Item</Button>
                         </AccordionContent>
                       </AccordionItem>
                     ))}
                   </Accordion>
                   <div className="mt-6 border-t pt-4 flex flex-wrap gap-2 justify-between items-center">
-                    <Button onClick={handleClearAndRegenerate} variant="destructive" disabled={anyMutationLoading}><RefreshCw className="mr-2 h-4 w-4" />Clear List & Start Over</Button>
+                    <Button onClick={handleClearAndRegenerate} variant="destructive" disabled={anyMajorMutationLoading}><RefreshCw className="mr-2 h-4 w-4" />Clear List & Start Over</Button>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div>
-                            <Button onClick={handleSendMasterListToGoogle} variant="outline" disabled={anyMutationLoading || !isGoogleTasksConnected}>
-                              <SendToBack className="mr-2 h-4 w-4"/> Send Master List to Google Tasks
+                            <Button onClick={handleSendMasterListToGoogle} variant="outline" disabled={isCreatingTasks || anyMajorMutationLoading || !isGoogleTasksConnected}>
+                              {isCreatingTasks && creatingTasksVariables?.trip_task_name.includes(selectedTrip?.name || '|||') ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <SendToBack className="mr-2 h-4 w-4"/>}
+                               Send Master List to Google Tasks
                             </Button>
                           </div>
                         </TooltipTrigger>
@@ -439,35 +437,39 @@ export default function TripPackingPage() {
                       <CardDescription>Creates individual packing lists for each passenger based on the list above.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                      <Button onClick={handlePersonalizeList} disabled={anyMutationLoading}><Users className="mr-2 h-4 w-4"/>Personalize Lists</Button>
+                      <Button onClick={handlePersonalizeList} disabled={anyMajorMutationLoading}><Users className="mr-2 h-4 w-4"/>Personalize Lists</Button>
                       {personalizeListMutation.isPending && <div className="flex items-center gap-2 mt-4"><Loader2 className="h-4 w-4 animate-spin"/><p>Personalizing...</p></div>}
                       {personalizedLists && (
                         <div ref={personalizedListsRef} className="mt-4 space-y-4">
                           <h4 className="font-headline text-lg text-primary pt-4 border-t">Generated Lists:</h4>
-                          {personalizedLists.passenger_lists.map(p => (
-                            <Card key={p.passenger_id} className="bg-muted/50">
-                              <CardHeader>
-                                <div className="flex justify-between items-start">
-                                  <CardTitle>{p.passenger_name}'s List</CardTitle>
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <div>
-                                          <Button size="sm" variant="outline" onClick={() => handleCreateGoogleTasks(p.google_tasks_structure)} disabled={anyMutationLoading || !isGoogleTasksConnected}>
-                                            <SendToBack className="mr-2 h-4 w-4"/> Send to Google Tasks
-                                          </Button>
-                                        </div>
-                                      </TooltipTrigger>
-                                      {!isGoogleTasksConnected && (<TooltipContent><p>Connect Google Account in My Account page.</p></TooltipContent>)}
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                </div>
-                              </CardHeader>
-                              <CardContent>
-                                <pre className="whitespace-pre-wrap font-sans text-sm">{p.messenger_message}</pre>
-                              </CardContent>
-                            </Card>
-                          ))}
+                          {personalizedLists.passenger_lists.map(p => {
+                            const isThisListSending = isCreatingTasks && creatingTasksVariables?.trip_task_name === p.google_tasks_structure.trip_task_name;
+                            return (
+                                <Card key={p.passenger_id} className="bg-muted/50">
+                                <CardHeader>
+                                    <div className="flex justify-between items-start">
+                                    <CardTitle>{p.passenger_name}'s List</CardTitle>
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div>
+                                            <Button size="sm" variant="outline" onClick={() => createGoogleTasks(p.google_tasks_structure)} disabled={isThisListSending || isCreatingTasks || !isGoogleTasksConnected}>
+                                                {isThisListSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <SendToBack className="mr-2 h-4 w-4"/>}
+                                                Send to Google Tasks
+                                            </Button>
+                                            </div>
+                                        </TooltipTrigger>
+                                        {!isGoogleTasksConnected && (<TooltipContent><p>Connect Google Account in My Account page.</p></TooltipContent>)}
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <pre className="whitespace-pre-wrap font-sans text-sm">{p.messenger_message}</pre>
+                                </CardContent>
+                                </Card>
+                            )
+                           })}
                         </div>
                       )}
                   </CardContent>
@@ -493,7 +495,7 @@ export default function TripPackingPage() {
                   <CardDescription>Get AI-powered suggestions based on typical weather for your destination and travel month.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button onClick={handleGetWeatherSuggestions} disabled={!selectedTripId || anyMutationLoading} variant="outline">
+                  <Button onClick={handleGetWeatherSuggestions} disabled={!selectedTripId || generateListMutation.isPending || weatherSuggestMutation.isPending} variant="outline">
                     {weatherSuggestMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4" />}
                     Get Weather Suggestions
                   </Button>
@@ -513,7 +515,7 @@ export default function TripPackingPage() {
               </Card>
               <Card><CardHeader><CardTitle className="flex items-center"><Wand2 className="mr-2 h-5 w-5"/>4. Generate Master List</CardTitle><CardDescription>Uses all trip info to generate a comprehensive list for everyone.</CardDescription></CardHeader>
                 <CardContent className="flex gap-4 items-center">
-                    <Button onClick={handleGenerateList} disabled={!selectedTripId || anyMutationLoading}><Wand2 className="mr-2 h-4 w-4" />Generate List</Button>
+                    <Button onClick={handleGenerateList} disabled={!selectedTripId || generateListMutation.isPending || weatherSuggestMutation.isPending}><Wand2 className="mr-2 h-4 w-4" />Generate List</Button>
                 </CardContent>
               </Card>
             </>
