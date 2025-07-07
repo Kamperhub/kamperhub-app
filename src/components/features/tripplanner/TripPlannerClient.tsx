@@ -146,26 +146,35 @@ export function TripPlannerClient() {
         const recalledTripJson = localStorage.getItem(RECALLED_TRIP_DATA_KEY);
         if (recalledTripJson) {
           const recalledTrip: LoggedTrip = JSON.parse(recalledTripJson);
-          setActiveTrip(recalledTrip);
-          setIsTowing(!recalledTrip.isVehicleOnly);
-          setTripBudget(recalledTrip.budget || []);
-          setTripExpenses(recalledTrip.expenses || []);
-          setTripOccupants(recalledTrip.occupants || []);
+           const sanitizedTrip: LoggedTrip = {
+              ...recalledTrip,
+              notes: recalledTrip.notes || null,
+              occupants: (recalledTrip.occupants || []).map(occ => ({
+                  ...occ,
+                  age: occ.age ?? null,
+                  notes: occ.notes ?? null,
+              }))
+          };
+          setActiveTrip(sanitizedTrip);
+          setIsTowing(!sanitizedTrip.isVehicleOnly);
+          setTripBudget(sanitizedTrip.budget || []);
+          setTripExpenses(sanitizedTrip.expenses || []);
+          setTripOccupants(sanitizedTrip.occupants || []);
           
           reset({
-            startLocation: recalledTrip.startLocationDisplay,
-            endLocation: recalledTrip.endLocationDisplay,
-            fuelEfficiency: recalledTrip.fuelEfficiency,
-            fuelPrice: recalledTrip.fuelPrice,
+            startLocation: sanitizedTrip.startLocationDisplay,
+            endLocation: sanitizedTrip.endLocationDisplay,
+            fuelEfficiency: sanitizedTrip.fuelEfficiency,
+            fuelPrice: sanitizedTrip.fuelPrice,
             dateRange: {
-              from: recalledTrip.plannedStartDate ? parseISO(recalledTrip.plannedStartDate) : undefined,
-              to: recalledTrip.plannedEndDate ? parseISO(recalledTrip.plannedEndDate) : undefined,
+              from: sanitizedTrip.plannedStartDate ? parseISO(sanitizedTrip.plannedStartDate) : undefined,
+              to: sanitizedTrip.plannedEndDate ? parseISO(sanitizedTrip.plannedEndDate) : undefined,
             }
           });
-          setRouteDetails(recalledTrip.routeDetails);
-          setFuelEstimate(recalledTrip.fuelEstimate);
+          setRouteDetails(sanitizedTrip.routeDetails);
+          setFuelEstimate(sanitizedTrip.fuelEstimate);
           localStorage.removeItem(RECALLED_TRIP_DATA_KEY);
-          toast({ title: "Trip Recalled", description: `"${recalledTrip.name}" loaded into planner.` });
+          toast({ title: "Trip Recalled", description: `"${sanitizedTrip.name}" loaded into planner.` });
           recalledTripLoaded = true;
         }
       } catch (e) {
@@ -375,7 +384,7 @@ export function TripPlannerClient() {
       fuelEstimate: fuelEstimate,
       plannedStartDate: currentFormData.dateRange?.from?.toISOString() || null,
       plannedEndDate: currentFormData.dateRange?.to?.toISOString() || null,
-      notes: pendingTripNotes.trim() || undefined,
+      notes: pendingTripNotes.trim() || null,
       checklists: newTripChecklistSet,
       budget: tripBudget,
       expenses: tripExpenses,
