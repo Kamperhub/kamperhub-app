@@ -90,42 +90,43 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
         *   **IP address restrictions** are for secure server-side use. This is the best practice for production.
         *   **No restrictions** keys work on both client and server, which is convenient for local development but less secure for production.
     *   **ACTION:**
-        *   Create or identify a key that **DOES NOT** have HTTP referrer restrictions. A key with "None" or "IP address" restrictions is required.
+        *   Create or identify a key that **DOES NOT** have HTTP referrer restrictions. A key with "None" or "IP Address" restrictions is required.
         *   Paste this key into both the `GOOGLE_API_KEY` and `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variables in your `.env.local` file. Using the same secure key for both simplifies management.
-
-4.  **Stripe API Keys (`STRIPE_*`)**
-    *   Setting up Stripe involves multiple steps for local development. For a detailed walkthrough, please refer to the separate guide: `STRIPE_SETUP_CHECKLIST.md`. This file contains instructions for finding your keys and setting up the required webhook for local testing.
 
 ---
 
-### Step 3.5: CRITICAL - Verify Google Maps Platform APIs
+### Step 3.5: CRITICAL - Verify Google Cloud APIs Are Enabled
 
-Many app features depend on Google Maps services. An incorrect API key or disabled services will cause features like route planning to fail.
+Many app features depend on Google services. An incorrect API key or disabled services will cause features to fail.
 
 1.  **Go to the [Google Cloud APIs & Services Dashboard](https://console.cloud.google.com/apis/dashboard) for your `kamperhub-s4hc2` project.**
 
-2.  Click **"Enable APIs and Services"** at the top. You will search for and enable the following three APIs one by one if they are not already enabled.
+2.  Click **"Enable APIs and Services"** at the top. You must search for and enable the following **four APIs** one by one if they are not already enabled.
 
 3.  **Search for and Enable "Maps JavaScript API"**:
-    *   This is required to display maps in the browser.
+    *   **Required for:** Displaying the interactive map in the Trip Planner.
     *   If it's not enabled, click **"Enable"**.
 
 4.  **Search for and Enable "Places API"**:
-    *   This is required for the address autocomplete search boxes.
+    *   **Required for:** The address autocomplete search boxes in the Trip Planner.
     *   If it's not enabled, click **"Enable"**.
 
 5.  **Search for and Enable "Routes API"**:
-    *   **This is CRITICAL for the Trip Planner.** It is required for calculating driving directions, distance, duration, and height-aware routing.
-    *   If this is not enabled, the Trip Planner will fail with an error. Click **"Enable"**.
+    *   **Required for:** Calculating driving directions, distance, duration, and height-aware routing.
+    *   **CRITICAL:** If this is not enabled, the Trip Planner will fail with an error. Click **"Enable"**.
     > [!WARNING]
     > **"Routes API" vs. "Directions API"**
     > You must enable the **Routes API**. The older **Directions API** is **not** sufficient and will cause errors.
 
-6.  **Verify your API Key Permissions**:
+6.  **Search for and Enable "Generative Language API"**:
+    *   **Required for:** All AI features, including the Chatbot and the Packing Assistant.
+    *   If it's not enabled, click **"Enable"**.
+
+7.  **Verify your API Key Permissions**:
     *   Go back to the [Credentials page](https://console.cloud.google.com/apis/credentials).
     *   Find the key you are using for `GOOGLE_API_KEY`.
     *   Click its name to see its details.
-    *   Under **"API restrictions"**, ensure it has permission to use the "Maps JavaScript API", "Places API", and "Routes API". If it's unrestricted ("Don't restrict key"), that is fine for local development.
+    *   Under **"API restrictions"**, ensure it has permission to use all four of the APIs listed above. If it's unrestricted ("Don't restrict key"), that is fine for local development.
 
 ---
 
