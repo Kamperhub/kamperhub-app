@@ -13,30 +13,6 @@ import { LayoutDashboard, Settings2, Backpack, ListChecks, Route as RouteIcon, H
 import { cn } from "@/lib/utils";
 
 export function UserManualContent() {
-  const importantNoteContent = (
-    <>
-      <p>
-        KamperHub securely saves your application data to your user account on the server using Firebase Firestore. This includes your:
-      </p>
-      <ul className="list-disc pl-5 my-2 space-y-1">
-        <li>Vehicle, Caravan, and WDH details</li>
-        <li>Inventory items and water tank levels</li>
-        <li>Trip plans and logged trips, including budgets, expenses and occupants</li>
-        <li>Checklists (both trip-specific and caravan defaults)</li>
-        <li>Accommodation bookings</li>
-        <li>Customized dashboard layout</li>
-      </ul>
-      <p>
-        This server-side storage means:
-      </p>
-      <ul className="list-disc pl-5 my-2 space-y-1">
-        <li><strong>Your data is safe and backed up.</strong> It won't be lost if you clear your browser's cache or use a different computer.</li>
-        <li><strong>Your data is synced across devices.</strong> You can log in on your phone or laptop and access the same information.</li>
-        <li><strong>Faster Performance:</strong> Key pages like "Vehicles" and "Inventory" now use server-side data fetching, meaning they load their content instantly without waiting for client-side spinners.</li>
-      </ul>
-    </>
-  );
-
   const manualSections = [
     {
       title: "1. Dashboard",
@@ -46,12 +22,6 @@ export function UserManualContent() {
           <p>The Dashboard is your home screen, providing quick access to all of KamperHub's features. Each card represents a core section of the app. You can drag and drop these cards to customize the layout to your preference (on desktop). This layout is saved to your account and will sync across devices.</p>
         </>
       )
-    },
-    {
-      title: "Important Note on Data Storage",
-      icon: ShieldAlert,
-      isAlertSection: true,
-      content: importantNoteContent
     },
     {
       title: "2. Vehicle & Caravan Setup",
@@ -292,7 +262,7 @@ export function UserManualContent() {
     <div className="prose prose-sm sm:prose-base lg:prose-lg xl:prose-xl 2xl:prose-2xl mx-auto p-1 space-y-4 font-body text-foreground">
       <h2 className="font-headline text-2xl text-primary border-b pb-2 mb-4">KamperHub User Manual</h2>
 
-      <p>Welcome to KamperHub, your ultimate caravanning companion! This manual will guide you through the features of the app to help you plan, manage, and enjoy your adventures.</p>
+      <p>Welcome to KamperHub, your ultimate caravanning companion! This manual will guide you through the features of the app to help you plan, manage, and enjoy your adventures. All your data—from vehicles to trip plans—is saved securely to your account, meaning it's always backed up and available on any device.</p>
 
       <Accordion type="single" collapsible className="w-full">
         {manualSections.map((section, index) => (
