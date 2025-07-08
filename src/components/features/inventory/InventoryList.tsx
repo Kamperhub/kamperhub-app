@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -43,16 +44,16 @@ const DonutChartCustomLabel = ({ viewBox, value, limit, unit, name }: { viewBox?
 
   return (
     <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" className="font-body">
-      <tspan x={cx} dy="-1.5em" className="text-xs fill-muted-foreground">{name}</tspan>
-      <tspan x={cx} dy="1.2em" className={`text-xl font-bold font-headline ${isOverLimit ? 'fill-destructive' : 'fill-primary'}`}>
+      <tspan x={cx} dy="-1.6em" className="text-sm fill-muted-foreground">{name}</tspan>
+      <tspan x={cx} dy="1.3em" className={`text-2xl font-bold font-headline ${isOverLimit ? 'fill-destructive' : 'fill-primary'}`}>
         {displayValue}{unit}
       </tspan>
       {!isLimitNotSet ? (
-        <tspan x={cx} dy="1.4em" className="text-xs fill-muted-foreground">
+        <tspan x={cx} dy="1.5em" className="text-sm fill-muted-foreground">
           ({percentage.toFixed(0)}%)
         </tspan>
       ) : (
-        <tspan x={cx} dy="1.4em" className="text-xs fill-muted-foreground">
+        <tspan x={cx} dy="1.5em" className="text-sm fill-muted-foreground">
           (Limit N/A)
         </tspan>
       )}
@@ -424,10 +425,10 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
             )}
             {activeVehicle && (<Card><CardHeader><CardTitle>Vehicle Towing</CardTitle></CardHeader><CardContent><Alert variant={isOverMaxTowCapacity ? 'destructive' : 'default'}><AlertTitle>Towed Mass: {currentCaravanMass.toFixed(1)}kg / {vehicleMaxTowCapacity.toFixed(0)}kg</AlertTitle><AlertDescription>{isOverMaxTowCapacity ? 'OVER LIMIT!' : 'OK'}</AlertDescription></Alert></CardContent></Card>)}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 my-6">
-            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={150}><PieChart><Pie data={atmChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={60} innerRadius={40} dataKey="value" stroke="hsl(var(--background))">{atmChart.data.map((_, i) => (<Cell key={`cell-atm-${i}`} fill={atmChart.colors[i % atmChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="ATM" value={currentCaravanMass} limit={atmLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
-            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={150}><PieChart><Pie data={axleLoadChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={60} innerRadius={40} dataKey="value" stroke="hsl(var(--background))">{axleLoadChart.data.map((_, i) => (<Cell key={`cell-axle-${i}`} fill={axleLoadChart.colors[i % axleLoadChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Axle Load" value={currentLoadOnAxles} limit={axleLoadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
-            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={150}><PieChart><Pie data={towballChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={60} innerRadius={40} dataKey="value" stroke="hsl(var(--background))">{towballChart.data.map((_, i) => (<Cell key={`cell-towball-${i}`} fill={towballChart.colors[i % towballChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Calc. Towball" value={calculatedTowballMass} limit={caravanMaxTowballDownloadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-6">
+            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={200}><PieChart><Pie data={atmChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={80} innerRadius={60} dataKey="value" stroke="hsl(var(--background))">{atmChart.data.map((_, i) => (<Cell key={`cell-atm-${i}`} fill={atmChart.colors[i % atmChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="ATM" value={currentCaravanMass} limit={atmLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
+            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={200}><PieChart><Pie data={axleLoadChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={80} innerRadius={60} dataKey="value" stroke="hsl(var(--background))">{axleLoadChart.data.map((_, i) => (<Cell key={`cell-axle-${i}`} fill={axleLoadChart.colors[i % axleLoadChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Axle Load" value={currentLoadOnAxles} limit={axleLoadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
+            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={200}><PieChart><Pie data={towballChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={80} innerRadius={60} dataKey="value" stroke="hsl(var(--background))">{towballChart.data.map((_, i) => (<Cell key={`cell-towball-${i}`} fill={towballChart.colors[i % towballChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Calc. Towball" value={calculatedTowballMass} limit={caravanMaxTowballDownloadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
           </div>
         </div>
       </CardContent>
