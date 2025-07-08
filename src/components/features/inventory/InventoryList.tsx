@@ -7,7 +7,7 @@ import type { InventoryItem, CaravanWeightData } from '@/types/inventory';
 import type { StoredCaravan, WDHFormData } from '@/types/caravan';
 import type { StoredVehicle } from '@/types/vehicle';
 import type { UserProfile } from '@/types/auth';
-import type { Occupant } from '@/types/tripplanner';
+import type { LoggedTrip, Occupant } from '@/types/tripplanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,13 +23,15 @@ import { fetchInventory, updateInventory, updateUserPreferences } from '@/lib/ap
 import { auth } from '@/lib/firebase';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { Slider } from '@/components/ui/slider';
+import { Separator } from '@/components/ui/separator';
+
 
 interface InventoryListClientProps {
   activeCaravan: StoredCaravan | null;
   activeVehicle: StoredVehicle | null;
   wdh: WDHFormData | null | undefined;
   userPreferences: Partial<UserProfile> | null;
-  occupants?: Occupant[];
+  trips: LoggedTrip[];
 }
 
 const defaultCaravanSpecs: CaravanWeightData = {
@@ -63,7 +65,7 @@ const DonutChartCustomLabel = ({ viewBox, value, limit, unit, name }: { viewBox?
 };
 
 
-export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferences, occupants = [] }: InventoryListClientProps) {
+export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferences, trips }: InventoryListClientProps) {
   const queryClient = useQueryClient();
   const user = auth.currentUser;
   const { toast } = useToast();
@@ -81,6 +83,10 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
   const [itemLocationId, setItemLocationId] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [localWaterLevels, setLocalWaterLevels] = useState<Record<string, number>>({});
+  const [selectedTripId, setSelectedTripId] = useState<string>('none');
+
+  const selectedTrip = useMemo(() => trips.find(trip => trip.id === selectedTripId), [trips, selectedTripId]);
+  const occupants = useMemo(() => selectedTrip?.occupants || [], [selectedTrip]);
 
   const preferencesMutation = useMutation({
     mutationFn: (prefs: Partial<UserProfile>) => updateUserPreferences(prefs),
@@ -338,6 +344,82 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
         <CardTitle className="font-headline">Inventory Weight Tracker</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        <div className="space-y-4 pt-4">
+          <Card className="bg-muted/30">
+            <CardHeader>
+                <CardTitle className="font-headline flex items-center"><Users className="mr-2 h-5 w-5"/>Occupant Weight</CardTitle>
+                <CardDescription>Select a trip to include occupant weights in the GVM calculation.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <div className="max-w-sm">
+                      <Label htmlFor="trip-occupants-select">Include Occupants from Trip</Label>
+                      <Select value={selectedTripId} onValueChange={setSelectedTripId}>
+                          <SelectTrigger id="trip-occupants-select">
+                              <SelectValue placeholder="Select a trip..."/>
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="none">None (No Occupant Weight)</SelectItem>
+                              {trips.map(trip => <SelectItem key={trip.id} value={trip.id}>{trip.name}</SelectItem>)}
+                          </SelectContent>
+                      </Select>
+                 </div>
+            </CardContent>
+          </Card>
+          <h3 className="text-xl font-headline">Weight Summary &amp; Compliance</h3>
+          <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+            <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+            <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">For Accurate Calculations</AlertTitle>
+            <AlertDescription className="font-body text-blue-700 dark:text-blue-300 text-xs">
+              The precision of these weight figures, especially the Calculated Towball Mass, depends directly on the accuracy of your inventory. Ensure each item's weight is correct and that items are assigned to the appropriate storage location. "Unassigned" items are assumed to be centered over the axles and will not contribute to the towball moment calculation.
+            </AlertDescription>
+          </Alert>
+          <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+              <Wand className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+              <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">About these calculations</AlertTitle>
+              <AlertDescription className="font-body text-blue-700 dark:text-blue-300 text-xs">
+                  {hitchToAxleCenterDistance ? 
+                  "Tow Ball Mass is now calculated based on the position of items. This provides a more accurate estimate than the simple percentage method. Unassigned items are assumed to be over the axle." :
+                  "Tow Ball Mass is a simple 10% estimate of payload. For a more accurate calculation, edit your active caravan and provide the 'Hitch to Axle Center' distance."
+                  }
+                  Always verify weights at a certified weighbridge.
+              </AlertDescription>
+          </Alert>
+           {wdh && (
+             <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+                <Link2Icon className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+                <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">WDH In Use: Note on Weight Distribution</AlertTitle>
+                <AlertDescription className="font-body text-blue-700 dark:text-blue-300 text-xs">
+                  Your Weight Distribution Hitch improves safety and handling by distributing the towball mass across the vehicle and caravan axles.
+                  However, it does <strong>not</strong> change the legal GVM, ATM, or tow capacity limits. Our calculations use the full estimated towball mass for GVM compliance, which is the safest approach. Always verify your actual axle weights at a certified weighbridge.
+                </AlertDescription>
+              </Alert>
+            )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card><CardHeader><CardTitle>Caravan ATM</CardTitle></CardHeader><CardContent><Alert variant={getAlertStylingVariant(currentCaravanMass, atmLimit)}><AlertTitle>{currentCaravanMass.toFixed(1)}kg / {atmLimit > 0 ? atmLimit.toFixed(0) : 'N/A'}kg</AlertTitle><AlertDescription>Remaining: {remainingPayloadATM.toFixed(1)} kg</AlertDescription></Alert></CardContent></Card>
+            <Card><CardHeader><CardTitle>Caravan Axle Load</CardTitle></CardHeader><CardContent><Alert variant={getAlertStylingVariant(currentLoadOnAxles, axleLoadLimit)}><AlertTitle>{currentLoadOnAxles.toFixed(1)}kg / {axleLoadLimit > 0 && axleLoadLimit !== Infinity ? axleLoadLimit.toFixed(0) : 'N/A'}kg</AlertTitle><AlertDescription>GTM: {gtmLimit}kg, Axle Rating: {axleGroupRating}kg</AlertDescription></Alert></CardContent></Card>
+            {activeVehicle && vehicleGVM > 0 && (
+              <Card>
+                <CardHeader><CardTitle>Vehicle GVM</CardTitle></CardHeader>
+                <CardContent>
+                  <Alert variant={getAlertStylingVariant(currentVehicleMass, vehicleGVM)}>
+                    <AlertTitle>{currentVehicleMass.toFixed(1)}kg / {vehicleGVM.toFixed(0)}kg</AlertTitle>
+                    <AlertDescription>Kerb: {vehicleKerbWeight}kg, Added: {vehicleAddedPayload.toFixed(1)}kg (incl. occupants)</AlertDescription>
+                  </Alert>
+                </CardContent>
+              </Card>
+            )}
+            {activeVehicle && (<Card><CardHeader><CardTitle>Vehicle Towing</CardTitle></CardHeader><CardContent><Alert variant={isOverMaxTowCapacity ? 'destructive' : 'default'}><AlertTitle>Towed Mass: {currentCaravanMass.toFixed(1)}kg / {vehicleMaxTowCapacity.toFixed(0)}kg</AlertTitle><AlertDescription>{isOverMaxTowCapacity ? 'OVER LIMIT!' : 'OK'}</AlertDescription></Alert></CardContent></Card>)}
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-6">
+            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={atmChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={100} innerRadius={75} dataKey="value" stroke="hsl(var(--background))">{atmChart.data.map((_, i) => (<Cell key={`cell-atm-${i}`} fill={atmChart.colors[i % atmChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="ATM" value={currentCaravanMass} limit={atmLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
+            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={axleLoadChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={100} innerRadius={75} dataKey="value" stroke="hsl(var(--background))">{axleLoadChart.data.map((_, i) => (<Cell key={`cell-axle-${i}`} fill={axleLoadChart.colors[i % axleLoadChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Axle Load" value={currentLoadOnAxles} limit={axleLoadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
+            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={towballChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={100} innerRadius={75} dataKey="value" stroke="hsl(var(--background))">{towballChart.data.map((_, i) => (<Cell key={`cell-towball-${i}`} fill={towballChart.colors[i % towballChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Calc. Towball" value={calculatedTowballMass} limit={caravanMaxTowballDownloadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
+        </div>
+
+        <Separator/>
+        
         {isFormDisabled && (
             <Alert variant="default" className="bg-muted border-border">
                 <AlertTriangle className="h-4 w-4 text-foreground" />
@@ -430,59 +512,6 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
             </CardFooter>
           </Card>
         )}
-        
-        <div className="space-y-4 pt-4">
-          <h3 className="text-xl font-headline">Weight Summary &amp; Compliance</h3>
-          <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
-            <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
-            <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">For Accurate Calculations</AlertTitle>
-            <AlertDescription className="font-body text-blue-700 dark:text-blue-300 text-xs">
-              The precision of these weight figures, especially the Calculated Towball Mass, depends directly on the accuracy of your inventory. Ensure each item's weight is correct and that items are assigned to the appropriate storage location. "Unassigned" items are assumed to be centered over the axles and will not contribute to the towball moment calculation.
-            </AlertDescription>
-          </Alert>
-          <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
-              <Wand className="h-4 w-4 text-blue-700 dark:text-blue-300" />
-              <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">About these calculations</AlertTitle>
-              <AlertDescription className="font-body text-blue-700 dark:text-blue-300 text-xs">
-                  {hitchToAxleCenterDistance ? 
-                  "Tow Ball Mass is now calculated based on the position of items. This provides a more accurate estimate than the simple percentage method. Unassigned items are assumed to be over the axle." :
-                  "Tow Ball Mass is a simple 10% estimate of payload. For a more accurate calculation, edit your active caravan and provide the 'Hitch to Axle Center' distance."
-                  }
-                  Always verify weights at a certified weighbridge.
-              </AlertDescription>
-          </Alert>
-           {wdh && (
-             <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
-                <Link2Icon className="h-4 w-4 text-blue-700 dark:text-blue-300" />
-                <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">WDH In Use: Note on Weight Distribution</AlertTitle>
-                <AlertDescription className="font-body text-blue-700 dark:text-blue-300 text-xs">
-                  Your Weight Distribution Hitch improves safety and handling by distributing the towball mass across the vehicle and caravan axles.
-                  However, it does <strong>not</strong> change the legal GVM, ATM, or tow capacity limits. Our calculations use the full estimated towball mass for GVM compliance, which is the safest approach. Always verify your actual axle weights at a certified weighbridge.
-                </AlertDescription>
-              </Alert>
-            )}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card><CardHeader><CardTitle>Caravan ATM</CardTitle></CardHeader><CardContent><Alert variant={getAlertStylingVariant(currentCaravanMass, atmLimit)}><AlertTitle>{currentCaravanMass.toFixed(1)}kg / {atmLimit > 0 ? atmLimit.toFixed(0) : 'N/A'}kg</AlertTitle><AlertDescription>Remaining: {remainingPayloadATM.toFixed(1)} kg</AlertDescription></Alert></CardContent></Card>
-            <Card><CardHeader><CardTitle>Caravan Axle Load</CardTitle></CardHeader><CardContent><Alert variant={getAlertStylingVariant(currentLoadOnAxles, axleLoadLimit)}><AlertTitle>{currentLoadOnAxles.toFixed(1)}kg / {axleLoadLimit > 0 && axleLoadLimit !== Infinity ? axleLoadLimit.toFixed(0) : 'N/A'}kg</AlertTitle><AlertDescription>GTM: {gtmLimit}kg, Axle Rating: {axleGroupRating}kg</AlertDescription></Alert></CardContent></Card>
-            {activeVehicle && vehicleGVM > 0 && (
-              <Card>
-                <CardHeader><CardTitle>Vehicle GVM</CardTitle></CardHeader>
-                <CardContent>
-                  <Alert variant={getAlertStylingVariant(currentVehicleMass, vehicleGVM)}>
-                    <AlertTitle>{currentVehicleMass.toFixed(1)}kg / {vehicleGVM.toFixed(0)}kg</AlertTitle>
-                    <AlertDescription>Kerb: {vehicleKerbWeight}kg, Added: {vehicleAddedPayload.toFixed(1)}kg (incl. occupants)</AlertDescription>
-                  </Alert>
-                </CardContent>
-              </Card>
-            )}
-            {activeVehicle && (<Card><CardHeader><CardTitle>Vehicle Towing</CardTitle></CardHeader><CardContent><Alert variant={isOverMaxTowCapacity ? 'destructive' : 'default'}><AlertTitle>Towed Mass: {currentCaravanMass.toFixed(1)}kg / {vehicleMaxTowCapacity.toFixed(0)}kg</AlertTitle><AlertDescription>{isOverMaxTowCapacity ? 'OVER LIMIT!' : 'OK'}</AlertDescription></Alert></CardContent></Card>)}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-6">
-            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={atmChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={100} innerRadius={75} dataKey="value" stroke="hsl(var(--background))">{atmChart.data.map((_, i) => (<Cell key={`cell-atm-${i}`} fill={atmChart.colors[i % atmChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="ATM" value={currentCaravanMass} limit={atmLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
-            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={axleLoadChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={100} innerRadius={75} dataKey="value" stroke="hsl(var(--background))">{axleLoadChart.data.map((_, i) => (<Cell key={`cell-axle-${i}`} fill={axleLoadChart.colors[i % axleLoadChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Axle Load" value={currentLoadOnAxles} limit={axleLoadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
-            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={towballChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={100} innerRadius={75} dataKey="value" stroke="hsl(var(--background))">{towballChart.data.map((_, i) => (<Cell key={`cell-towball-${i}`} fill={towballChart.colors[i % towballChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Calc. Towball" value={calculatedTowballMass} limit={caravanMaxTowballDownloadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );

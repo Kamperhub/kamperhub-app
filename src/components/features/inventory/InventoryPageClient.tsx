@@ -12,9 +12,7 @@ import Link from 'next/link';
 import { Settings, Car, HomeIcon, Link2 as Link2Icon, Backpack, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { NavigationContext } from '@/components/layout/AppShell';
 
 const InventoryList = dynamic(
@@ -47,7 +45,6 @@ interface InventoryPageClientProps {
 
 export function InventoryPageClient({ initialData }: InventoryPageClientProps) {
   const navContext = useContext(NavigationContext);
-  const [selectedTripId, setSelectedTripId] = useState<string>('none');
 
   const { userProfile: userPrefs, caravans: allCaravans, vehicles: allVehicles, trips: allTrips } = initialData;
 
@@ -57,8 +54,6 @@ export function InventoryPageClient({ initialData }: InventoryPageClientProps) {
   const activeCaravan = activeCaravanId ? allCaravans.find(c => c.id === activeCaravanId) : null;
   const activeVehicle = activeVehicleId ? allVehicles.find(v => v.id === activeVehicleId) : null;
   const activeWdh = activeCaravan?.wdh;
-  
-  const selectedTrip = useMemo(() => allTrips.find(trip => trip.id === selectedTripId), [allTrips, selectedTripId]);
   
   const handleNavigation = () => {
     navContext?.setIsNavigating(true);
@@ -135,34 +130,13 @@ export function InventoryPageClient({ initialData }: InventoryPageClientProps) {
             <AlertTitle className="font-headline font-bold text-foreground">Active WDH: {activeWdh.name} ({activeWdh.type}, Max: {activeWdh.maxCapacityKg}kg)</AlertTitle>
          </Alert>
       )}
-
-      <Card className="bg-muted/30">
-          <CardHeader>
-              <CardTitle className="font-headline flex items-center"><Users className="mr-2 h-5 w-5"/>Occupant Weight</CardTitle>
-              <CardDescription>Select a trip to include occupant weights in the GVM calculation.</CardDescription>
-          </CardHeader>
-          <CardContent>
-               <div className="max-w-sm">
-                    <Label htmlFor="trip-occupants-select">Include Occupants from Trip</Label>
-                    <Select value={selectedTripId} onValueChange={setSelectedTripId}>
-                        <SelectTrigger id="trip-occupants-select">
-                            <SelectValue placeholder="Select a trip..."/>
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="none">None (No Occupant Weight)</SelectItem>
-                            {allTrips.map(trip => <SelectItem key={trip.id} value={trip.id}>{trip.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-               </div>
-          </CardContent>
-      </Card>
       
       <InventoryList 
         activeCaravan={activeCaravan}
         activeVehicle={activeVehicle}
         wdh={activeWdh}
         userPreferences={userPrefs}
-        occupants={selectedTrip?.occupants}
+        trips={allTrips}
       />
     </div>
   );
