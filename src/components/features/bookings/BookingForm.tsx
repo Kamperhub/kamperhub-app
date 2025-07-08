@@ -16,7 +16,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
-// Removed import for GooglePlacesAutocompleteInput as it's no longer used here
 
 const bookingSchema = z.object({
   siteName: z.string().min(1, "Site name is required"),
@@ -24,8 +23,8 @@ const bookingSchema = z.object({
   contactPhone: z.string().optional(),
   contactWebsite: z.string().url("Must be a valid URL (e.g., https://example.com)").optional().or(z.literal('')),
   confirmationNumber: z.string().optional(),
-  checkInDate: z.string().refine(val => isValid(parseISO(val)), { message: "Check-in date is required" }),
-  checkOutDate: z.string().refine(val => isValid(parseISO(val)), { message: "Check-out date is required" }),
+  checkInDate: z.string().datetime({ message: "Check-in date is required" }),
+  checkOutDate: z.string().datetime({ message: "Check-out date is required" }),
   notes: z.string().optional(),
   budgetedCost: z.coerce.number().min(0, "Budgeted cost must be non-negative").optional().nullable(),
   assignedTripId: z.string().nullable().optional(),
@@ -53,8 +52,8 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
     resolver: zodResolver(bookingSchema),
     defaultValues: initialData ? {
       ...initialData,
-      checkInDate: initialData.checkInDate ? format(parseISO(initialData.checkInDate), 'yyyy-MM-dd') : '',
-      checkOutDate: initialData.checkOutDate ? format(parseISO(initialData.checkOutDate), 'yyyy-MM-dd') : '',
+      checkInDate: initialData.checkInDate,
+      checkOutDate: initialData.checkOutDate,
     } : {
       siteName: '',
       locationAddress: '',
@@ -101,14 +100,14 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {field.value ? format(parseISO(field.value), "PPP") : <span>Pick a date</span>}
+                    {field.value && isValid(parseISO(field.value)) ? format(parseISO(field.value), "PPP") : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
                   <Calendar
                     mode="single"
-                    selected={field.value ? parseISO(field.value) : undefined}
-                    onSelect={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                    selected={field.value && isValid(parseISO(field.value)) ? parseISO(field.value) : undefined}
+                    onSelect={(date) => field.onChange(date ? date.toISOString() : '')}
                     initialFocus
                   />
                 </PopoverContent>
@@ -133,16 +132,16 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {field.value ? format(parseISO(field.value), "PPP") : <span>Pick a date</span>}
+                    {field.value && isValid(parseISO(field.value)) ? format(parseISO(field.value), "PPP") : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
                   <Calendar
                     mode="single"
-                    selected={field.value ? parseISO(field.value) : undefined}
-                    onSelect={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                    selected={field.value && isValid(parseISO(field.value)) ? parseISO(field.value) : undefined}
+                    onSelect={(date) => field.onChange(date ? date.toISOString() : '')}
                     disabled={(date) =>
-                      checkInDateValue ? date < parseISO(checkInDateValue) : false
+                      checkInDateValue && isValid(parseISO(checkInDateValue)) ? date < parseISO(checkInDateValue) : false
                     }
                     initialFocus
                   />

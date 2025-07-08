@@ -1,29 +1,8 @@
-
 // src/app/api/trips/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { z, ZodError } from 'zod';
-
-// A robust replacer function for JSON.stringify to handle Firestore Timestamps.
-const firestoreTimestampReplacer = (key: any, value: any) => {
-    if (value && typeof value.toDate === 'function') {
-        return value.toDate().toISOString();
-    }
-    return value;
-};
-
-// Helper function to create a clean, JSON-safe object.
-const sanitizeData = (data: any) => {
-    try {
-        const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
-        return JSON.parse(jsonString);
-    } catch (error: any) {
-        console.error('CRITICAL: Failed to serialize data for API response.', error);
-        // Throw a new error with a clear message, which will be caught by handleApiError
-        throw new Error(`Data serialization failed: ${error.message}`);
-    }
-};
 
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
@@ -180,8 +159,7 @@ export async function GET(req: NextRequest) {
         trips.push(doc.data() as LoggedTrip);
       }
     });
-    const sanitizedTrips = sanitizeData(trips);
-    return NextResponse.json(sanitizedTrips, { status: 200 });
+    return NextResponse.json(trips, { status: 200 });
   } catch (err: any) {
     return handleApiError(err);
   }
@@ -215,8 +193,7 @@ export async function POST(req: NextRequest) {
     
     await newTripRef.set(newTrip);
     
-    const sanitizedNewTrip = sanitizeData(newTrip);
-    return NextResponse.json(sanitizedNewTrip, { status: 201 });
+    return NextResponse.json(newTrip, { status: 201 });
 
   } catch (err: any) {
     return handleApiError(err);
@@ -248,8 +225,7 @@ export async function PUT(req: NextRequest) {
 
     await tripRef.set(dataToSet, { merge: true });
     
-    const sanitizedParsedData = sanitizeData(dataToSet);
-    return NextResponse.json({ message: 'Trip updated successfully.', trip: sanitizedParsedData }, { status: 200 });
+    return NextResponse.json({ message: 'Trip updated successfully.', trip: dataToSet }, { status: 200 });
   } catch (err: any) {
     return handleApiError(err);
   }

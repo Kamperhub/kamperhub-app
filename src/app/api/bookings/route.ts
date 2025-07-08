@@ -1,4 +1,3 @@
-
 // src/app/api/bookings/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -7,26 +6,6 @@ import type { LoggedTrip } from '@/types/tripplanner';
 import { z, ZodError } from 'zod';
 
 const ACCOMMODATION_CATEGORY_NAME = "Accommodation";
-
-// A robust replacer function for JSON.stringify to handle Firestore Timestamps.
-const firestoreTimestampReplacer = (key: any, value: any) => {
-    if (value && typeof value.toDate === 'function') {
-        return value.toDate().toISOString();
-    }
-    return value;
-};
-
-// Helper function to create a clean, JSON-safe object.
-const sanitizeData = (data: any) => {
-    try {
-        const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
-        return JSON.parse(jsonString);
-    } catch (error: any) {
-        console.error('CRITICAL: Failed to serialize data for API response.', error);
-        // Throw a new error with a clear message, which will be caught by the route handler
-        throw new Error(`Data serialization failed: ${error.message}`);
-    }
-};
 
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
@@ -82,15 +61,15 @@ export async function GET(req: NextRequest) {
     bookingsSnapshot.forEach(doc => {
       try {
         if (doc.exists()) {
-            // Add individual document validation if necessary
             bookings.push(doc.data() as BookingEntry);
         }
       } catch (docError) {
         console.error(`Skipping malformed booking document with ID ${doc.id}:`, docError);
       }
     });
-    const sanitizedBookings = sanitizeData(bookings);
-    return NextResponse.json(sanitizedBookings, { status: 200 });
+    
+    // Let NextResponse handle serialization, it's more robust.
+    return NextResponse.json(bookings, { status: 200 });
   } catch (err: any) {
     console.error('API Error in GET /api/bookings:', err);
     let errorTitle = 'Internal Server Error';
@@ -155,8 +134,7 @@ export async function POST(req: NextRequest) {
         await newBookingRef.set(newBooking);
     }
     
-    const sanitizedNewBooking = sanitizeData(newBooking);
-    return NextResponse.json(sanitizedNewBooking, { status: 201 });
+    return NextResponse.json(newBooking, { status: 201 });
 
   } catch (err: any) {
     console.error('API Error in POST /api/bookings:', err);
@@ -180,7 +158,8 @@ export async function PUT(req: NextRequest) {
 
     const bookingRef = firestore.collection('users').doc(uid).collection('bookings').doc(bookingId);
 
-    let finalUpdatedBooking: BookingEntry = { ...parsedBookingData, timestamp: new Date().toISOString() };
+    const finalUpdatedBooking: BookingEntry = { ...parsedBookingData, timestamp: new Date().toISOString() };
+    
     await firestore.runTransaction(async (transaction) => {
       const bookingDoc = await transaction.get(bookingRef);
       if (!bookingDoc.exists) throw new Error("Booking not found.");
@@ -224,7 +203,7 @@ export async function PUT(req: NextRequest) {
       transaction.set(bookingRef, finalUpdatedBooking, { merge: true });
     });
     
-    return NextResponse.json({ message: 'Booking updated successfully.', booking: sanitizeData(finalUpdatedBooking) }, { status: 200 });
+    return NextResponse.json({ message: 'Booking updated successfully.', booking: finalUpdatedBooking }, { status: 200 });
   } catch (err: any) {
     console.error('API Error in PUT /api/bookings:', err);
     if (err instanceof ZodError) {
