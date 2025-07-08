@@ -18,7 +18,6 @@ import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, S
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label as RechartsLabel } from 'recharts';
-import { Slider } from "@/components/ui/slider";
 import { Progress } from '@/components/ui/progress';
 import { fetchInventory, updateInventory, updateUserPreferences } from '@/lib/api-client';
 import { auth } from '@/lib/firebase';
@@ -334,9 +333,51 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
           </Table>)}
         
         {activeCaravan?.waterTanks && activeCaravan.waterTanks.length > 0 && (
-          <Card><CardHeader><CardTitle className="font-headline flex items-center"><Droplet className="mr-2 h-5 w-5 text-primary" />Water Tank Status</CardTitle></CardHeader>
-            <CardContent className="pt-4 space-y-4">{activeCaravan.waterTanks.map(tank => (<div key={tank.id}><div className="flex justify-between items-center"><Label htmlFor={`water-${tank.id}`}>{tank.name} ({tank.capacityLitres}L - {tank.type})</Label><span className="text-sm">{(waterTankLevels[tank.id] || 0)}% ({((tank.capacityLitres * (waterTankLevels[tank.id] || 0)) / 100).toFixed(1)} kg)</span></div><div className="flex items-center gap-2"><Input id={`water-${tank.id}`} type="number" min="0" max="100" value={waterTankLevels[tank.id] || 0} onChange={(e) => handleUpdateWaterTankLevel(tank.id, parseInt(e.target.value, 10))} className="h-8 w-20" disabled={preferencesMutation.isPending}/><Slider value={[waterTankLevels[tank.id] || 0]} onValueChange={(v) => handleUpdateWaterTankLevel(tank.id, v[0])} max={100} step={5} disabled={preferencesMutation.isPending}/></div></div>))}
-            </CardContent><CardFooter><p>Total Water Weight: {totalWaterWeight.toFixed(1)} kg</p></CardFooter></Card>)}
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-headline flex items-center"><Droplet className="mr-2 h-5 w-5 text-primary" />Water Tank Status</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              {activeCaravan.waterTanks.map(tank => {
+                const currentLevel = waterTankLevels[tank.id] || 0;
+                const levelOptions = [
+                  { label: "Empty", value: 0 },
+                  { label: "1/4", value: 25 },
+                  { label: "1/2", value: 50 },
+                  { label: "3/4", value: 75 },
+                  { label: "Full", value: 100 },
+                ];
+                return (
+                  <div key={tank.id}>
+                    <div className="flex justify-between items-center mb-2">
+                      <Label>{tank.name} ({tank.capacityLitres}L - {tank.type})</Label>
+                      <span className="text-sm font-medium">
+                        {currentLevel}% ({((tank.capacityLitres * currentLevel) / 100).toFixed(1)} kg)
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {levelOptions.map(opt => (
+                        <Button
+                          key={opt.value}
+                          variant={currentLevel === opt.value ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handleUpdateWaterTankLevel(tank.id, opt.value)}
+                          disabled={preferencesMutation.isPending}
+                          className="font-body text-xs flex-grow sm:flex-grow-0"
+                        >
+                          {opt.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+            <CardFooter>
+              <p>Total Water Weight: {totalWaterWeight.toFixed(1)} kg</p>
+            </CardFooter>
+          </Card>
+        )}
         
         <div className="space-y-4 pt-4">
           <h3 className="text-xl font-headline">Weight Summary &amp; Compliance</h3>
