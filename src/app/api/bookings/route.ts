@@ -23,7 +23,7 @@ const sanitizeData = (data: any) => {
         return JSON.parse(jsonString);
     } catch (error: any) {
         console.error('CRITICAL: Failed to serialize data for API response.', error);
-        // Throw a new error with a clear message, which will be caught by handleApiError
+        // Throw a new error with a clear message, which will be caught by the route handler
         throw new Error(`Data serialization failed: ${error.message}`);
     }
 };
@@ -70,38 +70,6 @@ const updateBookingSchema = createBookingSchema.extend({
   timestamp: z.string().datetime(),
 });
 
-const handleApiError = (error: any) => {
-  console.error('API Error:', error);
-  let errorTitle = 'Internal Server Error';
-  let errorDetails = 'An unexpected error occurred.';
-  let statusCode = 500;
-
-  if (error instanceof ZodError) {
-    return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
-  }
-  
-  if (error.code) {
-      switch(error.code) {
-          case 5: // NOT_FOUND
-              errorTitle = 'Database Not Found';
-              errorDetails = `The Firestore database 'kamperhubv2' could not be found. Please verify its creation in your Firebase project.`;
-              statusCode = 500;
-              break;
-          case 16: // UNAUTHENTICATED
-              errorTitle = 'Server Authentication Failed';
-              errorDetails = `The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or lack permission for Firestore. Please check your setup.`;
-              statusCode = 500;
-              break;
-          default:
-              errorDetails = error.message;
-              break;
-      }
-  } else {
-    errorDetails = error.message;
-  }
-
-  return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: statusCode });
-};
 
 // GET all bookings for the authenticated user
 export async function GET(req: NextRequest) {
@@ -112,14 +80,33 @@ export async function GET(req: NextRequest) {
     const bookingsSnapshot = await firestore.collection('users').doc(uid).collection('bookings').get();
     const bookings: BookingEntry[] = [];
     bookingsSnapshot.forEach(doc => {
+      try {
         if (doc.exists()) {
+            // Add individual document validation if necessary
             bookings.push(doc.data() as BookingEntry);
         }
+      } catch (docError) {
+        console.error(`Skipping malformed booking document with ID ${doc.id}:`, docError);
+      }
     });
     const sanitizedBookings = sanitizeData(bookings);
     return NextResponse.json(sanitizedBookings, { status: 200 });
   } catch (err: any) {
-    return handleApiError(err);
+    console.error('API Error in GET /api/bookings:', err);
+    let errorTitle = 'Internal Server Error';
+    let errorDetails = 'An unexpected error occurred.';
+    let statusCode = 500;
+
+    if (err.code) {
+        switch(err.code) {
+            case 5: errorTitle = 'Database Not Found'; errorDetails = `The Firestore database 'kamperhubv2' could not be found.`; statusCode = 500; break;
+            case 16: errorTitle = 'Server Authentication Failed'; errorDetails = `The server's credentials are not valid.`; statusCode = 500; break;
+            default: errorDetails = err.message; break;
+        }
+    } else {
+        errorDetails = err.message;
+    }
+    return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: statusCode });
   }
 }
 
@@ -172,7 +159,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(sanitizedNewBooking, { status: 201 });
 
   } catch (err: any) {
-    return handleApiError(err);
+    console.error('API Error in POST /api/bookings:', err);
+    if (err instanceof ZodError) {
+        return NextResponse.json({ error: 'Invalid data provided.', details: err.format() }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Internal Server Error', details: err.message }, { status: 500 });
   }
 }
 
@@ -189,7 +180,7 @@ export async function PUT(req: NextRequest) {
 
     const bookingRef = firestore.collection('users').doc(uid).collection('bookings').doc(bookingId);
 
-    let finalUpdatedBooking: BookingEntry | null = null;
+    let finalUpdatedBooking: BookingEntry = { ...parsedBookingData, timestamp: new Date().toISOString() };
     await firestore.runTransaction(async (transaction) => {
       const bookingDoc = await transaction.get(bookingRef);
       if (!bookingDoc.exists) throw new Error("Booking not found.");
@@ -229,14 +220,17 @@ export async function PUT(req: NextRequest) {
         }
         transaction.update(newTripRef, { budget });
       }
-
-      finalUpdatedBooking = { ...parsedBookingData, timestamp: new Date().toISOString() };
+      
       transaction.set(bookingRef, finalUpdatedBooking, { merge: true });
     });
     
     return NextResponse.json({ message: 'Booking updated successfully.', booking: sanitizeData(finalUpdatedBooking) }, { status: 200 });
   } catch (err: any) {
-    return handleApiError(err);
+    console.error('API Error in PUT /api/bookings:', err);
+    if (err instanceof ZodError) {
+        return NextResponse.json({ error: 'Invalid data provided.', details: err.format() }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Internal Server Error', details: err.message }, { status: 500 });
   }
 }
 
@@ -279,6 +273,7 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({ message: 'Booking deleted successfully.' }, { status: 200 });
   } catch (err: any) {
-    return handleApiError(err);
+    console.error('API Error in DELETE /api/bookings:', err);
+    return NextResponse.json({ error: 'Internal Server Error', details: err.message }, { status: 500 });
   }
 }
