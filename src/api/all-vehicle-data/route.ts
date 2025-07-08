@@ -5,6 +5,7 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
 import type { StoredVehicle } from '@/types/vehicle';
 import type { StoredCaravan } from '@/types/caravan';
+import type { LoggedTrip } from '@/types/tripplanner';
 
 const firestoreTimestampReplacer = (key: any, value: any) => {
     if (value && typeof value.toDate === 'function') {
@@ -48,20 +49,23 @@ export async function GET(req: NextRequest) {
     if (errorResponse || !uid || !firestore) return errorResponse;
 
     try {
-        const [vehiclesSnapshot, caravansSnapshot, userDocSnap] = await Promise.all([
+        const [vehiclesSnapshot, caravansSnapshot, userDocSnap, tripsSnapshot] = await Promise.all([
             firestore.collection('users').doc(uid).collection('vehicles').get(),
             firestore.collection('users').doc(uid).collection('caravans').get(),
-            firestore.collection('users').doc(uid).get()
+            firestore.collection('users').doc(uid).get(),
+            firestore.collection('users').doc(uid).collection('trips').get()
         ]);
 
         const vehicles = vehiclesSnapshot.docs.map(doc => doc.data() as StoredVehicle);
         const caravans = caravansSnapshot.docs.map(doc => doc.data() as StoredCaravan);
         const userProfile = userDocSnap.exists ? userDocSnap.data() as UserProfile : null;
+        const trips = tripsSnapshot.docs.map(doc => doc.data() as LoggedTrip);
 
         const data = {
             vehicles,
             caravans,
             userProfile,
+            trips,
         };
         
         const sanitizedData = sanitizeData(data);

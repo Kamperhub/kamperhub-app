@@ -1,77 +1,47 @@
 
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
-import { getSession } from '@/lib/server-session';
-import { redirect } from 'next/navigation';
+"use client";
+
+import { useQuery } from '@tanstack/react-query';
+import { InventoryPageClient } from '@/components/features/inventory/InventoryPageClient';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
-import { InventoryPageClient } from '@/components/features/inventory/InventoryPageClient';
-import type { UserProfile } from '@/types/auth';
-import type { StoredVehicle } from '@/types/vehicle';
-import type { StoredCaravan } from '@/types/caravan';
-import type { LoggedTrip } from '@/types/tripplanner';
+import { Skeleton } from '@/components/ui/skeleton';
+import { fetchAllVehicleData } from '@/lib/api-client';
+import { useAuth } from '@/hooks/useAuth';
 
-const firestoreTimestampReplacer = (key: any, value: any) => {
-    if (value && typeof value.toDate === 'function') {
-        return value.toDate().toISOString();
-    }
-    return value;
-};
+export default function InventoryPage() {
+    const { user, isAuthLoading } = useAuth();
+    
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['allVehicleData', user?.uid],
+        queryFn: fetchAllVehicleData,
+        enabled: !!user,
+    });
 
-const sanitizeData = (data: any) => {
-    try {
-        const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
-        return JSON.parse(jsonString);
-    } catch (error: any) {
-        console.error('Error in sanitizeData:', error);
-        throw new Error(`Failed to serialize data: ${error.message}`);
-    }
-};
+    const isLoadingPage = isAuthLoading || isLoading;
 
-async function getInventoryPageData(uid: string) {
-    const { firestore, error } = getFirebaseAdmin();
-    if (error || !firestore) {
-        throw new Error("Server configuration error, unable to fetch data.");
-    }
-    try {
-        const [vehiclesSnap, caravansSnap, userSnap, tripsSnap] = await Promise.all([
-            firestore.collection('users').doc(uid).collection('vehicles').get(),
-            firestore.collection('users').doc(uid).collection('caravans').get(),
-            firestore.collection('users').doc(uid).get(),
-            firestore.collection('users').doc(uid).collection('trips').get()
-        ]);
-
-        const data = {
-            userProfile: userSnap.exists ? userSnap.data() as UserProfile : null,
-            caravans: caravansSnap.docs.map(doc => doc.data() as StoredCaravan),
-            vehicles: vehiclesSnap.docs.map(doc => doc.data() as StoredVehicle),
-            trips: tripsSnap.docs.map(doc => doc.data() as LoggedTrip),
-        };
-        
-        return sanitizeData(data);
-    } catch (err: any) {
-        console.error('API Error in server-side fetch for inventory page:', err);
-        throw new Error(`Failed to fetch inventory page data: ${err.message}`);
-    }
-}
-
-export default async function InventoryPage() {
-    const session = await getSession();
-    if (!session) {
-        redirect('/login');
+    if (isLoadingPage) {
+        return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-64 w-full" /></div>
     }
 
-    try {
-        const data = await getInventoryPageData(session.uid);
-        return <InventoryPageClient initialData={data} />;
-    } catch (error: any) {
+    if (error) {
         return (
-            <div className="container mx-auto py-8">
+             <div className="container mx-auto py-8">
                 <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>Error Loading Page Data</AlertTitle>
                     <AlertDescription>{error.message}</AlertDescription>
                 </Alert>
             </div>
-        );
+        )
     }
+
+    const inventoryPageData = {
+        userProfile: data?.userProfile || null,
+        caravans: data?.caravans || [],
+        vehicles: data?.vehicles || [],
+        trips: data?.trips || [],
+    };
+
+    return <InventoryPageClient initialData={inventoryPageData} />;
 }

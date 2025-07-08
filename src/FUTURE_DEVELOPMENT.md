@@ -39,10 +39,12 @@ This document tracks the development priorities, future features, and completed 
 *   **Objective:** Allow users to plan trips that do not involve towing a caravan.
 *   **Details:** Added a "Towing a caravan?" switch to the Trip Planner. When disabled, trips are saved as "Vehicle Only," using a simplified checklist template and not affecting caravan-related data. The Trip Log now visually distinguishes these trips.
 
-### ✅ **Project: Performance Optimization with Server Components**
+### ✅ **Project: Performance & Stability Improvements**
 *   **Status:** Complete
 *   **Objective:** Improve initial page load times for data-heavy pages like "Vehicles" and "Inventory".
-*   **Details:** Converted the `/vehicles` and `/inventory` pages to Next.js Server Components. This pre-fetches all necessary data on the server, eliminating client-side loading states and providing a faster user experience.
+*   **Details:**
+    *   The `/checklists` page has been converted to a Next.js Server Component, pre-fetching all necessary trip data on the server. This provides a faster initial load for users.
+    *   The `/vehicles` and `/inventory` pages have been refactored to use a single, consolidated API endpoint for data fetching, improving stability and reducing network requests.
 
 ### ✅ **Feature: AI-Powered Packing Assistant**
 *   **Status:** Complete
@@ -121,7 +123,7 @@ This section tracks potential new features and enhancements for future considera
     *   Create a guide explaining 12V systems, solar power, battery maintenance, and tips for conserving power while off-grid.
 
 *   **New Resource: Games & Activities for Camping:**
-    *   Compile a list of suggestions for games (card games, outdoor games) and activities suitable for families, couples, and solo travelers while camping.
+    *   Compile a list of suggestions for games (card games, outdoor games) and suitable for families, couples, and solo travelers while camping.
 
 ### Dynamic In-App Content with Firestore
 
