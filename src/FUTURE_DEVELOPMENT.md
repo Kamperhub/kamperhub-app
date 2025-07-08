@@ -13,18 +13,43 @@ This document tracks the development priorities, future features, and completed 
     *   Investigate and fix errors preventing vehicle, caravan, and WDH data from loading on the `/vehicles` page.
     *   Address any remaining `Unauthorized: Invalid ID token` or `client is offline` errors.
     *   Ensure all user preferences and settings load correctly for all user types (including admin).
+    *   **Fuel Log Toast Action:** Ensure the "Add Category" button in the "Missing 'Fuel' Category" error message correctly navigates the user to the trip planner.
 
 ### 2. New Feature Development
-*   **Objective:** Begin implementing new, high-value features now that the core data migration is complete.
+*   **Objective:** Begin implementing new, high-value features.
 *   **Next Up:**
-    *   ✅ **AI-Powered Packing Assistant:** The Genkit flow to help users generate packing lists based on trip details is now complete and integrated.
+    *   **Fuel Log & Maintenance Tracker:** Build the user interface for logging fuel and tracking vehicle/caravan maintenance tasks. The backend APIs for this are already in place.
 
 ---
 
 ## **Completed Milestones**
 
-### ✅ **Project: Migrate from LocalStorage to Firestore**
+### ✅ **Feature: Height-Aware Trip Routing**
+*   **Status:** Complete
+*   **Objective:** Ensure trips planned in the app consider vehicle height to avoid low clearance obstacles.
+*   **Details:** The Trip Planner now uses Google's advanced Routes API via a secure backend endpoint. It automatically includes the height of the active vehicle/caravan in route calculations and will display warnings for any potential height restrictions, such as low bridges.
 
+### ✅ **Feature: Advanced Weight Distribution Calculator**
+*   **Status:** Complete
+*   **Objective:** Provide a more accurate, physics-based calculation for Tow Ball Mass (TBM).
+*   **Details:** The Inventory & Weight Management calculator now uses a moment-based calculation based on the precise location of inventory items, water, and gas relative to the caravan's axles. This replaces the previous simple percentage-based estimate, providing a much more accurate TBM figure.
+
+### ✅ **Feature: Vehicle-Only Trip Planning**
+*   **Status:** Complete
+*   **Objective:** Allow users to plan trips that do not involve towing a caravan.
+*   **Details:** Added a "Towing a caravan?" switch to the Trip Planner. When disabled, trips are saved as "Vehicle Only," using a simplified checklist template and not affecting caravan-related data. The Trip Log now visually distinguishes these trips.
+
+### ✅ **Project: Performance Optimization with Server Components**
+*   **Status:** Complete
+*   **Objective:** Improve initial page load times for data-heavy pages like "Vehicles" and "Inventory".
+*   **Details:** Converted the `/vehicles` and `/inventory` pages to Next.js Server Components. This pre-fetches all necessary data on the server, eliminating client-side loading states and providing a faster user experience.
+
+### ✅ **Feature: AI-Powered Packing Assistant**
+*   **Status:** Complete
+*   **Objective:** Help users generate packing lists based on trip details.
+*   **Details:** The Genkit flow to help users generate packing lists based on trip details is now complete and integrated into the `/trip-packing` page.
+
+### ✅ **Project: Migrate from LocalStorage to Firestore**
 *   **Status:** Complete
 *   **Objective:** Move all application data from the browser's `localStorage` to Firebase Firestore to provide a persistent, synchronized, and backed-up user experience.
 
@@ -48,28 +73,11 @@ This section tracks potential new features and enhancements for future considera
 
 ### Core Functionality Enhancements
 
-*   **Performance Optimization: Server-Side Data Fetching:**
-    *   **The Problem:** Currently, data-heavy pages (like "Vehicles", "Inventory") show loading skeletons while the client-side fetches data, leading to perceived slowness.
-    *   **The Solution:** Implement server-side data fetching using Next.js Server Components.
-        1.  **Pre-fetch Data on the Server:** When a page is requested, the server will gather all necessary data (vehicles, caravans, WDHs, etc.) in a single, efficient operation.
-        2.  **Eliminate Initial Loading Skeletons:** The page will be sent to the browser with the data already included, making content appear instantly.
-        3.  **Retain Dynamic Updates:** The application will still use TanStack Query for dynamic updates and mutations after the initial fast load.
-    *   **Example Implementation (for `/vehicles` page):**
-        *   Convert `src/app/vehicles/page.tsx` to a Server Component.
-        *   Fetch all vehicle, caravan, and WDH data directly on the server within this component.
-        *   Pass the pre-fetched data as props to the `VehicleManager`, `CaravanManager`, and `WDHManager` components.
-        *   Update those client components to use the pre-fetched data for their initial display, removing their individual loading states.
-
 *   **Multi-Stop Trip Planning:**
     *   Allow users to add multiple intermediate waypoints to their trips in the Trip Planner.
     *   Display the full multi-stop route on the map.
     *   Calculate total distance, duration, and fuel estimates for the entire multi-leg journey.
     *   Update the Trip Log to clearly represent and recall multi-stop trips.
-
-*   **Advanced Weight Distribution Calculator:**
-    *   Enhance the Inventory & Weight Management section with a more precise calculator for Tow Ball Mass (TBM).
-    *   Allow users to specify the exact longitudinal position of items within defined storage locations (or even general areas like "front," "middle," "rear" of the caravan).
-    *   Use these positions and weights to provide a more accurate TBM estimation than the current simple percentage of payload.
 
 ### User Experience & Engagement
 

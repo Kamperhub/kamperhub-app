@@ -25,11 +25,11 @@ import type { UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
 
 interface CaravanManagerProps {
-    caravans: StoredCaravan[];
-    userPrefs: Partial<UserProfile> | null;
+    initialCaravans: StoredCaravan[];
+    initialUserPrefs: Partial<UserProfile> | null;
 }
 
-export function CaravanManager({ caravans, userPrefs }: CaravanManagerProps) {
+export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
@@ -44,7 +44,7 @@ export function CaravanManager({ caravans, userPrefs }: CaravanManagerProps) {
     confirmationText: '',
   });
 
-  const activeCaravanId = userPrefs?.activeCaravanId;
+  const activeCaravanId = initialUserPrefs?.activeCaravanId;
   
   const invalidateAndRefetch = () => {
     queryClient.invalidateQueries({ queryKey: ['allVehicleData', user?.uid] });
@@ -134,7 +134,7 @@ export function CaravanManager({ caravans, userPrefs }: CaravanManagerProps) {
     return `${longText} / ${latText}`;
   };
 
-  const isAddButtonDisabled = !hasProAccess && caravans.length >= 1;
+  const isAddButtonDisabled = !hasProAccess && initialCaravans.length >= 1;
 
   return (
     <>
@@ -169,8 +169,8 @@ export function CaravanManager({ caravans, userPrefs }: CaravanManagerProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {caravans.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No caravans added yet.</p>}
-          {caravans.map(caravan => {
+          {initialCaravans.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No caravans added yet.</p>}
+          {initialCaravans.map(caravan => {
             const caravanGrossPayload = (typeof caravan.atm === 'number' && typeof caravan.tareMass === 'number' && caravan.atm > 0 && caravan.tareMass > 0 && caravan.atm >= caravan.tareMass) ? caravan.atm - caravan.tareMass : null;
             return (
               <Card key={caravan.id} className={`p-4 ${activeCaravanId === caravan.id ? 'border-primary shadow-lg' : 'shadow-sm'}`}>
