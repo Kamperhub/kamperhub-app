@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Briefcase } from 'lucide-react';
@@ -27,7 +28,7 @@ export default function TripManagerPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex-grow flex flex-col justify-between">
-                <CardDescription className="font-body text-sm text-muted-foreground mb-4 line-clamp-3">
+                <CardDescription className="font-body text-xl text-muted-foreground mb-4 line-clamp-3">
                   {item.description}
                 </CardDescription>
                 <div

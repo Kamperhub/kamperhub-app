@@ -31,7 +31,7 @@ function NavItemCard({ item }: { item: NavItem }) {
                 <item.icon className="w-6 h-6 mr-3 text-primary" />
                 {item.label}
             </CardTitle>
-            <CardDescription className="font-body text-sm text-muted-foreground line-clamp-3">
+            <CardDescription className="font-body text-xl text-muted-foreground line-clamp-3">
                 {item.description}
             </CardDescription>
         </CardHeader>

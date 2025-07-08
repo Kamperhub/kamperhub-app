@@ -34,7 +34,7 @@ export default function DashboardDetailsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex-grow flex flex-col justify-between">
-                <CardDescription className="font-body text-sm text-muted-foreground mb-4 line-clamp-3">
+                <CardDescription className="font-body text-xl text-muted-foreground mb-4 line-clamp-3">
                   {item.description}
                 </CardDescription>
                 <div
