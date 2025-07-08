@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { BookingEntry } from '@/types/booking';
 import type { LoggedTrip } from '@/types/tripplanner';
@@ -9,12 +9,12 @@ import { sampleAffiliateLinks } from '@/types/booking';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { PlusCircle, BedDouble, ExternalLink, Info, Loader2 } from 'lucide-react';
+import { PlusCircle, BedDouble, ExternalLink, Info } from 'lucide-react';
 import { BookingForm } from '@/components/features/bookings/BookingForm';
 import { BookingList } from '@/components/features/bookings/BookingList';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchTrips } from '@/lib/api-client';
+import { fetchBookingsPageData, createBooking, updateBooking, deleteBooking } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -27,23 +27,19 @@ export default function BookingsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<BookingEntry | null>(null);
 
-  const { data: bookings = [], isLoading: isLoadingBookings, error: bookingsError } = useQuery<BookingEntry[]>({
-    queryKey: ['bookings', user?.uid],
-    queryFn: fetchBookings,
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['bookingsPageData', user?.uid],
+    queryFn: fetchBookingsPageData,
     enabled: !!user && !isAuthLoading,
   });
-  
-  const { data: trips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery<LoggedTrip[]>({
-    queryKey: ['trips', user?.uid],
-    queryFn: fetchTrips,
-    enabled: !!user && !isAuthLoading,
-  });
+
+  const bookings = data?.bookings || [];
+  const trips = data?.trips || [];
 
   const createBookingMutation = useMutation({
     mutationFn: (newBookingData: Omit<BookingEntry, 'id' | 'timestamp'>) => createBooking(newBookingData),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bookings', user?.uid] });
-      queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] }); // Invalidate trips to refetch updated budget
+      queryClient.invalidateQueries({ queryKey: ['bookingsPageData', user?.uid] });
       toast({ title: "Booking Added" });
       setIsFormOpen(false);
     },
@@ -55,8 +51,7 @@ export default function BookingsPage() {
   const updateBookingMutation = useMutation({
     mutationFn: (bookingData: BookingEntry) => updateBooking(bookingData),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bookings', user?.uid] });
-      queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] }); // Invalidate trips to refetch updated budget
+      queryClient.invalidateQueries({ queryKey: ['bookingsPageData', user?.uid] });
       toast({ title: "Booking Updated" });
       setIsFormOpen(false);
       setEditingBooking(null);
@@ -69,8 +64,7 @@ export default function BookingsPage() {
   const deleteBookingMutation = useMutation({
     mutationFn: (bookingId: string) => deleteBooking(bookingId),
     onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['bookings', user?.uid] });
-        queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] }); // Invalidate trips to refetch updated budget
+        queryClient.invalidateQueries({ queryKey: ['bookingsPageData', user?.uid] });
         toast({ title: "Booking Deleted" });
     },
     onError: (error: Error) => {
@@ -105,8 +99,8 @@ export default function BookingsPage() {
   };
   
   const isMutationLoading = createBookingMutation.isPending || updateBookingMutation.isPending;
-  const isLoading = isAuthLoading || isLoadingBookings || isLoadingTrips;
-  const queryError = bookingsError || tripsError;
+  const pageIsLoading = isAuthLoading || isLoading;
+  const pageError = error;
 
   return (
     <div className="space-y-8">
@@ -143,15 +137,15 @@ export default function BookingsPage() {
         </Dialog>
       </div>
       
-      {queryError && (
+      {pageError && (
         <Alert variant="destructive">
             <Info className="h-4 w-4" />
             <AlertTitle>Error Loading Data</AlertTitle>
-            <AlertDescription>{queryError.message}</AlertDescription>
+            <AlertDescription>{pageError.message}</AlertDescription>
         </Alert>
       )}
 
-      {isLoading ? (
+      {pageIsLoading ? (
         <div className="space-y-4">
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
