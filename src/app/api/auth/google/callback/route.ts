@@ -4,7 +4,6 @@ import { google } from 'googleapis';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 
 export async function GET(req: NextRequest) {
-  // NEW LOGGING
   console.log(`[AUTH CALLBACK] Received GET request for: ${req.url}`);
 
   const { auth, firestore, error: adminError } = getFirebaseAdmin();
@@ -47,12 +46,16 @@ export async function GET(req: NextRequest) {
 
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+
     if (!clientId || !clientSecret) {
       throw new Error("Google API credentials are not configured on the server.");
     }
+    if (!appUrl) {
+      throw new Error("NEXT_PUBLIC_APP_URL is not configured on the server.");
+    }
 
-    const redirectUri = `${new URL(req.url).origin}/api/auth/google/callback`;
+    const redirectUri = `${appUrl}/api/auth/google/callback`;
     const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 
     console.log(`[AUTH CALLBACK] Exchanging authorization code for tokens...`);

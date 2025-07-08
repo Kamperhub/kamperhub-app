@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -14,10 +15,16 @@ export async function POST(req: NextRequest) {
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
   
   if (!clientId || !clientSecret) {
     console.error("GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is not set.");
     return NextResponse.json({ error: 'Google API credentials not configured on the server.' }, { status: 500 });
+  }
+
+  if (!appUrl) {
+    console.error("NEXT_PUBLIC_APP_URL is not set.");
+    return NextResponse.json({ error: 'The application URL is not configured on the server.' }, { status: 500 });
   }
 
   try {
@@ -37,9 +44,9 @@ export async function POST(req: NextRequest) {
     const stateDocRef = firestore.collection('oauthStates').doc(state);
     
     // Store the state with the UID. It will be checked and deleted in the callback.
-    await stateDocRef.set({ userId: userId });
+    await stateDocRef.set({ userId: userId, createdAt: new Date().toISOString() });
 
-    const redirectUri = `${new URL(req.url).origin}/api/auth/google/callback`;
+    const redirectUri = `${appUrl}/api/auth/google/callback`;
     const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 
     const authUrl = oauth2Client.generateAuthUrl({
