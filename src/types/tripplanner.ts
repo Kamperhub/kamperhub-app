@@ -20,6 +20,7 @@ export interface RouteDetails {
   endLocation?: google.maps.LatLngLiteral;
   polyline?: string;
   warnings?: string[];
+  tollInfo?: { text: string; value: number } | null;
 }
 
 export interface FuelEstimate {

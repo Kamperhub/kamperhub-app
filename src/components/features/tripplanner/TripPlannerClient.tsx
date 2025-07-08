@@ -111,6 +111,7 @@ export function TripPlannerClient() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isTowing, setIsTowing] = useState(true);
+  const [avoidTolls, setAvoidTolls] = useState(false);
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [fuelEstimate, setFuelEstimate] = useState<FuelEstimate | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -166,6 +167,7 @@ export function TripPlannerClient() {
     setTripOccupants([]);
     setPendingTripName('');
     setPendingTripNotes('');
+    setAvoidTolls(false);
   }, [reset]);
 
   useEffect(() => {
@@ -231,6 +233,15 @@ export function TripPlannerClient() {
     setFuelEstimate(null);
     setError(null);
 
+    const activeVehicle = userPrefs?.activeVehicleId ? allVehicles.find(v => v.id === userPrefs.activeVehicleId) : null;
+    const activeCaravan = userPrefs?.activeCaravanId ? allCaravans.find(c => c.id === userPrefs.activeCaravanId) : null;
+
+    let axleCount = 2; // Assume vehicle has 2 axles
+    if (isTowing && activeCaravan && activeCaravan.numberOfAxles) {
+      axleCount += activeCaravan.numberOfAxles;
+    }
+    const vehicleHeight = isTowing ? activeCaravan?.overallHeight : activeVehicle?.overallHeight;
+
     try {
         const response = await fetch('/api/directions', {
             method: 'POST',
@@ -238,6 +249,9 @@ export function TripPlannerClient() {
             body: JSON.stringify({
                 origin: data.startLocation,
                 destination: data.endLocation,
+                vehicleHeight: vehicleHeight ? vehicleHeight / 1000 : undefined,
+                axleCount: axleCount,
+                avoidTolls: avoidTolls
             }),
         });
 
@@ -265,24 +279,36 @@ export function TripPlannerClient() {
           });
         }
 
-        if (result.distance.value > 0 && data.fuelEfficiency > 0) {
-          const fuelNeeded = (result.distance.value / 1000 / 100) * data.fuelEfficiency;
-          const estimatedCost = fuelNeeded * data.fuelPrice;
-          setFuelEstimate({ fuelNeeded: `${fuelNeeded.toFixed(1)} L`, estimatedCost: `$${estimatedCost.toFixed(2)}` });
-
-          setTripBudget(prevBudget => {
+        setTripBudget(prevBudget => {
             const newBudget = [...prevBudget];
-            const fuelCategoryName = "Fuel";
-            const existingFuelCategoryIndex = newBudget.findIndex(cat => cat.name.toLowerCase() === fuelCategoryName.toLowerCase());
 
-            if (existingFuelCategoryIndex > -1) {
-              newBudget[existingFuelCategoryIndex] = { ...newBudget[existingFuelCategoryIndex], budgetedAmount: estimatedCost };
-            } else {
-              newBudget.push({ id: `fuel_${Date.now()}`, name: fuelCategoryName, budgetedAmount: estimatedCost });
+            if (result.distance.value > 0 && data.fuelEfficiency > 0) {
+                const fuelNeeded = (result.distance.value / 1000 / 100) * data.fuelEfficiency;
+                const estimatedCost = fuelNeeded * data.fuelPrice;
+                setFuelEstimate({ fuelNeeded: `${fuelNeeded.toFixed(1)} L`, estimatedCost: `$${estimatedCost.toFixed(2)}` });
+
+                const fuelCategoryName = "Fuel";
+                const existingFuelCategoryIndex = newBudget.findIndex(cat => cat.name.toLowerCase() === fuelCategoryName.toLowerCase());
+
+                if (existingFuelCategoryIndex > -1) {
+                    newBudget[existingFuelCategoryIndex] = { ...newBudget[existingFuelCategoryIndex], budgetedAmount: estimatedCost };
+                } else {
+                    newBudget.push({ id: `fuel_${Date.now()}`, name: fuelCategoryName, budgetedAmount: estimatedCost });
+                }
+            }
+            if (result.tollInfo && result.tollInfo.value > 0) {
+                const tollCategoryName = "Tolls";
+                const existingTollCategoryIndex = newBudget.findIndex(cat => cat.name.toLowerCase() === tollCategoryName.toLowerCase());
+
+                if (existingTollCategoryIndex > -1) {
+                    newBudget[existingTollCategoryIndex] = { ...newBudget[existingTollCategoryIndex], budgetedAmount: result.tollInfo.value };
+                } else {
+                    newBudget.push({ id: `tolls_${Date.now()}`, name: tollCategoryName, budgetedAmount: result.tollInfo.value });
+                }
             }
             return newBudget;
-          });
-        }
+        });
+
     } catch (e: any) { 
         setError(`Error calculating route: ${e.message}`);
         console.error("Route Calculation Error:", e);
@@ -526,7 +552,11 @@ export function TripPlannerClient() {
                     </div>
                     <div className="flex items-center space-x-2 pt-2">
                       <Switch id="towing-switch" checked={isTowing} onCheckedChange={setIsTowing} disabled={isLoading}/>
-                      <Label htmlFor="towing-switch" className="font-body">Towing a caravan for this trip?</Label>
+                      <Label htmlFor="towing-switch" className="font-body">Towing a caravan?</Label>
+                    </div>
+                    <div className="flex items-center space-x-2 pt-2">
+                      <Switch id="avoid-tolls-switch" checked={avoidTolls} onCheckedChange={setAvoidTolls} disabled={isLoading}/>
+                      <Label htmlFor="avoid-tolls-switch" className="font-body">Avoid Tolls?</Label>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
                         <Button type="button" variant="outline" onClick={() => clearPlanner(true)} disabled={isLoading} className="w-full font-body">
@@ -598,6 +628,9 @@ export function TripPlannerClient() {
                     <div className="font-body text-sm"><strong>Est. Fuel Needed:</strong> {fuelEstimate.fuelNeeded}</div>
                     <div className="font-body text-sm"><strong>Est. Fuel Cost:</strong> {fuelEstimate.estimatedCost}</div>
                   </>}
+                  {routeDetails.tollInfo && (
+                    <div className="font-body text-sm"><strong>Est. Tolls:</strong> {routeDetails.tollInfo.text}</div>
+                  )}
               </CardContent></Card>}
             </div>
           </div>

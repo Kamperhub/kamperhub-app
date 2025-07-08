@@ -8,6 +8,8 @@ const directionsRequestSchema = z.object({
   origin: z.string(),
   destination: z.string(),
   vehicleHeight: z.number().positive().optional(),
+  axleCount: z.number().int().positive().optional(),
+  avoidTolls: z.boolean().optional(),
 });
 
 // Helper to format ISO 8601 duration string (e.g., "3600s") into human-readable format
@@ -42,7 +44,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body.', details: parsedBody.error.format() }, { status: 400 });
     }
 
-    const { origin, destination, vehicleHeight } = parsedBody.data;
+    const { origin, destination, vehicleHeight, axleCount, avoidTolls } = parsedBody.data;
 
     // Base request body for Google's Routes API
     const requestBody: any = {
@@ -57,15 +59,26 @@ export async function POST(req: NextRequest) {
       polylineEncoding: 'ENCODED_POLYLINE',
     };
 
-    // If height is provided, add it to the request to check for restrictions
+    // If height or axle count is provided, add vehicleInfo to the request
+    const vehicleInfo: any = {};
     if (vehicleHeight && vehicleHeight > 0) {
-      requestBody.routeModifiers = {
-        vehicleInfo: {
-          dimensions: {
-            height: vehicleHeight,
-          },
-        },
-      };
+      vehicleInfo.dimensions = { height: vehicleHeight };
+    }
+    if (axleCount && axleCount > 0) {
+      vehicleInfo.axleCount = axleCount;
+    }
+
+    // Add route modifiers for vehicle info and toll avoidance
+    const routeModifiers: any = {};
+    if (Object.keys(vehicleInfo).length > 0) {
+        routeModifiers.vehicleInfo = vehicleInfo;
+    }
+    if (avoidTolls) {
+        routeModifiers.avoidTolls = true;
+    }
+
+    if (Object.keys(routeModifiers).length > 0) {
+        requestBody.routeModifiers = routeModifiers;
     }
     
     const response = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
@@ -74,7 +87,7 @@ export async function POST(req: NextRequest) {
             'Content-Type': 'application/json',
             'X-Goog-Api-Key': apiKey,
             // Field mask to request specific fields, reducing data transfer and cost
-            'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.warnings,routes.polyline.encodedPolyline,routes.legs(startLocation,endLocation)',
+            'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.warnings,routes.polyline.encodedPolyline,routes.legs(startLocation,endLocation),routes.travelAdvisory.tollInfo',
         },
         body: JSON.stringify(requestBody)
     });
@@ -113,7 +126,24 @@ export async function POST(req: NextRequest) {
     
     if (data.routes && data.routes.length > 0) {
         const route = data.routes[0];
-        // Adapt the response to a simpler structure for the client
+        const tollInfo = route.travelAdvisory?.tollInfo;
+        let adaptedTollInfo = null;
+
+        if (tollInfo?.estimatedPrice?.length > 0) {
+          const totalTollCost = tollInfo.estimatedPrice.reduce((sum: number, price: any) => {
+            const units = price.units ? parseInt(price.units) : 0;
+            const nanos = price.nanos ? price.nanos / 1_000_000_000 : 0;
+            return sum + units + nanos;
+          }, 0);
+          
+          if (totalTollCost > 0) {
+            adaptedTollInfo = {
+              text: `$${totalTollCost.toFixed(2)} (${tollInfo.estimatedPrice[0].currencyCode || 'USD'})`,
+              value: totalTollCost
+            };
+          }
+        }
+
         const adaptedResponse = {
             distance: { text: `${(route.distanceMeters / 1000).toFixed(1)} km`, value: route.distanceMeters },
             duration: { text: formatDuration(route.duration), value: parseInt(route.duration.slice(0,-1), 10)},
@@ -121,6 +151,7 @@ export async function POST(req: NextRequest) {
             endLocation: route.legs[0]?.endLocation?.latLng,
             polyline: route.polyline.encodedPolyline,
             warnings: route.warnings || [],
+            tollInfo: adaptedTollInfo,
         };
         return NextResponse.json(adaptedResponse, { status: 200 });
     } else {
