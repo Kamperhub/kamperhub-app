@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, Settings2, Link2 as Link2Icon, StickyNote, PackageSearch, Droplet, Archive, Info, PackagePlus, Users, Wand } from 'lucide-react';
+import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, Settings2, Link2 as Link2Icon, StickyNote, PackageSearch, Droplet, Archive, Info, PackagePlus, Users, Wand, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label as RechartsLabel } from 'recharts';
@@ -22,6 +22,7 @@ import { Progress } from '@/components/ui/progress';
 import { fetchInventory, updateInventory, updateUserPreferences } from '@/lib/api-client';
 import { auth } from '@/lib/firebase';
 import type { User as FirebaseUser } from 'firebase/auth';
+import { Slider } from '@/components/ui/slider';
 
 interface InventoryListClientProps {
   activeCaravan: StoredCaravan | null;
@@ -44,16 +45,16 @@ const DonutChartCustomLabel = ({ viewBox, value, limit, unit, name }: { viewBox?
 
   return (
     <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" className="font-body">
-      <tspan x={cx} dy="-1.6em" className="text-sm fill-muted-foreground">{name}</tspan>
-      <tspan x={cx} dy="1.3em" className={`text-2xl font-bold font-headline ${isOverLimit ? 'fill-destructive' : 'fill-primary'}`}>
+      <tspan x={cx} dy="-1.6em" className="text-xl fill-muted-foreground">{name}</tspan>
+      <tspan x={cx} dy="1.3em" className={`text-4xl font-bold font-headline ${isOverLimit ? 'fill-destructive' : 'fill-primary'}`}>
         {displayValue}{unit}
       </tspan>
       {!isLimitNotSet ? (
-        <tspan x={cx} dy="1.5em" className="text-sm fill-muted-foreground">
+        <tspan x={cx} dy="1.5em" className="text-lg fill-muted-foreground">
           ({percentage.toFixed(0)}%)
         </tspan>
       ) : (
-        <tspan x={cx} dy="1.5em" className="text-sm fill-muted-foreground">
+        <tspan x={cx} dy="1.5em" className="text-lg fill-muted-foreground">
           (Limit N/A)
         </tspan>
       )}
@@ -79,6 +80,62 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
   const [itemQuantity, setItemQuantity] = useState('1');
   const [itemLocationId, setItemLocationId] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [localWaterLevels, setLocalWaterLevels] = useState<Record<string, number>>({});
+
+  const preferencesMutation = useMutation({
+    mutationFn: (prefs: Partial<UserProfile>) => updateUserPreferences(prefs),
+    onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: ['allVehicleData', user?.uid] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error Saving Preferences", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const debouncedSaveWaterLevels = useCallback(
+    (() => {
+      let timer: NodeJS.Timeout;
+      return (levels: Record<string, Record<string, number>>) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          preferencesMutation.mutate({ caravanWaterLevels: levels });
+        }, 500); // 500ms debounce delay
+      };
+    })(),
+    [preferencesMutation]
+  );
+  
+  useEffect(() => {
+    if (activeCaravan && userPreferences?.caravanWaterLevels) {
+      setLocalWaterLevels(userPreferences.caravanWaterLevels[activeCaravan.id] || {});
+    } else {
+      setLocalWaterLevels({});
+    }
+  }, [activeCaravan, userPreferences?.caravanWaterLevels]);
+
+  const handleUpdateWaterTankLevel = useCallback((tankId: string, level: number) => {
+    if (!activeCaravan || !userPreferences) return;
+
+    const newLevel = Math.max(0, Math.min(100, level));
+
+    // Update local state immediately for responsive UI
+    setLocalWaterLevels(prevLevels => ({
+      ...prevLevels,
+      [tankId]: newLevel
+    }));
+
+    // Prepare the full data structure for debounced saving
+    const currentGlobalLevels = userPreferences.caravanWaterLevels || {};
+    const updatedGlobalLevels = {
+      ...currentGlobalLevels,
+      [activeCaravan.id]: {
+        ...(currentGlobalLevels[activeCaravan.id] || {}),
+        [tankId]: newLevel,
+      }
+    };
+    debouncedSaveWaterLevels(updatedGlobalLevels);
+  }, [activeCaravan, userPreferences, debouncedSaveWaterLevels]);
+
   
   const inventoryMutation = useMutation({
     mutationFn: (newItems: InventoryItem[]) => updateInventory({ caravanId: activeCaravan!.id, items: newItems }),
@@ -98,35 +155,6 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
       queryClient.invalidateQueries({ queryKey: ['inventory', activeCaravan?.id] });
     },
   });
-  
-  const preferencesMutation = useMutation({
-    mutationFn: (prefs: Partial<UserProfile>) => updateUserPreferences(prefs),
-    onSuccess: () => {
-       queryClient.invalidateQueries({ queryKey: ['allVehicleData', user?.uid] });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error Saving Preferences", description: error.message, variant: "destructive" });
-    },
-  });
-  
-  const handleUpdateWaterTankLevel = useCallback((tankId: string, level: number) => {
-    if (!activeCaravan || !userPreferences) return;
-    const newLevel = Math.max(0, Math.min(100, level));
-    const currentLevels = userPreferences.caravanWaterLevels || {};
-    const updatedLevels = {
-      ...currentLevels,
-      [activeCaravan.id]: {
-        ...(currentLevels[activeCaravan.id] || {}),
-        [tankId]: newLevel,
-      }
-    };
-    preferencesMutation.mutate({ caravanWaterLevels: updatedLevels });
-  }, [activeCaravan, userPreferences, preferencesMutation]);
-
-  const waterTankLevels = useMemo(() => {
-    if (!activeCaravan || !userPreferences?.caravanWaterLevels) return {};
-    return userPreferences.caravanWaterLevels[activeCaravan.id] || {};
-  }, [activeCaravan, userPreferences?.caravanWaterLevels]);
   
   const enrichedCombinedStorageLocations = useMemo(() => {
     const formatPosition = (pos: { longitudinalPosition: string; lateralPosition: string; }) => {
@@ -164,10 +192,10 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
 
   const totalWaterWeight = useMemo(() => {
     return (activeCaravan?.waterTanks || []).reduce((sum, tank) => {
-      const levelPercentage = waterTankLevels[tank.id] || 0;
+      const levelPercentage = localWaterLevels[tank.id] || 0;
       return sum + (tank.capacityLitres * (levelPercentage / 100));
     }, 0);
-  }, [activeCaravan?.waterTanks, waterTankLevels]);
+  }, [activeCaravan?.waterTanks, localWaterLevels]);
 
   const caravanSpecs = activeCaravan ? {
     tareMass: activeCaravan.tareMass, atm: activeCaravan.atm, gtm: activeCaravan.gtm,
@@ -192,7 +220,7 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
     });
     (activeCaravan.waterTanks || []).forEach(tank => {
       if (typeof tank.distanceFromAxleCenterMm === 'number') {
-        const waterWeight = (tank.capacityLitres * (waterTankLevels[tank.id] || 0)) / 100;
+        const waterWeight = (tank.capacityLitres * (localWaterLevels[tank.id] || 0)) / 100;
         totalMoment += waterWeight * tank.distanceFromAxleCenterMm;
       }
     });
@@ -203,7 +231,7 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
     }
     const calculatedTBM = totalMoment / hitchToAxleCenterDistance;
     return isNaN(calculatedTBM) ? 0 : calculatedTBM;
-  }, [items, activeCaravan, enrichedCombinedStorageLocations, waterTankLevels, totalCaravanInventoryWeight, unassignedWeight, totalWaterWeight, hitchToAxleCenterDistance]);
+  }, [items, activeCaravan, enrichedCombinedStorageLocations, localWaterLevels, totalCaravanInventoryWeight, unassignedWeight, totalWaterWeight, hitchToAxleCenterDistance]);
 
   const remainingPayloadATM = atmLimit > 0 ? atmLimit - currentCaravanMass : 0;
   const currentLoadOnAxles = currentCaravanMass - calculatedTowballMass;
@@ -317,12 +345,36 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
                 <AlertDescription className="font-body text-muted-foreground">Inventory management is disabled. Please set an active caravan in 'Vehicles' to add or modify items.</AlertDescription>
             </Alert>
         )}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-          <div><Label htmlFor="itemName" className="font-body">Item Name</Label><Input id="itemName" value={itemName} onChange={(e) => setItemName(e.target.value)} placeholder="e.g., Camping Chair" disabled={isFormDisabled}/></div>
-          <div><Label htmlFor="itemWeight" className="font-body">Weight (kg)</Label><Input id="itemWeight" type="number" value={itemWeight} onChange={(e) => setItemWeight(e.target.value)} placeholder="e.g., 2.5" disabled={isFormDisabled}/></div>
-          <div><Label htmlFor="itemQuantity" className="font-body">Quantity</Label><Input id="itemQuantity" type="number" min="1" value={itemQuantity} onChange={(e) => setItemQuantity(e.target.value)} placeholder="e.g., 2" disabled={isFormDisabled}/></div>
-          <div><Label htmlFor="itemLocation" className="font-body">Location</Label><Select value={itemLocationId || "none"} onValueChange={(v) => setItemLocationId(v === "none" ? null : v)} disabled={isFormDisabled || enrichedCombinedStorageLocations.length === 0}><SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger><SelectContent><SelectItem value="none">Unassigned</SelectItem>{enrichedCombinedStorageLocations.map(loc => (<SelectItem key={loc.id} value={loc.id}>{loc.name} {loc.details}</SelectItem>))}</SelectContent></Select></div>
-          <Button onClick={handleAddItem} className="md:col-span-full lg:col-span-4 bg-accent hover:bg-accent/90 text-accent-foreground font-body" disabled={isFormDisabled || inventoryMutation.isPending}><PlusCircle className="mr-2 h-4 w-4" /> {editingItem ? 'Update' : 'Add'} Item</Button>
+        <div className="space-y-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-end">
+                <div className="flex-1 min-w-0">
+                    <Label htmlFor="itemName" className="font-body">Item Name</Label>
+                    <Input id="itemName" value={itemName} onChange={(e) => setItemName(e.target.value)} placeholder="e.g., Camping Chair" disabled={isFormDisabled}/>
+                </div>
+                <div className="w-full md:w-28 flex-shrink-0">
+                    <Label htmlFor="itemWeight" className="font-body">Weight (kg)</Label>
+                    <Input id="itemWeight" type="number" value={itemWeight} onChange={(e) => setItemWeight(e.target.value)} placeholder="2.5" disabled={isFormDisabled}/>
+                </div>
+                <div className="w-full md:w-24 flex-shrink-0">
+                    <Label htmlFor="itemQuantity" className="font-body">Qty</Label>
+                    <Input id="itemQuantity" type="number" min="1" value={itemQuantity} onChange={(e) => setItemQuantity(e.target.value)} placeholder="2" disabled={isFormDisabled}/>
+                </div>
+                <div className="flex-1 min-w-0">
+                    <Label htmlFor="itemLocation" className="font-body">Location</Label>
+                    <Select value={itemLocationId || "none"} onValueChange={(v) => setItemLocationId(v === "none" ? null : v)} disabled={isFormDisabled || enrichedCombinedStorageLocations.length === 0}>
+                        <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
+                        <SelectContent>
+                        <SelectItem value="none">Unassigned</SelectItem>
+                        {enrichedCombinedStorageLocations.map(loc => (
+                            <SelectItem key={loc.id} value={loc.id}>{loc.name} {loc.details}</SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+            <Button onClick={handleAddItem} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-body" disabled={isFormDisabled || inventoryMutation.isPending}>
+                <PlusCircle className="mr-2 h-4 w-4" /> {editingItem ? 'Update' : 'Add'} Item
+            </Button>
         </div>
 
         {isLoadingInventory && <p>Loading inventory...</p>}
@@ -339,7 +391,7 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
               {activeCaravan.waterTanks.map(tank => {
-                const currentLevel = waterTankLevels[tank.id] || 0;
+                const currentLevel = localWaterLevels[tank.id] || 0;
                 const levelOptions = [
                   { label: "Empty", value: 0 },
                   { label: "1/4", value: 25 },
@@ -426,9 +478,9 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
             {activeVehicle && (<Card><CardHeader><CardTitle>Vehicle Towing</CardTitle></CardHeader><CardContent><Alert variant={isOverMaxTowCapacity ? 'destructive' : 'default'}><AlertTitle>Towed Mass: {currentCaravanMass.toFixed(1)}kg / {vehicleMaxTowCapacity.toFixed(0)}kg</AlertTitle><AlertDescription>{isOverMaxTowCapacity ? 'OVER LIMIT!' : 'OK'}</AlertDescription></Alert></CardContent></Card>)}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-6">
-            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={200}><PieChart><Pie data={atmChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={80} innerRadius={60} dataKey="value" stroke="hsl(var(--background))">{atmChart.data.map((_, i) => (<Cell key={`cell-atm-${i}`} fill={atmChart.colors[i % atmChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="ATM" value={currentCaravanMass} limit={atmLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
-            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={200}><PieChart><Pie data={axleLoadChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={80} innerRadius={60} dataKey="value" stroke="hsl(var(--background))">{axleLoadChart.data.map((_, i) => (<Cell key={`cell-axle-${i}`} fill={axleLoadChart.colors[i % axleLoadChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Axle Load" value={currentLoadOnAxles} limit={axleLoadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
-            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={200}><PieChart><Pie data={towballChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={80} innerRadius={60} dataKey="value" stroke="hsl(var(--background))">{towballChart.data.map((_, i) => (<Cell key={`cell-towball-${i}`} fill={towballChart.colors[i % towballChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Calc. Towball" value={calculatedTowballMass} limit={caravanMaxTowballDownloadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
+            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={atmChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={100} innerRadius={75} dataKey="value" stroke="hsl(var(--background))">{atmChart.data.map((_, i) => (<Cell key={`cell-atm-${i}`} fill={atmChart.colors[i % atmChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="ATM" value={currentCaravanMass} limit={atmLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
+            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={axleLoadChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={100} innerRadius={75} dataKey="value" stroke="hsl(var(--background))">{axleLoadChart.data.map((_, i) => (<Cell key={`cell-axle-${i}`} fill={axleLoadChart.colors[i % axleLoadChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Axle Load" value={currentLoadOnAxles} limit={axleLoadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
+            <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={towballChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={100} innerRadius={75} dataKey="value" stroke="hsl(var(--background))">{towballChart.data.map((_, i) => (<Cell key={`cell-towball-${i}`} fill={towballChart.colors[i % towballChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Calc. Towball" value={calculatedTowballMass} limit={caravanMaxTowballDownloadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
           </div>
         </div>
       </CardContent>
