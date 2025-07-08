@@ -51,9 +51,18 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
   };
 
   const saveCaravanMutation = useMutation({
-    mutationFn: (caravanData: CaravanFormData | StoredCaravan) => {
-      const dataToSend = editingCaravan ? { ...editingCaravan, ...caravanData } : caravanData;
-      return 'id' in dataToSend && dataToSend.id ? updateCaravan(dataToSend as StoredCaravan) : createCaravan(dataToSend as CaravanFormData);
+    mutationFn: (caravanData: CaravanFormData) => {
+      if (editingCaravan) {
+        // We are updating. Ensure the ID is included for the API call.
+        const dataToSend: StoredCaravan = {
+          ...caravanData,
+          id: editingCaravan.id
+        }
+        return updateCaravan(dataToSend);
+      } else {
+        // We are creating a new one.
+        return createCaravan(caravanData);
+      }
     },
     onSuccess: (savedCaravan) => {
       invalidateAndRefetch();
