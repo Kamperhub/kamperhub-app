@@ -7,7 +7,7 @@ import { CaravanManager } from '@/components/features/vehicles/CaravanManager';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { fetchAllVehicleData } from '@/lib/api-client';
+import { fetchVehiclePageData } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 
@@ -15,8 +15,8 @@ export default function VehiclesPage() {
     const { user, isAuthLoading } = useAuth();
     
     const { data, isLoading, error } = useQuery({
-        queryKey: ['allVehicleData', user?.uid],
-        queryFn: fetchAllVehicleData,
+        queryKey: ['vehiclePageData', user?.uid],
+        queryFn: fetchVehiclePageData,
         enabled: !!user,
     });
 

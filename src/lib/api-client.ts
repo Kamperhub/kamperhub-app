@@ -42,6 +42,7 @@ async function apiFetch(url: string, options: RequestInit = {}) {
 
 // ---- Consolidated Vehicle Page Data Fetcher ----
 export const fetchAllVehicleData = () => apiFetch('/api/all-vehicle-data');
+export const fetchVehiclePageData = () => apiFetch('/api/vehicle-page-data');
 
 
 // ---- Vehicle API Functions ----
