@@ -20,6 +20,12 @@ export async function POST(req: NextRequest) {
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
   
+  // Proactive Environment Variable Validation
+  console.log('[AUTH CONNECT] Checking environment variables...');
+  console.log('[AUTH CONNECT] GOOGLE_CLIENT_ID set:', !!clientId);
+  console.log('[AUTH CONNECT] GOOGLE_CLIENT_SECRET set:', !!clientSecret);
+  console.log('[AUTH CONNECT] NEXT_PUBLIC_APP_URL set:', !!appUrl);
+  
   if (!clientId || !clientSecret) {
     console.error("[AUTH CONNECT] CRITICAL: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is not set in .env.local.");
     return NextResponse.json({ error: 'Google API credentials not configured on the server.' }, { status: 500 });

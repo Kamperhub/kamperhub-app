@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
     
     // State is single-use, delete it immediately after verification.
     await stateDocRef.delete();
+    console.log(`[AUTH CALLBACK] State verified and deleted for user: ${userId}`);
     
     if (!userId) {
         throw new Error("User ID not found in state document. Could not proceed.");
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
     }
 
     const redirectUri = `${appUrl}/api/auth/google/callback`;
-    console.log(`[AUTH CALLBACK] Using Redirect URI for token exchange: ${redirectUri}`); // Added logging
+    console.log(`[AUTH CALLBACK] Using Redirect URI for token exchange: ${redirectUri}`);
     
     const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 
@@ -85,6 +86,7 @@ export async function GET(req: NextRequest) {
     
   } catch (err: any) {
     console.error("[AUTH CALLBACK] An error occurred in the callback handler:", err);
+    console.error(err.stack); // Log the full stack trace
     await stateDocRef.delete().catch(() => {}); // Clean up state doc on error
     return NextResponse.redirect(new URL(`/my-account?error=${encodeURIComponent(err.message)}`, req.url));
   }
