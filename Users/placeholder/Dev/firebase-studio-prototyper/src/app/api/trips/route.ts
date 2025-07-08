@@ -107,11 +107,13 @@ const createTripSchema = z.object({
   activeCaravanNameAtTimeOfCreation: z.string().nullable().optional(),
 });
 
-const updateTripSchema = createTripSchema.extend({
+// For PUT, make most fields optional but require the ID.
+const updateTripSchema = createTripSchema.partial().extend({
   id: z.string().min(1, "Trip ID is required for updates"),
-  timestamp: z.string().datetime(),
+  timestamp: z.string().datetime().optional(), // Also make timestamp optional for partial updates
   expenses: z.array(expenseSchema).optional(),
 });
+
 
 const handleApiError = (error: any) => {
   console.error('API Error:', error);
@@ -207,25 +209,25 @@ export async function PUT(req: NextRequest) {
   
   try {
     const body = await req.json();
+    // Use the new partial schema for updates
     const parsedData = updateTripSchema.parse(body);
 
     const tripRef = firestore.collection('users').doc(uid).collection('trips').doc(parsedData.id);
     
-    const dataToSet: LoggedTrip = {
-        ...parsedData,
-        timestamp: new Date().toISOString(), // Overwrite timestamp on every update
-        waypoints: parsedData.waypoints || [],
-        notes: parsedData.notes || null,
-        occupants: (parsedData.occupants || []).map(occ => ({
-            ...occ,
-            age: occ.age ?? null,
-            notes: occ.notes ?? null,
-        })),
+    // Prepare data for merging, ensuring we don't overwrite with undefined
+    const updatePayload: { [key: string]: any } = {
+      ...parsedData,
+      timestamp: new Date().toISOString(),
     };
-
-    await tripRef.set(dataToSet, { merge: true });
+    Object.keys(updatePayload).forEach(key => updatePayload[key] === undefined && delete updatePayload[key]);
     
-    return NextResponse.json({ message: 'Trip updated successfully.', trip: dataToSet }, { status: 200 });
+    await tripRef.set(updatePayload, { merge: true });
+    
+    // Fetch the updated doc to return the full object
+    const updatedDoc = await tripRef.get();
+    const updatedTrip = updatedDoc.data() as LoggedTrip;
+
+    return NextResponse.json({ message: 'Trip updated successfully.', trip: updatedTrip }, { status: 200 });
   } catch (err: any) {
     return handleApiError(err);
   }
