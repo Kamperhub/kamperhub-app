@@ -254,3 +254,45 @@ The debug tool for creating users has been removed for security. The application
 3.  After signing up, you should be logged in and can access all features.
 
 > **Warning:** Never commit your `.env.local` file to Git. It contains secrets that provide administrative access to your Firebase project.
+
+---
+---
+
+## **Troubleshooting Google Connection Issues**
+
+> [!WARNING]
+> **Symptom: The "Connect Google Tasks" button does nothing, or shows an error toast.**
+> This almost always means there is a server-side configuration issue preventing the app from generating the Google authentication URL. The problem is NOT your Redirect URI if you've already verified it. The cause is likely one of the two issues below.
+
+### **1. Verify the Google Tasks API is Enabled**
+
+The application needs permission to talk to Google Tasks. If this API is not enabled, the request will fail on the server.
+
+1.  **Go to the [Google Cloud APIs & Services Dashboard](https://console.cloud.google.com/apis/dashboard) for your `kamperhub-s4hc2` project.**
+2.  Click **"+ ENABLE APIS AND SERVICES"**.
+3.  Search for **"Google Tasks API"**.
+4.  If it is not already enabled, click the **"Enable"** button. If it's enabled, you will see a "Manage" button.
+
+### **2. Verify Firestore Security Rules**
+
+To prevent a security issue called "Cross-Site Request Forgery", the connection process creates a temporary, single-use token in your Firestore database in a collection called `oauthStates`. If your security rules block this action, the connection will fail.
+
+1.  Go to the [Firebase Console](https://console.firebase.google.com/) for your `kamperhub-s4hc2` project.
+2.  Navigate to the **Firestore Database** section.
+3.  Make sure you have selected the **`kamperhubv2`** database from the dropdown at the top.
+4.  Click on the **"Rules"** tab.
+5.  Your rules should allow an authenticated user to create documents in the `oauthStates` collection. Add the following `match` block inside your `match /databases/kamperhubv2/documents { ... }` block if it doesn't exist:
+
+    ```firestore-rules
+    // Add this block for Google Auth state tokens
+    match /oauthStates/{state} {
+      // Allow any authenticated user to create a state token for themselves.
+      // The document ID is the random 'state' string.
+      // We check that the 'userId' in the document being created matches the user's UID.
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      
+      // Only the user who created the state token can read or delete it.
+      allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    ```
+6.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
