@@ -1,3 +1,4 @@
+
 // src/app/api/trips/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -167,7 +168,12 @@ export async function GET(req: NextRequest) {
 
   try {
     const tripsSnapshot = await firestore.collection('users').doc(uid).collection('trips').get();
-    const trips = tripsSnapshot.docs.map(doc => doc.data()).filter(Boolean);
+    const trips: LoggedTrip[] = [];
+    tripsSnapshot.forEach(doc => {
+      if (doc.exists()) {
+        trips.push(doc.data() as LoggedTrip);
+      }
+    });
     const sanitizedTrips = sanitizeData(trips);
     return NextResponse.json(sanitizedTrips, { status: 200 });
   } catch (err: any) {

@@ -111,10 +111,7 @@ export async function updateInventory(payload: { caravanId: string; items: Inven
 
 // ---- Trip API Functions ----
 export async function fetchTrips(): Promise<LoggedTrip[]> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    const querySnapshot = await getDocs(collection(db, 'users', uid, 'trips'));
-    return querySnapshot.docs.map(doc => doc.data() as LoggedTrip);
+    return apiFetch('/api/trips');
 }
 export async function createTrip(data: Omit<LoggedTrip, 'id' | 'timestamp'>): Promise<LoggedTrip> {
     const uid = auth.currentUser?.uid;
@@ -136,7 +133,7 @@ export async function deleteTrip(id: string): Promise<{ message: string }> {
 
 // ---- Booking API Functions ----
 export async function fetchBookings(): Promise<BookingEntry[]> {
-    return apiFetch('/api/bookings').then(res => res);
+    return apiFetch('/api/bookings');
 }
 export async function createBooking(data: Omit<BookingEntry, 'id' | 'timestamp'>): Promise<BookingEntry> {
     return apiFetch('/api/bookings', { method: 'POST', body: JSON.stringify(data) });

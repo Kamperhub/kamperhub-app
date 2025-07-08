@@ -104,7 +104,12 @@ export async function GET(req: NextRequest) {
 
   try {
     const bookingsSnapshot = await firestore.collection('users').doc(uid).collection('bookings').get();
-    const bookings = bookingsSnapshot.docs.map(doc => doc.data()).filter(Boolean);
+    const bookings: BookingEntry[] = [];
+    bookingsSnapshot.forEach(doc => {
+        if (doc.exists()) {
+            bookings.push(doc.data() as BookingEntry);
+        }
+    });
     const sanitizedBookings = sanitizeData(bookings);
     return NextResponse.json(sanitizedBookings, { status: 200 });
   } catch (err: any) {
