@@ -102,6 +102,7 @@ const createTripSchema = z.object({
   isVehicleOnly: z.boolean().optional().default(false),
   checklists: tripChecklistSetSchema.optional(),
   budget: z.array(budgetCategorySchema).optional(),
+  expenses: z.array(expenseSchema).optional(),
   occupants: z.array(occupantSchema).min(1, "At least one occupant (e.g., the driver) is required.").optional(),
   activeCaravanIdAtTimeOfCreation: z.string().nullable().optional(),
   activeCaravanNameAtTimeOfCreation: z.string().nullable().optional(),
@@ -110,8 +111,6 @@ const createTripSchema = z.object({
 // For PUT, make most fields optional but require the ID.
 const updateTripSchema = createTripSchema.partial().extend({
   id: z.string().min(1, "Trip ID is required for updates"),
-  timestamp: z.string().datetime().optional(), // Also make timestamp optional for partial updates
-  expenses: z.array(expenseSchema).optional(),
 });
 
 
@@ -184,7 +183,7 @@ export async function POST(req: NextRequest) {
       waypoints: parsedData.waypoints || [],
       notes: parsedData.notes || null,
       isVehicleOnly: parsedData.isVehicleOnly || false,
-      expenses: [],
+      expenses: parsedData.expenses || [],
       budget: parsedData.budget || [],
       occupants: (parsedData.occupants || []).map(occ => ({
         ...occ,
@@ -209,7 +208,6 @@ export async function PUT(req: NextRequest) {
   
   try {
     const body = await req.json();
-    // Use the new partial schema for updates
     const parsedData = updateTripSchema.parse(body);
 
     const tripRef = firestore.collection('users').doc(uid).collection('trips').doc(parsedData.id);
