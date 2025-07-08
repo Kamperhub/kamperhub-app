@@ -136,40 +136,18 @@ export default function SupportPage() {
         </TabsContent>
 
         <TabsContent value="manual">
-          <div className="bg-card p-0 sm:p-6 rounded-lg shadow-sm border">
-            <div className="mb-0 sm:mb-4 px-6 pt-6 sm:p-0"> 
-              <h2 className="font-headline text-2xl text-primary flex items-center mb-1"> 
-                <BookText className="h-7 w-7 text-primary mr-3" />
-                User Manual
-              </h2>
-              <p className="text-muted-foreground font-body">
-                Your complete guide to using KamperHub.
-              </p>
-            </div>
-            <div className="px-0 sm:px-2"> 
-              <ScrollArea className="h-[calc(100vh-300px)] sm:h-[calc(100vh-350px)] pr-0 sm:pr-4">
-                <UserManualContent />
-              </ScrollArea>
-            </div>
+          <div className="bg-card p-6 rounded-lg shadow-sm border">
+            <ScrollArea className="h-[calc(100vh-350px)] pr-4">
+              <UserManualContent />
+            </ScrollArea>
           </div>
         </TabsContent>
 
         <TabsContent value="tos">
-          <div className="bg-card p-0 sm:p-6 rounded-lg shadow-sm border">
-            <div className="mb-0 sm:mb-4 px-6 pt-6 sm:p-0"> 
-              <h2 className="font-headline text-2xl text-primary flex items-center mb-1"> 
-                <FileLock2 className="h-7 w-7 text-primary mr-3" />
-                Terms of Service
-              </h2>
-              <p className="text-muted-foreground font-body">
-                Please review our terms and conditions.
-              </p>
-            </div>
-            <div className="px-0 sm:px-2"> 
-              <ScrollArea className="h-[calc(100vh-300px)] sm:h-[calc(100vh-350px)] pr-0 sm:pr-4">
+           <div className="bg-card p-6 rounded-lg shadow-sm border">
+            <ScrollArea className="h-[calc(100vh-350px)] pr-4">
                 <TermsOfServiceContent />
-              </ScrollArea>
-            </div>
+            </ScrollArea>
           </div>
         </TabsContent>
 
@@ -177,4 +155,3 @@ export default function SupportPage() {
     </div>
   );
 }
-
