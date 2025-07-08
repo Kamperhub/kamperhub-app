@@ -260,7 +260,7 @@ export default function MyAccountPage() {
     try {
       const { url } = await generateGoogleAuthUrl();
       if (url) {
-        window.location.href = url;
+        window.top.location.href = url; // Use window.top.location.href to break out of iframe
       } else {
         throw new Error("The server did not return a valid authentication URL.");
       }
