@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -349,9 +348,9 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
                 ];
                 return (
                   <div key={tank.id}>
-                    <div className="flex justify-between items-center mb-2">
+                    <div className="flex items-baseline gap-4 mb-2">
                       <Label>{tank.name} ({tank.capacityLitres}L - {tank.type})</Label>
-                      <span className="text-sm font-medium">
+                      <span className="text-sm font-medium text-muted-foreground">
                         {currentLevel}% ({((tank.capacityLitres * currentLevel) / 100).toFixed(1)} kg)
                       </span>
                     </div>
