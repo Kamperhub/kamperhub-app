@@ -19,7 +19,7 @@ const config = {
       },
     },
     fontSize: {
-      xs: ['0.75rem', { lineHeight: '1rem' }],
+      xs: ['1rem', { lineHeight: '1.5rem' }],
       sm: ['1.125rem', { lineHeight: '1.75rem' }], // Changed from 0.875rem to 1.125rem (18px)
       base: ['1rem', { lineHeight: '1.5rem' }],
       lg: ['1.125rem', { lineHeight: '1.75rem' }],
