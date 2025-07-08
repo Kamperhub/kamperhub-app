@@ -396,34 +396,49 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
             )}
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 my-6 text-center">
-          <div>
-              <Label className="text-sm font-normal text-muted-foreground">Caravan ATM</Label>
-              <p className={`font-bold text-lg ${getAlertStylingVariant(currentCaravanMass, atmLimit) === 'destructive' ? 'text-destructive' : 'text-foreground'}`}>
-                  {currentCaravanMass.toFixed(1)} / {atmLimit > 0 ? atmLimit.toFixed(0) : 'N/A'} kg
-              </p>
-          </div>
-          <div>
-              <Label className="text-sm font-normal text-muted-foreground">Caravan Axle Load</Label>
-              <p className={`font-bold text-lg ${getAlertStylingVariant(currentLoadOnAxles, axleLoadLimit) === 'destructive' ? 'text-destructive' : 'text-foreground'}`}>
-                  {currentLoadOnAxles.toFixed(1)} / {axleLoadLimit > 0 && axleLoadLimit !== Infinity ? axleLoadLimit.toFixed(0) : 'N/A'} kg
-              </p>
-          </div>
-          {activeVehicle && vehicleGVM > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-headline flex items-center"><HomeIcon className="mr-2 h-5 w-5"/> Caravan Weights</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4 text-center">
               <div>
-                  <Label className="text-sm font-normal text-muted-foreground">Vehicle GVM</Label>
-                  <p className={`font-bold text-lg ${getAlertStylingVariant(currentVehicleMass, vehicleGVM) === 'destructive' ? 'text-destructive' : 'text-foreground'}`}>
-                      {currentVehicleMass.toFixed(1)} / {vehicleGVM.toFixed(0)} kg
-                  </p>
+                <Label className="text-sm font-normal text-muted-foreground">ATM</Label>
+                <p className={`font-bold text-lg ${getAlertStylingVariant(currentCaravanMass, atmLimit) === 'destructive' ? 'text-destructive' : 'text-foreground'}`}>
+                    {currentCaravanMass.toFixed(1)} / {atmLimit > 0 ? atmLimit.toFixed(0) : 'N/A'} kg
+                </p>
               </div>
-          )}
-          {activeVehicle && (
               <div>
-                  <Label className="text-sm font-normal text-muted-foreground">Vehicle Towing</Label>
+                <Label className="text-sm font-normal text-muted-foreground">Axle Load</Label>
+                <p className={`font-bold text-lg ${getAlertStylingVariant(currentLoadOnAxles, axleLoadLimit) === 'destructive' ? 'text-destructive' : 'text-foreground'}`}>
+                    {currentLoadOnAxles.toFixed(1)} / {axleLoadLimit > 0 && axleLoadLimit !== Infinity ? axleLoadLimit.toFixed(0) : 'N/A'} kg
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {activeVehicle && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg font-headline flex items-center"><Car className="mr-2 h-5 w-5"/> Vehicle Weights</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-4 text-center">
+                {vehicleGVM > 0 && (
+                  <div>
+                    <Label className="text-sm font-normal text-muted-foreground">GVM</Label>
+                    <p className={`font-bold text-lg ${getAlertStylingVariant(currentVehicleMass, vehicleGVM) === 'destructive' ? 'text-destructive' : 'text-foreground'}`}>
+                        {currentVehicleMass.toFixed(1)} / {vehicleGVM.toFixed(0)} kg
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <Label className="text-sm font-normal text-muted-foreground">Towing Capacity</Label>
                   <p className={`font-bold text-lg ${isOverMaxTowCapacity ? 'text-destructive' : 'text-foreground'}`}>
                       {currentCaravanMass.toFixed(1)} / {vehicleMaxTowCapacity.toFixed(0)} kg
                   </p>
-              </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
 
