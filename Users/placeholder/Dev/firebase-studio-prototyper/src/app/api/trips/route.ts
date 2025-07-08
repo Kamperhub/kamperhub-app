@@ -1,3 +1,4 @@
+
 // src/app/api/trips/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -57,6 +58,7 @@ const routeDetailsSchema = z.object({
   endLocation: latLngSchema.optional().nullable(),
   polyline: z.string().optional().nullable(),
   warnings: z.array(z.string()).optional().nullable(),
+  tollInfo: z.object({ text: z.string(), value: z.number() }).nullable().optional(),
 });
 
 
@@ -71,10 +73,17 @@ const checklistItemSchema = z.object({
   completed: z.boolean(),
 });
 
-const tripChecklistSetSchema = z.array(z.object({
+const tripChecklistSetSchema = z.union([
+  z.array(z.object({ // New stage-based format
     title: z.string(),
     items: z.array(checklistItemSchema),
-}));
+  })),
+  z.object({ // Old format for backward compatibility
+    preDeparture: z.array(checklistItemSchema),
+    campsiteSetup: z.array(checklistItemSchema),
+    packDown: z.array(checklistItemSchema),
+  })
+]);
 
 
 const occupantSchema = z.object({
