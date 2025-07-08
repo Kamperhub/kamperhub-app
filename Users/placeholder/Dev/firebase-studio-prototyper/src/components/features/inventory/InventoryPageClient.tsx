@@ -1,7 +1,7 @@
 
 "use client"; 
 
-import { useMemo, useContext } from 'react';
+import { useState, useMemo, useContext } from 'react';
 import type { StoredCaravan } from '@/types/caravan'; 
 import type { StoredVehicle } from '@/types/vehicle';
 import type { UserProfile } from '@/types/auth';
@@ -9,7 +9,7 @@ import type { LoggedTrip } from '@/types/tripplanner';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { Settings, Car, HomeIcon, Link2 as Link2Icon, Backpack } from 'lucide-react';
+import { Settings, Car, HomeIcon, Link2 as Link2Icon, Backpack, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
