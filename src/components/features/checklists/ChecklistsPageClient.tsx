@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,15 +10,18 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Info, ListChecks, PlusCircle, Trash2, Edit3, ChevronLeft, CheckCircle, Navigation } from 'lucide-react';
+import { Loader2, Info, ListChecks, PlusCircle, Trash2, Edit3, ChevronLeft, CheckCircle, Navigation, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 import type { LoggedTrip } from '@/types/tripplanner';
 import type { ChecklistItem, ChecklistStage } from '@/types/checklist';
 import { useToast } from '@/hooks/use-toast';
-import { updateTrip } from '@/lib/api-client';
+import { fetchTrips, updateTrip } from '@/lib/api-client';
 import { fullRigChecklist, vehicleOnlyChecklist } from '@/types/checklist';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useAuth } from '@/hooks/useAuth';
 
 // Utility to migrate old checklist format to new stage-based format
 function migrateLegacyChecklist(legacyChecklist: any): ChecklistStage[] {
@@ -49,27 +51,29 @@ function migrateLegacyChecklist(legacyChecklist: any): ChecklistStage[] {
   }));
 }
 
-interface ChecklistsPageClientProps {
-  initialTrips: LoggedTrip[];
-}
-
-export function ChecklistsPageClient({ initialTrips }: ChecklistsPageClientProps) {
+export function ChecklistsPageClient() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [checklist, setChecklist] = useState<ChecklistStage[]>([]);
   const [editingItem, setEditingItem] = useState<{ stageIndex: number; itemIndex: number } | null>(null);
   const [newItemText, setNewItemText] = useState<{ [stageIndex: number]: string }>({});
 
-  const loggedTrips = initialTrips;
+  const { data: loggedTrips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery<LoggedTrip[]>({
+      queryKey: ['trips', user?.uid],
+      queryFn: fetchTrips,
+      enabled: !!user,
+  });
+
   const selectedTrip = useMemo(() => loggedTrips.find(trip => trip.id === selectedTripId), [loggedTrips, selectedTripId]);
 
   // Load and migrate checklist when a trip is selected
   useEffect(() => {
     if (selectedTrip) {
-      if (selectedTrip.checklists && Array.isArray(selectedTrip.checklists)) {
+      if (selectedTrip.checklists && (Array.isArray(selectedTrip.checklists) || typeof selectedTrip.checklists === 'object')) {
          setChecklist(migrateLegacyChecklist(selectedTrip.checklists));
       } else {
         // If no checklist exists, create one from default templates
@@ -84,7 +88,7 @@ export function ChecklistsPageClient({ initialTrips }: ChecklistsPageClientProps
   const updateTripMutation = useMutation({
     mutationFn: (updatedTrip: Partial<LoggedTrip> & { id: string }) => updateTrip(updatedTrip as LoggedTrip),
     onSuccess: (data) => {
-      queryClient.setQueryData<LoggedTrip[]>(['trips', data.trip.id], (oldData) => 
+      queryClient.setQueryData<LoggedTrip[]>(['trips', user?.uid], (oldData) => 
         oldData ? oldData.map(t => t.id === data.trip.id ? data.trip : t) : [data.trip]
       );
       toast({ title: "Checklist Saved" });
@@ -173,6 +177,28 @@ export function ChecklistsPageClient({ initialTrips }: ChecklistsPageClientProps
     });
   }, [selectedTrip, toast]);
 
+  if (isLoadingTrips) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-1/3 mb-4" />
+        <Skeleton className="h-10 w-full md:w-1/2" />
+        <Skeleton className="h-40 w-full mt-6" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    );
+  }
+
+  if (tripsError) {
+    return (
+      <div className="container mx-auto py-8">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error Loading Trip Data</AlertTitle>
+          <AlertDescription>{(tripsError as Error).message}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
