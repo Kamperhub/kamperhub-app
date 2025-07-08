@@ -15,8 +15,14 @@ const firestoreTimestampReplacer = (key: any, value: any) => {
 
 // Helper function to create a clean, JSON-safe object.
 const sanitizeData = (data: any) => {
-    const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
-    return JSON.parse(jsonString);
+    try {
+        const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
+        return JSON.parse(jsonString);
+    } catch (error: any) {
+        console.error('CRITICAL: Failed to serialize data for API response.', error);
+        // Throw a new error with a clear message, which will be caught by handleApiError
+        throw new Error(`Data serialization failed: ${error.message}`);
+    }
 };
 
 async function verifyUserAndGetInstances(req: NextRequest) {
@@ -228,8 +234,9 @@ export async function PUT(req: NextRequest) {
 
     const tripRef = firestore.collection('users').doc(uid).collection('trips').doc(parsedData.id);
     
-    const dataToSet = {
+    const dataToSet: LoggedTrip = {
         ...parsedData,
+        timestamp: new Date().toISOString(), // Overwrite timestamp on every update
         waypoints: parsedData.waypoints || [],
         notes: parsedData.notes || null,
         occupants: (parsedData.occupants || []).map(occ => ({

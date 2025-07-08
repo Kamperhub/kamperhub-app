@@ -18,8 +18,14 @@ const firestoreTimestampReplacer = (key: any, value: any) => {
 
 // Helper function to create a clean, JSON-safe object.
 const sanitizeData = (data: any) => {
-    const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
-    return JSON.parse(jsonString);
+    try {
+        const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
+        return JSON.parse(jsonString);
+    } catch (error: any) {
+        console.error('CRITICAL: Failed to serialize data for API response.', error);
+        // Throw a new error with a clear message, which will be caught by handleApiError
+        throw new Error(`Data serialization failed: ${error.message}`);
+    }
 };
 
 async function verifyUserAndGetInstances(req: NextRequest) {
@@ -177,8 +183,8 @@ export async function PUT(req: NextRequest) {
   
   try {
     const body = await req.json();
-    const newBookingData = updateBookingSchema.parse(body);
-    const { id: bookingId, assignedTripId: newTripId, budgetedCost: newCostValue } = newBookingData;
+    const parsedBookingData = updateBookingSchema.parse(body);
+    const { id: bookingId, assignedTripId: newTripId, budgetedCost: newCostValue } = parsedBookingData;
     const newCost = newCostValue || 0;
 
     const bookingRef = firestore.collection('users').doc(uid).collection('bookings').doc(bookingId);
@@ -224,7 +230,7 @@ export async function PUT(req: NextRequest) {
         transaction.update(newTripRef, { budget });
       }
 
-      finalUpdatedBooking = { ...newBookingData, updatedAt: new Date().toISOString() };
+      finalUpdatedBooking = { ...parsedBookingData, timestamp: new Date().toISOString() };
       transaction.set(bookingRef, finalUpdatedBooking, { merge: true });
     });
     

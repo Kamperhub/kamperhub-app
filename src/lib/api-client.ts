@@ -1,24 +1,7 @@
 
 'use client';
 
-import { auth, db } from './firebase';
-import { 
-  collection, 
-  doc, 
-  getDocs,
-  getDoc, 
-  setDoc,
-  updateDoc, 
-  deleteDoc,
-} from 'firebase/firestore';
-
-import type { StoredVehicle, VehicleFormData } from '@/types/vehicle';
-import type { StoredCaravan, CaravanFormData } from '@/types/caravan';
-import type { InventoryItem } from '@/types/inventory';
-import type { LoggedTrip } from '@/types/tripplanner';
-import type { BookingEntry } from '@/types/booking';
-import type { UserProfile } from '@/types/auth';
-import type { PackingListCategory } from '@/types/packing';
+import { auth } from './firebase';
 
 async function apiFetch(url: string, options: RequestInit = {}) {
     const user = auth.currentUser;
@@ -46,125 +29,43 @@ export const fetchVehiclePageData = () => apiFetch('/api/vehicle-page-data');
 
 
 // ---- Vehicle API Functions ----
-export async function fetchVehicles(): Promise<StoredVehicle[]> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    const querySnapshot = await getDocs(collection(db, 'users', uid, 'vehicles'));
-    return querySnapshot.docs.map(doc => doc.data() as StoredVehicle);
-}
-export async function createVehicle(data: VehicleFormData): Promise<StoredVehicle> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    const newDocRef = doc(collection(db, 'users', uid, 'vehicles'));
-    const newVehicle: StoredVehicle = { id: newDocRef.id, ...data };
-    await setDoc(newDocRef, newVehicle);
-    return newVehicle;
-}
-export async function updateVehicle(data: StoredVehicle): Promise<{ vehicle: StoredVehicle }> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    await setDoc(doc(db, 'users', uid, 'vehicles', data.id), data, { merge: true });
-    return { vehicle: data };
-}
-export async function deleteVehicle(id: string): Promise<{ message: string }> {
-    return apiFetch('/api/vehicles', { method: 'DELETE', body: JSON.stringify({ id }) });
-}
+export const createVehicle = (data: any) => apiFetch('/api/vehicles', { method: 'POST', body: JSON.stringify(data) });
+export const updateVehicle = (data: any) => apiFetch('/api/vehicles', { method: 'PUT', body: JSON.stringify(data) });
+export const deleteVehicle = (id: string) => apiFetch('/api/vehicles', { method: 'DELETE', body: JSON.stringify({ id }) });
+export const fetchVehicles = () => apiFetch('/api/vehicles');
 
 // ---- Caravan API Functions ----
-export async function fetchCaravans(): Promise<StoredCaravan[]> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    const querySnapshot = await getDocs(collection(db, 'users', uid, 'caravans'));
-    return querySnapshot.docs.map(doc => doc.data() as StoredCaravan);
-}
-export async function createCaravan(data: CaravanFormData): Promise<StoredCaravan> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    const newDocRef = doc(collection(db, 'users', uid, 'caravans'));
-    const newCaravan: StoredCaravan = { id: newDocRef.id, ...data };
-    await setDoc(newDocRef, newCaravan);
-    return newCaravan;
-}
-export async function updateCaravan(data: StoredCaravan): Promise<{ caravan: StoredCaravan }> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    await setDoc(doc(db, 'users', uid, 'caravans', data.id), data, { merge: true });
-    return { caravan: data };
-}
-export async function deleteCaravan(id: string): Promise<{ message: string }> {
-    return apiFetch('/api/caravans', { method: 'DELETE', body: JSON.stringify({ id }) });
-}
+export const createCaravan = (data: any) => apiFetch('/api/caravans', { method: 'POST', body: JSON.stringify(data) });
+export const updateCaravan = (data: any) => apiFetch('/api/caravans', { method: 'PUT', body: JSON.stringify(data) });
+export const deleteCaravan = (id: string) => apiFetch('/api/caravans', { method: 'DELETE', body: JSON.stringify({ id }) });
+export const fetchCaravans = () => apiFetch('/api/caravans');
 
 // ---- Inventory API Functions ----
-export async function fetchInventory(caravanId: string): Promise<{ items: InventoryItem[] }> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    const docSnap = await getDoc(doc(db, 'users', uid, 'inventories', caravanId));
-    return docSnap.exists() ? docSnap.data() as { items: InventoryItem[] } : { items: [] };
-}
-export async function updateInventory(payload: { caravanId: string; items: InventoryItem[] }): Promise<{ items: InventoryItem[] }> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    await setDoc(doc(db, 'users', uid, 'inventories', payload.caravanId), { items: payload.items });
-    return { items: payload.items };
-}
+export const fetchInventory = (caravanId: string) => apiFetch(`/api/inventory/${caravanId}`);
+export const updateInventory = (payload: { caravanId: string; items: any[] }) => apiFetch(`/api/inventory/${payload.caravanId}`, { method: 'PUT', body: JSON.stringify(payload.items) });
 
 // ---- Trip API Functions ----
-export async function fetchTrips(): Promise<LoggedTrip[]> {
-    return apiFetch('/api/trips');
-}
-export async function createTrip(data: Omit<LoggedTrip, 'id' | 'timestamp'>): Promise<LoggedTrip> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    const newDocRef = doc(collection(db, 'users', uid, 'trips'));
-    const newTrip: LoggedTrip = { ...data, id: newDocRef.id, timestamp: new Date().toISOString() };
-    await setDoc(newDocRef, newTrip);
-    return newTrip;
-}
-export async function updateTrip(data: LoggedTrip): Promise<{ trip: LoggedTrip }> {
-    const uid = auth.currentUser?.uid;
-    if (!uid) throw new Error("User not authenticated.");
-    await setDoc(doc(db, 'users', uid, 'trips', data.id), data, { merge: true });
-    return { trip: data };
-}
-export async function deleteTrip(id: string): Promise<{ message: string }> {
-    return apiFetch(`/api/trips`, { method: 'DELETE', body: JSON.stringify({ id }) });
-}
+export const fetchTrips = () => apiFetch('/api/trips');
+export const createTrip = (data: any) => apiFetch('/api/trips', { method: 'POST', body: JSON.stringify(data) });
+export const updateTrip = (data: any) => apiFetch('/api/trips', { method: 'PUT', body: JSON.stringify(data) });
+export const deleteTrip = (id: string) => apiFetch(`/api/trips`, { method: 'DELETE', body: JSON.stringify({ id }) });
 
 // ---- Booking API Functions ----
-export async function fetchBookings(): Promise<BookingEntry[]> {
-    return apiFetch('/api/bookings');
-}
-export async function createBooking(data: Omit<BookingEntry, 'id' | 'timestamp'>): Promise<BookingEntry> {
-    return apiFetch('/api/bookings', { method: 'POST', body: JSON.stringify(data) });
-}
-export async function updateBooking(data: BookingEntry): Promise<{ booking: BookingEntry }> {
-    return apiFetch('/api/bookings', { method: 'PUT', body: JSON.stringify(data) });
-}
-export async function deleteBooking(id: string): Promise<{ message: string }> {
-    return apiFetch('/api/bookings', { method: 'DELETE', body: JSON.stringify({ id }) });
-}
+export const fetchBookings = () => apiFetch('/api/bookings');
+export const createBooking = (data: any) => apiFetch('/api/bookings', { method: 'POST', body: JSON.stringify(data) });
+export const updateBooking = (data: any) => apiFetch('/api/bookings', { method: 'PUT', body: JSON.stringify(data) });
+export const deleteBooking = (id: string) => apiFetch('/api/bookings', { method: 'DELETE', body: JSON.stringify({ id }) });
 
 // ---- User Preferences API ----
-export async function fetchUserPreferences(): Promise<Partial<UserProfile>> {
-     return apiFetch('/api/user-preferences');
-}
-export async function updateUserPreferences(preferences: Partial<UserProfile>): Promise<{ message: string }> {
-    return apiFetch('/api/user-preferences', { method: 'PUT', body: JSON.stringify(preferences) });
-}
+export const fetchUserPreferences = () => apiFetch('/api/user-preferences');
+export const updateUserPreferences = (preferences: any) => apiFetch('/api/user-preferences', { method: 'PUT', body: JSON.stringify(preferences) });
 
 // ---- Packing List API Functions ----
-export async function fetchPackingList(tripId: string): Promise<{ list: PackingListCategory[] }> {
-    return apiFetch(`/api/packing-list/${tripId}`);
-}
-export async function updatePackingList(payload: { tripId: string; list: PackingListCategory[] }): Promise<{ message: string }> {
-    return apiFetch(`/api/packing-list/${payload.tripId}`, { method: 'PUT', body: JSON.stringify(payload.list) });
-}
-export async function deletePackingList(tripId: string): Promise<{ message: string }> {
-    return apiFetch(`/api/packing-list/${tripId}`, { method: 'DELETE' });
-}
+export const fetchPackingList = (tripId: string) => apiFetch(`/api/packing-list/${tripId}`);
+export const updatePackingList = (payload: { tripId: string; list: any[] }) => apiFetch(`/api/packing-list/${payload.tripId}`, { method: 'PUT', body: JSON.stringify(payload.list) });
+export const deletePackingList = (tripId: string) => apiFetch(`/api/packing-list/${tripId}`, { method: 'DELETE' });
 
 // ---- Admin & Auth Functions ----
-export const fetchAllUsers = (): Promise<{uid: string, email: string | undefined, tripCount: number | string}[]> => apiFetch('/api/admin/list-users');
-export const generateGoogleAuthUrl = (): Promise<{ url: string }> => apiFetch('/api/auth/google/connect', { method: 'POST' });
-export const disconnectGoogleAccount = (): Promise<{ message: string }> => apiFetch('/api/auth/google/disconnect', { method: 'POST' });
+export const fetchAllUsers = () => apiFetch('/api/admin/list-users');
+export const generateGoogleAuthUrl = () => apiFetch('/api/auth/google/connect', { method: 'POST' });
+export const disconnectGoogleAccount = () => apiFetch('/api/auth/google/disconnect', { method: 'POST' });
