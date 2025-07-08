@@ -4,10 +4,13 @@ import { google } from 'googleapis';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 
 export async function GET(req: NextRequest) {
+  // NEW LOGGING
+  console.log(`[AUTH CALLBACK] Received GET request for: ${req.url}`);
+
   const { auth, firestore, error: adminError } = getFirebaseAdmin();
   if (adminError || !auth || !firestore) {
-    console.error('Error getting Firebase Admin instances:', adminError?.message);
-    return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
+    console.error('[AUTH CALLBACK] Error getting Firebase Admin instances:', adminError?.message);
+    return NextResponse.redirect(new URL('/my-account?error=server_config_error', req.url));
   }
 
   const { searchParams } = new URL(req.url);
@@ -16,21 +19,22 @@ export async function GET(req: NextRequest) {
   const error = searchParams.get('error');
 
   if (error) {
-    console.error('Google OAuth Error:', error);
-    return NextResponse.redirect(new URL('/my-account?error=google_auth_failed', req.url));
+    console.error(`[AUTH CALLBACK] Google returned an error: ${error}`);
+    return NextResponse.redirect(new URL(`/my-account?error=${encodeURIComponent(error)}`, req.url));
   }
   if (!code || !state) {
-    console.error('Google OAuth: Missing code or state parameter.');
+    console.error('[AUTH CALLBACK] Google response is missing code or state parameter.');
     return NextResponse.redirect(new URL('/my-account?error=google_auth_invalid_response', req.url));
   }
   
   const stateDocRef = firestore.collection('oauthStates').doc(state);
   
   try {
+    console.log(`[AUTH CALLBACK] Verifying state: ${state}`);
     const stateDoc = await stateDocRef.get();
     if (!stateDoc.exists) {
-      console.error("Invalid or expired state parameter received from Google Auth callback.");
-      throw new Error("Invalid state parameter. Please try connecting again.");
+      console.error("[AUTH CALLBACK] Invalid or expired state parameter received.");
+      throw new Error("Invalid state parameter. Please try connecting your account again.");
     }
     const { userId } = stateDoc.data() as { userId: string };
     
@@ -38,43 +42,45 @@ export async function GET(req: NextRequest) {
     await stateDocRef.delete();
     
     if (!userId) {
-        throw new Error("User ID not found in state document.");
+        throw new Error("User ID not found in state document. Could not proceed.");
     }
 
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     
     if (!clientId || !clientSecret) {
-      throw new Error("Google API credentials are not configured on the server. Please check your .env.local file.");
+      throw new Error("Google API credentials are not configured on the server.");
     }
 
     const redirectUri = `${new URL(req.url).origin}/api/auth/google/callback`;
     const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 
+    console.log(`[AUTH CALLBACK] Exchanging authorization code for tokens...`);
     const { tokens } = await oauth2Client.getToken(code);
     
-    if (!tokens.access_token || !tokens.refresh_token || !tokens.expiry_date || !tokens.scope) {
-      throw new Error("Incomplete token set received from Google.");
+    if (!tokens.access_token || !tokens.refresh_token) {
+      console.error("[AUTH CALLBACK] Incomplete token set received from Google:", tokens);
+      throw new Error("Could not retrieve a valid refresh token from Google. Please ensure you are prompted for 'offline access'.");
     }
     
-    // Store tokens in the user's Firestore document
+    console.log(`[AUTH CALLBACK] Storing tokens for user: ${userId}`);
     const userDocRef = firestore.collection('users').doc(userId);
     await userDocRef.set({
       googleAuth: {
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
         expiryDate: tokens.expiry_date,
-        scopes: tokens.scope.split(' '),
+        scopes: tokens.scope?.split(' '),
       },
-      updatedAt: new Date().toISOString(), // Update timestamp
+      updatedAt: new Date().toISOString(),
     }, { merge: true });
 
+    console.log(`[AUTH CALLBACK] Successfully processed. Redirecting to success page.`);
     return NextResponse.redirect(new URL('/my-account?success=google_auth_connected', req.url));
     
   } catch (err: any) {
-    console.error("Error in Google Auth callback:", err);
-    // Attempt to delete the state doc on error too, just in case it wasn't deleted earlier.
-    await stateDocRef.delete().catch(() => {});
+    console.error("[AUTH CALLBACK] An error occurred in the callback handler:", err);
+    await stateDocRef.delete().catch(() => {}); // Clean up state doc on error
     return NextResponse.redirect(new URL(`/my-account?error=${encodeURIComponent(err.message)}`, req.url));
   }
 }
