@@ -103,7 +103,7 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
   const preferencesMutation = useMutation({
     mutationFn: (prefs: Partial<UserProfile>) => updateUserPreferences(prefs),
     onSuccess: () => {
-       queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
+       queryClient.invalidateQueries({ queryKey: ['allVehicleData', user?.uid] });
     },
     onError: (error: Error) => {
       toast({ title: "Error Saving Preferences", description: error.message, variant: "destructive" });
@@ -330,7 +330,7 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
         {items.length > 0 && (
           <Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Qty</TableHead><TableHead>Total Wt.</TableHead><TableHead>Location</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
             <TableBody>{items.map(item => (<TableRow key={item.id}><TableCell>{item.name}</TableCell><TableCell>{item.quantity}</TableCell><TableCell>{(item.weight * item.quantity).toFixed(1)}kg</TableCell><TableCell>{getLocationNameById(item.locationId)}</TableCell><TableCell><Button variant="ghost" size="icon" onClick={() => handleEditItem(item)}><Edit3 className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell></TableRow>))}</TableBody>
-             <TableCaption>Total Inventory Weight (Caravan & Vehicle): {(totalCaravanInventoryWeight + unassignedWeight + totalVehicleInventoryWeight).toFixed(1)} kg</TableCaption>
+             <TableCaption>Total Inventory Weight (Caravan &amp; Vehicle): {(totalCaravanInventoryWeight + unassignedWeight + totalVehicleInventoryWeight).toFixed(1)} kg</TableCaption>
           </Table>)}
         
         {activeCaravan?.waterTanks && activeCaravan.waterTanks.length > 0 && (
