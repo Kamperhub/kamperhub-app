@@ -258,8 +258,7 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
   const isOverMaxTowCapacity = vehicleMaxTowCapacity > 0 && currentCaravanMass > vehicleMaxTowCapacity;
   const isOverVehicleMaxTowball = vehicleMaxTowballMass > 0 && calculatedTowballMass > vehicleMaxTowballMass;
   
-  const currentGCM = currentCaravanMass + (activeVehicle?.gvm || 0);
-  const isGCMOverLimit = vehicleGCM > 0 && activeVehicle?.gvm && currentGCM > vehicleGCM;
+  const currentGCM = currentCaravanMass + currentVehicleMass;
 
   const wdhMaxCapacity = wdh?.maxCapacityKg ?? 0;
   const wdhMinCapacity = wdh?.minCapacityKg ?? null;
@@ -320,6 +319,7 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
   const atmChart = prepareChartData(currentCaravanMass, atmLimit);
   const axleLoadChart = prepareChartData(currentLoadOnAxles, axleLoadLimit);
   const towballChart = prepareChartData(calculatedTowballMass, caravanMaxTowballDownloadLimit);
+  const gcmChart = prepareChartData(currentGCM, vehicleGCM);
   
   const getLocationNameById = (locationId: string | null | undefined) => !locationId ? 'Unassigned' : enrichedCombinedStorageLocations.find(loc => loc.id === locationId)?.name || 'Unknown';
   
@@ -394,28 +394,61 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
                 </AlertDescription>
               </Alert>
             )}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card><CardHeader><CardTitle>Caravan ATM</CardTitle></CardHeader><CardContent><Alert variant={getAlertStylingVariant(currentCaravanMass, atmLimit)}><AlertTitle>{currentCaravanMass.toFixed(1)}kg / {atmLimit > 0 ? atmLimit.toFixed(0) : 'N/A'}kg</AlertTitle><AlertDescription>Remaining: {remainingPayloadATM.toFixed(1)} kg</AlertDescription></Alert></CardContent></Card>
-            <Card><CardHeader><CardTitle>Caravan Axle Load</CardTitle></CardHeader><CardContent><Alert variant={getAlertStylingVariant(currentLoadOnAxles, axleLoadLimit)}><AlertTitle>{currentLoadOnAxles.toFixed(1)}kg / {axleLoadLimit > 0 && axleLoadLimit !== Infinity ? axleLoadLimit.toFixed(0) : 'N/A'}kg</AlertTitle><AlertDescription>GTM: {gtmLimit}kg, Axle Rating: {axleGroupRating}kg</AlertDescription></Alert></CardContent></Card>
-            {activeVehicle && vehicleGVM > 0 && (
-              <Card>
-                <CardHeader><CardTitle>Vehicle GVM</CardTitle></CardHeader>
-                <CardContent>
-                  <Alert variant={getAlertStylingVariant(currentVehicleMass, vehicleGVM)}>
-                    <AlertTitle>{currentVehicleMass.toFixed(1)}kg / {vehicleGVM.toFixed(0)}kg</AlertTitle>
-                    <AlertDescription>Kerb: {vehicleKerbWeight}kg, Added: {vehicleAddedPayload.toFixed(1)}kg (incl. occupants)</AlertDescription>
-                  </Alert>
-                </CardContent>
-              </Card>
-            )}
-            {activeVehicle && (<Card><CardHeader><CardTitle>Vehicle Towing</CardTitle></CardHeader><CardContent><Alert variant={isOverMaxTowCapacity ? 'destructive' : 'default'}><AlertTitle>Towed Mass: {currentCaravanMass.toFixed(1)}kg / {vehicleMaxTowCapacity.toFixed(0)}kg</AlertTitle><AlertDescription>{isOverMaxTowCapacity ? 'OVER LIMIT!' : 'OK'}</AlertDescription></Alert></CardContent></Card>)}
-          </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-headline flex items-center"><HomeIcon className="mr-2 h-5 w-5"/> Caravan Weights</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4 text-center">
+              <div>
+                <Label className="text-sm font-normal text-muted-foreground">ATM</Label>
+                <p className={`font-bold text-lg ${getAlertStylingVariant(currentCaravanMass, atmLimit) === 'destructive' ? 'text-destructive' : 'text-foreground'}`}>
+                    {currentCaravanMass.toFixed(1)} / {atmLimit > 0 ? atmLimit.toFixed(0) : 'N/A'} kg
+                </p>
+              </div>
+              <div>
+                <Label className="text-sm font-normal text-muted-foreground">Axle Load</Label>
+                <p className={`font-bold text-lg ${getAlertStylingVariant(currentLoadOnAxles, axleLoadLimit) === 'destructive' ? 'text-destructive' : 'text-foreground'}`}>
+                    {currentLoadOnAxles.toFixed(1)} / {axleLoadLimit > 0 && axleLoadLimit !== Infinity ? axleLoadLimit.toFixed(0) : 'N/A'} kg
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {activeVehicle && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg font-headline flex items-center"><Car className="mr-2 h-5 w-5"/> Vehicle Weights</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-4 text-center">
+                {vehicleGVM > 0 && (
+                  <div>
+                    <Label className="text-sm font-normal text-muted-foreground">GVM</Label>
+                    <p className={`font-bold text-lg ${getAlertStylingVariant(currentVehicleMass, vehicleGVM) === 'destructive' ? 'text-destructive' : 'text-foreground'}`}>
+                        {currentVehicleMass.toFixed(1)} / {vehicleGVM.toFixed(0)} kg
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <Label className="text-sm font-normal text-muted-foreground">Towing Capacity</Label>
+                  <p className={`font-bold text-lg ${isOverMaxTowCapacity ? 'text-destructive' : 'text-foreground'}`}>
+                      {currentCaravanMass.toFixed(1)} / {vehicleMaxTowCapacity.toFixed(0)} kg
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 my-6">
             <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={atmChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={100} innerRadius={75} dataKey="value" stroke="hsl(var(--background))">{atmChart.data.map((_, i) => (<Cell key={`cell-atm-${i}`} fill={atmChart.colors[i % atmChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="ATM" value={currentCaravanMass} limit={atmLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
             <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={axleLoadChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={100} innerRadius={75} dataKey="value" stroke="hsl(var(--background))">{axleLoadChart.data.map((_, i) => (<Cell key={`cell-axle-${i}`} fill={axleLoadChart.colors[i % axleLoadChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Axle Load" value={currentLoadOnAxles} limit={axleLoadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
             <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={towballChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={100} innerRadius={75} dataKey="value" stroke="hsl(var(--background))">{towballChart.data.map((_, i) => (<Cell key={`cell-towball-${i}`} fill={towballChart.colors[i % towballChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Calc. Towball" value={calculatedTowballMass} limit={caravanMaxTowballDownloadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
+            {activeVehicle && vehicleGCM > 0 && (
+              <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={gcmChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={100} innerRadius={75} dataKey="value" stroke="hsl(var(--background))">{gcmChart.data.map((_, i) => (<Cell key={`cell-gcm-${i}`} fill={gcmChart.colors[i % gcmChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="GCM" value={currentGCM} limit={vehicleGCM} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
+            )}
         </div>
 
         <Separator/>
