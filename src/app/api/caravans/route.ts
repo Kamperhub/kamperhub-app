@@ -207,9 +207,10 @@ export async function PUT(req: NextRequest) {
   try {
     const body: StoredCaravan = await req.json();
     const parsedData = updateCaravanSchema.parse(body);
+    const { id, ...dataToUpdate } = parsedData;
 
-    const caravanRef = firestore.collection('users').doc(uid).collection('caravans').doc(parsedData.id);
-    await caravanRef.set(parsedData, { merge: true });
+    const caravanRef = firestore.collection('users').doc(uid).collection('caravans').doc(id);
+    await caravanRef.update(dataToUpdate);
     
     const sanitizedParsedData = sanitizeData(parsedData);
     return NextResponse.json({ message: 'Caravan updated successfully.', caravan: sanitizedParsedData }, { status: 200 });
