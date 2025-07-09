@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
+import { useForm, type SubmitHandler, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { usePathname } from 'next/navigation';
@@ -48,6 +48,9 @@ import Link from 'next/link';
 
 const tripPlannerSchema = z.object({
   startLocation: z.string().min(3, "Start location is required (min 3 chars)"),
+  waypoints: z.array(z.object({
+    address: z.string().min(3, "Waypoint must be at least 3 characters long"),
+  })).optional(),
   endLocation: z.string().min(3, "End location is required (min 3 chars)"),
   fuelEfficiency: z.coerce.number().positive("Fuel efficiency must be a positive number (Litres/100km)"),
   fuelPrice: z.coerce.number().positive("Fuel price must be a positive number (per litre)"),
@@ -102,11 +105,17 @@ export function TripPlannerClient() {
     resolver: zodResolver(tripPlannerSchema),
     defaultValues: {
       startLocation: '',
+      waypoints: [],
       endLocation: '',
       fuelEfficiency: 10,
       fuelPrice: 1.80,
       dateRange: { from: undefined, to: undefined }
     }
+  });
+  
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "waypoints"
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -170,26 +179,6 @@ export function TripPlannerClient() {
     setAvoidTolls(false);
   }, [reset]);
 
-  const updateUserPrefsMutation = useMutation({
-    mutationFn: (prefs: Partial<UserProfile>) => updateUserPreferences(prefs),
-    onSuccess: () => {
-        toast({ title: "Home Address Saved", description: "You can now quickly use this as your start location." });
-        queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
-    },
-    onError: (error: Error) => {
-        toast({ title: "Save Failed", description: error.message, variant: "destructive" });
-    }
-  });
-
-  const handleSaveAsHome = () => {
-    const startLocation = getValues('startLocation');
-    if (startLocation && startLocation.trim().length > 3) {
-        updateUserPrefsMutation.mutate({ homeAddress: startLocation });
-    } else {
-        toast({ title: "Invalid Address", description: "Please enter a valid address to save.", variant: "destructive" });
-    }
-  };
-
   useEffect(() => {
     let recalledTripLoaded = false;
     if (typeof window !== 'undefined') {
@@ -216,6 +205,7 @@ export function TripPlannerClient() {
           reset({
             startLocation: sanitizedTrip.startLocationDisplay,
             endLocation: sanitizedTrip.endLocationDisplay,
+            waypoints: sanitizedTrip.waypoints?.map(wp => ({ address: wp.address })) || [],
             fuelEfficiency: sanitizedTrip.fuelEfficiency,
             fuelPrice: sanitizedTrip.fuelPrice,
             dateRange: {
@@ -269,6 +259,7 @@ export function TripPlannerClient() {
             body: JSON.stringify({
                 origin: data.startLocation,
                 destination: data.endLocation,
+                waypoints: data.waypoints?.map(wp => wp.address),
                 vehicleHeight: vehicleHeight ? vehicleHeight / 1000 : undefined,
                 axleCount: axleCount,
                 avoidTolls: avoidTolls
@@ -420,6 +411,7 @@ export function TripPlannerClient() {
       name: pendingTripName.trim(),
       startLocationDisplay: currentFormData.startLocation,
       endLocationDisplay: currentFormData.endLocation,
+      waypoints: currentFormData.waypoints?.map(wp => ({ address: wp.address })) || [],
       fuelEfficiency: currentFormData.fuelEfficiency,
       fuelPrice: currentFormData.fuelPrice,
       routeDetails: routeDetails,
@@ -438,7 +430,6 @@ export function TripPlannerClient() {
       isVehicleOnly: !isTowing,
       activeCaravanIdAtTimeOfCreation: isTowing ? (activeCaravan?.id || null) : null,
       activeCaravanNameAtTimeOfCreation: isTowing ? (activeCaravan ? `${activeCaravan.year} ${activeCaravan.make} ${activeCaravan.model}` : null) : null,
-      waypoints: [], // Default to empty array
     };
     
     if (activeTrip) {
@@ -513,34 +504,29 @@ export function TripPlannerClient() {
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                          <Label htmlFor="startLocation" className="font-body">Start Location</Label>
-                           <div className="flex items-center gap-2">
-                              {userPrefs?.homeAddress && (
-                                  <Button
-                                      type="button"
-                                      variant="link"
-                                      className="p-0 h-auto text-xs font-body flex items-center"
-                                      onClick={() => setValue('startLocation', userPrefs.homeAddress || '', { shouldValidate: true })}
-                                  >
-                                      <Home className="mr-1 h-3 w-3"/> Use Home
-                                  </Button>
-                              )}
-                              <Button
-                                  type="button"
-                                  variant="link"
-                                  className="p-0 h-auto text-xs font-body flex items-center"
-                                  onClick={handleSaveAsHome}
-                                  disabled={!getValues('startLocation') || updateUserPrefsMutation.isPending}
-                                  title="Save current Start Location as your Home Address"
-                              >
-                                  <Save className="mr-1 h-3 w-3"/> Save as Home
-                              </Button>
-                          </div>
+                    <GooglePlacesAutocompleteInput control={control} name="startLocation" label="Start Location" placeholder="e.g., Sydney, NSW" errors={errors} setValue={setValue} isApiReady={isGoogleApiReady} />
+                    
+                    {fields.map((field, index) => (
+                      <div key={field.id} className="relative group">
+                        <GooglePlacesAutocompleteInput
+                          control={control}
+                          name={`waypoints.${index}.address` as const}
+                          label={`Waypoint ${index + 1}`}
+                          placeholder="e.g., Canberra, ACT"
+                          errors={errors}
+                          setValue={setValue}
+                          isApiReady={isGoogleApiReady}
+                        />
+                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="absolute -top-1 right-0 h-7 w-7 text-muted-foreground hover:text-destructive group-hover:opacity-100 md:opacity-0 transition-opacity">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <GooglePlacesAutocompleteInput control={control} name="startLocation" label="" placeholder="e.g., Sydney, NSW" errors={errors} setValue={setValue} isApiReady={isGoogleApiReady} />
-                    </div>
+                    ))}
+
+                    <Button type="button" variant="outline" size="sm" onClick={() => append({ address: '' })} className="w-full">
+                        <PlusCircle className="mr-2 h-4 w-4"/>Add Waypoint
+                    </Button>
+                    
                     <GooglePlacesAutocompleteInput control={control} name="endLocation" label="End Location" placeholder="e.g., Melbourne, VIC" errors={errors} setValue={setValue} isApiReady={isGoogleApiReady} />
                     <div>
                       <Label htmlFor="dateRange" className="font-body">Planned Date Range</Label>
