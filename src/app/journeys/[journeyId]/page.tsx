@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchJourneys, fetchTrips } from '@/lib/api-client';
@@ -9,12 +8,18 @@ import type { Journey } from '@/types/journey';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Map as MapIcon, Route, DollarSign, Fuel, Calendar, Edit, ChevronLeft, PlusCircle } from 'lucide-react';
+import { Map as MapIcon, Route, DollarSign, Fuel, Calendar, Edit, ChevronLeft, PlusCircle, Wand2, Loader2 } from 'lucide-react';
 import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { useMemo, useRef, useEffect, useContext } from 'react';
+import { useMemo, useRef, useEffect, useContext, useState } from 'react';
 import { NavigationContext } from '@/components/layout/AppShell';
+import { 
+  generateJourneyPackingPlan, 
+  type JourneyPackingPlannerInput, 
+  type JourneyPackingPlannerOutput 
+} from '@/ai/flows/journey-packing-planner-flow';
+import { useToast } from '@/hooks/use-toast';
 
 const RouteRenderer = ({ polyline }: { polyline: string | null | undefined }) => {
   const map = useMap();
@@ -56,6 +61,9 @@ export default function JourneyDetailsPage() {
   const map = useMap();
   const router = useRouter();
   const navContext = useContext(NavigationContext);
+  const { toast } = useToast();
+  
+  const [strategicPlan, setStrategicPlan] = useState<string | null>(null);
 
   const { data: journeys = [], isLoading: isLoadingJourneys } = useQuery<Journey[]>({
     queryKey: ['journeys', user?.uid],
@@ -80,7 +88,7 @@ export default function JourneyDetailsPage() {
     let spend = 0;
     let budget = 0;
     tripsInJourney.forEach(trip => {
-      distance += trip.routeDetails.distance.value || 0;
+      distance += trip.routeDetails?.distance?.value || 0;
       spend += trip.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
       budget += trip.budget?.reduce((sum, cat) => sum + cat.budgetedAmount, 0) || 0;
     });
@@ -90,6 +98,41 @@ export default function JourneyDetailsPage() {
       totalBudget: budget.toFixed(2),
     };
   }, [tripsInJourney]);
+  
+  const generatePlanMutation = useMutation({
+    mutationFn: generateJourneyPackingPlan,
+    onSuccess: (data: JourneyPackingPlannerOutput) => {
+        setStrategicPlan(data.strategicAdvice);
+        toast({ title: "Strategic Plan Generated!" });
+    },
+    onError: (error: Error) => {
+        toast({ title: "Generation Failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleGenerateStrategicPlan = () => {
+    if (!journey || tripsInJourney.length === 0) {
+        toast({ title: "Cannot Generate Plan", description: "Journey details are incomplete.", variant: "destructive" });
+        return;
+    }
+    const firstTrip = tripsInJourney[0];
+    const lastTrip = tripsInJourney[tripsInJourney.length - 1];
+    if (!firstTrip.plannedStartDate || !lastTrip.plannedEndDate) {
+      toast({ title: "Cannot Generate Plan", description: "The first and last trips in the journey must have planned dates.", variant: "destructive" });
+      return;
+    }
+    const input: JourneyPackingPlannerInput = {
+        journeyName: journey.name,
+        journeyStartDate: firstTrip.plannedStartDate,
+        journeyEndDate: lastTrip.plannedEndDate,
+        locations: [
+            firstTrip.startLocationDisplay,
+            ...tripsInJourney.map(t => t.endLocationDisplay)
+        ],
+    };
+    generatePlanMutation.mutate(input);
+  };
+
 
    useEffect(() => {
     if (map && tripsInJourney.length > 0) {
@@ -183,6 +226,42 @@ export default function JourneyDetailsPage() {
                 <p className="text-sm font-medium text-muted-foreground flex items-center"><Fuel className="h-4 w-4 mr-2"/>Total Budget</p>
                 <p className="text-2xl font-bold">${totalBudget}</p>
             </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Wand2 className="mr-2 h-5 w-5 text-primary" />
+            AI Strategic Packing Planner
+          </CardTitle>
+          <CardDescription>
+            Get high-level advice on how to pack for your entire multi-leg journey.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={handleGenerateStrategicPlan} disabled={generatePlanMutation.isPending}>
+            {generatePlanMutation.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Wand2 className="mr-2 h-4 w-4" />
+            )}
+            {generatePlanMutation.isPending ? 'Generating...' : 'Generate Strategic Plan'}
+          </Button>
+          
+          {generatePlanMutation.isPending && (
+            <div className="mt-4 space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+            </div>
+          )}
+
+          {strategicPlan && (
+            <div className="mt-4 border-t pt-4">
+              <p className="text-sm font-body whitespace-pre-wrap">{strategicPlan}</p>
+            </div>
+          )}
         </CardContent>
       </Card>
       
