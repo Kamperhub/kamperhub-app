@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
         const bookings: BookingEntry[] = [];
         bookingsSnapshot.forEach(doc => {
             try {
-                if (doc.exists()) {
+                if (doc.exists) { // CORRECTED: from doc.exists()
                     bookings.push(doc.data() as BookingEntry);
                 }
             } catch (docError: any) {
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
         const trips: LoggedTrip[] = [];
         tripsSnapshot.forEach(doc => {
             try {
-                if (doc.exists()) {
+                if (doc.exists) { // CORRECTED: from doc.exists()
                     trips.push(doc.data() as LoggedTrip);
                 }
             } catch (docError: any) {
