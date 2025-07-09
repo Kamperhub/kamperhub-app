@@ -61,10 +61,11 @@ export async function POST(req: NextRequest) {
       polylineEncoding: 'ENCODED_POLYLINE',
     };
     
-    // Add waypoints if they exist
+    // *** THIS IS THE FIX ***
+    // The waypoints must be wrapped in a 'location' object.
     if (waypoints && waypoints.length > 0) {
         requestBody.intermediates = waypoints.map(waypoint => ({
-            address: waypoint
+            location: { address: waypoint }
         }));
     }
 
