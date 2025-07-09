@@ -411,7 +411,7 @@ export function TripPlannerClient() {
       name: pendingTripName.trim(),
       startLocationDisplay: currentFormData.startLocation,
       endLocationDisplay: currentFormData.endLocation,
-      waypoints: currentFormData.waypoints?.map(wp => ({ address: wp.address })) || [],
+      waypoints: routeDetails.waypoints || [],
       fuelEfficiency: currentFormData.fuelEfficiency,
       fuelPrice: currentFormData.fuelPrice,
       routeDetails: routeDetails,
@@ -633,6 +633,13 @@ export function TripPlannerClient() {
                 <Map defaultCenter={{ lat: -25.2744, lng: 133.7751 }} defaultZoom={4} gestureHandling={'greedy'} disableDefaultUI={true} mapId={'DEMO_MAP_ID'} className="h-full w-full">
                   <RouteRenderer routeDetails={routeDetails} />
                   {routeDetails?.startLocation && <AdvancedMarker position={routeDetails.startLocation} title={`Start`}><Pin background={'hsl(var(--primary))'} borderColor={'hsl(var(--primary))'} glyphColor={'hsl(var(--primary-foreground))'} /></AdvancedMarker>}
+                  {routeDetails?.waypoints?.map((waypoint, index) => (
+                      waypoint.location && (
+                          <AdvancedMarker key={`waypoint-${index}`} position={waypoint.location} title={waypoint.address}>
+                              <Pin background={'hsl(var(--secondary))'} borderColor={'hsl(var(--secondary))'} glyphColor={'hsl(var(--secondary-foreground))'}/>
+                          </AdvancedMarker>
+                      )
+                  ))}
                   {routeDetails?.endLocation && <AdvancedMarker position={routeDetails.endLocation} title={`End`}><Pin background={'hsl(var(--accent))'} borderColor={'hsl(var(--accent))'} glyphColor={'hsl(var(--accent-foreground))'} /></AdvancedMarker>}
                 </Map>
               </div></CardContent></Card>
