@@ -6,7 +6,6 @@ import type { BudgetCategory, Expense } from '@/types/expense';
 export interface TripPlannerFormValues {
   startLocation: string;
   endLocation: string;
-  waypoints?: { address: string }[]; // For user input of waypoint addresses
   fuelEfficiency: number; // Litres/100km
   fuelPrice: number; // Price per litre
   dateRange?: DateRange | null;
@@ -28,12 +27,6 @@ export interface FuelEstimate {
   estimatedCost: string; // e.g., "$20.00"
 }
 
-export interface Waypoint {
-  address: string; // The address string of the waypoint as entered by user or resolved
-  location?: google.maps.LatLngLiteral; // Optional: geocoded LatLng of the waypoint
-  // Potentially other details like a user-defined name for the waypoint could be added
-}
-
 export interface Occupant {
   id: string;
   name: string;
@@ -49,10 +42,9 @@ export interface LoggedTrip {
   timestamp: string; // ISO string for date
   startLocationDisplay: string; // The string input by the user for start
   endLocationDisplay: string; // The string input by the user for end
-  waypoints?: Waypoint[]; // Array of waypoints for the logged trip
   fuelEfficiency: number;
   fuelPrice: number;
-  routeDetails: RouteDetails; // For a multi-stop trip, this might represent overall details
+  routeDetails: RouteDetails;
   fuelEstimate: FuelEstimate | null;
   plannedStartDate?: string | null; // Stored as ISO string
   plannedEndDate?: string | null; // Stored as ISO string
