@@ -56,6 +56,7 @@ const routeDetailsSchema = z.object({
   duration: z.object({ text: z.string(), value: z.number() }),
   startLocation: latLngSchema.optional().nullable(),
   endLocation: latLngSchema.optional().nullable(),
+  waypoints: z.array(waypointSchema).optional(),
   polyline: z.string().optional().nullable(),
   warnings: z.array(z.string()).optional().nullable(),
   tollInfo: z.object({ text: z.string(), value: z.number() }).nullable().optional(),
