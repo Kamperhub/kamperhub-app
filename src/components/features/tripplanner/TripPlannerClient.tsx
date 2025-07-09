@@ -154,6 +154,10 @@ export function TripPlannerClient() {
     enabled: !!user,
   });
 
+  const sortedJourneys = useMemo(() => {
+    return [...allJourneys].sort((a, b) => a.name.localeCompare(b.name));
+  }, [allJourneys]);
+
 
   const [isSaveTripDialogOpen, setIsSaveTripDialogOpen] = useState(false);
   const [pendingTripName, setPendingTripName] = useState('');
@@ -355,6 +359,7 @@ export function TripPlannerClient() {
     mutationFn: updateTrip,
     onSuccess: (updatedTrip) => {
       queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
+      queryClient.invalidateQueries({ queryKey: ['journeys', user?.uid] });
       toast({ title: "Trip Updated!", description: `"${updatedTrip.trip.name}" has been updated.` });
     },
     onError: (error: Error) => toast({ title: "Update Failed", description: error.message, variant: "destructive" }),
@@ -576,7 +581,7 @@ export function TripPlannerClient() {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="none">Standalone Trip</SelectItem>
-                                {allJourneys.map(journey => (
+                                {sortedJourneys.map(journey => (
                                     <SelectItem key={journey.id} value={journey.id}>{journey.name}</SelectItem>
                                 ))}
                             </SelectContent>
@@ -630,7 +635,7 @@ export function TripPlannerClient() {
                   className="w-full font-body bg-primary hover:bg-primary/90 text-primary-foreground text-lg py-6"
                   disabled={!routeDetails || createTripMutation.isPending || updateTripMutation.isPending}
               >
-                  {(createTripMutation.isPending || updateTripMutation.isPending) ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                  {(createTripMutation.isPending || updateTripMutation.isPending) ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : (activeTrip ? <Edit3 className="mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />)}
                   {activeTrip ? 'Update Trip Details' : 'Save Trip'}
               </Button>
               <Card><CardHeader className="flex flex-row items-center justify-between">
