@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       units: 'METRIC',
       polylineEncoding: 'ENCODED_POLYLINE',
     };
-
+    
     // If height or axle count is provided, add vehicleInfo to the request
     const vehicleInfo: any = {};
     if (vehicleHeight && vehicleHeight > 0) {
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
             'Content-Type': 'application/json',
             'X-Goog-Api-Key': apiKey,
             // Field mask to request specific fields, reducing data transfer and cost
-            'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.warnings,routes.polyline.encodedPolyline,routes.legs(startLocation,endLocation),routes.travelAdvisory.tollInfo',
+            'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.warnings,routes.polyline.encodedPolyline,routes.legs,routes.travelAdvisory.tollInfo',
         },
         body: JSON.stringify(requestBody)
     });
@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
             };
           }
         }
-
+        
         const adaptedResponse = {
             distance: { text: `${(route.distanceMeters / 1000).toFixed(1)} km`, value: route.distanceMeters },
             duration: { text: formatDuration(route.duration), value: parseInt(route.duration.slice(0,-1), 10)},

@@ -27,6 +27,7 @@ export interface FuelEstimate {
   estimatedCost: string; // e.g., "$20.00"
 }
 
+
 export interface Occupant {
   id: string;
   name: string;

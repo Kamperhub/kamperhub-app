@@ -108,7 +108,7 @@ export function TripPlannerClient() {
       dateRange: { from: undefined, to: undefined }
     }
   });
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [isTowing, setIsTowing] = useState(true);
   const [avoidTolls, setAvoidTolls] = useState(false);
