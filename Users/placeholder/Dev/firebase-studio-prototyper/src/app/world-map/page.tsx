@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useContext } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchTrips } from '@/lib/api-client';
@@ -13,6 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { Button } from '../components/ui/button';
+import { NavigationContext } from '@/components/layout/AppShell';
 
 const TripPolyline = ({ polyline }: { polyline: string }) => {
   const map = useMap();
@@ -49,6 +50,7 @@ const TripPolyline = ({ polyline }: { polyline: string }) => {
 
 export default function WorldMapPage() {
   const { user } = useAuth();
+  const navContext = useContext(NavigationContext);
   const { data: trips = [], isLoading, error } = useQuery<LoggedTrip[]>({
     queryKey: ['trips', user?.uid],
     queryFn: fetchTrips,
@@ -56,6 +58,10 @@ export default function WorldMapPage() {
   });
 
   const [activeTrip, setActiveTrip] = useState<LoggedTrip | null>(null);
+
+  const handleNavigation = () => {
+    if(navContext) navContext.setIsNavigating(true);
+  };
 
   const handleMarkerClick = (trip: LoggedTrip) => {
     setActiveTrip(trip);
@@ -101,7 +107,9 @@ export default function WorldMapPage() {
                 <AlertTitle className="mt-4 font-headline text-lg">No Trips to Display</AlertTitle>
                 <AlertDescription className="mt-2">
                     Once you plan and save trips, they will appear here on your global map.
-                    <Button asChild variant="link" className="mt-2"><Link href="/trip-expense-planner">Plan Your First Trip</Link></Button>
+                    <Button asChild variant="link" className="mt-2">
+                        <Link href="/trip-expense-planner" onClick={handleNavigation}>Plan Your First Trip</Link>
+                    </Button>
                 </AlertDescription>
             </Alert>
         ) : (

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchJourneys, createJourney, deleteJourney } from '@/lib/api-client';
@@ -17,11 +17,13 @@ import { PlusCircle, Map, Loader2, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
+import { NavigationContext } from '@/components/layout/AppShell';
 
 export default function JourneysPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const navContext = useContext(NavigationContext);
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newJourneyName, setNewJourneyName] = useState('');
@@ -32,6 +34,12 @@ export default function JourneysPage() {
     queryFn: fetchJourneys,
     enabled: !!user,
   });
+
+  const handleNavigation = () => {
+    if (navContext) {
+      navContext.setIsNavigating(true);
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: (newJourneyData: { name: string; description: string | null }) => createJourney(newJourneyData),
@@ -137,7 +145,7 @@ export default function JourneysPage() {
               <CardHeader>
                 <div className="flex justify-between items-start">
                     <div>
-                        <Link href={`/journeys/${journey.id}`}>
+                        <Link href={`/journeys/${journey.id}`} onClick={handleNavigation}>
                           <CardTitle className="font-headline text-xl text-primary hover:underline">{journey.name}</CardTitle>
                         </Link>
                         <CardDescription className="text-sm">
