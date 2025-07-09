@@ -10,7 +10,7 @@ export interface NavItem {
   keywords: string;
 }
 
-// This is now the central hub for all travel-related pages.
+// This is the new central hub for all travel-related pages.
 export const tripManagerItems: NavItem[] = [
   {
     href: '/journeys',
@@ -50,7 +50,8 @@ export const tripManagerItems: NavItem[] = [
 ];
 
 
-// Main navigation items for the dashboard grid. "Journeys" and "World Map" have been moved.
+// Main navigation items for the dashboard grid. 
+// "Journeys" and "World Map" have been moved to tripManagerItems.
 export const navItems: NavItem[] = [
   {
     href: '/dashboard-details',
