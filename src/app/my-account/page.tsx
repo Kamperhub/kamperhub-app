@@ -15,7 +15,7 @@ import { format, isAfter, parseISO } from 'date-fns';
 import type { UserProfile } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, UserCog, AlertTriangle, RotateCw, Clock, Sparkles, Link as LinkIcon, Check, Trash2, Home } from 'lucide-react';
+import { UserCircle, LogOut, Mail, Star, ExternalLink, MapPin, Building, Globe, Edit3, User, Loader2, CreditCard, Info, UserCog, AlertTriangle, RotateCw, Clock, Sparkles, Link as LinkIcon, Check, Trash2, Home, Copy } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +41,8 @@ export default function MyAccountPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  
+  const expectedRedirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8083'}/api/auth/google/callback`;
 
   useEffect(() => {
     const errorParam = searchParams.get('error');
@@ -53,7 +55,7 @@ export default function MyAccountPage() {
         if (decodedError.includes('access_denied')) {
             userFriendlyMessage = "Access was denied by Google. This usually means your app is in 'Testing' mode on the OAuth Consent Screen and your email has not been added as a Test User. Please review Step 3.6 in the setup guide.";
         } else if (decodedError.includes('redirect_uri_mismatch')) {
-            userFriendlyMessage = "Redirect URI Mismatch. The redirect URI in your Google Cloud project's OAuth settings does not exactly match the one your app is using. Please review Step 3.6 in the setup guide.";
+            userFriendlyMessage = `Redirect URI Mismatch. The redirect URI in your Google Cloud project's OAuth settings must exactly match the one your app is using. Please ensure this value is added to your Authorized Redirect URIs list: ${expectedRedirectUri}`;
         } else if (decodedError.startsWith("403")) {
             userFriendlyMessage = `Access Denied (Error 403). Please check your Google Cloud project's OAuth configuration, specifically the Consent Screen and Client ID settings as described in Step 3.6 of the setup guide.`;
         }
@@ -76,7 +78,7 @@ export default function MyAccountPage() {
       queryClient.invalidateQueries({ queryKey: ['userProfile', user?.uid] });
       router.replace('/my-account', { scroll: false });
     }
-  }, [searchParams, router, toast, queryClient, user?.uid]);
+  }, [searchParams, router, toast, queryClient, user?.uid, expectedRedirectUri]);
   
 
   const handleNavigation = () => {
@@ -205,9 +207,7 @@ export default function MyAccountPage() {
       return;
     }
 
-    // Append the user's ID as client_reference_id to link the Stripe session to the Firebase user
     const finalPaymentLink = `${paymentLink}?client_reference_id=${user.uid}`;
-
     const stripeWindow = window.open(finalPaymentLink, '_blank');
     
     if (!stripeWindow) {
@@ -260,7 +260,7 @@ export default function MyAccountPage() {
     try {
       const { url } = await generateGoogleAuthUrl();
       if (url) {
-        window.top.location.href = url; // Use window.top.location.href to break out of iframe
+        window.top.location.href = url;
       } else {
         throw new Error("The server did not return a valid authentication URL.");
       }
@@ -385,8 +385,28 @@ export default function MyAccountPage() {
                     </AlertDescription>
                 </Alert>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <p className="text-sm font-body">Connect KamperHub to other services to enhance your experience.</p>
+                  
+                  <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+                    <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+                    <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">Configuration Required</AlertTitle>
+                    <AlertDescription className="font-body text-blue-700 dark:text-blue-300 text-xs">
+                      <p>To connect successfully, ensure the following URL is added to your 'Authorized redirect URIs' in the Google Cloud Console for your OAuth 2.0 Client ID:</p>
+                      <div className="flex items-center gap-2 mt-2 p-2 rounded-md bg-blue-100 dark:bg-blue-900">
+                         <code className="flex-grow">{expectedRedirectUri}</code>
+                         <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => { navigator.clipboard.writeText(expectedRedirectUri); toast({title: "Copied!", description: "Redirect URI copied to clipboard."})}}
+                          >
+                           <Copy className="h-4 w-4"/>
+                         </Button>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+
                   <Button onClick={handleConnectGoogleTasks} className="w-full sm:w-auto" variant="outline" disabled={isConnectingGoogle}>
                       {isConnectingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <LinkIcon className="mr-2 h-4 w-4"/>}
                       {isConnectingGoogle ? 'Connecting...' : 'Connect Google Tasks'}
@@ -481,7 +501,6 @@ export default function MyAccountPage() {
             </Alert>
           )}
 
-          {/* TEMPORARY LINK FOR TESTING */}
           <Link href="/subscribe/success" passHref onClick={handleNavigation}>
             <Button variant="outline" className="w-full font-body">
               View Success Page (Test Link)
