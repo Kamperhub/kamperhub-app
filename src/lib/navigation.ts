@@ -52,7 +52,7 @@ export const tripManagerItems: NavItem[] = [
 
 
 // Main navigation items for the dashboard grid. 
-// THIS IS THE CORRECT, CONSOLIDATED LIST.
+// THIS IS THE CORRECT, CONSOLIDATED LIST. "Journeys" and "World Map" are now correctly inside tripManagerItems.
 export const navItems: NavItem[] = [
   {
     href: '/dashboard-details',
