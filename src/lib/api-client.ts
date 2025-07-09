@@ -17,7 +17,9 @@ async function apiFetch(url: string, options: RequestInit = {}) {
     const response = await fetch(url, { ...options, headers });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'API request failed with a non-JSON response.' }));
-      throw new Error(errorData.details || errorData.error || errorData.message || 'API request failed.');
+      // This improved error message handling prevents '[object Object]' errors.
+      const message = errorData.error || errorData.message || (errorData.details ? JSON.stringify(errorData.details, null, 2) : 'An unknown API error occurred.');
+      throw new Error(message);
     }
     const text = await response.text();
     return text ? JSON.parse(text) : {};
@@ -25,7 +27,7 @@ async function apiFetch(url: string, options: RequestInit = {}) {
 
 // ---- Consolidated Vehicle Page Data Fetcher ----
 export const fetchAllVehicleData = () => apiFetch('/api/all-vehicle-data');
-export const fetchVehiclePageData = () => apiFetch('/api/vehicle-page-data');
+export const fetchVehiclePageData = () => apiFetch('/api/bookings-page-data');
 export const fetchBookingsPageData = () => apiFetch('/api/bookings-page-data');
 
 

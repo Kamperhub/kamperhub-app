@@ -152,6 +152,7 @@ export default function MyAccountPage() {
         city: data.city,
         state: data.state,
         country: data.country,
+        homeAddress: data.homeAddress,
       });
 
       if (auth.currentUser) await auth.currentUser.reload();
@@ -283,6 +284,7 @@ export default function MyAccountPage() {
     city: userProfile.city || '',
     state: userProfile.state || '',
     country: userProfile.country || '',
+    homeAddress: userProfile.homeAddress || '',
   };
   
   const fullName = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ');
@@ -320,6 +322,7 @@ export default function MyAccountPage() {
                     onSave={handleSaveProfile}
                     onCancel={() => setIsEditProfileOpen(false)}
                     isLoading={isSavingProfile}
+                    isGoogleApiReady={!!window.google}
                   />
                 </DialogContent>
               </Dialog>
@@ -352,6 +355,10 @@ export default function MyAccountPage() {
              <p className="font-body text-sm flex items-center">
                 <Globe className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
                 <strong>Country:</strong>&nbsp;{userProfile.country || '[Not Provided]'}
+            </p>
+            <p className="font-body text-sm flex items-center">
+                <Home className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
+                <strong>Home Address:</strong>&nbsp;{userProfile.homeAddress || '[Not Set]'}
             </p>
           </div>
 
