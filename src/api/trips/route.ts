@@ -1,8 +1,8 @@
+
 // src/app/api/trips/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
-import type { Journey } from '@/types/journey';
 import { z, ZodError } from 'zod';
 import type admin from 'firebase-admin';
 
