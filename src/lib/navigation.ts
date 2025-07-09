@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -14,24 +14,24 @@ export interface NavItem {
 export const tripManagerItems: NavItem[] = [
   {
     href: '/trip-expense-planner',
-    label: 'Trip & Expense Planner',
+    label: 'Trip Planner',
     icon: RouteIcon,
-    description: "Plan routes, set budgets, and track expenses for your trips. Your all-in-one travel command center.",
+    description: "Plan routes, set budgets, and track expenses for your individual trips. The building blocks of a Journey.",
     keywords: 'route map budget expense'
-  },
-  {
-    href: '/trip-packing',
-    label: 'Trip Packing Assistant',
-    icon: Luggage,
-    description: "Use our AI assistant to generate smart, personalized packing lists for your trips and passengers.",
-    keywords: 'packing checklist luggage'
   },
   {
     href: '/triplog',
     label: 'Trip Log',
     icon: History,
-    description: "Review your past adventures, recall saved trips for re-planning, and keep a history of your journeys.",
+    description: "Review your past adventures, recall saved trips for re-planning, and see a history of your individual journeys.",
     keywords: 'trip history'
+  },
+  {
+    href: '/trip-packing',
+    label: 'Trip Packing Assistant',
+    icon: Luggage,
+    description: "Use our AI assistant to generate smart, personalized packing lists for your individual trips and passengers.",
+    keywords: 'packing checklist luggage'
   },
 ];
 
@@ -60,10 +60,17 @@ export const navItems: NavItem[] = [
     keywords: 'camping gear'
   },
   {
+    href: '/journeys',
+    label: 'Journeys',
+    icon: Map,
+    description: "Group individual trips into epic multi-leg journeys. Plan, track, and map your grand adventures.",
+    keywords: 'journey adventure roadtrip'
+  },
+  {
     href: '/trip-manager',
     label: 'Trip Manager',
     icon: Briefcase,
-    description: 'A central hub to plan your routes, budgets, packing lists, and review past trips.',
+    description: 'A central hub to plan your individual trips, packing lists, and review your trip log.',
     keywords: 'trip planner log packing'
   },
   {

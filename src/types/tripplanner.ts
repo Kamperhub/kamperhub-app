@@ -1,4 +1,3 @@
-
 import type { DateRange } from 'react-day-picker';
 import type { ChecklistStage } from '@/types/checklist';
 import type { BudgetCategory, Expense } from '@/types/expense';
@@ -63,6 +62,9 @@ export interface LoggedTrip {
 
   activeCaravanIdAtTimeOfCreation?: string | null;
   activeCaravanNameAtTimeOfCreation?: string | null;
+  
+  // New field for Journey association
+  journeyId?: string | null;
 }
 
 // Key for localStorage

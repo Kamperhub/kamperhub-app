@@ -1,9 +1,10 @@
-
 // src/app/api/trips/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
+import type { Journey } from '@/types/journey';
 import { z, ZodError } from 'zod';
+import type admin from 'firebase-admin';
 
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
@@ -109,6 +110,7 @@ const createTripSchema = z.object({
   occupants: z.array(occupantSchema).min(1, "At least one occupant (e.g., the driver) is required.").optional(),
   activeCaravanIdAtTimeOfCreation: z.string().nullable().optional(),
   activeCaravanNameAtTimeOfCreation: z.string().nullable().optional(),
+  journeyId: z.string().nullable().optional(),
 });
 
 // For PUT, make most fields optional but require the ID.
@@ -192,9 +194,28 @@ export async function POST(req: NextRequest) {
         age: occ.age ?? null,
         notes: occ.notes ?? null,
       })),
+      journeyId: parsedData.journeyId || null,
     };
     
-    await newTripRef.set(newTrip);
+    // If a journeyId is provided, update the journey as well in a transaction
+    if (newTrip.journeyId) {
+        const journeyRef = firestore.collection('users').doc(uid).collection('journeys').doc(newTrip.journeyId);
+        await firestore.runTransaction(async (transaction) => {
+            const journeyDoc = await transaction.get(journeyRef);
+            if (!journeyDoc.exists) {
+                throw new Error("Journey not found. Cannot associate trip.");
+            }
+            // Atomically add the new trip's ID to the journey's tripIds array
+            transaction.update(journeyRef, { 
+              tripIds: admin.firestore.FieldValue.arrayUnion(newTrip.id) 
+            });
+            // Create the new trip
+            transaction.set(newTripRef, newTrip);
+        });
+    } else {
+      // Just create the trip if no journey is associated
+      await newTripRef.set(newTrip);
+    }
     
     return NextResponse.json(newTrip, { status: 201 });
 
@@ -245,17 +266,27 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Trip ID is required in the request body.' }, { status: 400 });
     }
     
-    // Create references to both the trip and its associated packing list
     const tripDocRef = firestore.collection('users').doc(uid).collection('trips').doc(tripId);
     const packingListDocRef = firestore.collection('users').doc(uid).collection('packingLists').doc(tripId);
 
-    // Use a batch to delete both atomically. If one fails, neither is deleted.
-    const batch = firestore.batch();
-    
-    batch.delete(tripDocRef);
-    batch.delete(packingListDocRef); // This will succeed even if the doc doesn't exist
+    await firestore.runTransaction(async (transaction) => {
+        const tripDoc = await transaction.get(tripDocRef);
+        if (!tripDoc.exists) return; // If trip doesn't exist, nothing to do.
+        
+        const tripData = tripDoc.data() as LoggedTrip;
 
-    await batch.commit();
+        // If the trip is part of a journey, remove its ID from the journey's list
+        if (tripData.journeyId) {
+            const journeyRef = firestore.collection('users').doc(uid).collection('journeys').doc(tripData.journeyId);
+            transaction.update(journeyRef, {
+                tripIds: admin.firestore.FieldValue.arrayRemove(tripId)
+            });
+        }
+        
+        // Delete the trip and its packing list
+        transaction.delete(tripDocRef);
+        transaction.delete(packingListDocRef); // This will succeed even if the packing list doc doesn't exist
+    });
     
     return NextResponse.json({ message: 'Trip and its associated packing list deleted successfully.' }, { status: 200 });
   } catch (err: any) {
