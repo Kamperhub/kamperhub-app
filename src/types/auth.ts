@@ -1,3 +1,4 @@
+
 // src/types/auth.ts
 
 import type { CaravanDefaultChecklistSet } from './checklist';
@@ -12,6 +13,7 @@ export interface UserProfile {
   city: string | null;
   state: string | null;
   country: string | null;
+  homeAddress?: string | null;
   subscriptionTier: SubscriptionTier;
   stripeCustomerId: string | null;
   stripeSubscriptionId?: string | null;
@@ -46,9 +48,9 @@ export interface MockAuthSession {
   lastName?: string | null;
   subscriptionTier?: SubscriptionTier | null;
   stripeCustomerId?: string | null;
-  city?: string | null;
-  state?: string | null;
-  country?: string | null;
+  city?: string;
+  state?: string;
+  country?: string;
 }
 
 // This interface was for the old mock user registry.

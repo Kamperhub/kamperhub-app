@@ -56,6 +56,7 @@ const userPreferencesUpdateSchema = z
     city: z.string().optional(),
     state: z.string().optional(),
     country: z.string().optional(),
+    homeAddress: z.string().optional(),
   })
   .refine(
     (obj) => Object.values(obj).some((v) => v !== undefined),
