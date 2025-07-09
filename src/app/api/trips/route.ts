@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { z, ZodError } from 'zod';
+import type admin from 'firebase-admin';
 
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
@@ -45,11 +46,6 @@ const latLngSchema = z.object({
   lng: z.number(),
 });
 
-const waypointSchema = z.object({
-  address: z.string(),
-  location: latLngSchema.optional(),
-});
-
 const routeDetailsSchema = z.object({
   distance: z.object({ text: z.string(), value: z.number() }),
   duration: z.object({ text: z.string(), value: z.number() }),
@@ -57,6 +53,7 @@ const routeDetailsSchema = z.object({
   endLocation: latLngSchema.optional().nullable(),
   polyline: z.string().optional().nullable(),
   warnings: z.array(z.string()).optional().nullable(),
+  tollInfo: z.object({ text: z.string(), value: z.number() }).nullable().optional(),
 });
 
 
@@ -71,11 +68,18 @@ const checklistItemSchema = z.object({
   completed: z.boolean(),
 });
 
-const tripChecklistSetSchema = z.object({
-  preDeparture: z.array(checklistItemSchema),
-  campsiteSetup: z.array(checklistItemSchema),
-  packDown: z.array(checklistItemSchema),
-});
+const tripChecklistSetSchema = z.union([
+  z.array(z.object({ // New stage-based format
+    title: z.string(),
+    items: z.array(checklistItemSchema),
+  })),
+  z.object({ // Old format for backward compatibility
+    preDeparture: z.array(checklistItemSchema),
+    campsiteSetup: z.array(checklistItemSchema),
+    packDown: z.array(checklistItemSchema),
+  })
+]);
+
 
 const occupantSchema = z.object({
   id: z.string(),
@@ -90,7 +94,6 @@ const createTripSchema = z.object({
   name: z.string().min(1, "Trip name is required"),
   startLocationDisplay: z.string().min(1, "Start location is required"),
   endLocationDisplay: z.string().min(1, "End location is required"),
-  waypoints: z.array(waypointSchema).optional(),
   fuelEfficiency: z.coerce.number().positive(),
   fuelPrice: z.coerce.number().positive(),
   routeDetails: routeDetailsSchema,
@@ -102,16 +105,18 @@ const createTripSchema = z.object({
   isVehicleOnly: z.boolean().optional().default(false),
   checklists: tripChecklistSetSchema.optional(),
   budget: z.array(budgetCategorySchema).optional(),
+  expenses: z.array(expenseSchema).optional(),
   occupants: z.array(occupantSchema).min(1, "At least one occupant (e.g., the driver) is required.").optional(),
   activeCaravanIdAtTimeOfCreation: z.string().nullable().optional(),
   activeCaravanNameAtTimeOfCreation: z.string().nullable().optional(),
+  journeyId: z.string().nullable().optional(),
 });
 
-const updateTripSchema = createTripSchema.extend({
+// For PUT, make most fields optional but require the ID.
+const updateTripSchema = createTripSchema.partial().extend({
   id: z.string().min(1, "Trip ID is required for updates"),
-  timestamp: z.string().datetime(),
-  expenses: z.array(expenseSchema).optional(),
 });
+
 
 const handleApiError = (error: any) => {
   console.error('API Error:', error);
@@ -179,19 +184,37 @@ export async function POST(req: NextRequest) {
       id: newTripRef.id,
       timestamp: new Date().toISOString(),
       ...parsedData,
-      waypoints: parsedData.waypoints || [],
       notes: parsedData.notes || null,
       isVehicleOnly: parsedData.isVehicleOnly || false,
-      expenses: [],
+      expenses: parsedData.expenses || [],
       budget: parsedData.budget || [],
       occupants: (parsedData.occupants || []).map(occ => ({
         ...occ,
         age: occ.age ?? null,
         notes: occ.notes ?? null,
       })),
+      journeyId: parsedData.journeyId || null,
     };
     
-    await newTripRef.set(newTrip);
+    // If a journeyId is provided, update the journey as well in a transaction
+    if (newTrip.journeyId) {
+        const journeyRef = firestore.collection('users').doc(uid).collection('journeys').doc(newTrip.journeyId);
+        await firestore.runTransaction(async (transaction) => {
+            const journeyDoc = await transaction.get(journeyRef);
+            if (!journeyDoc.exists) {
+                throw new Error("Journey not found. Cannot associate trip.");
+            }
+            // Atomically add the new trip's ID to the journey's tripIds array
+            transaction.update(journeyRef, { 
+              tripIds: admin.firestore.FieldValue.arrayUnion(newTrip.id) 
+            });
+            // Create the new trip
+            transaction.set(newTripRef, newTrip);
+        });
+    } else {
+      // Just create the trip if no journey is associated
+      await newTripRef.set(newTrip);
+    }
     
     return NextResponse.json(newTrip, { status: 201 });
 
@@ -208,24 +231,51 @@ export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
     const parsedData = updateTripSchema.parse(body);
+    const { id: tripId, ...updateData } = parsedData;
 
-    const tripRef = firestore.collection('users').doc(uid).collection('trips').doc(parsedData.id);
-    
-    const dataToSet: LoggedTrip = {
-        ...parsedData,
-        timestamp: new Date().toISOString(), // Overwrite timestamp on every update
-        waypoints: parsedData.waypoints || [],
-        notes: parsedData.notes || null,
-        occupants: (parsedData.occupants || []).map(occ => ({
-            ...occ,
-            age: occ.age ?? null,
-            notes: occ.notes ?? null,
-        })),
-    };
+    const tripRef = firestore.collection('users').doc(uid).collection('trips').doc(tripId);
 
-    await tripRef.set(dataToSet, { merge: true });
-    
-    return NextResponse.json({ message: 'Trip updated successfully.', trip: dataToSet }, { status: 200 });
+    await firestore.runTransaction(async (transaction) => {
+        const tripDoc = await transaction.get(tripRef);
+        if (!tripDoc.exists) {
+            throw new Error("Trip not found.");
+        }
+        
+        const oldTripData = tripDoc.data() as LoggedTrip;
+        const oldJourneyId = oldTripData.journeyId;
+        const newJourneyId = updateData.journeyId;
+
+        // If journey assignment has changed, we need to update the journey documents
+        if (oldJourneyId !== newJourneyId) {
+            // Remove from old journey if it existed
+            if (oldJourneyId) {
+                const oldJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(oldJourneyId);
+                transaction.update(oldJourneyRef, {
+                    tripIds: admin.firestore.FieldValue.arrayRemove(tripId)
+                });
+            }
+            // Add to new journey if it exists
+            if (newJourneyId) {
+                const newJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(newJourneyId);
+                transaction.update(newJourneyRef, {
+                    tripIds: admin.firestore.FieldValue.arrayUnion(tripId)
+                });
+            }
+        }
+
+        // Now update the trip document itself
+        const finalUpdateData = {
+          ...updateData,
+          timestamp: new Date().toISOString(),
+        };
+        transaction.set(tripRef, finalUpdateData, { merge: true });
+    });
+
+    // Fetch the updated doc to return the full object
+    const updatedDoc = await tripRef.get();
+    const updatedTrip = updatedDoc.data() as LoggedTrip;
+
+    return NextResponse.json({ message: 'Trip updated successfully.', trip: updatedTrip }, { status: 200 });
   } catch (err: any) {
     return handleApiError(err);
   }
@@ -243,17 +293,27 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Trip ID is required in the request body.' }, { status: 400 });
     }
     
-    // Create references to both the trip and its associated packing list
     const tripDocRef = firestore.collection('users').doc(uid).collection('trips').doc(tripId);
     const packingListDocRef = firestore.collection('users').doc(uid).collection('packingLists').doc(tripId);
 
-    // Use a batch to delete both atomically. If one fails, neither is deleted.
-    const batch = firestore.batch();
-    
-    batch.delete(tripDocRef);
-    batch.delete(packingListDocRef); // This will succeed even if the doc doesn't exist
+    await firestore.runTransaction(async (transaction) => {
+        const tripDoc = await transaction.get(tripDocRef);
+        if (!tripDoc.exists) return; // If trip doesn't exist, nothing to do.
+        
+        const tripData = tripDoc.data() as LoggedTrip;
 
-    await batch.commit();
+        // If the trip is part of a journey, remove its ID from the journey's list
+        if (tripData.journeyId) {
+            const journeyRef = firestore.collection('users').doc(uid).collection('journeys').doc(tripData.journeyId);
+            transaction.update(journeyRef, {
+                tripIds: admin.firestore.FieldValue.arrayRemove(tripId)
+            });
+        }
+        
+        // Delete the trip and its packing list
+        transaction.delete(tripDocRef);
+        transaction.delete(packingListDocRef); // This will succeed even if the packing list doc doesn't exist
+    });
     
     return NextResponse.json({ message: 'Trip and its associated packing list deleted successfully.' }, { status: 200 });
   } catch (err: any) {
