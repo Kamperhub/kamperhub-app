@@ -3,10 +3,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import type { Waypoint } from '@/types/tripplanner';
 
 const directionsRequestSchema = z.object({
   origin: z.string(),
   destination: z.string(),
+  waypoints: z.array(z.string()).optional(),
   vehicleHeight: z.number().positive().optional(),
   axleCount: z.number().int().positive().optional(),
   avoidTolls: z.boolean().optional(),
@@ -44,7 +46,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body.', details: parsedBody.error.format() }, { status: 400 });
     }
 
-    const { origin, destination, vehicleHeight, axleCount, avoidTolls } = parsedBody.data;
+    const { origin, destination, waypoints, vehicleHeight, axleCount, avoidTolls } = parsedBody.data;
 
     // Base request body for Google's Routes API
     const requestBody: any = {
@@ -58,6 +60,13 @@ export async function POST(req: NextRequest) {
       units: 'METRIC',
       polylineEncoding: 'ENCODED_POLYLINE',
     };
+    
+    // Add waypoints if they exist
+    if (waypoints && waypoints.length > 0) {
+        requestBody.intermediates = waypoints.map(waypoint => ({
+            address: waypoint
+        }));
+    }
 
     // If height or axle count is provided, add vehicleInfo to the request
     const vehicleInfo: any = {};
@@ -143,12 +152,21 @@ export async function POST(req: NextRequest) {
             };
           }
         }
+        
+        const intermediateWaypoints: Waypoint[] = (route.legs || [])
+            .slice(0, -1) // Exclude the final leg to the destination
+            .map((leg: any, index: number) => ({
+                address: waypoints?.[index] || 'Waypoint', // Fallback name
+                location: leg.endLocation?.latLng,
+            }))
+            .filter((wp: Waypoint) => wp.location); // Ensure location exists
 
         const adaptedResponse = {
             distance: { text: `${(route.distanceMeters / 1000).toFixed(1)} km`, value: route.distanceMeters },
             duration: { text: formatDuration(route.duration), value: parseInt(route.duration.slice(0,-1), 10)},
             startLocation: route.legs[0]?.startLocation?.latLng,
-            endLocation: route.legs[0]?.endLocation?.latLng,
+            endLocation: route.legs[route.legs.length - 1]?.endLocation?.latLng,
+            waypoints: intermediateWaypoints,
             polyline: route.polyline.encodedPolyline,
             warnings: route.warnings || [],
             tollInfo: adaptedTollInfo,

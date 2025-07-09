@@ -6,11 +6,16 @@ import type { BudgetCategory, Expense } from '@/types/expense';
 export interface TripPlannerFormValues {
   startLocation: string;
   endLocation: string;
-  waypoints?: string[]; // For user input of waypoint addresses
+  waypoints?: { address: string }[]; // For user input of waypoint addresses
   fuelEfficiency: number; // Litres/100km
   fuelPrice: number; // Price per litre
   dateRange?: DateRange | null;
   maxHeight?: number;
+}
+
+export interface Waypoint {
+  address: string; // The address string of the waypoint as entered by user or resolved
+  location?: google.maps.LatLngLiteral; // Optional: geocoded LatLng of the waypoint
 }
 
 export interface RouteDetails {
@@ -18,6 +23,7 @@ export interface RouteDetails {
   duration: { text: string; value: number };
   startLocation?: google.maps.LatLngLiteral;
   endLocation?: google.maps.LatLngLiteral;
+  waypoints?: Waypoint[];
   polyline?: string;
   warnings?: string[];
   tollInfo?: { text: string; value: number } | null;
@@ -28,11 +34,6 @@ export interface FuelEstimate {
   estimatedCost: string; // e.g., "$20.00"
 }
 
-export interface Waypoint {
-  address: string; // The address string of the waypoint as entered by user or resolved
-  location?: google.maps.LatLngLiteral; // Optional: geocoded LatLng of the waypoint
-  // Potentially other details like a user-defined name for the waypoint could be added
-}
 
 export interface Occupant {
   id: string;
