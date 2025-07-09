@@ -88,6 +88,25 @@ export default function JourneyDetailsPage() {
     if (!journey) return [];
     return allTrips.filter(trip => journey.tripIds.includes(trip.id)).sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }, [journey, allTrips]);
+  
+  const sortedTripsToCopy = useMemo(() => {
+    return [...allTrips].sort((a, b) => {
+      const dateA = a.plannedStartDate ? parseISO(a.plannedStartDate) : null;
+      const dateB = b.plannedStartDate ? parseISO(b.plannedStartDate) : null;
+
+      if (dateA && dateB) {
+        return dateB.getTime() - dateA.getTime(); // Most recent first
+      }
+      if (dateA) {
+        return -1; // a has a date, b does not, so a comes first
+      }
+      if (dateB) {
+        return 1; // b has a date, a does not, so b comes first
+      }
+      // If neither has a planned date, sort by creation timestamp
+      return parseISO(b.timestamp).getTime() - parseISO(a.timestamp).getTime();
+    });
+  }, [allTrips]);
 
   const { totalDistance, totalSpend, totalBudget } = useMemo(() => {
     let distance = 0;
@@ -303,11 +322,16 @@ export default function JourneyDetailsPage() {
                           <h4 className="font-semibold text-center">Or Copy an Existing Trip</h4>
                            <ScrollArea className="h-64 border rounded-md p-2">
                             <div className="space-y-2">
-                              {allTrips.length > 0 ? allTrips.map(trip => (
+                              {sortedTripsToCopy.length > 0 ? sortedTripsToCopy.map(trip => (
                                 <div key={trip.id} className={`p-2 border rounded-md cursor-pointer ${selectedTripToCopy === trip.id ? 'bg-accent/20 border-accent' : 'hover:bg-muted'}`} onClick={() => setSelectedTripToCopy(trip.id)}>
                                   <p className="font-semibold">{trip.name}</p>
                                   <p className="text-xs text-muted-foreground">{trip.startLocationDisplay} to {trip.endLocationDisplay}</p>
-                                  <p className="text-xs text-muted-foreground">Created: {format(parseISO(trip.timestamp), 'PP')}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {trip.plannedStartDate 
+                                      ? `Planned: ${format(parseISO(trip.plannedStartDate), 'PP')}` 
+                                      : `Created: ${format(parseISO(trip.timestamp), 'PP')}`
+                                    }
+                                  </p>
                                 </div>
                               )) : <p className="text-sm text-muted-foreground text-center py-4">No other trips available to copy.</p>}
                             </div>
