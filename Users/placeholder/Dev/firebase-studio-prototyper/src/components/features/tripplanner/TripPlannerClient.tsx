@@ -1,13 +1,14 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, useContext } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip, Occupant } from '@/types/tripplanner';
 import { RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
+import type { Journey } from '@/types/journey';
 import type { StoredVehicle } from '@/types/vehicle';
 import type { StoredCaravan } from '@/types/caravan';
 import type { ChecklistStage } from '@/types/checklist';
@@ -27,7 +28,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
-import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Users, AlertTriangle, XCircle, Edit3, Car, Settings, TowerControl, Home, Info } from 'lucide-react';
+import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Users, AlertTriangle, XCircle, Edit3, Car, Settings, TowerControl, Home, Info, Map as MapIcon, ChevronLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from "date-fns";
@@ -42,9 +43,11 @@ import type { DateRange } from 'react-day-picker';
 import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesAutocompleteInput';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { createTrip, updateTrip, fetchUserPreferences, fetchVehicles, fetchCaravans, updateUserPreferences } from '@/lib/api-client';
+import { createTrip, updateTrip, fetchUserPreferences, fetchVehicles, fetchCaravans, updateUserPreferences, fetchJourneys } from '@/lib/api-client';
 import type { UserProfile } from '@/types/auth';
 import Link from 'next/link';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { NavigationContext } from '@/components/layout/AppShell';
 
 const tripPlannerSchema = z.object({
   startLocation: z.string().min(3, "Start location is required (min 3 chars)"),
@@ -116,15 +119,17 @@ export function TripPlannerClient() {
   const [fuelEstimate, setFuelEstimate] = useState<FuelEstimate | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const navContext = useContext(NavigationContext);
 
   const [activeTrip, setActiveTrip] = useState<LoggedTrip | null>(null);
   const [tripBudget, setTripBudget] = useState<BudgetCategory[]>([]);
   const [tripExpenses, setTripExpenses] = useState<Expense[]>([]);
   const [tripOccupants, setTripOccupants] = useState<Occupant[]>([]);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
+  const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
 
 
   const { data: userPrefs } = useQuery<Partial<UserProfile>>({
@@ -145,9 +150,24 @@ export function TripPlannerClient() {
     enabled: !!user,
   });
 
+  const { data: allJourneys = [] } = useQuery<Journey[]>({
+    queryKey: ['journeys', user?.uid],
+    queryFn: fetchJourneys,
+    enabled: !!user,
+  });
+
+  const sortedJourneys = useMemo(() => {
+    return [...allJourneys].sort((a, b) => a.name.localeCompare(b.name));
+  }, [allJourneys]);
+
+
   const [isSaveTripDialogOpen, setIsSaveTripDialogOpen] = useState(false);
   const [pendingTripName, setPendingTripName] = useState('');
   const [pendingTripNotes, setPendingTripNotes] = useState('');
+
+  const handleNavigation = () => {
+    navContext?.setIsNavigating(true);
+  };
 
 
   const map = useMap();
@@ -168,7 +188,19 @@ export function TripPlannerClient() {
     setPendingTripName('');
     setPendingTripNotes('');
     setAvoidTolls(false);
+    setSelectedJourneyId(null);
   }, [reset]);
+
+  useEffect(() => {
+    const journeyIdFromQuery = searchParams.get('journeyId');
+    if (journeyIdFromQuery) {
+        setSelectedJourneyId(journeyIdFromQuery);
+        toast({
+            title: "Adding to Journey",
+            description: "This new trip will be added to your selected journey.",
+        });
+    }
+  }, [searchParams, toast]);
 
   useEffect(() => {
     let recalledTripLoaded = false;
@@ -191,6 +223,7 @@ export function TripPlannerClient() {
           setTripBudget(sanitizedTrip.budget || []);
           setTripExpenses(sanitizedTrip.expenses || []);
           setTripOccupants(sanitizedTrip.occupants || []);
+          setSelectedJourneyId(sanitizedTrip.journeyId || null);
           
           reset({
             startLocation: sanitizedTrip.startLocationDisplay,
@@ -224,7 +257,7 @@ export function TripPlannerClient() {
         }
       }
     }
-  }, [reset, setValue, toast, pathname, getValues, userPrefs, allVehicles]); 
+  }, [reset, setValue, toast, userPrefs, allVehicles]); 
 
   const onSubmit: SubmitHandler<TripPlannerFormValues> = async (data) => {
     setIsLoading(true);
@@ -320,6 +353,7 @@ export function TripPlannerClient() {
     mutationFn: createTrip,
     onSuccess: (savedTrip) => {
       queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
+      queryClient.invalidateQueries({ queryKey: ['journeys', user?.uid] });
       toast({ title: "Trip Saved!", description: `"${savedTrip.name}" has been added to your Trip Log.` });
       setIsSaveTripDialogOpen(false);
       clearPlanner();
@@ -331,6 +365,7 @@ export function TripPlannerClient() {
     mutationFn: updateTrip,
     onSuccess: (updatedTrip) => {
       queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
+      queryClient.invalidateQueries({ queryKey: ['journeys', user?.uid] });
       toast({ title: "Trip Updated!", description: `"${updatedTrip.trip.name}" has been updated.` });
     },
     onError: (error: Error) => toast({ title: "Update Failed", description: error.message, variant: "destructive" }),
@@ -417,6 +452,7 @@ export function TripPlannerClient() {
       isVehicleOnly: !isTowing,
       activeCaravanIdAtTimeOfCreation: isTowing ? (activeCaravan?.id || null) : null,
       activeCaravanNameAtTimeOfCreation: isTowing ? (activeCaravan ? `${activeCaravan.year} ${activeCaravan.make} ${activeCaravan.model}` : null) : null,
+      journeyId: selectedJourneyId,
     };
     
     if (activeTrip) {
@@ -425,7 +461,7 @@ export function TripPlannerClient() {
     } else {
         createTripMutation.mutate(tripData);
     }
-  }, [routeDetails, getValues, fuelEstimate, toast, pendingTripName, pendingTripNotes, userPrefs, createTripMutation, updateTripMutation, activeTrip, tripBudget, tripExpenses, tripOccupants, allCaravans, isTowing]);
+  }, [routeDetails, getValues, fuelEstimate, toast, pendingTripName, pendingTripNotes, userPrefs, createTripMutation, updateTripMutation, activeTrip, tripBudget, tripExpenses, tripOccupants, allCaravans, isTowing, selectedJourneyId]);
 
 
   const mapHeight = "400px"; 
@@ -473,6 +509,13 @@ export function TripPlannerClient() {
 
   return (
     <>
+      <Button asChild variant="link" className="p-0 h-auto font-body text-muted-foreground hover:text-primary -ml-1 mb-8">
+        <Link href="/trip-manager" onClick={handleNavigation}>
+          <ChevronLeft className="mr-1 h-4 w-4" />
+          Return to Trip Manager
+        </Link>
+      </Button>
+
       <Tabs defaultValue="itinerary" className="w-full">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between mb-6 gap-4">
           <TabsList className="grid w-full grid-cols-3 max-w-lg">
@@ -543,12 +586,26 @@ export function TripPlannerClient() {
                       <Switch id="avoid-tolls-switch" checked={avoidTolls} onCheckedChange={setAvoidTolls} disabled={isLoading}/>
                       <Label htmlFor="avoid-tolls-switch" className="font-body">Avoid Tolls?</Label>
                     </div>
+                    <div>
+                        <Label htmlFor="journey-select" className="font-body">Assign to Journey (Optional)</Label>
+                        <Select value={selectedJourneyId || "none"} onValueChange={(val) => setSelectedJourneyId(val === "none" ? null : val)}>
+                            <SelectTrigger id="journey-select" className="font-body">
+                                <SelectValue placeholder="Select a journey..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Standalone Trip</SelectItem>
+                                {sortedJourneys.map(journey => (
+                                    <SelectItem key={journey.id} value={journey.id}>{journey.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                     <div className="flex flex-col sm:flex-row gap-2">
                         <Button type="button" variant="outline" onClick={() => clearPlanner(true)} disabled={isLoading} className="w-full font-body">
                           <XCircle className="mr-2 h-4 w-4" /> Reset
                         </Button>
                         <Button type="submit" disabled={isLoading || !isGoogleApiReady} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body">
-                          {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Calculating...</> : 'Plan Trip'}
+                          {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Calculating...</> : 'Plan Route'}
                         </Button>
                     </div>
                     {!isGoogleApiReady && <p className="text-xs text-muted-foreground text-center font-body mt-1">Map services loading...</p>}
@@ -591,11 +648,11 @@ export function TripPlannerClient() {
                   className="w-full font-body bg-primary hover:bg-primary/90 text-primary-foreground text-lg py-6"
                   disabled={!routeDetails || createTripMutation.isPending || updateTripMutation.isPending}
               >
-                  {(createTripMutation.isPending || updateTripMutation.isPending) ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                  {(createTripMutation.isPending || updateTripMutation.isPending) ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : (activeTrip ? <Edit3 className="mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />)}
                   {activeTrip ? 'Update Trip Details' : 'Save Trip'}
               </Button>
               <Card><CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="font-headline flex items-center"><MapPin className="mr-2 h-6 w-6 text-primary" /> Route Map</CardTitle>
+                  <CardTitle className="font-headline flex items-center"><MapIcon className="mr-2 h-6 w-6 text-primary" /> Route Map</CardTitle>
               </CardHeader><CardContent className="p-0"><div style={{ height: mapHeight }} className="bg-muted rounded-b-lg overflow-hidden relative">
                 <Map defaultCenter={{ lat: -25.2744, lng: 133.7751 }} defaultZoom={4} gestureHandling={'greedy'} disableDefaultUI={true} mapId={'DEMO_MAP_ID'} className="h-full w-full">
                   <RouteRenderer routeDetails={routeDetails} />
