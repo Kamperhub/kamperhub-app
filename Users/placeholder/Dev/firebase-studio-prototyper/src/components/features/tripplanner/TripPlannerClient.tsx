@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useForm, type SubmitHandler, Controller, useFieldArray } from 'react-hook-form';
+import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { usePathname } from 'next/navigation';
@@ -27,7 +27,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
-import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Trash2, PlusCircle, Users, AlertTriangle, XCircle, Edit3, Car, Settings, TowerControl, Home, Info } from 'lucide-react';
+import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Users, AlertTriangle, XCircle, Edit3, Car, Settings, TowerControl, Home, Info } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from "date-fns";
@@ -48,9 +48,6 @@ import Link from 'next/link';
 
 const tripPlannerSchema = z.object({
   startLocation: z.string().min(3, "Start location is required (min 3 chars)"),
-  waypoints: z.array(z.object({
-    address: z.string().min(3, "Waypoint must be at least 3 characters long"),
-  })).optional(),
   endLocation: z.string().min(3, "End location is required (min 3 chars)"),
   fuelEfficiency: z.coerce.number().positive("Fuel efficiency must be a positive number (Litres/100km)"),
   fuelPrice: z.coerce.number().positive("Fuel price must be a positive number (per litre)"),
@@ -105,17 +102,11 @@ export function TripPlannerClient() {
     resolver: zodResolver(tripPlannerSchema),
     defaultValues: {
       startLocation: '',
-      waypoints: [],
       endLocation: '',
       fuelEfficiency: 10,
       fuelPrice: 1.80,
       dateRange: { from: undefined, to: undefined }
     }
-  });
-  
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "waypoints"
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -189,7 +180,6 @@ export function TripPlannerClient() {
            const sanitizedTrip: LoggedTrip = {
               ...recalledTrip,
               notes: recalledTrip.notes || null,
-              waypoints: recalledTrip.waypoints || [],
               occupants: (recalledTrip.occupants || []).map(occ => ({
                   ...occ,
                   age: occ.age ?? null,
@@ -205,7 +195,6 @@ export function TripPlannerClient() {
           reset({
             startLocation: sanitizedTrip.startLocationDisplay,
             endLocation: sanitizedTrip.endLocationDisplay,
-            waypoints: sanitizedTrip.waypoints?.map(wp => ({ address: wp.address })) || [],
             fuelEfficiency: sanitizedTrip.fuelEfficiency,
             fuelPrice: sanitizedTrip.fuelPrice,
             dateRange: {
@@ -253,13 +242,12 @@ export function TripPlannerClient() {
     const vehicleHeight = isTowing ? activeCaravan?.overallHeight : activeVehicle?.overallHeight;
 
     try {
-        const response = await fetch('/api/directions', {
+        const response = await fetch('/api/directions/route', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 origin: data.startLocation,
                 destination: data.endLocation,
-                waypoints: data.waypoints?.map(wp => wp.address),
                 vehicleHeight: vehicleHeight ? vehicleHeight / 1000 : undefined,
                 axleCount: axleCount,
                 avoidTolls: avoidTolls
@@ -411,7 +399,6 @@ export function TripPlannerClient() {
       name: pendingTripName.trim(),
       startLocationDisplay: currentFormData.startLocation,
       endLocationDisplay: currentFormData.endLocation,
-      waypoints: routeDetails.waypoints || [],
       fuelEfficiency: currentFormData.fuelEfficiency,
       fuelPrice: currentFormData.fuelPrice,
       routeDetails: routeDetails,
@@ -500,34 +487,14 @@ export function TripPlannerClient() {
             <div className="md:col-span-1 space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="font-headline flex items-center"><RouteIcon className="mr-2 h-6 w-6 text-primary" /> Plan Route</CardTitle>
+                  <CardTitle className="font-headline flex items-center"><RouteIcon className="mr-2 h-6 w-6 text-primary" /> Plan Trip</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <GooglePlacesAutocompleteInput control={control} name="startLocation" label="Start Location" placeholder="e.g., Sydney, NSW" errors={errors} setValue={setValue} isApiReady={isGoogleApiReady} />
                     
-                    {fields.map((field, index) => (
-                      <div key={field.id} className="relative group">
-                        <GooglePlacesAutocompleteInput
-                          control={control}
-                          name={`waypoints.${index}.address` as const}
-                          label={`Waypoint ${index + 1}`}
-                          placeholder="e.g., Canberra, ACT"
-                          errors={errors}
-                          setValue={setValue}
-                          isApiReady={isGoogleApiReady}
-                        />
-                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="absolute -top-1 right-0 h-7 w-7 text-muted-foreground hover:text-destructive group-hover:opacity-100 md:opacity-0 transition-opacity">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-
-                    <Button type="button" variant="outline" size="sm" onClick={() => append({ address: '' })} className="w-full">
-                        <PlusCircle className="mr-2 h-4 w-4"/>Add Waypoint
-                    </Button>
-                    
                     <GooglePlacesAutocompleteInput control={control} name="endLocation" label="End Location" placeholder="e.g., Melbourne, VIC" errors={errors} setValue={setValue} isApiReady={isGoogleApiReady} />
+                    
                     <div>
                       <Label htmlFor="dateRange" className="font-body">Planned Date Range</Label>
                       <Controller name="dateRange" control={control} render={({ field }) => (
@@ -581,7 +548,7 @@ export function TripPlannerClient() {
                           <XCircle className="mr-2 h-4 w-4" /> Reset
                         </Button>
                         <Button type="submit" disabled={isLoading || !isGoogleApiReady} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body">
-                          {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Calculating...</> : 'Plan Route'}
+                          {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Calculating...</> : 'Plan Trip'}
                         </Button>
                     </div>
                     {!isGoogleApiReady && <p className="text-xs text-muted-foreground text-center font-body mt-1">Map services loading...</p>}
@@ -625,7 +592,7 @@ export function TripPlannerClient() {
                   disabled={!routeDetails || createTripMutation.isPending || updateTripMutation.isPending}
               >
                   {(createTripMutation.isPending || updateTripMutation.isPending) ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                  {activeTrip ? 'Update Trip Details' : 'Save Full Trip'}
+                  {activeTrip ? 'Update Trip Details' : 'Save Trip'}
               </Button>
               <Card><CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="font-headline flex items-center"><MapPin className="mr-2 h-6 w-6 text-primary" /> Route Map</CardTitle>
@@ -633,13 +600,6 @@ export function TripPlannerClient() {
                 <Map defaultCenter={{ lat: -25.2744, lng: 133.7751 }} defaultZoom={4} gestureHandling={'greedy'} disableDefaultUI={true} mapId={'DEMO_MAP_ID'} className="h-full w-full">
                   <RouteRenderer routeDetails={routeDetails} />
                   {routeDetails?.startLocation && <AdvancedMarker position={routeDetails.startLocation} title={`Start`}><Pin background={'hsl(var(--primary))'} borderColor={'hsl(var(--primary))'} glyphColor={'hsl(var(--primary-foreground))'} /></AdvancedMarker>}
-                  {routeDetails?.waypoints?.map((waypoint, index) => (
-                      waypoint.location && (
-                          <AdvancedMarker key={`waypoint-${index}`} position={waypoint.location} title={waypoint.address}>
-                              <Pin background={'hsl(var(--secondary))'} borderColor={'hsl(var(--secondary))'} glyphColor={'hsl(var(--secondary-foreground))'}/>
-                          </AdvancedMarker>
-                      )
-                  ))}
                   {routeDetails?.endLocation && <AdvancedMarker position={routeDetails.endLocation} title={`End`}><Pin background={'hsl(var(--accent))'} borderColor={'hsl(var(--accent))'} glyphColor={'hsl(var(--accent-foreground))'} /></AdvancedMarker>}
                 </Map>
               </div></CardContent></Card>

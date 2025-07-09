@@ -51,6 +51,12 @@ export const createTrip = (data: any) => apiFetch('/api/trips', { method: 'POST'
 export const updateTrip = (data: any) => apiFetch('/api/trips', { method: 'PUT', body: JSON.stringify(data) });
 export const deleteTrip = (id: string) => apiFetch(`/api/trips`, { method: 'DELETE', body: JSON.stringify({ id }) });
 
+// ---- Journey API Functions ----
+export const fetchJourneys = () => apiFetch('/api/journeys');
+export const createJourney = (data: any) => apiFetch('/api/journeys', { method: 'POST', body: JSON.stringify(data) });
+export const updateJourney = (data: any) => apiFetch('/api/journeys', { method: 'PUT', body: JSON.stringify(data) });
+export const deleteJourney = (id: string) => apiFetch('/api/journeys', { method: 'DELETE', body: JSON.stringify({ id }) });
+
 // ---- Booking API Functions ----
 export const fetchBookings = () => apiFetch('/api/bookings');
 export const createBooking = (data: any) => apiFetch('/api/bookings', { method: 'POST', body: JSON.stringify(data) });

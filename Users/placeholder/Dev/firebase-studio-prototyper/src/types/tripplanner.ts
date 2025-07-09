@@ -6,7 +6,6 @@ import type { BudgetCategory, Expense } from '@/types/expense';
 export interface TripPlannerFormValues {
   startLocation: string;
   endLocation: string;
-  waypoints?: { address: string }[]; // For user input of waypoint addresses
   fuelEfficiency: number; // Litres/100km
   fuelPrice: number; // Price per litre
   dateRange?: DateRange | null;
@@ -23,7 +22,6 @@ export interface RouteDetails {
   duration: { text: string; value: number };
   startLocation?: google.maps.LatLngLiteral;
   endLocation?: google.maps.LatLngLiteral;
-  waypoints?: Waypoint[];
   polyline?: string;
   warnings?: string[];
   tollInfo?: { text: string; value: number } | null;
@@ -50,10 +48,9 @@ export interface LoggedTrip {
   timestamp: string; // ISO string for date
   startLocationDisplay: string; // The string input by the user for start
   endLocationDisplay: string; // The string input by the user for end
-  waypoints?: Waypoint[]; // Array of waypoints for the logged trip
   fuelEfficiency: number;
   fuelPrice: number;
-  routeDetails: RouteDetails; // For a multi-stop trip, this might represent overall details
+  routeDetails: RouteDetails;
   fuelEstimate: FuelEstimate | null;
   plannedStartDate?: string | null; // Stored as ISO string
   plannedEndDate?: string | null; // Stored as ISO string
@@ -71,6 +68,9 @@ export interface LoggedTrip {
 
   activeCaravanIdAtTimeOfCreation?: string | null;
   activeCaravanNameAtTimeOfCreation?: string | null;
+  
+  // New field for Journey association
+  journeyId?: string | null;
 }
 
 // Key for localStorage
