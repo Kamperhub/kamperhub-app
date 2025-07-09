@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, WorldMap } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, Globe } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -23,7 +23,7 @@ export const tripManagerItems: NavItem[] = [
   {
     href: '/world-map',
     label: 'World Map',
-    icon: WorldMap,
+    icon: Globe,
     description: "View all your completed trips and journeys on an interactive global map. Explore your travel history at a glance.",
     keywords: 'world map history travel'
   },

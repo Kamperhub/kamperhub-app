@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { fetchTrips } from '@/lib/api-client';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { Map, AdvancedMarker, Pin, InfoWindow, useMap } from '@vis.gl/react-google-maps';
-import { WorldMap as WorldMapIcon, Loader2, AlertTriangle, Route, ChevronLeft } from 'lucide-react';
+import { Globe as WorldMapIcon, Loader2, AlertTriangle, Route, ChevronLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
