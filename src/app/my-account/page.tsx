@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { EditProfileForm, type EditProfileFormData } from '@/components/features/account/EditProfileForm';
 import { NavigationContext } from '@/components/layout/AppShell';
+import { useMap } from '@vis.gl/react-google-maps';
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
@@ -30,6 +31,7 @@ export default function MyAccountPage() {
   const { hasProAccess, subscriptionTier, stripeCustomerId, isTrialActive, trialEndsAt } = useSubscription();
   const queryClient = useQueryClient();
   const navContext = useContext(NavigationContext);
+  const map = useMap();
 
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -43,6 +45,10 @@ export default function MyAccountPage() {
   const { toast } = useToast();
   
   const expectedRedirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8083'}/api/auth/google/callback`;
+
+  const isGoogleApiReady = !!map &&
+                           typeof window.google !== 'undefined' &&
+                           !!window.google.maps?.places?.Autocomplete;
 
   useEffect(() => {
     const errorParam = searchParams.get('error');
@@ -322,6 +328,7 @@ export default function MyAccountPage() {
                     onSave={handleSaveProfile}
                     onCancel={() => setIsEditProfileOpen(false)}
                     isLoading={isSavingProfile}
+                    isApiReady={isGoogleApiReady}
                   />
                 </DialogContent>
               </Dialog>
