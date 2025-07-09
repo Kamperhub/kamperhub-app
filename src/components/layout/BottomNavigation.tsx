@@ -30,7 +30,7 @@ export function BottomNavigation() {
 
 
   // New logic: Define which paths belong to the Trip Manager group
-  const tripManagerPaths = ['/trip-manager', '/trip-expense-planner', '/triplog', '/trip-packing'];
+  const tripManagerPaths = ['/trip-manager', '/trip-expense-planner', '/triplog', '/trip-packing', '/journeys', '/world-map'];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-top md:hidden z-50">
@@ -46,9 +46,10 @@ export function BottomNavigation() {
             if (isDashboardLink) {
               isActive = pathname === '/' || pathname === '/dashboard-details';
             } else if (isTripManagerLink) {
-              isActive = tripManagerPaths.includes(pathname);
+              // Check if the current path or its dynamic parent (e.g., /journeys/[id]) is in the group
+              isActive = tripManagerPaths.some(p => pathname.startsWith(p));
             } else {
-              isActive = pathname === item.href;
+              isActive = pathname.startsWith(item.href);
             }
               
             const IconComponent = item.icon;

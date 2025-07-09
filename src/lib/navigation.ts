@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, WorldMap } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -10,8 +10,22 @@ export interface NavItem {
   keywords: string;
 }
 
-// New export for Trip Manager sub-items
+// This is now the central hub for all travel-related pages.
 export const tripManagerItems: NavItem[] = [
+  {
+    href: '/journeys',
+    label: 'Journeys',
+    icon: Map,
+    description: "Group individual trips into epic multi-leg journeys. Plan, track, and map your grand adventures.",
+    keywords: 'journey adventure roadtrip'
+  },
+  {
+    href: '/world-map',
+    label: 'World Map',
+    icon: WorldMap,
+    description: "View all your completed trips and journeys on an interactive global map. Explore your travel history at a glance.",
+    keywords: 'world map history travel'
+  },
   {
     href: '/trip-expense-planner',
     label: 'Trip Planner',
@@ -36,7 +50,7 @@ export const tripManagerItems: NavItem[] = [
 ];
 
 
-// Main navigation items for the dashboard grid and potentially other global navs
+// Main navigation items for the dashboard grid. "Journeys" and "World Map" have been moved.
 export const navItems: NavItem[] = [
   {
     href: '/dashboard-details',
@@ -60,18 +74,11 @@ export const navItems: NavItem[] = [
     keywords: 'camping gear'
   },
   {
-    href: '/journeys',
-    label: 'Journeys',
-    icon: Map,
-    description: "Group individual trips into epic multi-leg journeys. Plan, track, and map your grand adventures.",
-    keywords: 'journey adventure roadtrip'
-  },
-  {
     href: '/trip-manager',
     label: 'Trip Manager',
     icon: Briefcase,
-    description: 'A central hub to plan your individual trips, packing lists, and review your trip log.',
-    keywords: 'trip planner log packing'
+    description: 'A central hub to plan individual trips, journeys, packing lists, and review your travel history.',
+    keywords: 'trip planner log packing journey map'
   },
   {
     href: '/checklists',
