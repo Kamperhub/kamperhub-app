@@ -49,7 +49,7 @@ export function BottomNavigation() {
               // Check if the current path or its dynamic parent (e.g., /journeys/[id]) is in the group
               isActive = tripManagerPaths.some(p => pathname.startsWith(p));
             } else {
-              isActive = pathname === item.href;
+              isActive = pathname.startsWith(item.href);
             }
               
             const IconComponent = item.icon;
