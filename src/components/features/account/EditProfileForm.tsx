@@ -2,16 +2,13 @@
 "use client";
 
 import React from 'react';
-import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
+import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, XCircle, Mail, User, MapPin, Building, Globe, UserCircle as UserCircleIcon, Home } from 'lucide-react';
-import type { UserProfile } from '@/types/auth';
-import { Separator } from '@/components/ui/separator';
-import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesAutocompleteInput';
+import { Save, XCircle, Mail, User, MapPin, Building, Globe, UserCircle as UserCircleIcon } from 'lucide-react';
 
 // Schema for the fields that can be edited
 export const editProfileSchema = z.object({
@@ -24,7 +21,6 @@ export const editProfileSchema = z.object({
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State / Region is required"),
   country: z.string().min(1, "Country is required"),
-  homeAddress: z.string().optional().nullable(),
 });
 
 export type EditProfileFormData = z.infer<typeof editProfileSchema>;
@@ -34,11 +30,10 @@ interface EditProfileFormProps {
   onSave: (data: EditProfileFormData) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
-  isApiReady: boolean;
 }
 
-export function EditProfileForm({ initialData, onSave, onCancel, isLoading, isApiReady }: EditProfileFormProps) {
-  const { register, handleSubmit, formState: { errors }, control, setValue } = useForm<EditProfileFormData>({
+export function EditProfileForm({ initialData, onSave, onCancel, isLoading }: EditProfileFormProps) {
+  const { register, handleSubmit, formState: { errors } } = useForm<EditProfileFormData>({
     resolver: zodResolver(editProfileSchema),
     defaultValues: {
       firstName: initialData.firstName || '',
@@ -48,7 +43,6 @@ export function EditProfileForm({ initialData, onSave, onCancel, isLoading, isAp
       city: initialData.city || '',
       state: initialData.state || '',
       country: initialData.country || '',
-      homeAddress: initialData.homeAddress || '',
     }
   });
 
@@ -133,20 +127,6 @@ export function EditProfileForm({ initialData, onSave, onCancel, isLoading, isAp
           {errors.country && <p className="text-xs text-destructive font-body mt-1">{errors.country.message}</p>}
         </div>
       </div>
-      <Separator className="my-4"/>
-        <div>
-          <GooglePlacesAutocompleteInput
-            control={control}
-            name="homeAddress"
-            label="Home Address (Optional)"
-            placeholder="Search for an address..."
-            errors={errors}
-            setValue={setValue}
-            isApiReady={isApiReady}
-          />
-          <p className="text-xs text-muted-foreground mt-1 pl-1">For trip planning purposes only. This allows you to quickly set your start location.</p>
-        </div>
-
 
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading} className="font-body">

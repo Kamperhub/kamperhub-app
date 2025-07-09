@@ -22,7 +22,6 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { EditProfileForm, type EditProfileFormData } from '@/components/features/account/EditProfileForm';
 import { NavigationContext } from '@/components/layout/AppShell';
-import { useMap } from '@vis.gl/react-google-maps';
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
@@ -31,7 +30,6 @@ export default function MyAccountPage() {
   const { hasProAccess, subscriptionTier, stripeCustomerId, isTrialActive, trialEndsAt } = useSubscription();
   const queryClient = useQueryClient();
   const navContext = useContext(NavigationContext);
-  const map = useMap();
 
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -45,10 +43,6 @@ export default function MyAccountPage() {
   const { toast } = useToast();
   
   const expectedRedirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8083'}/api/auth/google/callback`;
-
-  const isGoogleApiReady = !!map &&
-                           typeof window.google !== 'undefined' &&
-                           !!window.google.maps?.places?.Autocomplete;
 
   useEffect(() => {
     const errorParam = searchParams.get('error');
@@ -158,7 +152,6 @@ export default function MyAccountPage() {
         city: data.city,
         state: data.state,
         country: data.country,
-        homeAddress: data.homeAddress,
       });
 
       if (auth.currentUser) await auth.currentUser.reload();
@@ -290,7 +283,6 @@ export default function MyAccountPage() {
     city: userProfile.city || '',
     state: userProfile.state || '',
     country: userProfile.country || '',
-    homeAddress: userProfile.homeAddress || '',
   };
   
   const fullName = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ');
@@ -328,7 +320,6 @@ export default function MyAccountPage() {
                     onSave={handleSaveProfile}
                     onCancel={() => setIsEditProfileOpen(false)}
                     isLoading={isSavingProfile}
-                    isApiReady={isGoogleApiReady}
                   />
                 </DialogContent>
               </Dialog>
@@ -361,10 +352,6 @@ export default function MyAccountPage() {
              <p className="font-body text-sm flex items-center">
                 <Globe className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
                 <strong>Country:</strong>&nbsp;{userProfile.country || '[Not Provided]'}
-            </p>
-            <p className="font-body text-sm flex items-center">
-                <Home className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
-                <strong>Home Address:</strong>&nbsp;{userProfile.homeAddress || '[Not Set]'}
             </p>
           </div>
 
