@@ -7,6 +7,9 @@ import { z } from 'zod';
 const directionsRequestSchema = z.object({
   origin: z.string(),
   destination: z.string(),
+  vehicleHeight: z.number().positive().optional(),
+  axleCount: z.number().int().positive().optional(),
+  avoidTolls: z.boolean().optional(),
 });
 
 // Helper to format ISO 8601 duration string (e.g., "3600s") into human-readable format
@@ -41,7 +44,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body.', details: parsedBody.error.format() }, { status: 400 });
     }
 
-    const { origin, destination } = parsedBody.data;
+    const { origin, destination, vehicleHeight, axleCount, avoidTolls } = parsedBody.data;
 
     // Base request body for Google's Routes API
     const requestBody: any = {
@@ -56,13 +59,35 @@ export async function POST(req: NextRequest) {
       polylineEncoding: 'ENCODED_POLYLINE',
     };
     
+    // If height or axle count is provided, add vehicleInfo to the request
+    const vehicleInfo: any = {};
+    if (vehicleHeight && vehicleHeight > 0) {
+      vehicleInfo.dimensions = { height: vehicleHeight };
+    }
+    if (axleCount && axleCount > 0) {
+      vehicleInfo.axleCount = axleCount;
+    }
+
+    // Add route modifiers for vehicle info and toll avoidance
+    const routeModifiers: any = {};
+    if (Object.keys(vehicleInfo).length > 0) {
+        routeModifiers.vehicleInfo = vehicleInfo;
+    }
+    if (avoidTolls) {
+        routeModifiers.avoidTolls = true;
+    }
+
+    if (Object.keys(routeModifiers).length > 0) {
+        requestBody.routeModifiers = routeModifiers;
+    }
+    
     const response = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-Goog-Api-Key': apiKey,
-            // Re-add the required FieldMask header
-            'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.warnings,routes.polyline.encodedPolyline,routes.legs(startLocation,endLocation)',
+            // Field mask to request specific fields, reducing data transfer and cost
+            'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.warnings,routes.polyline.encodedPolyline,routes.legs,routes.travelAdvisory.tollInfo',
         },
         body: JSON.stringify(requestBody)
     });
@@ -91,8 +116,6 @@ export async function POST(req: NextRequest) {
             errorMessage = "The provided GOOGLE_API_KEY is invalid. Please check the key in your .env.local file and restart the server.";
           } else if (errorBody.toLowerCase().includes('http referrer')) {
             errorMessage = 'The GOOGLE_API_KEY has "HTTP referrer" restrictions. Use a key with "None" or "IP Address" restrictions as explained in the setup guide.';
-          } else if (errorBody.includes('FieldMask is a required parameter')) {
-            errorMessage = `The server sent a request without the required 'X-Goog-FieldMask' header. ${errorBody}`;
           }
         }
         
@@ -103,17 +126,32 @@ export async function POST(req: NextRequest) {
     
     if (data.routes && data.routes.length > 0) {
         const route = data.routes[0];
-        const startLocation = route.legs[0]?.startLocation?.latLng;
-        const endLocation = route.legs[0]?.endLocation?.latLng;
+        const tollInfo = route.travelAdvisory?.tollInfo;
+        let adaptedTollInfo = null;
 
-        // Adapt the response to a simpler structure for the client
+        if (tollInfo?.estimatedPrice?.length > 0) {
+          const totalTollCost = tollInfo.estimatedPrice.reduce((sum: number, price: any) => {
+            const units = price.units ? parseInt(price.units) : 0;
+            const nanos = price.nanos ? price.nanos / 1_000_000_000 : 0;
+            return sum + units + nanos;
+          }, 0);
+          
+          if (totalTollCost > 0) {
+            adaptedTollInfo = {
+              text: `$${totalTollCost.toFixed(2)} (${tollInfo.estimatedPrice[0].currencyCode || 'USD'})`,
+              value: totalTollCost
+            };
+          }
+        }
+        
         const adaptedResponse = {
             distance: { text: `${(route.distanceMeters / 1000).toFixed(1)} km`, value: route.distanceMeters },
             duration: { text: formatDuration(route.duration), value: parseInt(route.duration.slice(0,-1), 10)},
-            startLocation: startLocation ? { lat: startLocation.latitude, lng: startLocation.longitude } : undefined,
-            endLocation: endLocation ? { lat: endLocation.latitude, lng: endLocation.longitude } : undefined,
+            startLocation: route.legs[0]?.startLocation?.latLng,
+            endLocation: route.legs[route.legs.length - 1]?.endLocation?.latLng,
             polyline: route.polyline.encodedPolyline,
             warnings: route.warnings || [],
+            tollInfo: adaptedTollInfo,
         };
         return NextResponse.json(adaptedResponse, { status: 200 });
     } else {
