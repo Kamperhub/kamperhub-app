@@ -61,10 +61,11 @@ export async function POST(req: NextRequest) {
       polylineEncoding: 'ENCODED_POLYLINE',
     };
     
-    // Add waypoints if they exist
+    // ** THE CORRECT FIX **
+    // The Google Routes API requires waypoints to be wrapped in a 'location' object.
     if (waypoints && waypoints.length > 0) {
         requestBody.intermediates = waypoints.map(waypoint => ({
-            address: waypoint
+            location: { address: waypoint }
         }));
     }
 
@@ -96,7 +97,7 @@ export async function POST(req: NextRequest) {
             'Content-Type': 'application/json',
             'X-Goog-Api-Key': apiKey,
             // Field mask to request specific fields, reducing data transfer and cost
-            'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.warnings,routes.polyline.encodedPolyline,routes.legs(startLocation,endLocation),routes.travelAdvisory.tollInfo',
+            'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.warnings,routes.polyline.encodedPolyline,routes.legs,routes.travelAdvisory.tollInfo',
         },
         body: JSON.stringify(requestBody)
     });
