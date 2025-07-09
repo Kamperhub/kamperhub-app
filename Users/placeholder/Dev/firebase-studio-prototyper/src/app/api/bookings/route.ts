@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
     const bookings: BookingEntry[] = [];
     bookingsSnapshot.forEach(doc => {
       try {
-        if (doc.exists) { // Corrected: use property `exists` instead of function `exists()`
+        if (doc.exists) {
             bookings.push(doc.data() as BookingEntry);
         }
       } catch (docError) {
