@@ -1,25 +1,28 @@
 "use client";
 
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { fetchJourneys, fetchTrips } from '@/lib/api-client';
+import { fetchJourneys, fetchTrips, copyTripToJourney } from '@/lib/api-client';
 import type { Journey } from '@/types/journey';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Map as MapIcon, Route, DollarSign, Fuel, Calendar, Edit, ChevronLeft, PlusCircle, Wand2, Loader2 } from 'lucide-react';
+import { Map as MapIcon, Route, DollarSign, Fuel, Calendar, Edit, ChevronLeft, PlusCircle, Wand2, Loader2, Copy } from 'lucide-react';
 import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useMemo, useRef, useEffect, useContext, useState } from 'react';
 import { NavigationContext } from '@/components/layout/AppShell';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   generateJourneyPackingPlan, 
   type JourneyPackingPlannerInput, 
   type JourneyPackingPlannerOutput 
 } from '@/ai/flows/journey-packing-planner-flow';
 import { useToast } from '@/hooks/use-toast';
+import { format, parseISO } from 'date-fns';
 
 const RouteRenderer = ({ polyline }: { polyline: string | null | undefined }) => {
   const map = useMap();
@@ -60,10 +63,13 @@ export default function JourneyDetailsPage() {
   const { user } = useAuth();
   const map = useMap();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const navContext = useContext(NavigationContext);
   const { toast } = useToast();
   
   const [strategicPlan, setStrategicPlan] = useState<string | null>(null);
+  const [isAddTripDialogOpen, setIsAddTripDialogOpen] = useState(false);
+  const [selectedTripToCopy, setSelectedTripToCopy] = useState<string | null>(null);
 
   const { data: journeys = [], isLoading: isLoadingJourneys } = useQuery<Journey[]>({
     queryKey: ['journeys', user?.uid],
@@ -99,6 +105,20 @@ export default function JourneyDetailsPage() {
     };
   }, [tripsInJourney]);
   
+  const copyTripMutation = useMutation({
+    mutationFn: (data: { sourceTripId: string; destinationJourneyId: string }) => copyTripToJourney(data),
+    onSuccess: (newTrip) => {
+      queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
+      queryClient.invalidateQueries({ queryKey: ['journeys', user?.uid] });
+      toast({ title: "Trip Copied!", description: `"${newTrip.name}" was added to this journey.` });
+      setIsAddTripDialogOpen(false);
+      setSelectedTripToCopy(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Copy Failed", description: error.message, variant: "destructive" });
+    }
+  });
+
   const generatePlanMutation = useMutation({
     mutationFn: generateJourneyPackingPlan,
     onSuccess: (data: JourneyPackingPlannerOutput) => {
@@ -155,7 +175,7 @@ export default function JourneyDetailsPage() {
     }
   }, [map, tripsInJourney]);
 
-  const handleAddTripToJourney = () => {
+  const handleCreateNewTrip = () => {
     navContext?.setIsNavigating(true);
     router.push(`/trip-expense-planner?journeyId=${journeyId}`);
   };
@@ -269,9 +289,37 @@ export default function JourneyDetailsPage() {
         <CardHeader>
             <div className="flex justify-between items-center">
                 <CardTitle>Trips in this Journey</CardTitle>
-                <Button variant="outline" size="sm" onClick={handleAddTripToJourney}>
-                  <PlusCircle className="h-4 w-4 mr-2"/>Add New Trip to this Journey
-                </Button>
+                <Dialog open={isAddTripDialogOpen} onOpenChange={setIsAddTripDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <PlusCircle className="h-4 w-4 mr-2"/>Add Trip to Journey
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-lg">
+                      <DialogHeader><DialogTitle>Add a Trip to "{journey.name}"</DialogTitle></DialogHeader>
+                      <div className="py-4 space-y-6">
+                        <Button onClick={handleCreateNewTrip} className="w-full"><PlusCircle className="mr-2 h-4 w-4" />Create a Brand New Trip</Button>
+                        <div className="space-y-2">
+                          <h4 className="font-semibold text-center">Or Copy an Existing Trip</h4>
+                           <ScrollArea className="h-64 border rounded-md p-2">
+                            <div className="space-y-2">
+                              {allTrips.length > 0 ? allTrips.map(trip => (
+                                <div key={trip.id} className={`p-2 border rounded-md cursor-pointer ${selectedTripToCopy === trip.id ? 'bg-accent/20 border-accent' : 'hover:bg-muted'}`} onClick={() => setSelectedTripToCopy(trip.id)}>
+                                  <p className="font-semibold">{trip.name}</p>
+                                  <p className="text-xs text-muted-foreground">{trip.startLocationDisplay} to {trip.endLocationDisplay}</p>
+                                  <p className="text-xs text-muted-foreground">Created: {format(parseISO(trip.timestamp), 'PP')}</p>
+                                </div>
+                              )) : <p className="text-sm text-muted-foreground text-center py-4">No other trips available to copy.</p>}
+                            </div>
+                           </ScrollArea>
+                          <Button onClick={() => copyTripMutation.mutate({ sourceTripId: selectedTripToCopy!, destinationJourneyId: journey.id })} disabled={!selectedTripToCopy || copyTripMutation.isPending} className="w-full">
+                            {copyTripMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Copy className="h-4 w-4 mr-2"/>}
+                            Copy Selected Trip
+                          </Button>
+                        </div>
+                      </div>
+                  </DialogContent>
+                </Dialog>
             </div>
         </CardHeader>
         <CardContent>

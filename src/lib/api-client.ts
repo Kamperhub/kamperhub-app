@@ -17,9 +17,7 @@ async function apiFetch(url: string, options: RequestInit = {}) {
     const response = await fetch(url, { ...options, headers });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'API request failed with a non-JSON response.' }));
-      // This improved error message handling prevents '[object Object]' errors.
-      const message = errorData.error || errorData.message || (errorData.details ? JSON.stringify(errorData.details, null, 2) : 'An unknown API error occurred.');
-      throw new Error(message);
+      throw new Error(errorData.details || errorData.error || errorData.message || 'API request failed.');
     }
     const text = await response.text();
     return text ? JSON.parse(text) : {};
@@ -27,7 +25,7 @@ async function apiFetch(url: string, options: RequestInit = {}) {
 
 // ---- Consolidated Vehicle Page Data Fetcher ----
 export const fetchAllVehicleData = () => apiFetch('/api/all-vehicle-data');
-export const fetchVehiclePageData = () => apiFetch('/api/bookings-page-data');
+export const fetchVehiclePageData = () => apiFetch('/api/vehicle-page-data');
 export const fetchBookingsPageData = () => apiFetch('/api/bookings-page-data');
 
 
@@ -52,6 +50,13 @@ export const fetchTrips = () => apiFetch('/api/trips');
 export const createTrip = (data: any) => apiFetch('/api/trips', { method: 'POST', body: JSON.stringify(data) });
 export const updateTrip = (data: any) => apiFetch('/api/trips', { method: 'PUT', body: JSON.stringify(data) });
 export const deleteTrip = (id: string) => apiFetch(`/api/trips`, { method: 'DELETE', body: JSON.stringify({ id }) });
+export const copyTripToJourney = (payload: { sourceTripId: string; destinationJourneyId: string }) => apiFetch('/api/trips/copy', { method: 'POST', body: JSON.stringify(payload) });
+
+// ---- Journey API Functions ----
+export const fetchJourneys = () => apiFetch('/api/journeys');
+export const createJourney = (data: any) => apiFetch('/api/journeys', { method: 'POST', body: JSON.stringify(data) });
+export const updateJourney = (data: any) => apiFetch('/api/journeys', { method: 'PUT', body: JSON.stringify(data) });
+export const deleteJourney = (id: string) => apiFetch('/api/journeys', { method: 'DELETE', body: JSON.stringify({ id }) });
 
 // ---- Booking API Functions ----
 export const fetchBookings = () => apiFetch('/api/bookings');
