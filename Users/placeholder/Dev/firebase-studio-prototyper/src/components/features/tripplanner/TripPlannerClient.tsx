@@ -42,7 +42,7 @@ import type { DateRange } from 'react-day-picker';
 import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesAutocompleteInput';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { createTrip, updateTrip, fetchUserPreferences, fetchVehicles, fetchCaravans } from '@/lib/api-client';
+import { createTrip, updateTrip, fetchUserPreferences, fetchVehicles, fetchCaravans, updateUserPreferences } from '@/lib/api-client';
 import type { UserProfile } from '@/types/auth';
 import Link from 'next/link';
 
@@ -169,6 +169,26 @@ export function TripPlannerClient() {
     setPendingTripNotes('');
     setAvoidTolls(false);
   }, [reset]);
+
+  const updateUserPrefsMutation = useMutation({
+    mutationFn: updateUserPreferences,
+    onSuccess: () => {
+        toast({ title: "Home Address Saved", description: "You can now quickly use this as your start location." });
+        queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
+    },
+    onError: (error: Error) => {
+        toast({ title: "Save Failed", description: error.message, variant: "destructive" });
+    }
+  });
+
+  const handleSaveAsHome = () => {
+    const startLocation = getValues('startLocation');
+    if (startLocation && startLocation.trim().length > 3) {
+        updateUserPrefsMutation.mutate({ homeAddress: startLocation });
+    } else {
+        toast({ title: "Invalid Address", description: "Please enter a valid address to save.", variant: "destructive" });
+    }
+  };
 
   useEffect(() => {
     let recalledTripLoaded = false;
@@ -496,16 +516,28 @@ export function TripPlannerClient() {
                     <div>
                       <div className="flex justify-between items-center mb-1">
                           <Label htmlFor="startLocation" className="font-body">Start Location</Label>
-                          {userPrefs?.homeAddress && (
+                           <div className="flex items-center gap-2">
+                              {userPrefs?.homeAddress && (
+                                  <Button
+                                      type="button"
+                                      variant="link"
+                                      className="p-0 h-auto text-xs font-body flex items-center"
+                                      onClick={() => setValue('startLocation', userPrefs.homeAddress || '', { shouldValidate: true })}
+                                  >
+                                      <Home className="mr-1 h-3 w-3"/> Use Home
+                                  </Button>
+                              )}
                               <Button
                                   type="button"
                                   variant="link"
                                   className="p-0 h-auto text-xs font-body flex items-center"
-                                  onClick={() => setValue('startLocation', userPrefs.homeAddress || '', { shouldValidate: true })}
+                                  onClick={handleSaveAsHome}
+                                  disabled={!getValues('startLocation') || updateUserPrefsMutation.isPending}
+                                  title="Save current Start Location as your Home Address"
                               >
-                                  <Home className="mr-1 h-3 w-3"/> Set to Home
+                                  <Save className="mr-1 h-3 w-3"/> Save as Home
                               </Button>
-                          )}
+                          </div>
                       </div>
                       <GooglePlacesAutocompleteInput control={control} name="startLocation" label="" placeholder="e.g., Sydney, NSW" errors={errors} setValue={setValue} isApiReady={isGoogleApiReady} />
                     </div>
