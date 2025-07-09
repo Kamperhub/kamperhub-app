@@ -12,7 +12,6 @@ export interface UserProfile {
   city: string | null;
   state: string | null;
   country: string | null;
-  homeAddress?: string | null; // New field for user's home address
   subscriptionTier: SubscriptionTier;
   stripeCustomerId: string | null;
   stripeSubscriptionId?: string | null;

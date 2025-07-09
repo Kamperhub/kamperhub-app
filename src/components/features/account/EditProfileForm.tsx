@@ -22,7 +22,6 @@ export const editProfileSchema = z.object({
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State / Region is required"),
   country: z.string().min(1, "Country is required"),
-  homeAddress: z.string().optional().nullable(),
 });
 
 export type EditProfileFormData = z.infer<typeof editProfileSchema>;
@@ -32,10 +31,9 @@ interface EditProfileFormProps {
   onSave: (data: EditProfileFormData) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
-  isGoogleApiReady: boolean;
 }
 
-export function EditProfileForm({ initialData, onSave, onCancel, isLoading, isGoogleApiReady }: EditProfileFormProps) {
+export function EditProfileForm({ initialData, onSave, onCancel, isLoading }: EditProfileFormProps) {
   const { control, register, handleSubmit, formState: { errors }, setValue } = useForm<EditProfileFormData>({
     resolver: zodResolver(editProfileSchema),
     defaultValues: {
@@ -46,7 +44,6 @@ export function EditProfileForm({ initialData, onSave, onCancel, isLoading, isGo
       city: initialData.city || '',
       state: initialData.state || '',
       country: initialData.country || '',
-      homeAddress: initialData.homeAddress || '',
     }
   });
 
@@ -102,21 +99,6 @@ export function EditProfileForm({ initialData, onSave, onCancel, isLoading, isGo
           />
         </div>
         {errors.email && <p className="text-xs text-destructive font-body mt-1">{errors.email.message}</p>}
-      </div>
-
-      <div className="pt-2">
-        <Label htmlFor="homeAddress" className="font-body flex items-center"><Home className="mr-2 h-4 w-4"/> Home Address (Optional)</Label>
-        <GooglePlacesAutocompleteInput
-            control={control}
-            name="homeAddress"
-            label=""
-            placeholder="Search for your home address..."
-            errors={errors}
-            setValue={setValue}
-            isApiReady={isGoogleApiReady}
-        />
-        <p className="text-xs text-muted-foreground mt-1">This address can be used as a quick-start for your trips.</p>
-        {errors.homeAddress && <p className="text-xs text-destructive font-body mt-1">{errors.homeAddress.message}</p>}
       </div>
       
       <h3 className="font-headline text-md text-primary pt-2 border-t mt-4">Location Details*</h3>
