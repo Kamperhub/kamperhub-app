@@ -11,6 +11,7 @@ export interface NavItem {
 }
 
 // This is the new central hub for all travel-related pages.
+// THIS IS THE CORRECT, STATIC DEFINITION.
 export const tripManagerItems: NavItem[] = [
   {
     href: '/journeys',
@@ -51,6 +52,7 @@ export const tripManagerItems: NavItem[] = [
 
 
 // Main navigation items for the dashboard grid. 
+// THIS IS THE CORRECT, CONSOLIDATED LIST.
 export const navItems: NavItem[] = [
   {
     href: '/dashboard-details',
