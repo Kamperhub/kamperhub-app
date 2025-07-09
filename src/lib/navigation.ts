@@ -51,7 +51,6 @@ export const tripManagerItems: NavItem[] = [
 
 
 // Main navigation items for the dashboard grid. 
-// "Journeys" and "World Map" have been moved to tripManagerItems.
 export const navItems: NavItem[] = [
   {
     href: '/dashboard-details',
