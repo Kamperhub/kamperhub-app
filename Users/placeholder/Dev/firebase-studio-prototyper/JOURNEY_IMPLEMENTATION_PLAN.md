@@ -39,9 +39,9 @@ This document outlines the phased, step-by-step implementation of the new "Journ
 
 **Objective:** Integrate the financial and packing features into the Journey model.
 
--   [ ] **Financials:**
-    -   [ ] On the Journey details page, implement the logic to fetch all associated trips and calculate the aggregated "Total Journey Budget" and "Total Journey Spend."
-    -   [ ] Display these aggregated totals in a new "Journey Financials" summary card.
+-   [x] **Financials:**
+    -   [x] On the Journey details page, implement the logic to fetch all associated trips and calculate the aggregated "Total Journey Budget" and "Total Journey Spend."
+    -   [x] Display these aggregated totals in a new "Journey Financials" summary card.
 -   [ ] **Packing Assistant:**
     -   [ ] **Trip-Level (Tactical):** Confirm the existing Packing Assistant works correctly on a per-trip basis within a journey.
     -   [ ] **Journey-Level (Strategic):** Implement the new "AI Packing Planner" on the Journey details page. This AI flow will take the *entire* journey's details as input and produce a high-level strategic packing plan (e.g., "Pack winter clothes in long-term storage until you reach Victoria").
@@ -58,3 +58,4 @@ This document outlines the phased, step-by-step implementation of the new "Journ
 -   [ ] **UI:** Design the map interface to be clean and interactive, allowing users to click on clusters to zoom in and reveal individual trip routes.
 
 ---
+

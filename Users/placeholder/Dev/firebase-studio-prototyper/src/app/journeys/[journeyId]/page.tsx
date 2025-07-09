@@ -1,19 +1,19 @@
-
 "use client";
 
 import { useQuery } from '@tanstack/react-query';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchJourneys, fetchTrips } from '@/lib/api-client';
 import type { Journey } from '@/types/journey';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Map as MapIcon, Route, DollarSign, Fuel, Calendar, Edit, ChevronLeft } from 'lucide-react';
-import { Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
+import { Map as MapIcon, Route, DollarSign, Fuel, Calendar, Edit, ChevronLeft, PlusCircle } from 'lucide-react';
+import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, useContext } from 'react';
+import { NavigationContext } from '@/components/layout/AppShell';
 
 const RouteRenderer = ({ polyline }: { polyline: string | null | undefined }) => {
   const map = useMap();
@@ -28,19 +28,16 @@ const RouteRenderer = ({ polyline }: { polyline: string | null | undefined }) =>
         const decodedPath = window.google.maps.geometry.encoding.decodePath(polyline);
         const newPolyline = new window.google.maps.Polyline({
           path: decodedPath,
-          strokeColor: `hsl(var(--primary), ${Math.random() * 0.5 + 0.5})`, // Random opacity
-          strokeOpacity: 0.8,
-          strokeWeight: 6,
+          strokeColor: `hsl(var(--primary))`,
+          strokeOpacity: 0.7,
+          strokeWeight: 5,
         });
         newPolyline.setMap(map);
         polylineRef.current = newPolyline;
-
-        // Note: Fitting bounds for multiple polylines is handled by the parent component.
       } catch (e) {
         console.error("Error decoding or drawing polyline:", e);
       }
     }
-    // Cleanup function to remove polyline on component unmount
     return () => {
         if (polylineRef.current) {
             polylineRef.current.setMap(null);
@@ -56,6 +53,8 @@ export default function JourneyDetailsPage() {
   const journeyId = params.journeyId as string;
   const { user } = useAuth();
   const map = useMap();
+  const router = useRouter();
+  const navContext = useContext(NavigationContext);
 
   const { data: journeys = [], isLoading: isLoadingJourneys } = useQuery<Journey[]>({
     queryKey: ['journeys', user?.uid],
@@ -72,7 +71,7 @@ export default function JourneyDetailsPage() {
   const journey = useMemo(() => journeys.find(j => j.id === journeyId), [journeys, journeyId]);
   const tripsInJourney = useMemo(() => {
     if (!journey) return [];
-    return allTrips.filter(trip => journey.tripIds.includes(trip.id));
+    return allTrips.filter(trip => journey.tripIds.includes(trip.id)).sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }, [journey, allTrips]);
 
   const { totalDistance, totalSpend, totalBudget } = useMemo(() => {
@@ -80,7 +79,7 @@ export default function JourneyDetailsPage() {
     let spend = 0;
     let budget = 0;
     tripsInJourney.forEach(trip => {
-      distance += trip.routeDetails.distance.value || 0;
+      distance += trip.routeDetails?.distance?.value || 0;
       spend += trip.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
       budget += trip.budget?.reduce((sum, cat) => sum + cat.budgetedAmount, 0) || 0;
     });
@@ -94,21 +93,28 @@ export default function JourneyDetailsPage() {
    useEffect(() => {
     if (map && tripsInJourney.length > 0) {
       const bounds = new window.google.maps.LatLngBounds();
+      let hasValidPoints = false;
       tripsInJourney.forEach(trip => {
         if (trip.routeDetails.polyline) {
           try {
             const decodedPath = window.google.maps.geometry.encoding.decodePath(trip.routeDetails.polyline);
             decodedPath.forEach(point => bounds.extend(point));
+            if(decodedPath.length > 0) hasValidPoints = true;
           } catch(e) {
             console.error("Could not decode path for bounds calculation", e);
           }
         }
       });
-      if (!bounds.isEmpty()) {
+      if (hasValidPoints) {
         map.fitBounds(bounds, 100); // 100px padding
       }
     }
   }, [map, tripsInJourney]);
+
+  const handleAddTripToJourney = () => {
+    navContext?.setIsNavigating(true);
+    router.push(`/trip-expense-planner?journeyId=${journeyId}`);
+  };
 
 
   if (isLoadingJourneys || isLoadingTrips) {
@@ -183,17 +189,21 @@ export default function JourneyDetailsPage() {
         <CardHeader>
             <div className="flex justify-between items-center">
                 <CardTitle>Trips in this Journey</CardTitle>
-                <Button variant="outline" size="sm"><Edit className="h-4 w-4 mr-2"/>Manage Trips</Button>
+                <Button variant="outline" size="sm" onClick={handleAddTripToJourney}>
+                  <PlusCircle className="h-4 w-4 mr-2"/>Add New Trip to this Journey
+                </Button>
             </div>
         </CardHeader>
         <CardContent>
            <div className="space-y-2">
-            {tripsInJourney.map((trip, index) => (
+            {tripsInJourney.length > 0 ? tripsInJourney.map((trip, index) => (
               <div key={trip.id} className="p-3 border rounded-md">
                 <p className="font-semibold">{index + 1}. {trip.name}</p>
                 <p className="text-sm text-muted-foreground">{trip.startLocationDisplay} to {trip.endLocationDisplay}</p>
               </div>
-            ))}
+            )) : (
+              <p className="text-center text-muted-foreground p-4">No trips have been added to this journey yet.</p>
+            )}
           </div>
         </CardContent>
       </Card>
