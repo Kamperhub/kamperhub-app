@@ -1,18 +1,21 @@
 
 # KamperHub "Journey" Feature Implementation Plan
 
-This document outlines the phased, step-by-step implementation of the new "Journey" feature, replacing the previous multi-stop waypoint system. Each phase will be implemented and approved sequentially to ensure stability and quality.
+This document outlines the phased, step-by-step implementation of the new "Journey" feature, replacing the previous multi-stop waypoint system. Each phase will be implemented and approved sequentially to ensure stability and quality. This plan has been updated to include critical technical considerations for performance, security, and data consistency.
 
 ---
 
 ## **Phase 1: Foundation Cleanup & Simplification**
 
-**Objective:** Remove the buggy waypoint system to create a stable foundation for the new architecture.
+**Objective:** Remove the buggy waypoint system to create a stable, clean foundation for the new architecture.
 
--   [x] **UI:** Remove the "Add Waypoint" button and associated form fields from the Trip Planner client component (`TripPlannerClient.tsx`).
--   [x] **API:** Simplify the Directions API (`/api/directions/route.ts`) to only accept a single start and end location. Remove all waypoint processing logic.
--   [x] **Data Types:** Update the core `LoggedTrip` and `TripPlannerFormValues` types in `src/types/tripplanner.ts` to remove the `waypoints` array. This ensures type safety across the application.
--   **Verification:** Confirm that the Trip Planner now correctly calculates a simple A-to-B route and that all UI elements related to waypoints are gone.
+-   [ ] **UI:** Remove the "Add Waypoint" button and associated form fields from the Trip Planner client component (`TripPlannerClient.tsx`).
+-   [ ] **API:** Simplify the Directions API (`/api/directions/route.ts`) to only accept a single start and end location. Remove all waypoint processing logic.
+-   [ ] **Data Types:** Update the core `LoggedTrip` and `TripPlannerFormValues` types in `src/types/tripplanner.ts` to remove the `waypoints` array.
+-   [ ] **CRITICAL - Data Migration:** Implement a one-time script or server function to iterate through all existing `LoggedTrip` documents in Firestore and remove the now-obsolete `waypoints` field using `FieldValue.delete()`. This prevents "dead data" and potential client-side errors.
+-   [ ] **CRITICAL - Security Rules:** Review and remove any Firestore security rules that specifically validated the old `waypoints` array structure.
+
+**Verification:** The Trip Planner correctly calculates a simple A-to-B route. All UI related to waypoints is gone. The Firestore database no longer contains `waypoints` fields on trip documents.
 
 ---
 
@@ -20,18 +23,28 @@ This document outlines the phased, step-by-step implementation of the new "Journ
 
 **Objective:** Implement the backend and frontend for creating and viewing Journeys, including the master map view.
 
--   [x] **Data Model:**
-    -   [x] Define a new `Journey` type in a new file `src/types/journey.ts`. It will include an ID, name, description, and an array of `tripIds`.
-    -   [x] Update the `LoggedTrip` type to include an optional `journeyId` field.
--   [x] **Backend API:**
-    -   [x] Create a new API endpoint group at `/api/journeys` for CRUD (Create, Read, Update, Delete) operations on Journey documents.
-    -   [ ] Implement the "Set and Forget" logic on the server: When a Journey is updated (e.g., a trip is added), the server will calculate and save a single, combined `masterPolyline` to the Journey document. **(Note: Polyline stitching logic deferred pending library availability)**
--   [x] **Frontend UI:**
-    -   [x] Create a new page at `/journeys` to list all created Journeys.
-    -   [x] Create a new page at `/journeys/[journeyId]` to display the details of a single Journey.
-    -   [x] Implement the "Journey Map" on the `[journeyId]` page, which will initially render the `masterPolyline` for fast loading.
-    -   [x] Add UI for creating a new Journey and adding existing (or new) Trips to it.
--   **Verification:** A user can create a Journey, add several individual Trips to it, and see the entire combined route displayed correctly on the Journey Map.
+-   [ ] **Data Model:**
+    -   [ ] Define a new `Journey` type in `src/types/journey.ts`. It will include an ID, name, description, an array of `tripIds`, and a `masterPolyline` field (initially null).
+    -   [ ] Update the `LoggedTrip` type in `src/types/tripplanner.ts` to include an optional `journeyId` string field.
+-   [ ] **Backend API & Logic (`/api/journeys`):**
+    -   [ ] Create API endpoints for CRUD (Create, Read, Update, Delete) operations on Journey documents.
+    -   [ ] **Polyline Calculation:** Implement the "Set and Forget" logic. When a Journey's `tripIds` array is updated, the server will fetch the corresponding trips and stitch their polylines together into a single `masterPolyline`.
+        -   **Note on Performance:** For this prototype, the stitching will happen within the API route. In a production environment, this would be offloaded to a Cloud Function to keep the API response fast and handle potential external API calls asynchronously.
+        -   **Note on Firestore Limits:** Be mindful of the 1MB Firestore document size limit for very long, complex `masterPolyline` strings.
+-   [ ] **Data Consistency:**
+    -   [ ] When a trip is deleted, its ID must be removed from its parent Journey's `tripIds` array. This will be handled within the `/api/trips` DELETE endpoint.
+    -   [ ] **(Future Enhancement):** For full robustness, a Cloud Function triggered on `LoggedTrip` updates could re-calculate the `masterPolyline` if a trip's route changes after it's been added to a journey. This is deferred for now.
+-   [ ] **CRITICAL - Firestore Security Rules:**
+    -   [ ] Implement new rules for the `/users/{userId}/journeys/{journeyId}` collection to ensure users can only access their own journeys.
+    -   [ ] Rules must validate that a user can only add `tripIds` to a journey that they themselves own.
+-   [ ] **Frontend UI:**
+    -   [ ] Create a new page at `/journeys` to list all created Journeys.
+    -   [ ] Create a new dynamic page at `/journeys/[journeyId]` to display a Journey's details.
+    -   [ ] On the `[journeyId]` page, implement the "Journey Map" that renders the `masterPolyline`.
+    -   [ ] On the Trip Planner page, add a dropdown to assign a new or recalled trip to an existing Journey.
+-   [ ] **UI Feedback:** The Journey details page UI should show a "Calculating Route..." state if the `masterPolyline` is being generated asynchronously (relevant for future Cloud Function implementation).
+
+**Verification:** A user can create a Journey, add trips to it, and see the combined route on the Journey Map. All security rules prevent cross-user data access.
 
 ---
 
@@ -39,13 +52,16 @@ This document outlines the phased, step-by-step implementation of the new "Journ
 
 **Objective:** Integrate the financial and packing features into the Journey model.
 
--   [x] **Financials:**
-    -   [x] On the Journey details page, implement the logic to fetch all associated trips and calculate the aggregated "Total Journey Budget" and "Total Journey Spend."
-    -   [x] Display these aggregated totals in a new "Journey Financials" summary card.
+-   [ ] **Financials:**
+    -   [ ] **Server-Side Aggregation:** To improve performance and reduce cost, financial totals for a Journey will be calculated and stored directly on the `Journey` document.
+        -   **Implementation:** When a trip's `budget` or `expenses` change, a server-side process (initially in the API, ideally a Cloud Function) will be triggered to update `totalJourneyBudget` and `totalJourneySpend` fields on the parent `Journey` document.
+    -   [ ] **UI:** The Journey details page will display these aggregated totals from the Journey document for a fast, efficient user experience.
 -   [ ] **Packing Assistant:**
     -   [ ] **Trip-Level (Tactical):** Confirm the existing Packing Assistant works correctly on a per-trip basis within a journey.
-    -   [ ] **Journey-Level (Strategic):** Implement the new "AI Packing Planner" on the Journey details page. This AI flow will take the *entire* journey's details as input and produce a high-level strategic packing plan (e.g., "Pack winter clothes in long-term storage until you reach Victoria").
--   **Verification:** A user can view the total cost of a journey and can generate both a strategic packing plan for the whole journey and a tactical checklist for each individual leg.
+    -   [ ] **Journey-Level (Strategic):** Implement the new "AI Packing Planner" on the Journey details page. This AI flow will take the *entire* journey's details as input and produce a high-level strategic packing plan.
+    -   [ ] **CRITICAL - Security:** Ensure all AI functionality is handled through secure, server-side Genkit flows (as is current practice), with no API keys ever exposed to the client.
+
+**Verification:** A user can view the total cost of a journey and can generate both a strategic packing plan for the whole journey and a tactical checklist for each individual leg.
 
 ---
 
@@ -56,6 +72,3 @@ This document outlines the phased, step-by-step implementation of the new "Journ
 -   [ ] **Scope:** Design a new page at `/world-map`.
 -   [ ] **Performance Strategy:** Implement performance-first data loading, such as map-bound data fetching and trip clustering, to handle a large number of logged trips without slowing down the UI.
 -   [ ] **UI:** Design the map interface to be clean and interactive, allowing users to click on clusters to zoom in and reveal individual trip routes.
-
----
-
