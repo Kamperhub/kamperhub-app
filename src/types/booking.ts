@@ -58,9 +58,9 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
   },
   {
     id: 'parksAustralia',
-    name: 'Parks Australia',
-    url: 'https://parksaustralia.gov.au/',
-    description: 'Information and booking for campgrounds in Australia\'s Commonwealth National Parks.',
+    name: 'Parks Australia (via Hipcamp)',
+    url: 'https://www.hipcamp.com/en-AU/discover/australia/national-park-system',
+    description: 'Search for campsites in and around Australia\'s National Parks.',
     dataAiHint: 'australia national park',
     icon: Trees,
     category: 'Government & National Parks',
