@@ -45,7 +45,6 @@ const bookingSchema = z.object({
     path: ["dateRange"],
 });
 
-// The form data type is slightly different from the saved type due to the dateRange object
 type BookingFormData = z.infer<typeof bookingSchema>;
 
 interface BookingFormProps {
@@ -78,13 +77,11 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
   });
 
   const onSubmit: SubmitHandler<BookingFormData> = (data) => {
-    // Transform dateRange back to checkInDate and checkOutDate for saving
     const dataToSave = {
         ...data,
         checkInDate: data.dateRange.from!.toISOString(),
         checkOutDate: data.dateRange.to!.toISOString(),
     };
-    // We don't want to save the `dateRange` object itself
     delete (dataToSave as any).dateRange;
 
     onSave(dataToSave);
@@ -126,7 +123,7 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
                 </PopoverContent>
               </Popover>
             )} />
-          {errors.dateRange && <p className="text-sm text-destructive font-body mt-1">{errors.dateRange.message}</p>}
+          {errors.dateRange && <p className="text-sm text-destructive font-body mt-1">{errors.dateRange.message || (errors.dateRange as any)?.from?.message || (errors.dateRange as any)?.to?.message}</p>}
         </div>
       </div>
       
