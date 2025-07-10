@@ -1,3 +1,4 @@
+
 // src/app/api/bookings/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -44,7 +45,7 @@ const createBookingSchema = z.object({
     path: ["checkOutDate"],
 });
 
-// For updates, the base schema is the same, but we also expect an ID and timestamp
+// For updates, the base schema is the same, but we also expect an ID
 const updateBookingSchema = createBookingSchema.extend({
   id: z.string().min(1, "Booking ID is required for updates"),
   timestamp: z.string().datetime(),

@@ -16,7 +16,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
-import type { DateRange } from 'react-day-picker';
 import { useState } from 'react';
 
 const bookingSchema = z.object({
@@ -25,25 +24,21 @@ const bookingSchema = z.object({
   contactPhone: z.string().optional(),
   contactWebsite: z.string().url("Must be a valid URL (e.g., https://example.com)").optional().or(z.literal('')),
   confirmationNumber: z.string().optional(),
-  dateRange: z.object({
-    from: z.date().optional(),
-    to: z.date().optional(),
-  }),
+  checkInDate: z.date({ required_error: "Check-in date is required." }),
+  checkOutDate: z.date({ required_error: "Check-out date is required." }),
   notes: z.string().optional(),
   budgetedCost: z.coerce.number().min(0, "Budgeted cost must be non-negative").optional().nullable(),
   assignedTripId: z.string().nullable().optional(),
-}).refine(data => data.dateRange.from && data.dateRange.to, {
-    message: "Both check-in and check-out dates are required.",
-    path: ["dateRange"],
 }).refine(data => {
-    if (data.dateRange.from && data.dateRange.to) {
-        return data.dateRange.to >= data.dateRange.from;
+    if (data.checkInDate && data.checkOutDate) {
+        return data.checkOutDate >= data.checkInDate;
     }
     return true;
 }, {
     message: "Check-out date must be on or after check-in date",
-    path: ["dateRange"],
+    path: ["checkOutDate"],
 });
+
 
 type BookingFormData = z.infer<typeof bookingSchema>;
 
@@ -56,7 +51,6 @@ interface BookingFormProps {
 }
 
 export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }: BookingFormProps) {
-  const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
 
   const { control, register, handleSubmit, formState: { errors } } = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
@@ -66,10 +60,8 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
       contactPhone: initialData?.contactPhone || '',
       contactWebsite: initialData?.contactWebsite || '',
       confirmationNumber: initialData?.confirmationNumber || '',
-      dateRange: {
-        from: initialData?.checkInDate && isValid(parseISO(initialData.checkInDate)) ? parseISO(initialData.checkInDate) : undefined,
-        to: initialData?.checkOutDate && isValid(parseISO(initialData.checkOutDate)) ? parseISO(initialData.checkOutDate) : undefined,
-      },
+      checkInDate: initialData?.checkInDate && isValid(parseISO(initialData.checkInDate)) ? parseISO(initialData.checkInDate) : undefined,
+      checkOutDate: initialData?.checkOutDate && isValid(parseISO(initialData.checkOutDate)) ? parseISO(initialData.checkOutDate) : undefined,
       notes: initialData?.notes || '',
       budgetedCost: initialData?.budgetedCost ?? null,
       assignedTripId: initialData?.assignedTripId ?? null,
@@ -79,11 +71,9 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
   const onSubmit: SubmitHandler<BookingFormData> = (data) => {
     const dataToSave = {
         ...data,
-        checkInDate: data.dateRange.from!.toISOString(),
-        checkOutDate: data.dateRange.to!.toISOString(),
+        checkInDate: data.checkInDate.toISOString(),
+        checkOutDate: data.checkOutDate.toISOString(),
     };
-    delete (dataToSave as any).dateRange;
-
     onSave(dataToSave);
   };
 
@@ -95,35 +85,28 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
         {errors.siteName && <p className="text-sm text-destructive font-body mt-1">{errors.siteName.message}</p>}
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="dateRange" className="font-body">Check-in / Check-out Dates*</Label>
-           <Controller name="dateRange" control={control} render={({ field }) => (
-              <Popover open={isDatePopoverOpen} onOpenChange={setIsDatePopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button id="dateRange" variant={"outline"} className={cn("w-full justify-start text-left font-normal font-body", !field.value?.from && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {field.value?.from ? (field.value.to ? `${format(field.value.from, "LLL dd, yyyy")} - ${format(field.value.to, "LLL dd, yyyy")}` : format(field.value.from, "LLL dd, yyyy")) : <span>Pick a date range</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar 
-                    initialFocus 
-                    mode="range" 
-                    defaultMonth={field.value?.from} 
-                    selected={field.value as DateRange | undefined} 
-                    onSelect={(range) => {
-                      field.onChange(range);
-                      if (range?.from && range?.to) {
-                        setIsDatePopoverOpen(false);
-                      }
-                    }}
-                    numberOfMonths={2} 
-                  />
-                </PopoverContent>
-              </Popover>
-            )} />
-          {errors.dateRange && <p className="text-sm text-destructive font-body mt-1">{errors.dateRange.message || (errors.dateRange as any)?.from?.message || (errors.dateRange as any)?.to?.message}</p>}
+          <Label htmlFor="checkInDate" className="font-body">Check-in Date*</Label>
+          <Controller name="checkInDate" control={control} render={({ field }) => (
+            <Popover><PopoverTrigger asChild>
+                <Button id="checkInDate" variant="outline" className={cn("w-full justify-start text-left font-normal font-body", !field.value && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                </Button>
+            </PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>
+          )} />
+          {errors.checkInDate && <p className="text-sm text-destructive font-body mt-1">{errors.checkInDate.message}</p>}
+        </div>
+         <div>
+          <Label htmlFor="checkOutDate" className="font-body">Check-out Date*</Label>
+          <Controller name="checkOutDate" control={control} render={({ field }) => (
+            <Popover><PopoverTrigger asChild>
+                <Button id="checkOutDate" variant="outline" className={cn("w-full justify-start text-left font-normal font-body", !field.value && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                </Button>
+            </PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>
+          )} />
+          {errors.checkOutDate && <p className="text-sm text-destructive font-body mt-1">{errors.checkOutDate.message}</p>}
         </div>
       </div>
       
