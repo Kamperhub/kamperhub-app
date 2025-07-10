@@ -59,7 +59,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
   {
     id: 'parksAustralia',
     name: 'Parks Australia',
-    url: 'https://parksaustralia.gov.au/kakadu/plan/camping/',
+    url: 'https://parksaustralia.gov.au/',
     description: 'Information and booking for campgrounds in Australia\'s Commonwealth National Parks.',
     dataAiHint: 'australia national park',
     icon: Trees,
@@ -95,7 +95,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
   {
     id: 'bookingcom',
     name: 'Booking.com',
-    url: 'https://www.booking.com/index.html?aid=YOUR_AFFILIATE_ID',
+    url: 'https://www.booking.com/',
     description: 'Wide range of hotels, homes, and increasingly, caravan parks.',
     dataAiHint: 'hotel travel',
     icon: Hotel,
@@ -104,7 +104,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
    {
     id: 'agoda',
     name: 'Agoda',
-    url: 'https://www.agoda.com/?CID=YOUR_AFFILIATE_ID',
+    url: 'https://www.agoda.com/',
     description: 'Great deals on hotels and accommodations worldwide.',
     dataAiHint: 'accommodation deal',
     icon: Building2,
@@ -113,7 +113,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
   {
     id: 'airbnb',
     name: 'Airbnb',
-    url: 'https://www.airbnb.com/?af=YOUR_AFFILIATE_ID',
+    url: 'https://www.airbnb.com/',
     description: 'Unique stays and experiences, from homes to cabins.',
     dataAiHint: 'unique stay',
     icon: Home,
@@ -122,7 +122,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
   {
     id: 'hostelworld',
     name: 'Hostelworld',
-    url: 'https://www.hostelworld.com/?source=YOUR_AFFILIATE_SOURCE',
+    url: 'https://www.hostelworld.com/',
     description: 'Hostels, budget stays, and some campsites.',
     dataAiHint: 'budget travel',
     icon: BedSingle,
@@ -131,7 +131,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
    {
     id: 'expedia',
     name: 'Expedia',
-    url: 'https://www.expedia.com/?AID=YOUR_AFFILIATE_ID',
+    url: 'https://www.expedia.com/',
     description: 'Book flights, hotels, car rentals, and activities.',
     dataAiHint: 'flight booking',
     icon: PlaneTakeoff,
