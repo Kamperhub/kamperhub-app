@@ -7,12 +7,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { fetchTrips } from '@/lib/api-client';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { Map, AdvancedMarker, Pin, InfoWindow, useMap } from '@vis.gl/react-google-maps';
-import { WorldMap as WorldMapIcon, Loader2, AlertTriangle, Route } from 'lucide-react';
+import { Globe as WorldMapIcon, Loader2, AlertTriangle, Route, ChevronLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
-import { Button } from '../components/ui/button';
+import { Button } from '@/components/ui/button';
 import { NavigationContext } from '@/components/layout/AppShell';
 
 const TripPolyline = ({ polyline }: { polyline: string }) => {
@@ -86,7 +86,7 @@ export default function WorldMapPage() {
             <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Error Loading Trips</AlertTitle>
-                <AlertDescription>{error.message}</AlertDescription>
+                <AlertDescription>{(error as Error).message}</AlertDescription>
             </Alert>
         </div>
     )
@@ -94,6 +94,12 @@ export default function WorldMapPage() {
 
   return (
     <div className="space-y-8">
+        <Button asChild variant="link" className="p-0 h-auto font-body text-muted-foreground hover:text-primary -ml-1">
+            <Link href="/trip-manager" onClick={handleNavigation}>
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              Return to Trip Manager
+            </Link>
+        </Button>
         <h1 className="text-3xl font-headline mb-2 text-primary flex items-center">
             <WorldMapIcon className="mr-3 h-8 w-8" /> World Map
         </h1>

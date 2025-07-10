@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Map, Loader2, Trash2 } from 'lucide-react';
+import { PlusCircle, Map, Loader2, Trash2, ChevronLeft } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -89,11 +89,18 @@ export default function JourneysPage() {
   }
 
   if (error) {
-    return <div className="text-destructive">Error loading journeys: {error.message}</div>;
+    return <div className="text-destructive">Error loading journeys: {(error as Error).message}</div>;
   }
 
   return (
     <div className="space-y-8">
+      <Button asChild variant="link" className="p-0 h-auto font-body text-muted-foreground hover:text-primary -ml-1">
+        <Link href="/trip-manager" onClick={handleNavigation}>
+          <ChevronLeft className="mr-1 h-4 w-4" />
+          Return to Trip Manager
+        </Link>
+      </Button>
+
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-headline mb-2 text-primary flex items-center">

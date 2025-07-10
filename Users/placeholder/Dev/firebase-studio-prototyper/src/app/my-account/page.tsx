@@ -42,7 +42,8 @@ export default function MyAccountPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   
-  const expectedRedirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8083'}/api/auth/google/callback`;
+  const expectedRedirectUri = typeof window !== 'undefined' ? `${window.location.origin}/api/auth/google/callback` : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8083'}/api/auth/google/callback`;
+
 
   useEffect(() => {
     const errorParam = searchParams.get('error');
@@ -82,7 +83,7 @@ export default function MyAccountPage() {
   
 
   const handleNavigation = () => {
-    navContext?.setIsNavigating(true);
+    if (navContext) navContext.setIsNavigating(true);
   };
 
   const handleLogout = async () => {
