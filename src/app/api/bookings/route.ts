@@ -28,7 +28,7 @@ async function verifyUserAndGetInstances(req: NextRequest) {
 }
 
 // Zod schemas for validation
-const createBookingSchema = z.object({
+const bookingSchema = z.object({
   siteName: z.string().min(1, "Site name is required"),
   locationAddress: z.string().optional(),
   contactPhone: z.string().optional(),
@@ -44,7 +44,8 @@ const createBookingSchema = z.object({
     path: ["checkOutDate"],
 });
 
-const updateBookingSchema = createBookingSchema.extend({
+// For updates, the base schema is the same, but we also expect an ID and timestamp
+const updateBookingSchema = bookingSchema.extend({
   id: z.string().min(1, "Booking ID is required for updates"),
   timestamp: z.string().datetime(),
 });
@@ -60,7 +61,7 @@ export async function GET(req: NextRequest) {
     const bookings: BookingEntry[] = [];
     bookingsSnapshot.forEach(doc => {
       try {
-        if (doc.exists()) {
+        if (doc.exists) {
             bookings.push(doc.data() as BookingEntry);
         }
       } catch (docError) {
@@ -96,7 +97,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const parsedData = createBookingSchema.parse(body);
+    const parsedData = bookingSchema.parse(body);
     const { assignedTripId, budgetedCost, ...bookingDetails } = parsedData;
 
     const newBookingRef = firestore.collection('users').doc(uid).collection('bookings').doc();
@@ -168,6 +169,7 @@ export async function PUT(req: NextRequest) {
       const oldTripId = oldBookingData.assignedTripId;
       const oldCost = oldBookingData.budgetedCost || 0;
       
+      // Step 1: Remove the old cost from the old trip's budget, if applicable
       if (oldTripId && oldCost > 0) {
         const oldTripRef = firestore.collection('users').doc(uid).collection('trips').doc(oldTripId);
         const oldTripDoc = await transaction.get(oldTripRef);
@@ -183,6 +185,7 @@ export async function PUT(req: NextRequest) {
         }
       }
       
+      // Step 2: Add the new cost to the new trip's budget, if applicable
       if (newTripId && newCost > 0) {
         const newTripRef = firestore.collection('users').doc(uid).collection('trips').doc(newTripId);
         const newTripDoc = await transaction.get(newTripRef);
@@ -200,6 +203,7 @@ export async function PUT(req: NextRequest) {
         transaction.update(newTripRef, { budget });
       }
       
+      // Step 3: Update the booking document itself
       transaction.set(bookingRef, finalUpdatedBooking, { merge: true });
     });
     
@@ -233,6 +237,7 @@ export async function DELETE(req: NextRequest) {
         const bookingData = bookingDoc.data() as BookingEntry;
         const { assignedTripId, budgetedCost } = bookingData;
 
+        // If the booking was assigned to a trip and had a cost, remove that cost from the trip's budget.
         if (assignedTripId && budgetedCost && budgetedCost > 0) {
             const tripRef = firestore.collection('users').doc(uid).collection('trips').doc(assignedTripId);
             const tripDoc = await transaction.get(tripRef);
@@ -243,7 +248,7 @@ export async function DELETE(req: NextRequest) {
                         return { ...cat, budgetedAmount: Math.max(0, cat.budgetedAmount - budgetedCost) };
                     }
                     return cat;
-                }).filter(cat => !(cat.name === ACCOMMODATION_CATEGORY_NAME && cat.budgetedAmount <= 0));
+                }).filter(cat => !(cat.name === ACCOMMODATION_CATEGORY_NAME && cat.budgetedAmount <= 0)); // Remove category if budget is zero or less
                 transaction.update(tripRef, { budget });
             }
         }
@@ -256,3 +261,4 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Internal Server Error', details: err.message }, { status: 500 });
   }
 }
+

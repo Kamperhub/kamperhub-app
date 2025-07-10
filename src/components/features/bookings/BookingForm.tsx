@@ -16,6 +16,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
+import type { DateRange } from 'react-day-picker';
+import { useState } from 'react';
 
 const bookingSchema = z.object({
   siteName: z.string().min(1, "Site name is required"),
@@ -23,57 +25,57 @@ const bookingSchema = z.object({
   contactPhone: z.string().optional(),
   contactWebsite: z.string().url("Must be a valid URL (e.g., https://example.com)").optional().or(z.literal('')),
   confirmationNumber: z.string().optional(),
-  checkInDate: z.string().datetime({ message: "Check-in date is required" }),
-  checkOutDate: z.string().datetime({ message: "Check-out date is required" }),
+  dateRange: z.object({
+    from: z.date({ required_error: "Check-in date is required." }),
+    to: z.date({ required_error: "Check-out date is required." }),
+  }),
   notes: z.string().optional(),
   budgetedCost: z.coerce.number().min(0, "Budgeted cost must be non-negative").optional().nullable(),
   assignedTripId: z.string().nullable().optional(),
-}).refine(data => {
-    const checkIn = parseISO(data.checkInDate);
-    const checkOut = parseISO(data.checkOutDate);
-    return checkOut >= checkIn;
-}, {
-    message: "Check-out date must be on or after check-in date",
-    path: ["checkOutDate"],
 });
 
-type BookingFormData = Omit<BookingEntry, 'id' | 'timestamp'>;
+type BookingFormData = z.infer<typeof bookingSchema>;
 
 interface BookingFormProps {
   initialData?: BookingEntry;
-  onSave: (data: BookingFormData) => void;
+  onSave: (data: Omit<BookingEntry, 'id' | 'timestamp'>) => void;
   onCancel: () => void;
   isLoading?: boolean;
   trips: LoggedTrip[];
 }
 
 export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }: BookingFormProps) {
-  const { control, register, handleSubmit, formState: { errors }, reset, watch } = useForm<BookingFormData>({
+  const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
+
+  const { control, register, handleSubmit, formState: { errors } } = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
-    defaultValues: initialData ? {
-      ...initialData,
-      checkInDate: initialData.checkInDate,
-      checkOutDate: initialData.checkOutDate,
-    } : {
-      siteName: '',
-      locationAddress: '',
-      contactPhone: '',
-      contactWebsite: '',
-      confirmationNumber: '',
-      checkInDate: '',
-      checkOutDate: '',
-      notes: '',
-      budgetedCost: null,
-      assignedTripId: null,
+    defaultValues: {
+      siteName: initialData?.siteName || '',
+      locationAddress: initialData?.locationAddress || '',
+      contactPhone: initialData?.contactPhone || '',
+      contactWebsite: initialData?.contactWebsite || '',
+      confirmationNumber: initialData?.confirmationNumber || '',
+      dateRange: {
+        from: initialData?.checkInDate && isValid(parseISO(initialData.checkInDate)) ? parseISO(initialData.checkInDate) : undefined,
+        to: initialData?.checkOutDate && isValid(parseISO(initialData.checkOutDate)) ? parseISO(initialData.checkOutDate) : undefined,
+      },
+      notes: initialData?.notes || '',
+      budgetedCost: initialData?.budgetedCost ?? null,
+      assignedTripId: initialData?.assignedTripId ?? null,
     },
   });
 
   const onSubmit: SubmitHandler<BookingFormData> = (data) => {
-    onSave(data);
-    reset();
-  };
+    // Transform dateRange back to checkInDate and checkOutDate for saving
+    const dataToSave = {
+        ...data,
+        checkInDate: data.dateRange.from.toISOString(),
+        checkOutDate: data.dateRange.to.toISOString(),
+    };
+    delete (dataToSave as any).dateRange;
 
-  const checkInDateValue = watch("checkInDate");
+    onSave(dataToSave);
+  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -83,73 +85,35 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
         {errors.siteName && <p className="text-sm text-destructive font-body mt-1">{errors.siteName.message}</p>}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <div>
-          <Label htmlFor="checkInDate" className="font-body">Check-in Date*</Label>
-          <Controller
-            name="checkInDate"
-            control={control}
-            render={({ field }) => (
-              <Popover>
+          <Label htmlFor="dateRange" className="font-body">Check-in / Check-out Dates*</Label>
+           <Controller name="dateRange" control={control} render={({ field }) => (
+              <Popover open={isDatePopoverOpen} onOpenChange={setIsDatePopoverOpen}>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal font-body",
-                      !field.value && "text-muted-foreground"
-                    )}
-                  >
+                  <Button id="dateRange" variant={"outline"} className={cn("w-full justify-start text-left font-normal font-body", !field.value?.from && "text-muted-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {field.value && isValid(parseISO(field.value)) ? format(parseISO(field.value), "PPP") : <span>Pick a date</span>}
+                    {field.value?.from ? (field.value.to ? `${format(field.value.from, "LLL dd, yyyy")} - ${format(field.value.to, "LLL dd, yyyy")}` : format(field.value.from, "LLL dd, yyyy")) : <span>Pick a date range</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={field.value && isValid(parseISO(field.value)) ? parseISO(field.value) : undefined}
-                    onSelect={(date) => field.onChange(date ? date.toISOString() : '')}
-                    initialFocus
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar 
+                    initialFocus 
+                    mode="range" 
+                    defaultMonth={field.value?.from} 
+                    selected={field.value as DateRange | undefined} 
+                    onSelect={(range) => {
+                      field.onChange(range);
+                      if (range?.from && range?.to) {
+                        setIsDatePopoverOpen(false);
+                      }
+                    }}
+                    numberOfMonths={2} 
                   />
                 </PopoverContent>
               </Popover>
-            )}
-          />
-          {errors.checkInDate && <p className="text-sm text-destructive font-body mt-1">{errors.checkInDate.message}</p>}
-        </div>
-        <div>
-          <Label htmlFor="checkOutDate" className="font-body">Check-out Date*</Label>
-           <Controller
-            name="checkOutDate"
-            control={control}
-            render={({ field }) => (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal font-body",
-                      !field.value && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {field.value && isValid(parseISO(field.value)) ? format(parseISO(field.value), "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={field.value && isValid(parseISO(field.value)) ? parseISO(field.value) : undefined}
-                    onSelect={(date) => field.onChange(date ? date.toISOString() : '')}
-                    disabled={(date) =>
-                      checkInDateValue && isValid(parseISO(checkInDateValue)) ? date < parseISO(checkInDateValue) : false
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            )}
-          />
-          {errors.checkOutDate && <p className="text-sm text-destructive font-body mt-1">{errors.checkOutDate.message}</p>}
+            )} />
+          {errors.dateRange && <p className="text-sm text-destructive font-body mt-1">{errors.dateRange.message || errors.dateRange.from?.message || errors.dateRange.to?.message}</p>}
         </div>
       </div>
       
@@ -225,3 +189,4 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
     </form>
   );
 }
+
