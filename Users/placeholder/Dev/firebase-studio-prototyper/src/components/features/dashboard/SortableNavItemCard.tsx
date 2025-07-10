@@ -28,6 +28,11 @@ export function SortableNavItemCard({ item, id }: SortableNavItemCardProps) {
   };
 
   const handleNavigation = (e: React.MouseEvent) => {
+    // A small check to prevent navigation when dragging starts from the card content itself.
+    if (isDragging) {
+      e.preventDefault();
+      return;
+    }
     if (navContext) {
       navContext.setIsNavigating(true);
     }
