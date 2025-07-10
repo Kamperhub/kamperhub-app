@@ -28,7 +28,6 @@ function formatDuration(isoDuration: string): string {
 }
 
 export async function POST(req: NextRequest) {
-  // Use the unrestricted server-side GOOGLE_API_KEY for server-to-server calls
   const apiKey = process.env.GOOGLE_API_KEY;
 
   if (!apiKey) {
@@ -46,7 +45,6 @@ export async function POST(req: NextRequest) {
 
     const { origin, destination, vehicleHeight, axleCount, avoidTolls } = parsedBody.data;
 
-    // Base request body for Google's Routes API
     const requestBody: any = {
       origin: { address: origin },
       destination: { address: destination },
@@ -59,7 +57,6 @@ export async function POST(req: NextRequest) {
       polylineEncoding: 'ENCODED_POLYLINE',
     };
     
-    // If height or axle count is provided, add vehicleInfo to the request
     const vehicleInfo: any = {};
     if (vehicleHeight && vehicleHeight > 0) {
       vehicleInfo.dimensions = { height: vehicleHeight };
@@ -68,7 +65,6 @@ export async function POST(req: NextRequest) {
       vehicleInfo.axleCount = axleCount;
     }
 
-    // Add route modifiers for vehicle info and toll avoidance
     const routeModifiers: any = {};
     if (Object.keys(vehicleInfo).length > 0) {
         routeModifiers.vehicleInfo = vehicleInfo;
@@ -86,7 +82,6 @@ export async function POST(req: NextRequest) {
         headers: {
             'Content-Type': 'application/json',
             'X-Goog-Api-Key': apiKey,
-            // Field mask to request specific fields, reducing data transfer and cost
             'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.warnings,routes.polyline.encodedPolyline,routes.legs,routes.travelAdvisory.tollInfo',
         },
         body: JSON.stringify(requestBody)
@@ -111,7 +106,6 @@ export async function POST(req: NextRequest) {
             }
           }
         } catch(e) {
-          // This block catches if JSON.parse fails
           if (errorBody.toLowerCase().includes('api key not valid')) {
             errorMessage = "The provided GOOGLE_API_KEY is invalid. Please check the key in your .env.local file and restart the server.";
           } else if (errorBody.toLowerCase().includes('http referrer')) {
@@ -121,15 +115,20 @@ export async function POST(req: NextRequest) {
         
         throw new Error(errorMessage);
     }
-    
-    const data = await response.json();
+
+    const responseBodyText = await response.text();
+    if (!responseBodyText) {
+        return NextResponse.json({ error: "No routes found between the specified locations. The destination may be unreachable by car." }, { status: 404 });
+    }
+
+    const data = JSON.parse(responseBodyText);
     
     if (!data.routes || data.routes.length === 0) {
         return NextResponse.json({ error: "No routes found between the specified locations. Please check the start and end points." }, { status: 404 });
     }
 
     const route = data.routes[0];
-    const tollInfo = route?.travelAdvisory?.tollInfo;
+    const tollInfo = route.travelAdvisory?.tollInfo;
     let adaptedTollInfo = null;
 
     if (tollInfo?.estimatedPrice?.length > 0) {
@@ -160,6 +159,9 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Error in directions API route:', error);
+    if (error instanceof SyntaxError && error.message.includes("Unexpected token")) {
+        return NextResponse.json({ error: `The server received an unexpected response from the mapping service. This can happen with unusual locations. Please try again.`, details: error.message }, { status: 500 });
+    }
     return NextResponse.json({ error: `Error calculating route: ${error.message}` || 'An internal server error occurred.' }, { status: 500 });
   }
 }
