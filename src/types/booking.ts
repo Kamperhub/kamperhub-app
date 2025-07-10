@@ -48,6 +48,15 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     category: 'Broad Search & Private Land',
   },
   {
+    id: 'parksAustralia',
+    name: 'Parks Australia (via Hipcamp)',
+    url: 'https://www.hipcamp.com/en-AU/discover/australia/national-park-system',
+    description: 'Search for campsites in and around Australia\'s National Parks, powered by Hipcamp.',
+    dataAiHint: 'australia national park',
+    icon: Trees,
+    category: 'Government & National Parks',
+  },
+  {
     id: 'recreationGov',
     name: 'Recreation.gov',
     url: 'https://www.recreation.gov/',
@@ -57,21 +66,21 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     category: 'Government & National Parks',
   },
   {
-    id: 'parksAustralia',
-    name: 'Parks Australia (via Hipcamp)',
-    url: 'https://www.hipcamp.com/en-AU/discover/australia/national-park-system',
-    description: 'Search for campsites in and around Australia\'s National Parks.',
-    dataAiHint: 'australia national park',
-    icon: Trees,
-    category: 'Government & National Parks',
-  },
-  {
     id: 'reserveAmerica',
     name: 'Reserve America',
     url: 'https://www.reserveamerica.com/',
     description: 'Find and book campsites, primarily in US state parks and public lands.',
     dataAiHint: 'state park reservation',
     icon: Leaf,
+    category: 'Government & National Parks',
+  },
+  {
+    id: 'qldParks',
+    name: 'QLD National Parks',
+    url: 'https://qpws.usedirect.com/QPWS/',
+    description: 'Book campsites in Queensland\'s stunning national parks and forests.',
+    dataAiHint: 'queensland national park',
+    icon: Trees,
     category: 'Government & National Parks',
   },
   {
@@ -146,4 +155,13 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     icon: BookOpen,
     category: 'Guidebooks & Resources',
   },
+  {
+    id: 'campsAustraliaWide',
+    name: 'Camps Australia Wide',
+    url: 'https://www.campsaustraliawide.com/',
+    description: "The definitive guide to free and low-cost camping sites across Australia, often called 'The Traveller\'s Bible'.",
+    dataAiHint: 'guidebook map australia',
+    icon: BookOpen,
+    category: 'Guidebooks & Resources',
+  }
 ];
