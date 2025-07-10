@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import type { DateRange } from 'react-day-picker';
 import { useState } from 'react';
 
+// Define schema outside the component to prevent re-creation on re-renders
 const bookingSchema = z.object({
   siteName: z.string().min(1, "Site name is required"),
   locationAddress: z.string().optional(),
@@ -26,14 +27,18 @@ const bookingSchema = z.object({
   contactWebsite: z.string().url("Must be a valid URL (e.g., https://example.com)").optional().or(z.literal('')),
   confirmationNumber: z.string().optional(),
   dateRange: z.object({
-    from: z.date({ required_error: "Check-in date is required." }),
-    to: z.date({ required_error: "Check-out date is required." }),
+    from: z.date().optional(),
+    to: z.date().optional(),
   }),
   notes: z.string().optional(),
   budgetedCost: z.coerce.number().min(0, "Budgeted cost must be non-negative").optional().nullable(),
   assignedTripId: z.string().nullable().optional(),
+}).refine(data => data.dateRange.from && data.dateRange.to, {
+    message: "Both check-in and check-out dates are required.",
+    path: ["dateRange"],
 });
 
+// The form data type is slightly different from the saved type due to the dateRange object
 type BookingFormData = z.infer<typeof bookingSchema>;
 
 interface BookingFormProps {
@@ -69,9 +74,10 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
     // Transform dateRange back to checkInDate and checkOutDate for saving
     const dataToSave = {
         ...data,
-        checkInDate: data.dateRange.from.toISOString(),
-        checkOutDate: data.dateRange.to.toISOString(),
+        checkInDate: data.dateRange.from!.toISOString(),
+        checkOutDate: data.dateRange.to!.toISOString(),
     };
+    // We don't want to save the `dateRange` object itself
     delete (dataToSave as any).dateRange;
 
     onSave(dataToSave);
@@ -113,7 +119,7 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
                 </PopoverContent>
               </Popover>
             )} />
-          {errors.dateRange && <p className="text-sm text-destructive font-body mt-1">{errors.dateRange.message || errors.dateRange.from?.message || errors.dateRange.to?.message}</p>}
+          {errors.dateRange && <p className="text-sm text-destructive font-body mt-1">{errors.dateRange.message}</p>}
         </div>
       </div>
       
