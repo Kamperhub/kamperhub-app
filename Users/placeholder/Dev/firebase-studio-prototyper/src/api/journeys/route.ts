@@ -1,9 +1,11 @@
-
 // src/app/api/journeys/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { Journey } from '@/types/journey';
 import { z, ZodError } from 'zod';
+
+// Note: The recalculateAndSaveMasterPolyline function has been moved to /api/trips/route.ts
+// to be centralized. It will need to be imported if used here in the future.
 
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
@@ -91,14 +93,14 @@ export async function PUT(req: NextRequest) {
 
     const journeyRef = firestore.collection('users').doc(uid).collection('journeys').doc(id);
     
-    // TODO: Implement polyline stitching here when tripIds are updated.
-    // This requires a server-side polyline decoding/encoding library.
-    // For now, we just update the data.
     await journeyRef.update({
         ...updateData,
         updatedAt: new Date().toISOString(),
     });
-
+    
+    // Note: The logic to recalculate polyline is now handled in the trips API
+    // when a trip is added or removed from a journey. This keeps logic centralized.
+    
     const updatedDoc = await journeyRef.get();
     return NextResponse.json(updatedDoc.data(), { status: 200 });
 

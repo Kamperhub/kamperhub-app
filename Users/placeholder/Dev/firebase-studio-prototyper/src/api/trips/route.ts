@@ -1,9 +1,11 @@
-
 // src/app/api/trips/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
+import type { Journey } from '@/types/journey';
 import { z, ZodError } from 'zod';
+import type { firestore } from 'firebase-admin';
+import { decode, encode } from '@googlemaps/polyline-codec';
 
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
@@ -23,6 +25,59 @@ async function verifyUserAndGetInstances(req: NextRequest) {
   } catch (error: any) {
     return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
   }
+}
+
+// Centralized function to calculate and save the master polyline for a journey
+async function recalculateAndSaveMasterPolyline(journeyId: string, userId: string, db: firestore.Firestore, transaction?: firestore.Transaction) {
+    console.log(`[Polyline] Recalculating for Journey ID: ${journeyId}`);
+    const journeyRef = db.collection('users').doc(userId).collection('journeys').doc(journeyId);
+    
+    const get = transaction ? transaction.get.bind(transaction) : journeyRef.get.bind(journeyRef);
+    const journeyDoc = await get();
+
+    if (!journeyDoc.exists) {
+        console.warn(`[Polyline] Journey ${journeyId} not found for recalculation.`);
+        return;
+    }
+
+    const journeyData = journeyDoc.data() as Journey;
+    const tripIds = journeyData.tripIds || [];
+
+    if (tripIds.length === 0) {
+        console.log(`[Polyline] Journey ${journeyId} has no trips. Clearing master polyline.`);
+        if(transaction) transaction.update(journeyRef, { masterPolyline: null });
+        else await journeyRef.update({ masterPolyline: null });
+        return;
+    }
+
+    const tripRefs = tripIds.map(id => db.collection('users').doc(userId).collection('trips').doc(id));
+    const tripDocs = await (transaction ? transaction.getAll(...tripRefs) : db.getAll(...tripRefs));
+
+    const validTrips = tripDocs.map(doc => doc.data() as LoggedTrip).filter(trip => trip && trip.routeDetails?.polyline);
+
+    validTrips.sort((a, b) => {
+        const dateA = a.plannedStartDate ? new Date(a.plannedStartDate).getTime() : 0;
+        const dateB = b.plannedStartDate ? new Date(b.plannedStartDate).getTime() : 0;
+        return dateA - dateB;
+    });
+
+    const allCoordinates: [number, number][] = [];
+    validTrips.forEach(trip => {
+        if (trip.routeDetails?.polyline) {
+            try {
+                const decodedPath = decode(trip.routeDetails.polyline, 5);
+                allCoordinates.push(...decodedPath);
+            } catch (e) {
+                console.error(`[Polyline] Could not decode polyline for trip ${trip.id}:`, e);
+            }
+        }
+    });
+
+    const masterPolyline = allCoordinates.length > 0 ? encode(allCoordinates, 5) : null;
+    console.log(`[Polyline] Saving new master polyline for Journey ${journeyId}. Length: ${masterPolyline?.length || 0}`);
+    
+    if(transaction) transaction.update(journeyRef, { masterPolyline });
+    else await journeyRef.update({ masterPolyline });
 }
 
 // Zod schemas for validation
@@ -196,7 +251,23 @@ export async function POST(req: NextRequest) {
       journeyId: parsedData.journeyId || null,
     };
     
-    await newTripRef.set(newTrip);
+    // If a journeyId is provided, update the journey as well in a transaction
+    if (newTrip.journeyId) {
+        const journeyRef = firestore.collection('users').doc(uid).collection('journeys').doc(newTrip.journeyId);
+        await firestore.runTransaction(async (transaction) => {
+            const journeyDoc = await transaction.get(journeyRef);
+            if (!journeyDoc.exists) {
+                throw new Error("Journey not found. Cannot associate trip.");
+            }
+            transaction.update(journeyRef, { 
+              tripIds: firestore.FieldValue.arrayUnion(newTrip.id) 
+            });
+            transaction.set(newTripRef, newTrip);
+        });
+        await recalculateAndSaveMasterPolyline(newTrip.journeyId, uid, firestore);
+    } else {
+      await newTripRef.set(newTrip);
+    }
     
     return NextResponse.json(newTrip, { status: 201 });
 
@@ -213,19 +284,58 @@ export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
     const parsedData = updateTripSchema.parse(body);
+    const { id: tripId, ...updateData } = parsedData;
 
-    const tripRef = firestore.collection('users').doc(uid).collection('trips').doc(parsedData.id);
+    const tripRef = firestore.collection('users').doc(uid).collection('trips').doc(tripId);
+    let journeysToUpdate: string[] = [];
+    let journeyNeedsRecalculation = false;
+
+    await firestore.runTransaction(async (transaction) => {
+        const tripDoc = await transaction.get(tripRef);
+        if (!tripDoc.exists) {
+            throw new Error("Trip not found.");
+        }
+        
+        const oldTripData = tripDoc.data() as LoggedTrip;
+        const oldJourneyId = oldTripData.journeyId;
+        const newJourneyId = "journeyId" in updateData ? updateData.journeyId : oldJourneyId;
+
+        // If journey assignment has changed...
+        if (oldJourneyId !== newJourneyId) {
+            if (oldJourneyId) {
+                const oldJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(oldJourneyId);
+                transaction.update(oldJourneyRef, {
+                    tripIds: firestore.FieldValue.arrayRemove(tripId)
+                });
+                journeysToUpdate.push(oldJourneyId);
+            }
+            if (newJourneyId) {
+                const newJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(newJourneyId);
+                transaction.update(newJourneyRef, {
+                    tripIds: firestore.FieldValue.arrayUnion(tripId)
+                });
+                journeysToUpdate.push(newJourneyId);
+            }
+        } else if (newJourneyId) {
+            journeysToUpdate.push(newJourneyId);
+        }
+
+        const finalUpdateData = { ...updateData, updatedAt: new Date().toISOString() };
+        transaction.set(tripRef, finalUpdateData, { merge: true });
+
+        // Check if route has changed
+        if (updateData.routeDetails?.polyline !== oldTripData.routeDetails?.polyline || updateData.plannedStartDate !== oldTripData.plannedStartDate) {
+            journeyNeedsRecalculation = true;
+        }
+    });
     
-    // Prepare data for merging, ensuring we don't overwrite with undefined
-    const updatePayload: { [key: string]: any } = {
-      ...parsedData,
-      timestamp: new Date().toISOString(),
-    };
-    Object.keys(updatePayload).forEach(key => updatePayload[key] === undefined && delete updatePayload[key]);
-    
-    await tripRef.set(updatePayload, { merge: true });
-    
-    // Fetch the updated doc to return the full object
+    // After transaction, run recalculations
+    if (journeyNeedsRecalculation) {
+      for (const journeyId of [...new Set(journeysToUpdate)]) {
+          await recalculateAndSaveMasterPolyline(journeyId, uid, firestore);
+      }
+    }
+
     const updatedDoc = await tripRef.get();
     const updatedTrip = updatedDoc.data() as LoggedTrip;
 
@@ -247,17 +357,31 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Trip ID is required in the request body.' }, { status: 400 });
     }
     
-    // Create references to both the trip and its associated packing list
     const tripDocRef = firestore.collection('users').doc(uid).collection('trips').doc(tripId);
     const packingListDocRef = firestore.collection('users').doc(uid).collection('packingLists').doc(tripId);
+    let journeyToUpdate: string | null = null;
 
-    // Use a batch to delete both atomically. If one fails, neither is deleted.
-    const batch = firestore.batch();
+    await firestore.runTransaction(async (transaction) => {
+        const tripDoc = await transaction.get(tripDocRef);
+        if (!tripDoc.exists) return;
+        
+        const tripData = tripDoc.data() as LoggedTrip;
+        journeyToUpdate = tripData.journeyId || null;
+
+        if (journeyToUpdate) {
+            const journeyRef = firestore.collection('users').doc(uid).collection('journeys').doc(journeyToUpdate);
+            transaction.update(journeyRef, {
+                tripIds: firestore.FieldValue.arrayRemove(tripId)
+            });
+        }
+        
+        transaction.delete(tripDocRef);
+        transaction.delete(packingListDocRef);
+    });
     
-    batch.delete(tripDocRef);
-    batch.delete(packingListDocRef); // This will succeed even if the doc doesn't exist
-
-    await batch.commit();
+    if (journeyToUpdate) {
+        await recalculateAndSaveMasterPolyline(journeyToUpdate, uid, firestore);
+    }
     
     return NextResponse.json({ message: 'Trip and its associated packing list deleted successfully.' }, { status: 200 });
   } catch (err: any) {
