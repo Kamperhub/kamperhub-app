@@ -29,11 +29,13 @@ const bookingSchema = z.object({
   dateRange: z.object({
     from: z.date().optional(),
     to: z.date().optional(),
-  }),
+  }).optional(),
   notes: z.string().optional(),
   budgetedCost: z.coerce.number().min(0, "Budgeted cost must be non-negative").optional().nullable(),
   assignedTripId: z.string().nullable().optional(),
-}).refine(data => data.dateRange.from && data.dateRange.to, {
+}).refine(data => {
+    return !!data.dateRange?.from && !!data.dateRange?.to;
+}, {
     message: "Both check-in and check-out dates are required.",
     path: ["dateRange"],
 });
@@ -74,13 +76,13 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
     // Transform dateRange back to checkInDate and checkOutDate for saving
     const dataToSave = {
         ...data,
-        checkInDate: data.dateRange.from!.toISOString(),
-        checkOutDate: data.dateRange.to!.toISOString(),
+        checkInDate: data.dateRange!.from!.toISOString(),
+        checkOutDate: data.dateRange!.to!.toISOString(),
     };
     // We don't want to save the `dateRange` object itself
     delete (dataToSave as any).dateRange;
 
-    onSave(dataToSave);
+    onSave(dataToSave as Omit<BookingEntry, 'id' | 'timestamp'>);
   };
 
   return (
@@ -119,7 +121,7 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
                 </PopoverContent>
               </Popover>
             )} />
-          {errors.dateRange && <p className="text-sm text-destructive font-body mt-1">{errors.dateRange.message}</p>}
+          {errors.dateRange && <p className="text-sm text-destructive font-body mt-1">{errors.dateRange.message || (errors.dateRange as any)?.from?.message || (errors.dateRange as any)?.to?.message}</p>}
         </div>
       </div>
       
