@@ -18,11 +18,9 @@ import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, S
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label as RechartsLabel } from 'recharts';
-import { Progress } from '@/components/ui/progress';
 import { fetchInventory, updateInventory, updateUserPreferences } from '@/lib/api-client';
 import { auth } from '@/lib/firebase';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
 
 
@@ -91,7 +89,7 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
   const preferencesMutation = useMutation({
     mutationFn: (prefs: Partial<UserProfile>) => updateUserPreferences(prefs),
     onSuccess: () => {
-       queryClient.invalidateQueries({ queryKey: ['allVehicleData', user?.uid] });
+       queryClient.invalidateQueries({ queryKey: ['vehiclePageData', user?.uid] });
     },
     onError: (error: Error) => {
       toast({ title: "Error Saving Preferences", description: error.message, variant: "destructive" });
@@ -258,8 +256,7 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
   const isOverMaxTowCapacity = vehicleMaxTowCapacity > 0 && currentCaravanMass > vehicleMaxTowCapacity;
   const isOverVehicleMaxTowball = vehicleMaxTowballMass > 0 && calculatedTowballMass > vehicleMaxTowballMass;
   
-  const currentGCM = currentCaravanMass + (activeVehicle?.gvm || 0);
-  const isGCMOverLimit = vehicleGCM > 0 && activeVehicle?.gvm && currentGCM > vehicleGCM;
+  const currentGCM = currentCaravanMass + currentVehicleMass;
 
   const wdhMaxCapacity = wdh?.maxCapacityKg ?? 0;
   const wdhMinCapacity = wdh?.minCapacityKg ?? null;
@@ -320,6 +317,7 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
   const atmChart = prepareChartData(currentCaravanMass, atmLimit);
   const axleLoadChart = prepareChartData(currentLoadOnAxles, axleLoadLimit);
   const towballChart = prepareChartData(calculatedTowballMass, caravanMaxTowballDownloadLimit);
+  const gcmChart = prepareChartData(currentGCM, vehicleGCM);
   
   const getLocationNameById = (locationId: string | null | undefined) => !locationId ? 'Unassigned' : enrichedCombinedStorageLocations.find(loc => loc.id === locationId)?.name || 'Unknown';
   
@@ -442,10 +440,13 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 my-6">
             <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={atmChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={100} innerRadius={75} dataKey="value" stroke="hsl(var(--background))">{atmChart.data.map((_, i) => (<Cell key={`cell-atm-${i}`} fill={atmChart.colors[i % atmChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="ATM" value={currentCaravanMass} limit={atmLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
             <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={axleLoadChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={100} innerRadius={75} dataKey="value" stroke="hsl(var(--background))">{axleLoadChart.data.map((_, i) => (<Cell key={`cell-axle-${i}`} fill={axleLoadChart.colors[i % axleLoadChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Axle Load" value={currentLoadOnAxles} limit={axleLoadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
             <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={towballChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={100} innerRadius={75} dataKey="value" stroke="hsl(var(--background))">{towballChart.data.map((_, i) => (<Cell key={`cell-towball-${i}`} fill={towballChart.colors[i % towballChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="Calc. Towball" value={calculatedTowballMass} limit={caravanMaxTowballDownloadLimit} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
+            {activeVehicle && vehicleGCM > 0 && (
+              <div className="flex flex-col items-center p-3 border rounded-lg"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={gcmChart.data} cx="50%" cy="50%" labelLine={false} outerRadius={100} innerRadius={75} dataKey="value" stroke="hsl(var(--background))">{gcmChart.data.map((_, i) => (<Cell key={`cell-gcm-${i}`} fill={gcmChart.colors[i % gcmChart.colors.length]} />))}<RechartsLabel content={<DonutChartCustomLabel name="GCM" value={currentGCM} limit={vehicleGCM} unit="kg" />} position="center" /></Pie><Tooltip /></PieChart></ResponsiveContainer></div>
+            )}
         </div>
 
         <Separator/>
