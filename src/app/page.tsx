@@ -5,10 +5,11 @@ import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import type { NavItem } from '@/lib/navigation';
 import { navItems as defaultNavItems } from '@/lib/navigation';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } from '@dnd-kit/sortable';
+import { SortableNavItemCard } from '@/components/features/dashboard/SortableNavItemCard';
 import { Button } from '@/components/ui/button';
-import { Home as HomeIcon, Loader2, CornerDownLeft, Car } from 'lucide-react';
-import Link from 'next/link';
+import { Car, CornerDownLeft } from 'lucide-react';
 import Image from 'next/image';
 import { updateUserPreferences } from '@/lib/api-client';
 import { useToast } from '@/hooks/use-toast';
@@ -17,43 +18,14 @@ import { NavigationContext } from '@/components/layout/AppShell';
 import { StartTripDialog } from '@/components/features/dashboard/StartTripDialog';
 import { ReturnTripDialog } from '@/components/features/dashboard/ReturnTripDialog';
 
-function NavItemCard({ item }: { item: NavItem }) {
-  const navContext = useContext(NavigationContext);
-  const handleNavigation = () => {
-    navContext?.setIsNavigating(true);
-  };
-
-  return (
-    <Link href={item.href} className="block h-full no-underline group" draggable="false" onClick={handleNavigation}>
-      <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
-        <CardHeader className="pb-3">
-            <CardTitle className="font-headline text-xl text-primary flex items-center">
-                <item.icon className="w-6 h-6 mr-3 text-primary" />
-                {item.label}
-            </CardTitle>
-            <CardDescription className="font-body text-xl text-muted-foreground line-clamp-3">
-                {item.description}
-            </CardDescription>
-        </CardHeader>
-        <CardContent className="flex-grow flex flex-col justify-between pt-0">
-          <div
-            className="h-32 w-full bg-muted/30 rounded-md flex items-center justify-center my-2 overflow-hidden"
-            data-ai-hint={item.keywords}
-          >
-            <item.icon className="w-16 h-16 text-accent opacity-50" />
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
-  );
-}
-
 export default function DashboardPage() {
   const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>(defaultNavItems);
-  const { user, userProfile: userPrefs } = useAuth(); 
-  
+  const { user, userProfile: userPrefs } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   useEffect(() => {
-    const mainPageNavItems = defaultNavItems; 
+    const mainPageNavItems = defaultNavItems;
     const storedLayoutHrefs = userPrefs?.dashboardLayout;
 
     if (storedLayoutHrefs && Array.isArray(storedLayoutHrefs) && storedLayoutHrefs.length > 0) {
@@ -74,6 +46,42 @@ export default function DashboardPage() {
     }
   }, [userPrefs]);
   
+  const updateUserPreferencesMutation = useMutation({
+    mutationFn: (newLayout: string[]) => updateUserPreferences({ dashboardLayout: newLayout }),
+    onError: (error) => {
+      toast({ title: "Layout Save Failed", description: (error as Error).message, variant: "destructive" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
+    }
+  });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (active.id !== over?.id) {
+      setOrderedNavItems((items) => {
+        const oldIndex = items.findIndex(item => item.href === active.id);
+        const newIndex = items.findIndex(item => item.href === over?.id);
+        const newOrderedItems = arrayMove(items, oldIndex, newIndex);
+        
+        // Save the new layout to user preferences
+        const newLayoutHrefs = newOrderedItems.map(item => item.href);
+        updateUserPreferencesMutation.mutate(newLayoutHrefs);
+        
+        return newOrderedItems;
+      });
+    }
+  };
+  
+  const itemHrefs = useMemo(() => orderedNavItems.map(item => item.href), [orderedNavItems]);
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
@@ -102,11 +110,15 @@ export default function DashboardPage() {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {orderedNavItems.map((item) => (
-          <NavItemCard key={item.href} item={item} />
-        ))}
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={itemHrefs} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {orderedNavItems.map((item) => (
+              <SortableNavItemCard key={item.href} id={item.href} item={item} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }
