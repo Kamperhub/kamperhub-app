@@ -182,3 +182,5 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
     </form>
   );
 }
+
+    
