@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useQuery } from '@tanstack/react-query';
@@ -12,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 export default function InventoryPage() {
     const { user, isAuthLoading } = useAuth();
     
+    // Reverted to two separate, stable queries instead of the single faulty one.
     const { data: vehiclePageData, isLoading: isLoadingVehicleData, error: vehicleError } = useQuery({
         queryKey: ['vehiclePageData', user?.uid],
         queryFn: fetchVehiclePageData,
