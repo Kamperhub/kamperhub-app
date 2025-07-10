@@ -215,7 +215,7 @@ export async function GET(req: NextRequest) {
     const tripsSnapshot = await firestore.collection('users').doc(uid).collection('trips').get();
     const trips: LoggedTrip[] = [];
     tripsSnapshot.forEach(doc => {
-      if (doc.exists()) {
+      if (doc.exists) {
         trips.push(doc.data() as LoggedTrip);
       }
     });
