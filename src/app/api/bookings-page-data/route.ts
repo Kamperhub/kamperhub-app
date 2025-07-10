@@ -4,6 +4,21 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { BookingEntry } from '@/types/booking';
 import type { LoggedTrip } from '@/types/tripplanner';
 
+// A robust replacer function for JSON.stringify to handle Firestore Timestamps.
+const firestoreTimestampReplacer = (key: any, value: any) => {
+    if (value && typeof value.toDate === 'function') {
+        return value.toDate().toISOString();
+    }
+    return value;
+};
+
+// Helper function to create a clean, JSON-safe object.
+const sanitizeData = (data: any) => {
+    const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
+    return JSON.parse(jsonString);
+};
+
+
 async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
@@ -37,7 +52,7 @@ export async function GET(req: NextRequest) {
         const bookings: BookingEntry[] = [];
         bookingsSnapshot.forEach(doc => {
             try {
-                if (doc.exists) { // CORRECTED: from doc.exists()
+                if (doc.exists) {
                     bookings.push(doc.data() as BookingEntry);
                 }
             } catch (docError: any) {
@@ -48,7 +63,7 @@ export async function GET(req: NextRequest) {
         const trips: LoggedTrip[] = [];
         tripsSnapshot.forEach(doc => {
             try {
-                if (doc.exists) { // CORRECTED: from doc.exists()
+                if (doc.exists) {
                     trips.push(doc.data() as LoggedTrip);
                 }
             } catch (docError: any) {
@@ -56,7 +71,9 @@ export async function GET(req: NextRequest) {
             }
         });
 
-        return NextResponse.json({ bookings, trips }, { status: 200 });
+        // Sanitize the final object before sending
+        const sanitizedData = sanitizeData({ bookings, trips });
+        return NextResponse.json(sanitizedData, { status: 200 });
         
     } catch (err: any) {
         console.error('API Error in bookings-page-data:', err);
