@@ -132,10 +132,12 @@ This step is different from local development. You will *not* use the Stripe CLI
 
 ### **Step 4.1: Add Your Custom Domain**
 
-1.  In the App Hosting console for your backend, navigate to the **"Domains"** tab.
-2.  Click **"Add custom domain"**.
-3.  Enter `kamperhub.com` as your domain. App Hosting will also provision `www.kamperhub.com`.
-4.  Firebase will provide you with DNS records (usually two `A` records) that you need to add to your domain registrar (GoDaddy).
+1.  Go to the [Firebase App Hosting Backends page for kamperhub-s4hc2](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/hosting/backends).
+2.  Click on your backend's name to open its dashboard.
+3.  Navigate to the **"Domains"** tab.
+4.  Click **"Add custom domain"**.
+5.  Enter `kamperhub.com` as your domain. App Hosting will also provision `www.kamperhub.com`.
+6.  Firebase will provide you with DNS records (usually two `A` records) that you need to add to your domain registrar (GoDaddy).
 
 ### **Step 4.2: Configure DNS at GoDaddy**
 
