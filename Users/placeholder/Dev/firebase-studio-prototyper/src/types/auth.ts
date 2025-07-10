@@ -1,4 +1,3 @@
-
 // src/types/auth.ts
 
 import type { CaravanDefaultChecklistSet } from './checklist';
@@ -13,6 +12,7 @@ export interface UserProfile {
   city: string | null;
   state: string | null;
   country: string | null;
+  homeAddress?: string | null;
   subscriptionTier: SubscriptionTier;
   stripeCustomerId: string | null;
   stripeSubscriptionId?: string | null;
@@ -36,33 +36,6 @@ export interface UserProfile {
     expiryDate: number; // Unix timestamp for access token expiry
     scopes: string[];
   } | null;
-}
-
-// This interface was for the old mock system.
-export interface MockAuthSession {
-  isLoggedIn: boolean;
-  username: string | null;
-  email?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
-  subscriptionTier?: SubscriptionTier | null;
-  stripeCustomerId?: string | null;
-  city?: string;
-  state?: string;
-  country?: string;
-}
-
-// This interface was for the old mock user registry.
-// It's being replaced by Firebase Authentication and Firestore for profile data.
-export interface MockUserRegistryEntry {
-  username: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  password?: string; // Only for mock system, Firebase handles actual passwords
-  city?: string;
-  state?: string;
-  country?: string;
 }
 
 export type SubscriptionTier = 'free' | 'pro' | 'trialing';

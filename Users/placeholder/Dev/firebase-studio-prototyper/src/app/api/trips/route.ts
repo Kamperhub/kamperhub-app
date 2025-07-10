@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
+import type { Journey } from '@/types/journey';
 import { z, ZodError } from 'zod';
 import type admin from 'firebase-admin';
 
@@ -243,7 +244,7 @@ export async function PUT(req: NextRequest) {
         
         const oldTripData = tripDoc.data() as LoggedTrip;
         const oldJourneyId = oldTripData.journeyId;
-        const newJourneyId = updateData.journeyId;
+        const newJourneyId = "journeyId" in updateData ? updateData.journeyId : oldJourneyId;
 
         // If journey assignment has changed, we need to update the journey documents
         if (oldJourneyId !== newJourneyId) {
@@ -266,7 +267,7 @@ export async function PUT(req: NextRequest) {
         // Now update the trip document itself
         const finalUpdateData = {
           ...updateData,
-          timestamp: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         };
         transaction.set(tripRef, finalUpdateData, { merge: true });
     });
@@ -276,7 +277,8 @@ export async function PUT(req: NextRequest) {
     const updatedTrip = updatedDoc.data() as LoggedTrip;
 
     return NextResponse.json({ message: 'Trip updated successfully.', trip: updatedTrip }, { status: 200 });
-  } catch (err: any) {
+  } catch (err: any)
+   {
     return handleApiError(err);
   }
 }
