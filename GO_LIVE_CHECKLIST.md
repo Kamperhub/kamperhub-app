@@ -1,3 +1,4 @@
+
 # KamperHub Go-Live Production Checklist
 
 > [!WARNING]
@@ -47,7 +48,7 @@ Local development keys are often unrestricted. Production keys MUST be locked do
     *   Copy this key. You will use it for `GOOGLE_API_KEY` in App Hosting.
 
 > [!NOTE]
-> The `GOOGLE_APPLICATION_CREDENTIALS_JSON` service account key is already secure and does not need to be changed for production.
+> The `GOOGLE_APPLICATION_CREDENTIALS_JSON` service account key that you used for local development **does not need to change**. It is already secure and should be copied directly from your `.env.local` file to your App Hosting secret configuration. Its security comes from being kept secret on the server, not from domain restrictions.
 
 ---
 
@@ -113,7 +114,7 @@ This step is different from local development. You will *not* use the Stripe CLI
 2.  Navigate to the **"Settings"** tab for your backend.
 3.  This is where you will add all the environment variables from your `.env.local` file, but with your **production keys**.
     *   `NEXT_PUBLIC_FIREBASE_*`: Use the values from your Firebase Console project settings.
-    *   `GOOGLE_APPLICATION_CREDENTIALS_JSON`: Paste the entire one-line JSON string for your service account key.
+    *   `GOOGLE_APPLICATION_CREDENTIALS_JSON`: **Use the same one-line JSON string** for your service account key that you used in local development.
     *   `GOOGLE_API_KEY`: Use the **KamperHub Server Key** you created in Step 1.2.
     *   `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`: Use the **KamperHub Browser Key** you created in Step 1.2.
     *   `NEXT_PUBLIC_APP_URL`: Set this to `https://kamperhub.com`
