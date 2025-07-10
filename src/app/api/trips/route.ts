@@ -1,8 +1,8 @@
-
 // src/app/api/trips/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
+import type { Journey } from '@/types/journey';
 import { z, ZodError } from 'zod';
 import type admin from 'firebase-admin';
 
@@ -161,7 +161,7 @@ export async function GET(req: NextRequest) {
     const tripsSnapshot = await firestore.collection('users').doc(uid).collection('trips').get();
     const trips: LoggedTrip[] = [];
     tripsSnapshot.forEach(doc => {
-      if (doc.exists()) {
+      if (doc.exists) {
         trips.push(doc.data() as LoggedTrip);
       }
     });
@@ -205,9 +205,12 @@ export async function POST(req: NextRequest) {
             if (!journeyDoc.exists) {
                 throw new Error("Journey not found. Cannot associate trip.");
             }
-            // Atomically add the new trip's ID to the journey's tripIds array
+            const journeyData = journeyDoc.data() as Journey;
+            const updatedTripIds = [...(journeyData.tripIds || []), newTrip.id];
+            
+            // Correct way to update array in a transaction
             transaction.update(journeyRef, { 
-              tripIds: admin.firestore.FieldValue.arrayUnion(newTrip.id) 
+              tripIds: updatedTripIds
             });
             // Create the new trip
             transaction.set(newTripRef, newTrip);
@@ -251,16 +254,23 @@ export async function PUT(req: NextRequest) {
             // Remove from old journey if it existed
             if (oldJourneyId) {
                 const oldJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(oldJourneyId);
-                transaction.update(oldJourneyRef, {
-                    tripIds: admin.firestore.FieldValue.arrayRemove(tripId)
-                });
+                const oldJourneyDoc = await transaction.get(oldJourneyRef);
+                if (oldJourneyDoc.exists) {
+                    const oldJourneyData = oldJourneyDoc.data() as Journey;
+                    const updatedOldTripIds = (oldJourneyData.tripIds || []).filter(id => id !== tripId);
+                    transaction.update(oldJourneyRef, { tripIds: updatedOldTripIds });
+                }
             }
             // Add to new journey if it exists
             if (newJourneyId) {
                 const newJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(newJourneyId);
-                transaction.update(newJourneyRef, {
-                    tripIds: admin.firestore.FieldValue.arrayUnion(tripId)
-                });
+                const newJourneyDoc = await transaction.get(newJourneyRef);
+                 if (!newJourneyDoc.exists) {
+                    throw new Error("New journey not found.");
+                }
+                const newJourneyData = newJourneyDoc.data() as Journey;
+                const updatedNewTripIds = [...(newJourneyData.tripIds || []), tripId];
+                transaction.update(newJourneyRef, { tripIds: updatedNewTripIds });
             }
         }
 
@@ -306,9 +316,12 @@ export async function DELETE(req: NextRequest) {
         // If the trip is part of a journey, remove its ID from the journey's list
         if (tripData.journeyId) {
             const journeyRef = firestore.collection('users').doc(uid).collection('journeys').doc(tripData.journeyId);
-            transaction.update(journeyRef, {
-                tripIds: admin.firestore.FieldValue.arrayRemove(tripId)
-            });
+            const journeyDoc = await transaction.get(journeyRef);
+            if (journeyDoc.exists) {
+                const journeyData = journeyDoc.data() as Journey;
+                const updatedTripIds = (journeyData.tripIds || []).filter(id => id !== tripId);
+                transaction.update(journeyRef, { tripIds: updatedTripIds });
+            }
         }
         
         // Delete the trip and its packing list
