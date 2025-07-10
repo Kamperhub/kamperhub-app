@@ -124,39 +124,39 @@ export async function POST(req: NextRequest) {
     
     const data = await response.json();
     
-    if (data.routes && data.routes.length > 0) {
-        const route = data.routes[0];
-        const tollInfo = route.travelAdvisory?.tollInfo;
-        let adaptedTollInfo = null;
-
-        if (tollInfo?.estimatedPrice?.length > 0) {
-          const totalTollCost = tollInfo.estimatedPrice.reduce((sum: number, price: any) => {
-            const units = price.units ? parseInt(price.units) : 0;
-            const nanos = price.nanos ? price.nanos / 1_000_000_000 : 0;
-            return sum + units + nanos;
-          }, 0);
-          
-          if (totalTollCost > 0) {
-            adaptedTollInfo = {
-              text: `$${totalTollCost.toFixed(2)} (${tollInfo.estimatedPrice[0].currencyCode || 'USD'})`,
-              value: totalTollCost
-            };
-          }
-        }
-        
-        const adaptedResponse = {
-            distance: { text: `${(route.distanceMeters / 1000).toFixed(1)} km`, value: route.distanceMeters },
-            duration: { text: formatDuration(route.duration), value: parseInt(route.duration.slice(0,-1), 10)},
-            startLocation: route.legs[0]?.startLocation?.latLng,
-            endLocation: route.legs[route.legs.length - 1]?.endLocation?.latLng,
-            polyline: route.polyline.encodedPolyline,
-            warnings: route.warnings || [],
-            tollInfo: adaptedTollInfo,
-        };
-        return NextResponse.json(adaptedResponse, { status: 200 });
-    } else {
-        return NextResponse.json({ error: "No routes found." }, { status: 404 });
+    if (!data.routes || data.routes.length === 0) {
+        return NextResponse.json({ error: "No routes found between the specified locations. Please check the start and end points." }, { status: 404 });
     }
+
+    const route = data.routes[0];
+    const tollInfo = route.travelAdvisory?.tollInfo;
+    let adaptedTollInfo = null;
+
+    if (tollInfo?.estimatedPrice?.length > 0) {
+        const totalTollCost = tollInfo.estimatedPrice.reduce((sum: number, price: any) => {
+        const units = price.units ? parseInt(price.units) : 0;
+        const nanos = price.nanos ? price.nanos / 1_000_000_000 : 0;
+        return sum + units + nanos;
+        }, 0);
+        
+        if (totalTollCost > 0) {
+        adaptedTollInfo = {
+            text: `$${totalTollCost.toFixed(2)} (${tollInfo.estimatedPrice[0].currencyCode || 'USD'})`,
+            value: totalTollCost
+        };
+        }
+    }
+    
+    const adaptedResponse = {
+        distance: { text: `${(route.distanceMeters / 1000).toFixed(1)} km`, value: route.distanceMeters },
+        duration: { text: formatDuration(route.duration), value: parseInt(route.duration.slice(0,-1), 10)},
+        startLocation: route.legs[0]?.startLocation?.latLng,
+        endLocation: route.legs[route.legs.length - 1]?.endLocation?.latLng,
+        polyline: route.polyline.encodedPolyline,
+        warnings: route.warnings || [],
+        tollInfo: adaptedTollInfo,
+    };
+    return NextResponse.json(adaptedResponse, { status: 200 });
 
   } catch (error: any) {
     console.error('Error in directions API route:', error);
