@@ -19,36 +19,37 @@ Your local development started in "test mode". For production, you must switch t
 3.  Replace any existing rules with the contents of the `firestore.rules` file from your project. This ensures only authenticated users can access their own data.
 4.  Click **Publish**.
 
-### **Step 1.2: Create Production API Keys**
+### **Step 1.2: CRITICAL - Create Production API Keys**
 
-Local development keys are often unrestricted. Production keys MUST be locked down for security.
+> [!CAUTION]
+> **Do not reuse your unrestricted local development API key in production.** Your public (browser) key is visible in your website's code. If it's unrestricted, anyone could steal it and use it, potentially running up a large bill on your account. Creating new, restricted keys is a critical security step.
 
 1.  Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
+
 2.  **Create a Browser Key (for the client-side):**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**.
     *   Name it `KamperHub Browser Key`.
     *   Under **"Application restrictions"**, select **"Websites"**.
-    *   Click **"ADD"** and enter your production domain (e.g., `https://kamperhub.com/*`).
-    *   Under **"API restrictions"**, select **"Restrict key"** and choose:
+    *   Click **"ADD"** and enter your production domain (e.g., `https://kamperhub.com/*`). This locks the key so it only works on your website.
+    *   Under **"API restrictions"**, select **"Restrict key"** and choose only the APIs the browser needs:
         *   Maps JavaScript API
         *   Places API
-        *   Generative Language API (if you plan client-side AI calls)
     *   Click **Save**.
-    *   Copy this key. You will use it for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in App Hosting.
+    *   Copy this key. You will use it for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in your App Hosting configuration.
 
 3.  **Create a Server Key (for the backend):**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**.
     *   Name it `KamperHub Server Key (No Referrer Restrictions)`.
-    *   Under **"Application restrictions"**, select **"None"**. **Do NOT add website or IP restrictions to this key.** Server-to-server calls do not have an HTTP referrer.
-    *   Under **"API restrictions"**, select **"Restrict key"** and choose:
+    *   Under **"Application restrictions"**, select **"None"**. **Do NOT add website or IP restrictions to this key.** Server-to-server calls do not have an HTTP referrer and will be blocked if you add one. Its security comes from being kept secret on the server.
+    *   Under **"API restrictions"**, select **"Restrict key"** and choose only the APIs the server needs:
         *   Routes API
         *   Generative Language API
         *   Google Tasks API
     *   Click **Save**.
-    *   Copy this key. You will use it for `GOOGLE_API_KEY` in App Hosting.
+    *   Copy this key. You will use it for `GOOGLE_API_KEY` in your App Hosting configuration.
 
 > [!NOTE]
-> The `GOOGLE_APPLICATION_CREDENTIALS_JSON` service account key that you used for local development **does not need to change**. It is already secure and should be copied directly from your `.env.local` file to your App Hosting secret configuration. Its security comes from being kept secret on the server, not from domain restrictions.
+> The `GOOGLE_APPLICATION_CREDENTIALS_JSON` service account key that you used for local development **does not need to change**. It is already secure and should be copied directly from your `.env.local` file to your App Hosting secret configuration.
 
 ---
 
