@@ -43,6 +43,7 @@ export default function InventoryPage() {
         )
     }
 
+    // Combine the data from the two queries into the single structure the client component expects.
     const inventoryPageData = {
         userProfile: vehiclePageData?.userProfile || null,
         caravans: vehiclePageData?.caravans || [],
