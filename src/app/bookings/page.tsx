@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { BookingEntry } from '@/types/booking';
 import type { LoggedTrip } from '@/types/tripplanner';
-import { sampleAffiliateLinks } from '@/types/booking';
+import { sampleAffiliateLinks, type AffiliateLink } from '@/types/booking';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -35,6 +35,15 @@ export default function BookingsPage() {
 
   const bookings = data?.bookings || [];
   const trips = data?.trips || [];
+
+  const groupedAffiliateLinks = sampleAffiliateLinks.reduce((acc, link) => {
+    const category = link.category || 'Other';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(link);
+    return acc;
+  }, {} as Record<string, AffiliateLink[]>);
 
   const createBookingMutation = useMutation({
     mutationFn: (newBookingData: Omit<BookingEntry, 'id' | 'timestamp'>) => createBooking(newBookingData),
@@ -141,7 +150,7 @@ export default function BookingsPage() {
         <Alert variant="destructive">
             <Info className="h-4 w-4" />
             <AlertTitle>Error Loading Data</AlertTitle>
-            <AlertDescription>{pageError.message}</AlertDescription>
+            <AlertDescription>{(pageError as Error).message}</AlertDescription>
         </Alert>
       )}
 
@@ -159,36 +168,42 @@ export default function BookingsPage() {
         />
       )}
 
-      <div className="pt-8">
+      <div className="pt-8 space-y-8">
         <h2 className="text-2xl font-headline text-primary mb-4">Book Your Stay</h2>
-        <p className="text-muted-foreground font-body mb-6">
+        <p className="text-muted-foreground font-body -mt-4">
           Explore these popular platforms to find and book your next caravan park or campsite.
         </p>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {sampleAffiliateLinks.map(link => (
-            <Card key={link.id} className="hover:shadow-xl transition-shadow duration-300 flex flex-col">
-              <CardHeader className="flex-grow-0">
-                <CardTitle className="font-headline text-base text-primary flex items-center justify-between">
-                  {link.name}
-                  <ExternalLink className="h-4 w-4 text-accent" />
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col flex-grow">
-                {link.icon && (
-                  <div className="flex justify-center items-center h-32 w-full bg-muted/10 rounded-md mb-3">
-                    <link.icon className="h-16 w-16 text-primary opacity-75" />
-                  </div>
-                )}
-                <p className="text-muted-foreground font-body text-xs mb-3 line-clamp-2 flex-grow">{link.description}</p>
-                <Button asChild className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-body text-xs py-1.5 h-auto mt-auto">
-                  <Link href={link.url} target="_blank" rel="noopener noreferrer sponsored">
-                    Book here
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+
+        {Object.entries(groupedAffiliateLinks).map(([category, links]) => (
+          <div key={category}>
+            <h3 className="text-xl font-headline text-primary mb-4">{category}</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {links.map(link => (
+                <Card key={link.id} className="hover:shadow-xl transition-shadow duration-300 flex flex-col">
+                  <CardHeader className="flex-grow-0">
+                    <CardTitle className="font-headline text-base text-primary flex items-center justify-between">
+                      {link.name}
+                      <ExternalLink className="h-4 w-4 text-accent" />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-col flex-grow">
+                    {link.icon && (
+                      <div className="flex justify-center items-center h-32 w-full bg-muted/10 rounded-md mb-3">
+                        <link.icon className="h-16 w-16 text-primary opacity-75" />
+                      </div>
+                    )}
+                    <p className="text-muted-foreground font-body text-xs mb-3 line-clamp-2 flex-grow">{link.description}</p>
+                    <Button asChild className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-body text-xs py-1.5 h-auto mt-auto">
+                      <Link href={link.url} target="_blank" rel="noopener noreferrer sponsored">
+                        Book here
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

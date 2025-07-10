@@ -9,8 +9,8 @@ export interface BookingEntry {
   contactPhone?: string;
   contactWebsite?: string;
   confirmationNumber?: string;
-  checkInDate: string; // Store as ISO string or YYYY-MM-DD
-  checkOutDate: string; // Store as ISO string or YYYY-MM-DD
+  checkInDate: string; // Store as ISO string
+  checkOutDate: string; // Store as ISO string
   notes?: string;
   timestamp: string; // ISO string for when the log was created/updated
   assignedTripId?: string | null;
@@ -24,6 +24,7 @@ export interface AffiliateLink {
   description?: string;
   dataAiHint?: string; // For placeholder image on affiliate card
   icon?: LucideIcon;
+  category: 'Broad Search & Private Land' | 'Government & National Parks' | 'Regional Specialists (AU/NZ)' | 'General Accommodation & Hotels' | 'Guidebooks & Resources';
 }
 
 // Example affiliate links - to be managed by the developer
@@ -35,6 +36,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     description: 'Discover unique camping experiences on private land, farms, and ranches.',
     dataAiHint: 'tent private land',
     icon: Tent,
+    category: 'Broad Search & Private Land',
   },
   {
     id: 'campendium',
@@ -43,6 +45,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     description: 'A comprehensive database with reviews, highly useful for RVers.',
     dataAiHint: 'rv park reviews',
     icon: Truck,
+    category: 'Broad Search & Private Land',
   },
   {
     id: 'recreationGov',
@@ -51,14 +54,16 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     description: 'Book campsites and activities on federal lands in the United States.',
     dataAiHint: 'usa national park',
     icon: Mountain,
+    category: 'Government & National Parks',
   },
   {
-    id: 'wikiCamps',
-    name: 'WikiCamps',
-    url: 'https://wikicamps.com.au/',
-    description: 'A very popular app and database for campsites across Australia.',
-    dataAiHint: 'australia map camping',
-    icon: MapPin,
+    id: 'parksAustralia',
+    name: 'Parks Australia',
+    url: 'https://parksaustralia.gov.au/kakadu/plan/camping/',
+    description: 'Information and booking for campgrounds in Australia\'s Commonwealth National Parks.',
+    dataAiHint: 'australia national park',
+    icon: Trees,
+    category: 'Government & National Parks',
   },
   {
     id: 'reserveAmerica',
@@ -67,6 +72,16 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     description: 'Find and book campsites, primarily in US state parks and public lands.',
     dataAiHint: 'state park reservation',
     icon: Leaf,
+    category: 'Government & National Parks',
+  },
+  {
+    id: 'wikiCamps',
+    name: 'WikiCamps',
+    url: 'https://wikicamps.com.au/',
+    description: 'A very popular app and database for campsites across Australia.',
+    dataAiHint: 'australia map camping',
+    icon: MapPin,
+    category: 'Regional Specialists (AU/NZ)',
   },
   {
     id: 'camperMate',
@@ -75,6 +90,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     description: 'Helpful app for finding campsites, attractions, and facilities in AU & NZ.',
     dataAiHint: 'newzealand map',
     icon: Compass,
+    category: 'Regional Specialists (AU/NZ)',
   },
   {
     id: 'bookingcom',
@@ -83,14 +99,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     description: 'Wide range of hotels, homes, and increasingly, caravan parks.',
     dataAiHint: 'hotel travel',
     icon: Hotel,
-  },
-  {
-    id: 'campingAroundAustralia',
-    name: 'Camping around Australia',
-    url: 'https://www.booktopia.com.au/camping-around-australia-exploreaustralia-publishing/book/9781741178499.html',
-    description: 'A guidebook listing over 3,000 campsites with details on facilities.',
-    dataAiHint: 'book guide',
-    icon: BookOpen,
+    category: 'General Accommodation & Hotels',
   },
    {
     id: 'agoda',
@@ -99,6 +108,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     description: 'Great deals on hotels and accommodations worldwide.',
     dataAiHint: 'accommodation deal',
     icon: Building2,
+    category: 'General Accommodation & Hotels',
   },
   {
     id: 'airbnb',
@@ -107,6 +117,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     description: 'Unique stays and experiences, from homes to cabins.',
     dataAiHint: 'unique stay',
     icon: Home,
+    category: 'General Accommodation & Hotels',
   },
   {
     id: 'hostelworld',
@@ -115,6 +126,7 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     description: 'Hostels, budget stays, and some campsites.',
     dataAiHint: 'budget travel',
     icon: BedSingle,
+    category: 'General Accommodation & Hotels',
   },
    {
     id: 'expedia',
@@ -123,5 +135,15 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     description: 'Book flights, hotels, car rentals, and activities.',
     dataAiHint: 'flight booking',
     icon: PlaneTakeoff,
+    category: 'General Accommodation & Hotels',
+  },
+  {
+    id: 'campingAroundAustralia',
+    name: 'Camping around Australia',
+    url: 'https://www.booktopia.com.au/camping-around-australia-exploreaustralia-publishing/book/9781741178499.html',
+    description: 'A guidebook listing over 3,000 campsites with details on facilities.',
+    dataAiHint: 'book guide',
+    icon: BookOpen,
+    category: 'Guidebooks & Resources',
   },
 ];
