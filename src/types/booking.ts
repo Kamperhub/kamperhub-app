@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Hotel, PlaneTakeoff, Building2, Home, BedSingle, MapPin, Trees, MountainSnow, Leaf, TreePine, Mountain, Tent } from 'lucide-react';
+import { Hotel, PlaneTakeoff, Building2, Home, BedSingle, MapPin, Trees, MountainSnow, Leaf, TreePine, Mountain, Tent, BookOpen, Compass, Truck } from 'lucide-react';
 
 export interface BookingEntry {
   id: string;
@@ -29,22 +29,70 @@ export interface AffiliateLink {
 // Example affiliate links - to be managed by the developer
 export const sampleAffiliateLinks: AffiliateLink[] = [
   {
+    id: 'hipcamp',
+    name: 'Hipcamp',
+    url: 'https://www.hipcamp.com/',
+    description: 'Discover unique camping experiences on private land, farms, and ranches.',
+    dataAiHint: 'tent private land',
+    icon: Tent,
+  },
+  {
+    id: 'campendium',
+    name: 'Campendium',
+    url: 'https://www.campendium.com/',
+    description: 'A comprehensive database with reviews, highly useful for RVers.',
+    dataAiHint: 'rv park reviews',
+    icon: Truck,
+  },
+  {
+    id: 'recreationGov',
+    name: 'Recreation.gov',
+    url: 'https://www.recreation.gov/',
+    description: 'Book campsites and activities on federal lands in the United States.',
+    dataAiHint: 'usa national park',
+    icon: Mountain,
+  },
+  {
+    id: 'wikiCamps',
+    name: 'WikiCamps',
+    url: 'https://wikicamps.com.au/',
+    description: 'A very popular app and database for campsites across Australia.',
+    dataAiHint: 'australia map camping',
+    icon: MapPin,
+  },
+  {
+    id: 'reserveAmerica',
+    name: 'Reserve America',
+    url: 'https://www.reserveamerica.com/',
+    description: 'Find and book campsites, primarily in US state parks and public lands.',
+    dataAiHint: 'state park reservation',
+    icon: Leaf,
+  },
+  {
+    id: 'camperMate',
+    name: 'CamperMate',
+    url: 'https://www.campermate.com/',
+    description: 'Helpful app for finding campsites, attractions, and facilities in AU & NZ.',
+    dataAiHint: 'newzealand map',
+    icon: Compass,
+  },
+  {
     id: 'bookingcom',
     name: 'Booking.com',
     url: 'https://www.booking.com/index.html?aid=YOUR_AFFILIATE_ID',
-    description: 'Wide range of hotels, homes, and more.',
+    description: 'Wide range of hotels, homes, and increasingly, caravan parks.',
     dataAiHint: 'hotel travel',
     icon: Hotel,
   },
   {
-    id: 'expedia',
-    name: 'Expedia',
-    url: 'https://www.expedia.com/?AID=YOUR_AFFILIATE_ID',
-    description: 'Book flights, hotels, car rentals, and activities.',
-    dataAiHint: 'flight booking',
-    icon: PlaneTakeoff,
+    id: 'campingAroundAustralia',
+    name: 'Camping around Australia',
+    url: 'https://www.booktopia.com.au/camping-around-australia-exploreaustralia-publishing/book/9781741178499.html',
+    description: 'A guidebook listing over 3,000 campsites with details on facilities.',
+    dataAiHint: 'book guide',
+    icon: BookOpen,
   },
-  {
+   {
     id: 'agoda',
     name: 'Agoda',
     url: 'https://www.agoda.com/?CID=YOUR_AFFILIATE_ID',
@@ -68,60 +116,12 @@ export const sampleAffiliateLinks: AffiliateLink[] = [
     dataAiHint: 'budget travel',
     icon: BedSingle,
   },
-  {
-    id: 'wotif',
-    name: 'Wotif',
-    url: 'https://www.wotif.com/?mc=YOUR_AFFILIATE_CODE',
-    description: 'Great deals on hotels, flights, and packages in AU & NZ.',
-    dataAiHint: 'australia travel',
-    icon: MapPin,
-  },
-  {
-    id: 'australiaParks',
-    name: 'Australia National Parks',
-    url: 'https://parksaustralia.gov.au/',
-    description: "Explore and book campsites in Australia's national parks.",
-    dataAiHint: 'australia park',
-    icon: Trees,
-  },
-  {
-    id: 'nzParks',
-    name: 'New Zealand National Parks',
-    url: 'https://www.newzealand.com/au/national-parks/',
-    description: "Discover and plan visits to New Zealand's stunning national parks.",
-    dataAiHint: 'newzealand nature',
-    icon: MountainSnow,
-  },
-  {
-    id: 'europeParks',
-    name: 'European National Parks',
-    url: 'https://national-parks.org/europe',
-    description: "Discover national parks across Europe.",
-    dataAiHint: 'europe nature',
-    icon: Leaf,
-  },
-  {
-    id: 'ukParks',
-    name: 'UK National Parks',
-    url: 'https://www.cnp.org.uk/our-national-parks/why-we-campaign/access/wild-camping/',
-    description: "Information on national parks and wild camping in the UK.",
-    dataAiHint: 'uk camping',
-    icon: TreePine,
-  },
-  {
-    id: 'usaParks',
-    name: 'USA National Parks',
-    url: 'https://www.nps.gov/findapark/index.htm',
-    description: "Find and explore national parks in the United States.",
-    dataAiHint: 'usa nature',
-    icon: Mountain,
-  },
-  {
-    id: 'asiaWildCamping',
-    name: 'Asia Wild Camping',
-    url: 'https://www.caravanya.com/en/wildcamping-in-asia/',
-    description: "Guide to wild camping spots across Asia.",
-    dataAiHint: 'asia adventure',
-    icon: Tent,
+   {
+    id: 'expedia',
+    name: 'Expedia',
+    url: 'https://www.expedia.com/?AID=YOUR_AFFILIATE_ID',
+    description: 'Book flights, hotels, car rentals, and activities.',
+    dataAiHint: 'flight booking',
+    icon: PlaneTakeoff,
   },
 ];
