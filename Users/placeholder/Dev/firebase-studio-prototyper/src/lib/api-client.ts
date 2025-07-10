@@ -23,8 +23,7 @@ async function apiFetch(url: string, options: RequestInit = {}) {
     return text ? JSON.parse(text) : {};
 }
 
-// ---- Consolidated Vehicle Page Data Fetcher ----
-export const fetchAllVehicleData = () => apiFetch('/api/all-vehicle-data');
+// ---- Consolidated Page Data Fetchers ----
 export const fetchVehiclePageData = () => apiFetch('/api/vehicle-page-data');
 export const fetchBookingsPageData = () => apiFetch('/api/bookings-page-data');
 
@@ -50,6 +49,7 @@ export const fetchTrips = () => apiFetch('/api/trips');
 export const createTrip = (data: any) => apiFetch('/api/trips', { method: 'POST', body: JSON.stringify(data) });
 export const updateTrip = (data: any) => apiFetch('/api/trips', { method: 'PUT', body: JSON.stringify(data) });
 export const deleteTrip = (id: string) => apiFetch(`/api/trips`, { method: 'DELETE', body: JSON.stringify({ id }) });
+export const copyTripToJourney = (payload: { sourceTripId: string; destinationJourneyId: string }) => apiFetch('/api/trips/copy', { method: 'POST', body: JSON.stringify(payload) });
 
 // ---- Journey API Functions ----
 export const fetchJourneys = () => apiFetch('/api/journeys');
