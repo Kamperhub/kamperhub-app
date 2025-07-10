@@ -13,32 +13,32 @@ Your Firebase project (`kamperhub-s4hc2`) needs to be configured for live traffi
 
 Your local development started in "test mode". For production, you must switch to secure rules.
 
-1.  Go to the [Firebase Console](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/firestore/databases/-kamperhubv2-/rules).
-2.  Ensure the **`kamperhubv2`** database is selected.
+1.  Go to the [Firebase Console Rules Editor for kamperhubv2](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/firestore/databases/-kamperhubv2-/rules).
+2.  Ensure the **`kamperhubv2`** database is selected from the dropdown at the top.
 3.  Replace any existing rules with the contents of the `firestore.rules` file from your project. This ensures only authenticated users can access their own data.
 4.  Click **Publish**.
 
 ### **Step 1.2: Create Production API Keys**
 
-Local development keys are often unrestricted. Production keys MUST be locked down.
+Local development keys are often unrestricted. Production keys MUST be locked down for security.
 
-1.  Go to the [Google Cloud Credentials page](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
+1.  Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
 2.  **Create a Browser Key (for the client-side):**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**.
     *   Name it `KamperHub Browser Key`.
     *   Under **"Application restrictions"**, select **"Websites"**.
-    *   Click **"ADD"** and enter your domain: `kamperhub.com`.
+    *   Click **"ADD"** and enter your production domain (e.g., `https://kamperhub.com/*`).
     *   Under **"API restrictions"**, select **"Restrict key"** and choose:
         *   Maps JavaScript API
         *   Places API
         *   Generative Language API (if you plan client-side AI calls)
     *   Click **Save**.
-    *   Copy this key. You will use it for `NEXT_PUBLIC_` variables in App Hosting.
+    *   Copy this key. You will use it for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in App Hosting.
 
 3.  **Create a Server Key (for the backend):**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**.
     *   Name it `KamperHub Server Key (No Referrer Restrictions)`.
-    *   Under **"Application restrictions"**, select **"None"**. **Do NOT add website or IP restrictions to this key.**
+    *   Under **"Application restrictions"**, select **"None"**. **Do NOT add website or IP restrictions to this key.** Server-to-server calls do not have an HTTP referrer.
     *   Under **"API restrictions"**, select **"Restrict key"** and choose:
         *   Routes API
         *   Generative Language API
@@ -47,13 +47,13 @@ Local development keys are often unrestricted. Production keys MUST be locked do
     *   Copy this key. You will use it for `GOOGLE_API_KEY` in App Hosting.
 
 > [!NOTE]
-> The `GOOGLE_APPLICATION_CREDENTIALS_JSON` service account key is already secure and does not need to be changed.
+> The `GOOGLE_APPLICATION_CREDENTIALS_JSON` service account key is already secure and does not need to be changed for production.
 
 ---
 
 ## **Phase 2: Stripe Account Configuration for Production**
 
-Now, you'll switch Stripe from "Test mode" to "Live mode" and create your real product.
+Now, you'll switch Stripe from "Test mode" to "Live mode" and configure your real product and webhooks.
 
 ### **Step 2.1: Switch to Live Mode**
 
@@ -69,7 +69,7 @@ Now, you'll switch Stripe from "Test mode" to "Live mode" and create your real p
 
 1.  From your new live product page, click **Create payment link**.
 2.  **CRITICAL:** Under the **"After payment"** section, select **"Redirect customers to your website"**.
-3.  Enter the production URL: `https://kamperhub.com/subscribe/success`
+3.  Enter the production URL for the success page: `https://kamperhub.com/subscribe/success`
 4.  Click **Create link**.
 5.  Copy the live payment link URL (it will start with `https://buy.stripe.com/...`).
 
@@ -77,7 +77,7 @@ Now, you'll switch Stripe from "Test mode" to "Live mode" and create your real p
 
 1.  Go to the [Stripe Developer Dashboard API Keys page](https://dashboard.stripe.com/apikeys).
 2.  Ensure you are still in **"Live mode"**.
-3.  Copy your **"Publishable key"** (starts with `pk_live_...`).
+3.  Copy your **"Publishable key"** (starts with `pk_live_...`). This is not used by the backend but is good practice to note.
 4.  Reveal and copy your **"Secret key"** (starts with `sk_live_...`).
 
 ### **Step 2.5: Configure the Live Webhook**
@@ -88,7 +88,12 @@ This step is different from local development. You will *not* use the Stripe CLI
 2.  Click **"+ Add endpoint"**.
 3.  For **"Endpoint URL"**, enter your production webhook URL: `https://kamperhub.com/api/stripe-webhook`
 4.  For **"Version"**, select the latest API version.
-5.  Click **"+ Select events"** and select **all events** under `Customer` and `Invoice` to ensure you capture all subscription status changes.
+5.  Click **"+ Select events"** and select the following events to ensure all subscription status changes are captured:
+    *   `checkout.session.completed`
+    *   `customer.subscription.updated`
+    *   `customer.subscription.deleted`
+    *   `invoice.paid`
+    *   `invoice.payment_failed`
 6.  Click **Add endpoint**.
 7.  On the next page, under **"Signing secret"**, click **"Click to reveal"**.
 8.  Copy this signing secret (starts with `whsec_...`). This is your production webhook secret.
@@ -99,7 +104,7 @@ This step is different from local development. You will *not* use the Stripe CLI
 
 ### **Step 3.1: Connect Your GitHub Repository**
 
-1.  Go to the [Firebase App Hosting page](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/hosting/backends).
+1.  Go to the [Firebase App Hosting console for kamperhub-s4hc2](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/hosting/backends).
 2.  Follow the prompts to connect to GitHub and select the repository for your KamperHub application.
 
 ### **Step 3.2: Configure the Production Backend**
@@ -117,7 +122,7 @@ This step is different from local development. You will *not* use the Stripe CLI
     *   `STRIPE_WEBHOOK_SECRET`: Use the **live** webhook signing secret (`whsec_...`) from Step 2.5.
     *   `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`: These remain the same as your dev setup.
 
-4.  **Save** the environment variables.
+4.  **Save** the environment variables. This will trigger a new build and deployment of your application.
 
 ---
 
@@ -128,18 +133,18 @@ This step is different from local development. You will *not* use the Stripe CLI
 1.  In the App Hosting console for your backend, navigate to the **"Domains"** tab.
 2.  Click **"Add custom domain"**.
 3.  Enter `kamperhub.com` as your domain. App Hosting will also provision `www.kamperhub.com`.
-4.  Firebase will provide you with DNS records (usually `A` records) that you need to add to your domain registrar (GoDaddy).
+4.  Firebase will provide you with DNS records (usually two `A` records) that you need to add to your domain registrar (GoDaddy).
 
 ### **Step 4.2: Configure DNS at GoDaddy**
 
 1.  Log in to your GoDaddy account.
 2.  Navigate to your DNS Management page for `kamperhub.com`.
-3.  Add or update the `A` records for `kamperhub.com` and `www.kamperhub.com` to point to the IP addresses provided by Firebase App Hosting.
+3.  Add or update the `A` records for both `kamperhub.com` and `www.kamperhub.com` to point to the IP addresses provided by Firebase App Hosting.
 4.  Save your changes. DNS propagation can take anywhere from a few minutes to 48 hours.
 
 ### **Step 4.3: Verify Domain and SSL**
 
-1.  Back in the Firebase App Hosting console, wait for the domain status to change to "Connected". Firebase will automatically provision and manage an SSL certificate for your domain.
+1.  Back in the Firebase App Hosting console, wait for the domain status to change to "Connected". Firebase will automatically provision and manage an SSL certificate for your domain, which may take some time.
 
 ### **Step 4.4: Final Production Check**
 
@@ -147,6 +152,6 @@ This step is different from local development. You will *not* use the Stripe CLI
 2.  Create a new user account to ensure the signup flow works in production.
 3.  Test the Stripe subscription flow with a real payment method.
 4.  Test the Google Tasks integration.
-5.  Test the trip planner to ensure all Google Maps APIs are working correctly.
+5.  Test the trip planner to ensure all Google Maps APIs are working correctly with the restricted keys.
 
 **Congratulations! Your KamperHub application is now live.**
