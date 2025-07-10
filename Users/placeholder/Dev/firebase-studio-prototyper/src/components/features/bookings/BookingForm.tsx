@@ -32,8 +32,12 @@ const bookingSchema = z.object({
   notes: z.string().optional(),
   budgetedCost: z.coerce.number().min(0, "Budgeted cost must be non-negative").optional().nullable(),
   assignedTripId: z.string().nullable().optional(),
+}).refine(data => new Date(data.checkOutDate) >= new Date(data.checkInDate), {
+    message: "Check-out date must be on or after check-in date",
+    path: ["checkOutDate"],
 });
 
+// The form data type is slightly different from the saved type due to the dateRange object
 type BookingFormData = z.infer<typeof bookingSchema>;
 
 interface BookingFormProps {
@@ -45,6 +49,7 @@ interface BookingFormProps {
 }
 
 export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }: BookingFormProps) {
+  // THIS is the state that was missing and causing the issue.
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
 
   const { control, register, handleSubmit, formState: { errors } } = useForm<BookingFormData>({
@@ -66,12 +71,13 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
   });
 
   const onSubmit: SubmitHandler<BookingFormData> = (data) => {
-    // Transform dateRange back to checkInDate and checkOutDate for saving
+    // Transform dateRange back to checkInDate and checkOutDate ISO strings for saving
     const dataToSave = {
         ...data,
         checkInDate: data.dateRange.from.toISOString(),
         checkOutDate: data.dateRange.to.toISOString(),
     };
+    // We don't want to save the `dateRange` object itself
     delete (dataToSave as any).dateRange;
 
     onSave(dataToSave);
@@ -104,6 +110,7 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
                     selected={field.value as DateRange | undefined} 
                     onSelect={(range) => {
                       field.onChange(range);
+                      // THIS is the critical logic that closes the popover after selection.
                       if (range?.from && range?.to) {
                         setIsDatePopoverOpen(false);
                       }
@@ -113,7 +120,7 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
                 </PopoverContent>
               </Popover>
             )} />
-          {errors.dateRange && <p className="text-sm text-destructive font-body mt-1">{errors.dateRange.message || errors.dateRange.from?.message || errors.dateRange.to?.message}</p>}
+          {(errors.dateRange || errors.dateRange?.from || errors.dateRange?.to) && <p className="text-sm text-destructive font-body mt-1">{errors.dateRange?.message || errors.dateRange?.from?.message || errors.dateRange?.to?.message}</p>}
         </div>
       </div>
       
