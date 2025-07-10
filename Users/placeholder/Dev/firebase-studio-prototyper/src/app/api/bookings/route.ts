@@ -48,7 +48,6 @@ const createBookingSchema = z.object({
 // For updates, the base schema is the same, but we also expect an ID
 const updateBookingSchema = createBookingSchema.extend({
   id: z.string().min(1, "Booking ID is required for updates"),
-  timestamp: z.string().datetime(),
 });
 
 
@@ -154,7 +153,8 @@ export async function PUT(req: NextRequest) {
   
   try {
     const body = await req.json();
-    const parsedBookingData = updateBookingSchema.parse(body);
+    // For update, we add the id field to the base schema
+    const parsedBookingData = createBookingSchema.extend({id: z.string()}).parse(body);
     const { id: bookingId, assignedTripId: newTripId, budgetedCost: newCostValue } = parsedBookingData;
     const newCost = newCostValue || 0;
 
@@ -262,5 +262,3 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Internal Server Error', details: err.message }, { status: 500 });
   }
 }
-
-    

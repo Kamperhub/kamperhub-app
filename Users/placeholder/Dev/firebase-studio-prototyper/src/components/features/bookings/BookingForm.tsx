@@ -18,6 +18,7 @@ import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
+// Define schema outside the component to prevent re-creation on re-renders
 const bookingSchema = z.object({
   siteName: z.string().min(1, "Site name is required"),
   locationAddress: z.string().optional(),
@@ -38,7 +39,6 @@ const bookingSchema = z.object({
     message: "Check-out date must be on or after check-in date",
     path: ["checkOutDate"],
 });
-
 
 type BookingFormData = z.infer<typeof bookingSchema>;
 
@@ -182,5 +182,3 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
     </form>
   );
 }
-
-    
