@@ -38,9 +38,10 @@ const guideSteps = [
 interface GettingStartedGuideProps {
   onDismiss: () => void;
   isDismissing: boolean;
+  showDismissButton?: boolean;
 }
 
-export function GettingStartedGuide({ onDismiss, isDismissing }: GettingStartedGuideProps) {
+export function GettingStartedGuide({ onDismiss, isDismissing, showDismissButton = true }: GettingStartedGuideProps) {
   const navContext = useContext(NavigationContext);
 
   const handleNavigation = () => {
@@ -80,12 +81,14 @@ export function GettingStartedGuide({ onDismiss, isDismissing }: GettingStartedG
           </div>
         ))}
       </CardContent>
-      <CardFooter>
-        <Button variant="outline" onClick={onDismiss} disabled={isDismissing} className="ml-auto">
-            {isDismissing ? <Loader2 className="h-4 w-4 mr-2 animate-spin"/> : <X className="h-4 w-4 mr-2" />}
-            {isDismissing ? "Dismissing..." : "Dismiss Guide"}
-        </Button>
-      </CardFooter>
+      {showDismissButton && (
+        <CardFooter>
+          <Button variant="outline" onClick={onDismiss} disabled={isDismissing} className="ml-auto">
+              {isDismissing ? <Loader2 className="h-4 w-4 mr-2 animate-spin"/> : <X className="h-4 w-4 mr-2" />}
+              {isDismissing ? "Dismissing..." : "Dismiss Guide"}
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   );
 }
