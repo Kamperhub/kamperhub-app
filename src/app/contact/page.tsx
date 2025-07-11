@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,10 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail as MailIcon, Send, User, Type, MailOpen } from 'lucide-react';
+import { Mail as MailIcon, Send, User, Type, MailOpen, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-const CONTACT_EMAIL = 'info@kamperhub.com'; // Your GoDaddy/contact email
 
 const contactFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -26,30 +24,41 @@ type ContactFormData = z.infer<typeof contactFormSchema>;
 
 export default function ContactPage() {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { register, handleSubmit, formState: { errors }, reset } = useForm<ContactFormData>({
     resolver: zodResolver(contactFormSchema),
   });
 
-  const onSubmit: SubmitHandler<ContactFormData> = (data) => {
-    const mailtoLink = `mailto:${CONTACT_EMAIL}?cc=${encodeURIComponent(data.email)}&subject=${encodeURIComponent(data.subject)}&body=${encodeURIComponent(
-      `Name: ${data.name}\nEmail: ${data.email}\n\nMessage:\n${data.message}`
-    )}`;
-    
+  const onSubmit: SubmitHandler<ContactFormData> = async (data) => {
+    setIsSubmitting(true);
     try {
-      window.location.href = mailtoLink;
-      toast({
-        title: "Opening Email Client",
-        description: "Your email client should open shortly. If not, please manually send an email.",
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
       });
-      reset(); // Reset form after attempting to open mail client
-    } catch (error) {
-        console.error("Failed to open mailto link:", error);
-        toast({
-            title: "Could Not Open Email Client",
-            description: `Please manually send an email to ${CONTACT_EMAIL}. You can copy the details from the form.`,
-            variant: "destructive",
-            duration: 7000,
-        });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Something went wrong');
+      }
+
+      toast({
+        title: "Message Sent!",
+        description: "We've received your message and will get back to you soon.",
+      });
+      reset();
+    } catch (error: any) {
+      toast({
+        title: "Submission Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -61,13 +70,10 @@ export default function ContactPage() {
             <MailIcon className="mr-3 h-7 w-7" /> Contact KamperHub
           </CardTitle>
           <CardDescription className="font-body">
-            Have questions, feedback, or need support? Fill out the form below, and clicking "Send Email" will open your default email client with the details pre-filled. The sender will be CC'd.
+            Have questions, feedback, or need support? Fill out the form below to send us a message directly.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="font-body text-sm text-muted-foreground mb-4">
-            Our direct contact email is: <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary hover:underline font-semibold">{CONTACT_EMAIL}</a>
-          </p>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div>
               <Label htmlFor="name" className="font-body">Your Name</Label>
@@ -78,9 +84,10 @@ export default function ContactPage() {
                   {...register("name")}
                   placeholder="e.g., Jane Doe"
                   className="font-body pl-10"
+                  disabled={isSubmitting}
                 />
               </div>
-              {errors.name && <p className="text-sm text-destructive mt-1 font-body">{errors.name.message}</p>}
+              {errors.name && <p className="text-sm text-destructive font-body mt-1">{errors.name.message}</p>}
             </div>
 
             <div>
@@ -93,9 +100,10 @@ export default function ContactPage() {
                   {...register("email")}
                   placeholder="e.g., your.email@example.com"
                   className="font-body pl-10"
+                  disabled={isSubmitting}
                 />
               </div>
-              {errors.email && <p className="text-sm text-destructive mt-1 font-body">{errors.email.message}</p>}
+              {errors.email && <p className="text-sm text-destructive font-body mt-1">{errors.email.message}</p>}
             </div>
 
             <div>
@@ -107,9 +115,10 @@ export default function ContactPage() {
                   {...register("subject")}
                   placeholder="e.g., Question about Trip Planner"
                   className="font-body pl-10"
+                  disabled={isSubmitting}
                 />
               </div>
-              {errors.subject && <p className="text-sm text-destructive mt-1 font-body">{errors.subject.message}</p>}
+              {errors.subject && <p className="text-sm text-destructive font-body mt-1">{errors.subject.message}</p>}
             </div>
 
             <div>
@@ -120,12 +129,14 @@ export default function ContactPage() {
                 placeholder="Please type your message here..."
                 className="font-body min-h-[120px]"
                 rows={5}
+                disabled={isSubmitting}
               />
-              {errors.message && <p className="text-sm text-destructive mt-1 font-body">{errors.message.message}</p>}
+              {errors.message && <p className="text-sm text-destructive font-body mt-1">{errors.message.message}</p>}
             </div>
             
-            <Button type="submit" className="w-full font-body bg-primary hover:bg-primary/90 text-primary-foreground">
-              <Send className="mr-2 h-4 w-4" /> Send Email via Your Mail App
+            <Button type="submit" className="w-full font-body bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              {isSubmitting ? 'Sending...' : 'Send Message'}
             </Button>
           </form>
         </CardContent>
