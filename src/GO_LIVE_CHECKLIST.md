@@ -192,25 +192,49 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
 
 ## **Phase 5: Connect Custom Domain & Go Live**
 
-### **Step 5.1: Add Your Custom Domain**
+> [!CAUTION]
+> **If you are seeing a `DNS_PROBE_FINISHED_NXDOMAIN` error, it means this step was done incorrectly or the DNS records were deleted.** Follow these instructions carefully to fix it.
+
+### **Step 5.1: Find Your DNS Records in Firebase**
 
 1.  Go to the [Firebase App Hosting Backends page for kamperhub-s4hc2](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/hosting/backends).
 2.  Click on your backend's name to open its dashboard.
 3.  Navigate to the **"Domains"** tab.
-4.  Click **"Add custom domain"**.
+4.  Click **"Add custom domain"** (or view the existing domain if already added).
 5.  Enter `kamperhub.com` as your domain. App Hosting will also provision `www.kamperhub.com`.
-6.  Firebase will provide you with DNS records (usually two `A` records) that you need to add to your domain registrar (GoDaddy).
+6.  Firebase will provide you with DNS records. You are looking for two **`A` records**. They will be two different IP addresses (e.g., `199.36.158.100` and `199.36.158.101`). **Copy these two IP addresses.**
 
 ### **Step 5.2: Configure DNS at GoDaddy**
 
 1.  Log in to your GoDaddy account.
 2.  Navigate to your DNS Management page for `kamperhub.com`.
-3.  Add or update the `A` records for both `kamperhub.com` and `www.kamperhub.com` to point to the IP addresses provided by Firebase App Hosting.
-4.  Save your changes. DNS propagation can take anywhere from a few minutes to 48 hours.
+3.  You need to create **two `A` records** to point your domain to Firebase. Delete any old `A` records for `kamperhub.com` first.
+4.  **First `A` Record:**
+    *   **Type:** `A`
+    *   **Name:** `@` (This symbol represents your root domain, `kamperhub.com`)
+    *   **Value:** Paste the **first IP address** you copied from Firebase.
+    *   **TTL:** Leave as default (usually 1 hour).
+    *   Click **Save**.
+5.  **Second `A` Record:**
+    *   **Type:** `A`
+    *   **Name:** `@`
+    *   **Value:** Paste the **second IP address** you copied from Firebase.
+    *   **TTL:** Leave as default.
+    *   Click **Save**.
+6.  **`www` Record (Optional but Recommended):**
+    *   Create a `CNAME` record to redirect `www.kamperhub.com` to `kamperhub.com`.
+    *   **Type:** `CNAME`
+    *   **Name:** `www`
+    *   **Value:** `@`
+    *   **TTL:** Leave as default.
+    *   Click **Save**.
 
-### **Step 5.3: Verify Domain and SSL**
+7.  **Wait for DNS Propagation.** DNS changes can take anywhere from a few minutes to 48 hours to take effect globally, but it is often much faster.
 
-1.  Back in the Firebase App Hosting console, wait for the domain status to change to "Connected". Firebase will automatically provision and manage an SSL certificate for your domain, which may take some time.
+### **Step 5.3: Verify Domain and SSL in Firebase**
+
+1.  Back in the Firebase App Hosting console ("Domains" tab), wait for the domain status to change to "Connected".
+2.  Firebase will automatically provision and manage an SSL certificate for your domain, which may take some time.
 
 ### **Step 5.4: Final Production Check**
 
