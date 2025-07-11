@@ -18,11 +18,9 @@ import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, S
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label as RechartsLabel } from 'recharts';
-import { Progress } from '@/components/ui/progress';
 import { fetchInventory, updateInventory, updateUserPreferences } from '@/lib/api-client';
 import { auth } from '@/lib/firebase';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
 
 
@@ -91,7 +89,7 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
   const preferencesMutation = useMutation({
     mutationFn: (prefs: Partial<UserProfile>) => updateUserPreferences(prefs),
     onSuccess: () => {
-       queryClient.invalidateQueries({ queryKey: ['allVehicleData', user?.uid] });
+       queryClient.invalidateQueries({ queryKey: ['vehiclePageData', user?.uid] });
     },
     onError: (error: Error) => {
       toast({ title: "Error Saving Preferences", description: error.message, variant: "destructive" });
@@ -351,17 +349,31 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
                 <CardDescription>Select a trip to include occupant weights in the GVM calculation.</CardDescription>
             </CardHeader>
             <CardContent>
-                 <div className="max-w-sm">
-                      <Label htmlFor="trip-occupants-select">Include Occupants from Trip</Label>
-                      <Select value={selectedTripId} onValueChange={setSelectedTripId}>
-                          <SelectTrigger id="trip-occupants-select">
-                              <SelectValue placeholder="Select a trip..."/>
-                          </SelectTrigger>
-                          <SelectContent>
-                              <SelectItem value="none">None (No Occupant Weight)</SelectItem>
-                              {trips.map(trip => <SelectItem key={trip.id} value={trip.id}>{trip.name}</SelectItem>)}
-                          </SelectContent>
-                      </Select>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <Label htmlFor="trip-occupants-select">Include Occupants from Trip</Label>
+                        <Select value={selectedTripId} onValueChange={setSelectedTripId}>
+                            <SelectTrigger id="trip-occupants-select">
+                                <SelectValue placeholder="Select a trip..."/>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">None (No Occupant Weight)</SelectItem>
+                                {trips.map(trip => <SelectItem key={trip.id} value={trip.id}>{trip.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    {occupants.length > 0 && (
+                        <div className="space-y-1">
+                            <Label>Occupants ({totalOccupantWeight.toFixed(1)} kg total)</Label>
+                            <ul className="text-sm text-muted-foreground list-disc pl-5">
+                                {occupants.map(occ => (
+                                    <li key={occ.id}>
+                                        {occ.name} ({occ.weight} kg)
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                  </div>
             </CardContent>
           </Card>
