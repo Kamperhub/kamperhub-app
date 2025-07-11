@@ -37,13 +37,12 @@ All your secret keys will live in a special file that is NOT committed to versio
     # IMPORTANT: This key MUST NOT have "HTTP referrer" restrictions. Use a key with no restrictions or IP address restrictions.
     GOOGLE_API_KEY="YOUR_GENERATIVE_AI_API_KEY_HERE"
 
-    # Application URL
-    # This MUST match the base URL of your application when it's running.
-    # In the dev environment, check the terminal: if it says "started server on ... http://localhost:3000",
-    # the exposed URL is http://localhost:8083. If it says "http://localhost:3001", the URL is http://localhost:8084.
-    # This URL is used by services like Stripe and Google OAuth to redirect the user back to your app.
+    # Application URL and Environment
+    # NEXT_PUBLIC_APP_URL MUST match the exposed URL of your application when it's running (e.g., http://localhost:8083)
+    # This is used by services like Stripe and Google OAuth to redirect the user back to your app.
+    # NEXT_PUBLIC_APP_ENV MUST be "development" for local testing. It controls features like the environment banner.
     NEXT_PUBLIC_APP_URL="http://localhost:8083"
-    NEXT_PUBLIC_APP_ENV="development" # Use "production" for the live site
+    NEXT_PUBLIC_APP_ENV="development"
 
     # Stripe Configuration (for subscriptions)
     NEXT_PUBLIC_STRIPE_PAYMENT_LINK=https://buy.stripe.com/...
@@ -173,7 +172,7 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
     *   On the OAuth Consent Screen page, go to the **"Test users"** section on the left menu (or find the "+ ADD USERS" button).
     *   Click **"+ ADD USERS"** and enter the email address of the Google account you will be using to test the app (e.g., your personal gmail.com account). This allows that account to bypass the "unverified app" screen during login.
 6.  **Verify Redirect URI:**
-    *   Go to the [Credentials page](https://console.cloud.google.com/apis/credentials).
+    *   Go back to the [Credentials page](https://console.cloud.google.com/apis/credentials).
     *   Click on the name of your **OAuth 2.0 Client ID** (the one you used for `GOOGLE_CLIENT_ID`).
     *   Under **"Authorized redirect URIs"**, click **"+ ADD URI"**.
     > [!WARNING]

@@ -31,9 +31,9 @@ const MainLayout = ({ children, apiKeyMissing }: { children: React.ReactNode, ap
         {apiKeyMissing && !isAuthPage && (
            <Alert variant="destructive" className="mb-6">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Google Maps API Key Missing</AlertTitle>
-              <AlertDescription>
-                The `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is not set in your `.env.local` file. Map-related features like the Trip Planner will not work. Please see the setup guide.
+              <AlertTitle className="font-headline">Google Maps API Key Missing</AlertTitle>
+              <AlertDescription className="font-body">
+                The `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is not set in your `.env.local` file. Map-related features will not work. Please see the setup guide to fix this.
               </AlertDescription>
             </Alert>
         )}
@@ -62,13 +62,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const apiKeyMissing = !apiKey;
   
   const AppContent = () => {
     return isAuthPage ? (
-      <MainLayout apiKeyMissing={!apiKey}>{children}</MainLayout>
+      <MainLayout apiKeyMissing={apiKeyMissing}>{children}</MainLayout>
     ) : (
       <AuthGuard>
-        <MainLayout apiKeyMissing={!apiKey}>{children}</MainLayout>
+        <MainLayout apiKeyMissing={apiKeyMissing}>{children}</MainLayout>
       </AuthGuard>
     );
   }
@@ -81,17 +82,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <p className="text-lg font-semibold text-primary">Loading...</p>
         </div>
       )}
-       {apiKey ? (
-         <APIProvider 
-            apiKey={apiKey} 
-            solutionChannel="GMP_visgl_rgm_reactfirebase_v1"
-            libraries={['places', 'routes', 'geometry']}
-          >
-           <AppContent/>
-          </APIProvider>
-       ) : (
-         <AppContent/>
-       )}
+       <APIProvider 
+          apiKey={apiKey || "MISSING_API_KEY"} 
+          solutionChannel="GMP_visgl_rgm_reactfirebase_v1"
+          libraries={['places', 'routes', 'geometry']}
+        >
+          <AppContent/>
+        </APIProvider>
     </NavigationContext.Provider>
   );
 }
