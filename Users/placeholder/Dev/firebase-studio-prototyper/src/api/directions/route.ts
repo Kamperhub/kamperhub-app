@@ -3,11 +3,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { decode } from '@googlemaps/polyline-codec';
+import type { FuelStation, RouteDetails } from '@/types/tripplanner';
 
 const directionsRequestSchema = z.object({
   origin: z.string(),
   destination: z.string(),
+  isTowing: z.boolean(),
   vehicleHeight: z.number().positive().optional(),
+  caravanHeight: z.number().positive().optional(),
   axleCount: z.number().int().positive().optional(),
   avoidTolls: z.boolean().optional(),
 });
@@ -27,6 +31,72 @@ function formatDuration(isoDuration: string): string {
     return parts.length > 0 ? parts.join(' ') : 'Less than a minute';
 }
 
+async function findFuelStationsAlongRoute(polyline: string, apiKey: string): Promise<FuelStation[]> {
+    if (!polyline) return [];
+
+    try {
+        const decodedPath = decode(polyline, 5);
+        if (decodedPath.length < 2) return [];
+
+        const searchPoints: google.maps.LatLngLiteral[] = [];
+        const totalDistance = google.maps.geometry.spherical.computeLength(decodedPath.map(p => new google.maps.LatLng(p[0], p[1])));
+        const interval = Math.min(100000, totalDistance / 5); // Search roughly every 100km, up to 5 points
+
+        if (interval < 10000) { // For short trips, just check start and middle
+            searchPoints.push({ lat: decodedPath[0][0], lng: decodedPath[0][1] });
+            if (decodedPath.length > 2) {
+                 const midPoint = decodedPath[Math.floor(decodedPath.length / 2)];
+                 searchPoints.push({ lat: midPoint[0], lng: midPoint[1] });
+            }
+        } else {
+            let distanceCovered = 0;
+            searchPoints.push({ lat: decodedPath[0][0], lng: decodedPath[0][1] });
+            for (let i = 0; i < decodedPath.length - 1; i++) {
+                const start = new google.maps.LatLng(decodedPath[i][0], decodedPath[i][1]);
+                const end = new google.maps.LatLng(decodedPath[i+1][0], decodedPath[i+1][1]);
+                distanceCovered += google.maps.geometry.spherical.computeDistanceBetween(start, end);
+                if (distanceCovered >= interval) {
+                    searchPoints.push({ lat: end.lat(), lng: end.lng() });
+                    distanceCovered = 0;
+                }
+            }
+        }
+
+        const uniqueFuelStations = new Map<string, FuelStation>();
+        const searchPromises = searchPoints.map(point => {
+            const placesUrl = new URL('https://maps.googleapis.com/maps/api/place/nearbysearch/json');
+            placesUrl.searchParams.set('location', `${point.lat},${point.lng}`);
+            placesUrl.searchParams.set('radius', '50000'); // 50km radius
+            placesUrl.searchParams.set('type', 'gas_station');
+            placesUrl.searchParams.set('key', apiKey);
+            return fetch(placesUrl.toString()).then(res => res.json());
+        });
+
+        const results = await Promise.all(searchPromises);
+
+        for (const result of results) {
+            if (result.results) {
+                for (const place of result.results) {
+                    if (place.geometry?.location && place.name && !uniqueFuelStations.has(place.place_id)) {
+                        uniqueFuelStations.set(place.place_id, {
+                            name: place.name,
+                            location: {
+                                lat: place.geometry.location.lat,
+                                lng: place.geometry.location.lng,
+                            }
+                        });
+                    }
+                }
+            }
+        }
+        return Array.from(uniqueFuelStations.values());
+    } catch (e) {
+        console.error("Error finding fuel stations:", e);
+        return []; // Return empty on error
+    }
+}
+
+
 export async function POST(req: NextRequest) {
   const apiKey = process.env.GOOGLE_API_KEY;
 
@@ -43,7 +113,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body.', details: parsedBody.error.format() }, { status: 400 });
     }
 
-    const { origin, destination, vehicleHeight, axleCount, avoidTolls } = parsedBody.data;
+    const { origin, destination, isTowing, vehicleHeight, caravanHeight, axleCount, avoidTolls } = parsedBody.data;
+
+    let finalHeight: number | undefined;
+    if (isTowing) {
+        finalHeight = Math.max(vehicleHeight || 0, caravanHeight || 0);
+    } else {
+        finalHeight = vehicleHeight;
+    }
+    if (finalHeight === 0) finalHeight = undefined;
+
 
     const requestBody: any = {
       origin: { address: origin },
@@ -58,8 +137,8 @@ export async function POST(req: NextRequest) {
     };
     
     const vehicleInfo: any = {};
-    if (vehicleHeight && vehicleHeight > 0) {
-      vehicleInfo.dimensions = { height: vehicleHeight };
+    if (finalHeight) {
+      vehicleInfo.dimensions = { height: finalHeight };
     }
     if (axleCount && axleCount > 0) {
       vehicleInfo.axleCount = axleCount;
@@ -97,8 +176,9 @@ export async function POST(req: NextRequest) {
           const errorData = JSON.parse(errorBody);
           if (errorData.error?.message) {
             errorMessage = errorData.error.message;
-            if (errorMessage.includes("Routes API has not been used in project")) {
-              errorMessage = "The Google Routes API is not enabled for this project. Please enable it in the Google Cloud Console (see Step 3.5 in the setup guide) and ensure your API key has permissions for it.";
+            if (errorMessage.includes("API has not been used in project")) {
+                const apiName = errorMessage.includes("Routes API") ? "Routes API" : "Places API";
+                errorMessage = `The Google ${apiName} is not enabled for this project. Please enable it in the Google Cloud Console (see Step 3.5 in the setup guide) and ensure your API key has permissions for it.`;
             } else if (errorMessage.toLowerCase().includes('api_key_not_valid')) {
                errorMessage = "The provided GOOGLE_API_KEY is invalid. Please check the key in your .env.local file.";
             } else if (errorMessage.toLowerCase().includes('invalid json payload')) {
@@ -116,10 +196,8 @@ export async function POST(req: NextRequest) {
         throw new Error(errorMessage);
     }
 
-    // THIS IS THE CRITICAL FIX: Read as text first, then parse.
     const responseBodyText = await response.text();
     if (!responseBodyText) {
-        // Handle cases where the API returns 200 OK but with an empty body
         return NextResponse.json({ error: "No routes found between the specified locations. The destination may be unreachable by car." }, { status: 404 });
     }
 
@@ -130,6 +208,11 @@ export async function POST(req: NextRequest) {
     }
 
     const route = data.routes[0];
+    const encodedPolyline = route?.polyline?.encodedPolyline;
+
+    // Asynchronously find fuel stations without blocking the main response
+    const fuelStationsPromise = encodedPolyline ? findFuelStationsAlongRoute(encodedPolyline, apiKey) : Promise.resolve([]);
+
     const tollInfo = route.travelAdvisory?.tollInfo;
     let adaptedTollInfo = null;
 
@@ -148,20 +231,22 @@ export async function POST(req: NextRequest) {
         }
     }
     
-    const adaptedResponse = {
+    const fuelStations = await fuelStationsPromise;
+
+    const adaptedResponse: RouteDetails = {
         distance: { text: `${((route?.distanceMeters || 0) / 1000).toFixed(1)} km`, value: route?.distanceMeters || 0 },
         duration: { text: formatDuration(route?.duration || '0s'), value: parseInt(route?.duration?.slice(0,-1) || '0', 10)},
         startLocation: route?.legs?.[0]?.startLocation?.latLng,
         endLocation: route?.legs?.[(route.legs.length - 1)]?.endLocation?.latLng,
-        polyline: route?.polyline?.encodedPolyline,
+        polyline: encodedPolyline,
         warnings: route?.warnings || [],
         tollInfo: adaptedTollInfo,
+        fuelStations: fuelStations,
     };
     return NextResponse.json(adaptedResponse, { status: 200 });
 
   } catch (error: any) {
     console.error('Error in directions API route:', error);
-    // Check for the specific JSON parsing error we were seeing before
     if (error instanceof SyntaxError && error.message.includes("Unexpected token")) {
         return NextResponse.json({ error: `The server received an unexpected response from the mapping service. This can happen with unusual locations. Please try again.`, details: error.message }, { status: 500 });
     }
