@@ -24,7 +24,7 @@ async function apiFetch(url: string, options: RequestInit = {}) {
 }
 
 // ---- Consolidated Page Data Fetchers ----
-export const fetchVehiclePageData = () => apiFetch('/api/vehicle-page-data');
+export const fetchAllVehicleData = () => apiFetch('/api/all-vehicle-data');
 export const fetchBookingsPageData = () => apiFetch('/api/bookings-page-data');
 
 

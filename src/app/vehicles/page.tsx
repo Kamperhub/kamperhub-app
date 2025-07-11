@@ -7,16 +7,17 @@ import { CaravanManager } from '@/components/features/vehicles/CaravanManager';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { fetchVehiclePageData } from '@/lib/api-client';
+import { fetchAllVehicleData } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 
 export default function VehiclesPage() {
     const { user, isAuthLoading } = useAuth();
     
+    // Corrected to use the consolidated 'fetchAllVehicleData' query
     const { data, isLoading, error } = useQuery({
-        queryKey: ['vehiclePageData', user?.uid],
-        queryFn: fetchVehiclePageData,
+        queryKey: ['allVehicleData', user?.uid],
+        queryFn: fetchAllVehicleData,
         enabled: !!user,
     });
 
@@ -41,7 +42,7 @@ export default function VehiclesPage() {
                 <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>Error Loading Page Data</AlertTitle>
-                    <AlertDescription>{error.message}</AlertDescription>
+                    <AlertDescription>{(error as Error).message}</AlertDescription>
                 </Alert>
             </div>
         )
