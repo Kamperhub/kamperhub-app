@@ -9,7 +9,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { LayoutDashboard, Settings2, Backpack, ListChecks, Route as RouteIcon, History, BedDouble, BookOpen, ShieldAlert, UserCircle, DollarSign } from 'lucide-react';
+import { LayoutDashboard, Settings2, Backpack, ListChecks, Route as RouteIcon, History, BedDouble, BookOpen, ShieldAlert, UserCircle, DollarSign, Map, Briefcase } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 export function UserManualContent() {
@@ -19,7 +19,7 @@ export function UserManualContent() {
       icon: LayoutDashboard,
       content: (
         <>
-          <p>The Dashboard is your home screen, providing quick access to all of KamperHub's features. Each card represents a core section of the app. You can drag and drop these cards to customize the layout to your preference (on desktop). This layout is saved to your account and will sync across devices.</p>
+          <p>The Dashboard is your home screen, providing quick access to all of KamperHub's features. Each card represents a core section of the app. On a desktop computer, you can drag and drop these cards to customize the layout to your preference. This layout is saved to your account and will sync across devices.</p>
         </>
       )
     },
@@ -79,103 +79,34 @@ export function UserManualContent() {
       )
     },
     {
-      title: "4. Trip & Expense Planner",
-      icon: RouteIcon,
+      title: "4. Trip Manager & Journeys",
+      icon: Briefcase,
       content: (
         <>
-          <p>Plan your routes, estimate travel times, calculate fuel costs, set budgets, track expenses, and manage passengers. This is your all-in-one travel command center.</p>
+          <p>The Trip Manager is the central hub for all your travel planning activities. From here, you can organize grand adventures, plan individual trip legs, manage packing lists, and review your travel history.</p>
           <ul className="list-disc pl-5 space-y-2">
             <li>
-                <strong>Itinerary Planning:</strong>
-                <ul className="list-circle pl-5 space-y-1">
-                    <li><strong>Inputs:</strong> Provide Start and End Locations (with Google Places Autocomplete), Planned Date Range, Vehicle Fuel Efficiency (L/100km), and Current Fuel Price.</li>
-                    <li><strong>Vehicle-Only Trips:</strong> Use the "Towing a caravan?" switch to specify if your trip involves a caravan. If disabled, the trip will be saved as "Vehicle Only" and will use a simplified checklist template.</li>
-                    <li><strong>Height-Aware Routing:</strong> The planner automatically uses the 'Overall Height' from your active vehicle or caravan. It then uses Google's advanced Routes API to check for height restrictions on the proposed route. Any warnings (e.g., low bridges) will be clearly displayed.</li>
-                    <li><strong>Route Calculation:</strong> Displays the route on an interactive map, showing total distance, estimated duration, and calculated fuel cost.</li>
-                    <li><strong>Saving Trips:</strong> Saves the entire plan—including the route, fuel estimates, dates, budget, expenses, and notes—to your "Trip Log." This also creates a unique, editable checklist for the trip.</li>
-                </ul>
-            </li>
-             <li>
-                <strong>Occupants:</strong>
-                <ul className="list-circle pl-5 space-y-1">
-                    <li>Once an itinerary is planned, you can add travelers (adults, children, pets) to the trip.</li>
-                    <li>Specify the name, type, and weight for each occupant. This weight is used in the Inventory & Weight Management screen for accurate GVM calculations.</li>
-                    <li>These occupant details are also used by the AI Packing Assistant to create personalized packing lists.</li>
-                </ul>
+                <strong>Journeys:</strong> Group multiple individual trips into a single, epic adventure (e.g., "The Big Lap 2025"). Each Journey has a master map that shows the combined route of all its trips, providing a high-level overview of your entire adventure. You can also get a strategic AI-powered packing plan for the whole journey.
             </li>
             <li>
-                <strong>Budgeting:</strong>
+                <strong>Trip Planner:</strong> This is where you plan the individual legs of your travels.
                 <ul className="list-circle pl-5 space-y-1">
-                    <li>In the "Budget" tab, create spending categories like "Fuel," "Groceries," "Accommodation," "Activities," etc.</li>
-                    <li>Assign a budgeted amount to each category. The total trip budget is automatically calculated.</li>
-                    <li>When you plan an itinerary, the estimated fuel cost will automatically populate or update the "Fuel" budget category.</li>
+                    <li><strong>Itinerary Planning:</strong> Plan A-to-B routes with Google Maps, factoring in vehicle height for safety. Get estimates for distance, duration, and fuel.</li>
+                    <li><strong>Vehicle-Only Trips:</strong> Use the "Towing a caravan?" switch to plan trips without a caravan, which uses a simplified checklist template.</li>
+                    <li><strong>Budgeting & Expenses:</strong> Set budgets for categories like Fuel and Accommodation, then track your actual spending against them for each trip.</li>
+                    <li><strong>Occupants:</strong> Manage travelers for each trip to ensure accurate weight calculations and to generate personalized packing lists.</li>
+                    <li><strong>Save & Recall:</strong> Save your detailed trip plans to the Trip Log. You can recall any saved trip to the planner to reuse or modify it.</li>
                 </ul>
             </li>
-             <li>
-                <strong>Expense Tracking:</strong>
-                <ul className="list-circle pl-5 space-y-1">
-                    <li>In the "Expenses" tab, you can log individual expenses as they occur.</li>
-                    <li>Each expense requires a description, amount, date, and must be assigned to one of your created budget categories.</li>
-                    <li>The system keeps a running total of your spending against your overall budget.</li>
-                </ul>
-            </li>
-        </ul>
-        <p className="mt-2"><strong>API Key Note:</strong> The Trip Planner requires a Google Maps API Key with the "Routes API" enabled for map rendering, place autocomplete, and route calculation features.</p>
-        </>
-      )
-    },
-    {
-      title: "5. Trip Log",
-      icon: History,
-      content: (
-        <>
-          <p>View and manage all your saved trips. Trips are displayed as cards with key details.</p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li><strong>Trip Cards:</strong> Each card shows the trip name, saved date, start/end locations, date range, route distance/duration, and fuel estimates if available.</li>
-            <li><strong>Actions per Trip:</strong>
-                <ul className="list-circle pl-5">
-                    <li><strong>"Start Trip":</strong> Navigates to the checklists page, pre-selecting the checklist for that specific trip.</li>
-                    <li><strong>"Mark Completed" / "Reopen Trip":</strong> Toggles the trip's completion status. Completed trips are visually distinct.</li>
-                    <li><strong>"Calendar":</strong> Opens a pre-filled Google Calendar event to easily add the trip to your calendar.</li>
-                    <li><strong>"Recall":</strong> Loads the trip data, including its budget and expenses, back into the Trip Planner for review or modification.</li>
-                    <li><strong>"Delete":</strong> Permanently removes the trip and all associated data from your log.</li>
-                </ul>
-            </li>
+            <li><strong>Trip Log:</strong> Review your past adventures, recall saved trips for re-planning, and mark trips as complete.</li>
+            <li><strong>Trip Packing Assistant:</strong> Use our AI assistant to generate smart packing lists based on your trip details and passenger needs.</li>
+            <li><strong>World Map:</strong> Get a global overview of all your logged trips on an interactive map.</li>
         </ul>
         </>
       )
     },
     {
-      title: "6. Trip Packing Assistant",
-      icon: Backpack,
-      content: (
-        <>
-          <p>Use our multi-step AI tool to generate, personalize, and share packing lists for your trips.</p>
-           <ul className="list-disc pl-5 space-y-2">
-            <li><strong>Select Trip:</strong> Choose a saved trip. The assistant will check if a packing list already exists for it.</li>
-            <li>
-                <strong>If a List Exists (Recall & Edit):</strong>
-                <ul className="list-circle pl-5 space-y-1">
-                    <li>The existing list is displayed immediately.</li>
-                    <li>You can check items off, edit quantities/notes, or add/delete items.</li>
-                    <li>Use the "Personalize & Share" option to generate individual lists for passengers and send them to Google Tasks.</li>
-                </ul>
-            </li>
-             <li>
-                <strong>If No List Exists (Create New):</strong>
-                <ul className="list-circle pl-5 space-y-1">
-                    <li><strong>Step 1 (Optional):</strong> Select planned activities to get tailored suggestions.</li>
-                    <li><strong>Step 2 (Optional):</strong> Get AI-powered weather suggestions for your destination.</li>
-                    <li><strong>Step 3 (Generate):</strong> The AI uses all trip info (destination, dates, travelers, activities, weather) to generate a comprehensive master packing list.</li>
-                </ul>
-            </li>
-             <li><strong>Google Tasks Integration:</strong> If you have connected your Google Account, you can send both master lists and personalized lists directly to your Google Tasks account.</li>
-        </ul>
-        </>
-      )
-    },
-     {
-      title: "7. Checklists",
+      title: "5. Checklists",
       icon: ListChecks,
       content: (
         <>
@@ -201,7 +132,7 @@ export function UserManualContent() {
       )
     },
     {
-      title: "8. Bookings",
+      title: "6. Bookings",
       icon: BedDouble,
       content: (
         <>
@@ -216,7 +147,7 @@ export function UserManualContent() {
       )
     },
     {
-      title: "9. Support & Learn",
+      title: "7. Support & Learn",
       icon: BookOpen,
       content: (
         <>
@@ -232,7 +163,7 @@ export function UserManualContent() {
       )
     },
     {
-      title: "10. My Account & Subscriptions",
+      title: "8. My Account & Subscriptions",
       icon: UserCircle,
       content: (
          <>
@@ -266,27 +197,15 @@ export function UserManualContent() {
 
       <Accordion type="single" collapsible className="w-full">
         {manualSections.map((section, index) => (
-          <AccordionItem value={`item-${index + 1}`} key={index} className={cn(section.isAlertSection ? "border-destructive" : "")}>
-            <AccordionTrigger className={cn(
-                "text-left hover:no-underline",
-                 section.isAlertSection ? "text-destructive hover:text-destructive/90" : "text-primary"
-              )}
-            >
-              <span className={cn(
-                "flex items-center font-headline text-lg",
-                 section.isAlertSection ? "text-destructive" : "text-primary"
-                )}
-              >
-                <section.icon className={cn("mr-3 h-5 w-5", section.isAlertSection ? "text-destructive" : "text-primary/80")} />
+          <AccordionItem value={`item-${index + 1}`} key={index}>
+            <AccordionTrigger className="text-left hover:no-underline text-primary">
+              <span className="flex items-center font-headline text-lg text-primary">
+                <section.icon className="mr-3 h-5 w-5 text-primary/80" />
                 {section.title}
               </span>
             </AccordionTrigger>
             <AccordionContent className="pt-2 pb-4">
-              <div className={cn(
-                "prose prose-sm sm:prose-base max-w-none font-body",
-                section.isAlertSection ? "text-destructive/90" : "text-foreground"
-                )}
-              >
+              <div className="prose prose-sm sm:prose-base max-w-none font-body text-foreground">
                 {section.content}
               </div>
             </AccordionContent>
