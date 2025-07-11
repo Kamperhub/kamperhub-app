@@ -3,7 +3,8 @@
 
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { LayoutDashboard } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { LayoutDashboard, ChevronLeft } from 'lucide-react';
 import { dashboardDetailItems, type NavItem } from '@/lib/navigation'; 
 import { useContext } from 'react';
 import { NavigationContext } from '@/components/layout/AppShell';
@@ -11,11 +12,19 @@ import { NavigationContext } from '@/components/layout/AppShell';
 export default function DashboardDetailsPage() {
   const navContext = useContext(NavigationContext);
   const handleNavigation = () => {
-    navContext?.setIsNavigating(true);
+    if (navContext) {
+      navContext.setIsNavigating(true);
+    }
   };
 
   return (
     <div className="space-y-8">
+      <Button asChild variant="link" className="p-0 h-auto font-body text-muted-foreground hover:text-primary -ml-1">
+        <Link href="/" onClick={handleNavigation}>
+          <ChevronLeft className="mr-1 h-4 w-4" />
+          Return to Main Dashboard
+        </Link>
+      </Button>
       <div className="flex items-center">
         <LayoutDashboard className="mr-3 h-8 w-8 text-primary" />
         <h1 className="text-3xl font-headline text-primary">Dashboard Hub</h1>

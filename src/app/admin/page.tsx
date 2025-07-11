@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import Link from 'next/link';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,12 +15,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { UserCog, ShieldAlert, AlertTriangle, Loader2, Send, Mail, UserX, Trash2, Info, RefreshCw, Users } from 'lucide-react';
+import { UserCog, ShieldAlert, AlertTriangle, Loader2, Send, Mail, UserX, Trash2, Info, RefreshCw, Users, ChevronLeft } from 'lucide-react';
 import type { SubscriptionTier } from '@/types/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchAllUsers } from '@/lib/api-client';
 import { Badge } from '@/components/ui/badge';
+import { NavigationContext } from '@/components/layout/AppShell';
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
@@ -47,6 +48,8 @@ export default function AdminPage() {
   const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navContext = useContext(NavigationContext);
+
 
   const { data: allUsers = [], isLoading: isLoadingUsers, error: usersError } = useQuery<{uid: string, email: string | undefined, tripCount: number | string}[]>({
     queryKey: ['allUsers', currentUser?.uid],
@@ -95,6 +98,12 @@ export default function AdminPage() {
       router.push('/login');
     }
   }, [currentUser, isAuthLoading, router]);
+
+  const handleNavigation = () => {
+    if (navContext) {
+      navContext.setIsNavigating(true);
+    }
+  };
 
   const onUpdateSubmit: SubmitHandler<UpdateSubscriptionFormData> = async (data) => {
     setIsSubmitting(true);
@@ -158,7 +167,7 @@ export default function AdminPage() {
             <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Error loading users</AlertTitle>
-                <AlertDescription>{usersError.message}</AlertDescription>
+                <AlertDescription>{(usersError as Error).message}</AlertDescription>
             </Alert>
         </div>
     )
@@ -166,6 +175,13 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-8">
+       <Button asChild variant="link" className="p-0 h-auto font-body text-muted-foreground hover:text-primary -ml-1">
+        <Link href="/my-account" onClick={handleNavigation}>
+          <ChevronLeft className="mr-1 h-4 w-4" />
+          Return to My Account
+        </Link>
+      </Button>
+
       <Card className="max-w-2xl mx-auto shadow-xl">
         <CardHeader>
             <CardTitle className="font-headline text-xl text-primary flex items-center">
@@ -301,7 +317,7 @@ export default function AdminPage() {
               </div>
               <div>
                 <Label htmlFor="confirmationText" className="font-body">Type "DELETE" to confirm</Label>
-                <Input id="confirmationText" {...deleteForm.register("confirmationText")} placeholder='Type DELETE here' disabled={deleteUserMutation.isPending}/>
+                <Input id="confirmationText" {...register("confirmationText")} placeholder='Type DELETE here' disabled={deleteUserMutation.isPending}/>
                 {deleteForm.formState.errors.confirmationText && <p className="text-sm text-destructive mt-1 font-body">{deleteForm.formState.errors.confirmationText.message}</p>}
               </div>
               <Button type="submit" variant="destructive" className="w-full font-body" disabled={deleteUserMutation.isPending || allUsers.length === 0}>
