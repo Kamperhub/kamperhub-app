@@ -10,6 +10,7 @@ This document tracks the development priorities, future features, and completed 
 ### 1. Stability & Bug Fixing
 *   **Objective:** Resolve persistent data loading and authentication issues to ensure a stable and reliable user experience on the new server-based infrastructure.
 *   **Key Areas:**
+    *   Revisit and implement a functional, user-friendly date-range picker on the Bookings page.
     *   Investigate and fix errors preventing vehicle, caravan, and WDH data from loading on the `/vehicles` page.
     *   Address any remaining `Unauthorized: Invalid ID token` or `client is offline` errors.
     *   Ensure all user preferences and settings load correctly for all user types (including admin).
