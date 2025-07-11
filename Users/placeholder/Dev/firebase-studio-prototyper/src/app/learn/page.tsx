@@ -126,7 +126,7 @@ export default function SupportPage() {
             <div className="mb-4"> 
               <h2 className="font-headline text-2xl text-primary flex items-center mb-1"> 
                 <FileText className="h-7 w-7 text-primary mr-3" />
-                Articles & Guides
+                Articles &amp; Guides
               </h2>
               <p className="text-muted-foreground font-body">
                 Helpful articles and guides covering various caravanning topics.
