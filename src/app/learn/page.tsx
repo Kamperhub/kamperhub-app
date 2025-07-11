@@ -6,8 +6,9 @@ import { VideoCard } from '@/components/features/learn/VideoCard';
 import { ArticleDisplayCard } from '@/components/features/learn/ArticleDisplayCard';
 import { UserManualContent } from '@/components/features/learn/UserManualContent'; 
 import { TermsOfServiceContent } from '@/components/features/learn/TermsOfServiceContent';
+import { GettingStartedGuide } from '@/components/features/dashboard/GettingStartedGuide';
 import { sampleVideos, staticCaravanningArticles, type AiGeneratedArticle } from '@/types/learn'; 
-import { FileText, Youtube, Video, BookText, FileLock2 } from 'lucide-react';
+import { FileText, Youtube, Video, BookText, FileLock2, Rocket } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -18,9 +19,9 @@ export default function SupportPage() {
   const searchParams = useSearchParams();
   const articles: AiGeneratedArticle[] = staticCaravanningArticles;
 
-  const validTabs = ["videos", "articles", "manual", "tos"] as const;
+  const validTabs = ["guide", "videos", "articles", "manual", "tos"] as const;
   type ValidTab = typeof validTabs[number];
-  const defaultTab: ValidTab = "videos";
+  const defaultTab: ValidTab = "guide";
 
   const [activeTab, setActiveTab] = useState<ValidTab>(() => {
     const tabFromQuery = searchParams.get('tab') as ValidTab | null;
@@ -53,7 +54,7 @@ export default function SupportPage() {
       <div>
         <h1 className="text-3xl font-headline mb-2 text-primary">KamperHub Support Center</h1>
         <p className="text-muted-foreground font-body mb-6">
-          Find helpful videos, articles, the user manual, and terms of service. For AI assistance, please visit our dedicated Chatbot page.
+          Find resources to help you with your caravanning journey. For AI assistance, please visit our dedicated Chatbot page.
         </p>
       </div>
 
@@ -62,32 +63,42 @@ export default function SupportPage() {
         onValueChange={handleTabChange}
         className="w-full"
       >
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1 sm:gap-2 mb-6 bg-background">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 gap-1 sm:gap-2 mb-6 bg-background">
+          <TabsTrigger 
+            value="guide" 
+            className={`${tabTriggerBaseStyles} ${tabTriggerInactiveStyles} ${tabTriggerActiveStyles}`}
+          >
+            <Rocket className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> Getting Started
+          </TabsTrigger>
           <TabsTrigger 
             value="videos" 
             className={`${tabTriggerBaseStyles} ${tabTriggerInactiveStyles} ${tabTriggerActiveStyles}`}
           >
-            <Video className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> Educational Videos
+            <Video className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> Videos
           </TabsTrigger>
           <TabsTrigger 
             value="articles" 
             className={`${tabTriggerBaseStyles} ${tabTriggerInactiveStyles} ${tabTriggerActiveStyles}`}
           >
-            <FileText className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> Articles & Guides
+            <FileText className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> Articles
           </TabsTrigger>
           <TabsTrigger 
             value="manual" 
             className={`${tabTriggerBaseStyles} ${tabTriggerInactiveStyles} ${tabTriggerActiveStyles}`}
           >
-            <BookText className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> User Manual
+            <BookText className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> Manual
           </TabsTrigger>
           <TabsTrigger 
             value="tos" 
             className={`${tabTriggerBaseStyles} ${tabTriggerInactiveStyles} ${tabTriggerActiveStyles}`}
           >
-            <FileLock2 className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> Terms of Service
+            <FileLock2 className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> Terms
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="guide">
+          <GettingStartedGuide onDismiss={() => {}} isDismissing={false} showDismissButton={false}/>
+        </TabsContent>
 
         <TabsContent value="videos">
           <div className="bg-card p-6 rounded-lg shadow-sm border"> 
