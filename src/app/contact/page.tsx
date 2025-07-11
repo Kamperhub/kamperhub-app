@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail as MailIcon, Send, User, Type, MailOpen, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 const contactFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -25,9 +26,19 @@ type ContactFormData = z.infer<typeof contactFormSchema>;
 export default function ContactPage() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<ContactFormData>({
+  const { user, userProfile } = useAuth();
+  
+  const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<ContactFormData>({
     resolver: zodResolver(contactFormSchema),
   });
+  
+  useEffect(() => {
+    if (user && userProfile) {
+      const fullName = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || userProfile.displayName || user.displayName || '';
+      setValue('name', fullName);
+      setValue('email', userProfile.email || user.email || '');
+    }
+  }, [user, userProfile, setValue]);
 
   const onSubmit: SubmitHandler<ContactFormData> = async (data) => {
     setIsSubmitting(true);
@@ -50,7 +61,9 @@ export default function ContactPage() {
         title: "Message Sent!",
         description: "We've received your message and will get back to you soon.",
       });
-      reset();
+      // Only reset subject and message, keep pre-filled data
+      setValue('subject', '');
+      setValue('message', '');
     } catch (error: any) {
       toast({
         title: "Submission Failed",
@@ -84,7 +97,8 @@ export default function ContactPage() {
                   {...register("name")}
                   placeholder="e.g., Jane Doe"
                   className="font-body pl-10"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !!user}
+                  readOnly={!!user}
                 />
               </div>
               {errors.name && <p className="text-sm text-destructive font-body mt-1">{errors.name.message}</p>}
@@ -100,7 +114,8 @@ export default function ContactPage() {
                   {...register("email")}
                   placeholder="e.g., your.email@example.com"
                   className="font-body pl-10"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !!user}
+                  readOnly={!!user}
                 />
               </div>
               {errors.email && <p className="text-sm text-destructive font-body mt-1">{errors.email.message}</p>}
