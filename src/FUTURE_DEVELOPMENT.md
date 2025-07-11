@@ -95,6 +95,9 @@ This section tracks potential new features and enhancements for future considera
 
 *   **Offline Checklists:**
     *   Investigate options for making checklists (especially for an active trip) available and modifiable offline, with syncing when connectivity is restored.
+    
+*   **Polished Video Placeholders:**
+    *   Source high-quality, relevant placeholder images or short video clips for the "Support & Learn" page to replace the "Coming Soon" text.
 
 ### AI & Automation
 
