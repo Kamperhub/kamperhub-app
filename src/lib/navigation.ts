@@ -98,7 +98,7 @@ export const navItems: NavItem[] = [
     href: '/learn',
     label: 'Support & Learn',
     icon: BookOpen,
-    description: "Access helpful articles, video guides, and the user manual to master your caravanning adventures.",
+    description: "Access helpful articles, guides, and the user manual to master your caravanning adventures.",
     keywords: 'support guide manual'
   },
   {
