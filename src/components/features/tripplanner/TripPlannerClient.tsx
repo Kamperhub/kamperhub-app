@@ -131,7 +131,6 @@ export function TripPlannerClient() {
   const [showFuelStations, setShowFuelStations] = useState(false);
   const [activeFuelStation, setActiveFuelStation] = useState<FuelStation | null>(null);
 
-
   const { data: userPrefs } = useQuery<Partial<UserProfile>>({
     queryKey: ['userPreferences', user?.uid],
     queryFn: fetchUserPreferences,
@@ -196,6 +195,83 @@ export function TripPlannerClient() {
         });
     }
   }, [searchParams, toast]);
+  
+  const calculateRoute = useCallback(async (options: {
+    origin: string;
+    destination: string;
+    shouldAvoidTolls: boolean;
+    isCurrentlyTowing: boolean;
+  }) => {
+    setIsLoading(true);
+    setError(null);
+
+    const activeVehicle = userPrefs?.activeVehicleId ? allVehicles.find(v => v.id === userPrefs.activeVehicleId) : null;
+    const activeCaravan = userPrefs?.activeCaravanId ? allCaravans.find(c => c.id === userPrefs.activeCaravanId) : null;
+
+    let axleCount = 2;
+    if (options.isCurrentlyTowing && activeCaravan?.numberOfAxles) {
+      axleCount += activeCaravan.numberOfAxles;
+    }
+    const vehicleHeight = options.isCurrentlyTowing ? activeCaravan?.overallHeight : activeVehicle?.overallHeight;
+
+    try {
+        const response = await fetch('/api/directions/route', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                origin: options.origin,
+                destination: options.destination,
+                vehicleHeight: vehicleHeight ? vehicleHeight / 1000 : undefined,
+                axleCount: axleCount,
+                avoidTolls: options.shouldAvoidTolls
+            }),
+        });
+
+        const result: RouteDetails = await response.json();
+        if (!response.ok) {
+            throw new Error((result as any).error || 'Failed to calculate route.');
+        }
+        
+        setRouteDetails(result);
+        
+        if (!activeTrip && tripOccupants.length === 0 && user) {
+          const defaultDriver: Occupant = { id: `driver_${Date.now()}`, name: user.displayName || 'Driver', type: 'Adult', weight: 75, notes: null, age: null };
+          setTripOccupants([defaultDriver]);
+          toast({ title: "Default Driver Added", description: "You can edit occupant details as needed." });
+        }
+
+        const currentFormData = getValues();
+        if (result.distance.value > 0 && currentFormData.fuelEfficiency > 0) {
+            const fuelNeeded = (result.distance.value / 1000 / 100) * currentFormData.fuelEfficiency;
+            const estimatedCost = fuelNeeded * currentFormData.fuelPrice;
+            setFuelEstimate({ fuelNeeded: `${fuelNeeded.toFixed(1)} L`, estimatedCost: `$${estimatedCost.toFixed(2)}` });
+        } else {
+            setFuelEstimate(null);
+        }
+
+    } catch (e: any) { 
+        setError(`Error calculating route: ${e.message}`);
+        setRouteDetails(null);
+    } finally { 
+        setIsLoading(false); 
+    }
+  }, [userPrefs, allVehicles, allCaravans, toast, user, getValues, activeTrip, tripOccupants]);
+
+  const onSubmit: SubmitHandler<TripPlannerFormValues> = (data) => {
+    calculateRoute({
+      origin: data.startLocation,
+      destination: data.endLocation,
+      shouldAvoidTolls: avoidTolls,
+      isCurrentlyTowing: isTowing,
+    });
+  };
+
+  useEffect(() => {
+    if (routeDetails) { // Only auto-recalculate if a route is already displayed
+      handleSubmit(onSubmit)();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avoidTolls, isTowing]);
 
   useEffect(() => {
     let recalledTripLoaded = false;
@@ -253,96 +329,6 @@ export function TripPlannerClient() {
       }
     }
   }, [reset, setValue, toast, userPrefs, allVehicles, getValues]); 
-
-  const onSubmit: SubmitHandler<TripPlannerFormValues> = async (data) => {
-    setIsLoading(true);
-    setRouteDetails(null);
-    setFuelEstimate(null);
-    setError(null);
-
-    const activeVehicle = userPrefs?.activeVehicleId ? allVehicles.find(v => v.id === userPrefs.activeVehicleId) : null;
-    const activeCaravan = userPrefs?.activeCaravanId ? allCaravans.find(c => c.id === userPrefs.activeCaravanId) : null;
-
-    let axleCount = 2; // Assume vehicle has 2 axles
-    if (isTowing && activeCaravan && activeCaravan.numberOfAxles) {
-      axleCount += activeCaravan.numberOfAxles;
-    }
-    const vehicleHeight = isTowing ? activeCaravan?.overallHeight : activeVehicle?.overallHeight;
-
-    try {
-        const response = await fetch('/api/directions/route', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                origin: data.startLocation,
-                destination: data.endLocation,
-                vehicleHeight: vehicleHeight ? vehicleHeight / 1000 : undefined,
-                axleCount: axleCount,
-                avoidTolls: avoidTolls
-            }),
-        });
-
-        const result: RouteDetails = await response.json();
-        if (!response.ok) {
-            throw new Error((result as any).error || 'Failed to calculate route.');
-        }
-        
-        setRouteDetails(result);
-        
-        if (tripOccupants.length === 0 && user) {
-          const defaultDriver: Occupant = {
-            id: `driver_${Date.now()}`,
-            name: user.displayName || 'Driver',
-            type: 'Adult',
-            weight: 75,
-            notes: null,
-            age: null,
-          };
-          setTripOccupants([defaultDriver]);
-          toast({
-            title: "Default Driver Added",
-            description: "A default driver has been added. You can edit their details as needed.",
-            duration: 6000,
-          });
-        }
-
-        setTripBudget(prevBudget => {
-            const newBudget = [...prevBudget];
-
-            if (result.distance.value > 0 && data.fuelEfficiency > 0) {
-                const fuelNeeded = (result.distance.value / 1000 / 100) * data.fuelEfficiency;
-                const estimatedCost = fuelNeeded * data.fuelPrice;
-                setFuelEstimate({ fuelNeeded: `${fuelNeeded.toFixed(1)} L`, estimatedCost: `$${estimatedCost.toFixed(2)}` });
-
-                const fuelCategoryName = "Fuel";
-                const existingFuelCategoryIndex = newBudget.findIndex(cat => cat.name.toLowerCase() === fuelCategoryName.toLowerCase());
-
-                if (existingFuelCategoryIndex > -1) {
-                    newBudget[existingFuelCategoryIndex] = { ...newBudget[existingFuelCategoryIndex], budgetedAmount: estimatedCost };
-                } else {
-                    newBudget.push({ id: `fuel_${Date.now()}`, name: fuelCategoryName, budgetedAmount: estimatedCost });
-                }
-            }
-            if (result.tollInfo && result.tollInfo.value > 0) {
-                const tollCategoryName = "Tolls";
-                const existingTollCategoryIndex = newBudget.findIndex(cat => cat.name.toLowerCase() === tollCategoryName.toLowerCase());
-
-                if (existingTollCategoryIndex > -1) {
-                    newBudget[existingTollCategoryIndex] = { ...newBudget[existingTollCategoryIndex], budgetedAmount: result.tollInfo.value };
-                } else {
-                    newBudget.push({ id: `tolls_${Date.now()}`, name: tollCategoryName, budgetedAmount: result.tollInfo.value });
-                }
-            }
-            return newBudget;
-        });
-
-    } catch (e: any) { 
-        setError(`Error calculating route: ${e.message}`);
-        console.error("Route Calculation Error:", e);
-    } finally { 
-        setIsLoading(false); 
-    }
-  };
 
   const createTripMutation = useMutation({
     mutationFn: (data: Omit<LoggedTrip, 'id' | 'timestamp'>) => createTrip(data),
