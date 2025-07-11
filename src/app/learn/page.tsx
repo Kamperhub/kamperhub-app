@@ -1,14 +1,12 @@
-
 "use client";
 
 import Link from 'next/link'; 
-import { VideoCard } from '@/components/features/learn/VideoCard';
 import { ArticleDisplayCard } from '@/components/features/learn/ArticleDisplayCard';
 import { UserManualContent } from '@/components/features/learn/UserManualContent'; 
 import { TermsOfServiceContent } from '@/components/features/learn/TermsOfServiceContent';
 import { GettingStartedGuide } from '@/components/features/dashboard/GettingStartedGuide';
-import { sampleVideos, staticCaravanningArticles, type AiGeneratedArticle } from '@/types/learn'; 
-import { FileText, Youtube, Video, BookText, FileLock2, Rocket } from 'lucide-react';
+import { staticCaravanningArticles, type AiGeneratedArticle } from '@/types/learn'; 
+import { FileText, BookText, FileLock2, Rocket } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -19,7 +17,7 @@ export default function SupportPage() {
   const searchParams = useSearchParams();
   const articles: AiGeneratedArticle[] = staticCaravanningArticles;
 
-  const validTabs = ["guide", "videos", "articles", "manual", "tos"] as const;
+  const validTabs = ["guide", "articles", "manual", "tos"] as const;
   type ValidTab = typeof validTabs[number];
   const defaultTab: ValidTab = "guide";
 
@@ -63,18 +61,12 @@ export default function SupportPage() {
         onValueChange={handleTabChange}
         className="w-full"
       >
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 gap-1 sm:gap-2 mb-6 bg-background">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1 sm:gap-2 mb-6 bg-background">
           <TabsTrigger 
             value="guide" 
             className={`${tabTriggerBaseStyles} ${tabTriggerInactiveStyles} ${tabTriggerActiveStyles}`}
           >
             <Rocket className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> Getting Started
-          </TabsTrigger>
-          <TabsTrigger 
-            value="videos" 
-            className={`${tabTriggerBaseStyles} ${tabTriggerInactiveStyles} ${tabTriggerActiveStyles}`}
-          >
-            <Video className="mr-1 xxs:mr-2 h-4 w-4 xxs:h-5 xxs:w-5" /> Videos
           </TabsTrigger>
           <TabsTrigger 
             value="articles" 
@@ -98,27 +90,6 @@ export default function SupportPage() {
 
         <TabsContent value="guide">
           <GettingStartedGuide onDismiss={() => {}} isDismissing={false} showDismissButton={false}/>
-        </TabsContent>
-
-        <TabsContent value="videos">
-          <div className="bg-card p-6 rounded-lg shadow-sm border"> 
-            <div className="mb-4"> 
-              <h2 className="font-headline text-2xl text-primary flex items-center mb-1"> 
-                <Youtube className="h-7 w-7 text-primary mr-3" />
-                Educational Videos
-              </h2>
-              <p className="text-muted-foreground font-body">
-                Browse our curated list of YouTube videos to learn more about caravanning.
-              </p>
-            </div>
-            <div> 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {sampleVideos.map(video => (
-                  <VideoCard key={video.id} video={video} />
-                ))}
-              </div>
-            </div>
-          </div>
         </TabsContent>
 
         <TabsContent value="articles">
