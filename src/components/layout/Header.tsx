@@ -3,13 +3,37 @@
 import React, { useContext } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, UserCircle, LogIn, LogOut, MessageSquare, Loader2 } from 'lucide-react';
+import { Home, UserCircle, LogIn, LogOut, MessageSquare, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { NavigationContext } from './AppShell';
+
+const EnvironmentBanner = () => {
+  const appEnv = process.env.NEXT_PUBLIC_APP_ENV;
+
+  if (appEnv === 'production') {
+    return (
+      <div className="bg-green-600 text-white text-center text-xs font-bold py-1">
+        Production Mode
+      </div>
+    );
+  }
+
+  if (appEnv === 'development') {
+     return (
+      <div className="bg-yellow-500 text-black text-center text-xs font-bold py-1 flex items-center justify-center">
+        <AlertTriangle className="h-3 w-3 mr-1.5" />
+        Development Mode
+      </div>
+    );
+  }
+
+  return null;
+};
+
 
 export function Header() {
   const { user, userProfile, isAuthLoading } = useAuth();
@@ -41,6 +65,7 @@ export function Header() {
 
   return (
     <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-40">
+       <EnvironmentBanner />
       <div className="container mx-auto px-4 py-3 flex items-center justify-between h-[68px]">
         <Link href="/" className="flex items-center" onClick={handleNavigation}>
           <Image
