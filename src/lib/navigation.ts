@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, Globe, WorldMap } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, Globe } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -11,7 +11,6 @@ export interface NavItem {
 }
 
 // This is the new central hub for all travel-related pages.
-// THIS IS THE CORRECT, STATIC DEFINITION.
 export const tripManagerItems: NavItem[] = [
   {
     href: '/journeys',
@@ -44,7 +43,7 @@ export const tripManagerItems: NavItem[] = [
   {
     href: '/world-map',
     label: 'World Map',
-    icon: WorldMap,
+    icon: Globe, // Corrected from the non-existent WorldMap icon
     description: "View all your completed trips and journeys on an interactive global map. Explore your travel history at a glance.",
     keywords: 'world map history travel'
   },
@@ -52,7 +51,6 @@ export const tripManagerItems: NavItem[] = [
 
 
 // Main navigation items for the dashboard grid. 
-// THIS IS THE CORRECT, CONSOLIDATED LIST. "Journeys" and "World Map" have been correctly removed.
 export const navItems: NavItem[] = [
   {
     href: '/dashboard-details',
@@ -119,7 +117,7 @@ export const navItems: NavItem[] = [
   },
 ];
 
-// Specific items for the /dashboard-details page (this remains the same)
+// Specific items for the /dashboard-details page
 export const dashboardDetailItems: NavItem[] = [
   {
     href: '/stats',
