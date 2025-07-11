@@ -20,6 +20,7 @@ export interface UserProfile {
   createdAt: string; // ISO Date string or Firestore Timestamp
   updatedAt?: string; // ISO Date string or Firestore Timestamp
   isAdmin?: boolean;
+  hasDismissedGettingStartedGuide?: boolean; // New field to track guide dismissal
 
   // User Preferences
   activeVehicleId?: string | null;

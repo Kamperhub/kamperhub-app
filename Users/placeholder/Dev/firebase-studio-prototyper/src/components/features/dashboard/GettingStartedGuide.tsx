@@ -3,9 +3,9 @@
 
 import { useContext } from 'react';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Rocket, Settings, Backpack, Route as RouteIcon, ChevronRight } from 'lucide-react';
+import { Rocket, Settings, Backpack, Route as RouteIcon, ChevronRight, X, Loader2 } from 'lucide-react';
 import { NavigationContext } from '@/components/layout/AppShell';
 
 const guideSteps = [
@@ -35,7 +35,12 @@ const guideSteps = [
   },
 ];
 
-export function GettingStartedGuide() {
+interface GettingStartedGuideProps {
+  onDismiss: () => void;
+  isDismissing: boolean;
+}
+
+export function GettingStartedGuide({ onDismiss, isDismissing }: GettingStartedGuideProps) {
   const navContext = useContext(NavigationContext);
 
   const handleNavigation = () => {
@@ -75,6 +80,12 @@ export function GettingStartedGuide() {
           </div>
         ))}
       </CardContent>
+      <CardFooter>
+        <Button variant="outline" onClick={onDismiss} disabled={isDismissing} className="ml-auto">
+            {isDismissing ? <Loader2 className="h-4 w-4 mr-2 animate-spin"/> : <X className="h-4 w-4 mr-2" />}
+            {isDismissing ? "Dismissing..." : "Dismiss Guide"}
+        </Button>
+      </CardFooter>
     </Card>
   );
 }

@@ -55,13 +55,14 @@ export default function DashboardPage() {
   }, [userPrefs]);
   
   const updateUserPreferencesMutation = useMutation({
-    mutationFn: (newLayout: string[]) => updateUserPreferences({ dashboardLayout: newLayout }),
-    onError: (error) => {
-      toast({ title: "Layout Save Failed", description: (error as Error).message, variant: "destructive" });
-    },
+    mutationFn: (prefs: { dashboardLayout?: string[]; hasDismissedGettingStartedGuide?: boolean }) => updateUserPreferences(prefs),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userProfile', user?.uid] });
-    }
+      queryClient.invalidateQueries({ queryKey: ['allVehicleData', user?.uid] }); // Invalidate this as it contains userProfile
+    },
+    onError: (error) => {
+      toast({ title: "Preference Save Failed", description: (error as Error).message, variant: "destructive" });
+    },
   });
 
   const sensors = useSensors(
@@ -79,12 +80,19 @@ export default function DashboardPage() {
       const newOrderedItems = arrayMove(orderedNavItems, oldIndex, newIndex);
       
       const newLayoutHrefs = newOrderedItems.map(item => item.href);
-      updateUserPreferencesMutation.mutate(newLayoutHrefs);
+      updateUserPreferencesMutation.mutate({ dashboardLayout: newLayoutHrefs });
     }
   };
   
   const itemHrefs = useMemo(() => orderedNavItems.map(item => item.href), [orderedNavItems]);
-  const isNewUser = !pageData?.vehicles || pageData.vehicles.length === 0;
+  
+  // New logic for showing the guide
+  const isNewUser = (!pageData?.vehicles || pageData.vehicles.length === 0) && (!pageData?.trips || pageData.trips.length === 0);
+  const showGettingStartedGuide = isNewUser && !userPrefs?.hasDismissedGettingStartedGuide;
+
+  const handleDismissGuide = () => {
+    updateUserPreferencesMutation.mutate({ hasDismissedGettingStartedGuide: true });
+  };
 
   if (isAuthLoading || isLoadingData) {
     return (
@@ -142,8 +150,8 @@ export default function DashboardPage() {
         </div>
       </div>
       
-      {isNewUser ? (
-        <GettingStartedGuide />
+      {showGettingStartedGuide ? (
+        <GettingStartedGuide onDismiss={handleDismissGuide} isDismissing={updateUserPreferencesMutation.isPending} />
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={itemHrefs} strategy={rectSortingStrategy}>
