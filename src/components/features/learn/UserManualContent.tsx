@@ -91,7 +91,8 @@ export function UserManualContent() {
             <li>
                 <strong>Trip Planner:</strong> This is where you plan the individual legs of your travels.
                 <ul className="list-circle pl-5 space-y-1">
-                    <li><strong>Itinerary Planning:</strong> Plan A-to-B routes with Google Maps, factoring in vehicle height for safety. Get estimates for distance, duration, and fuel.</li>
+                    <li><strong>Itinerary Planning:</strong> Plan A-to-B routes with Google Maps, factoring in the maximum height of your vehicle/caravan combination for safety. Get estimates for distance, duration, and fuel.</li>
+                    <li><strong>Route Options:</strong> Use the interactive toggles to automatically recalculate your route to avoid tolls or to show potential fuel stations along your path.</li>
                     <li><strong>Vehicle-Only Trips:</strong> Use the "Towing a caravan?" switch to plan trips without a caravan, which uses a simplified checklist template.</li>
                     <li><strong>Budgeting & Expenses:</strong> Set budgets for categories like Fuel and Accommodation, then track your actual spending against them for each trip.</li>
                     <li><strong>Occupants:</strong> Manage travelers for each trip to ensure accurate weight calculations and to generate personalized packing lists.</li>
