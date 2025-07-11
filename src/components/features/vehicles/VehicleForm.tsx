@@ -30,15 +30,15 @@ const vehicleSchema = z.object({
   make: z.string().min(1, "Make is required"),
   model: z.string().min(1, "Model is required"),
   year: z.coerce.number().min(1900, "Invalid year").max(new Date().getFullYear() + 2, "Invalid year"),
-  gvm: z.coerce.number().positive("GVM must be positive"),
-  gcm: z.coerce.number().positive("GCM must be positive"),
-  maxTowCapacity: z.coerce.number().positive("Max Towing Capacity must be positive"),
-  maxTowballMass: z.coerce.number().positive("Max Towball Mass must be positive"),
-  fuelEfficiency: z.coerce.number().min(0.1, "Fuel efficiency must be positive (Litres/100km)").max(100, "Fuel efficiency seems too high (max 100 Litres/100km)"),
+  gvm: z.coerce.number().positive("GVM must be a positive number"),
+  gcm: z.coerce.number().positive("GCM must be a positive number"),
+  maxTowCapacity: z.coerce.number().positive("Max Towing Capacity must be a positive number"),
+  maxTowballMass: z.coerce.number().positive("Max Towball Mass must be a positive number"),
+  fuelEfficiency: z.coerce.number().min(0.1, "Fuel efficiency must be a positive number (Litres/100km)").max(100, "Fuel efficiency seems too high (max 100 Litres/100km)"),
   kerbWeight: z.coerce.number().min(1, "Kerb Weight must be a positive number").optional().nullable(),
   frontAxleLimit: z.coerce.number().min(1, "Front Axle Limit must be a positive number").optional().nullable(),
   rearAxleLimit: z.coerce.number().min(1, "Rear Axle Limit must be a positive number").optional().nullable(),
-  wheelbase: z.coerce.number().min(1000, "Wheelbase seems too short (min 1000mm)").optional().nullable(),
+  wheelbase: z.coerce.number().min(1, "Wheelbase must be a positive number").optional().nullable(),
   overallHeight: z.coerce.number().min(1, "Height must be positive").optional().nullable(),
   recommendedTyrePressureUnladenPsi: z.coerce.number().min(0).optional().nullable(),
   recommendedTyrePressureLadenPsi: z.coerce.number().min(0).optional().nullable(),
@@ -139,17 +139,17 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
         <h3 className="text-lg font-medium font-headline text-primary flex items-center"><Info className="mr-2 h-5 w-5"/> Basic Information</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="md:col-span-2">
-            <Label htmlFor="make" className="font-body">Make</Label>
+            <Label htmlFor="make" className="font-body">Make*</Label>
             <Input id="make" {...register("make")} placeholder="e.g., Ford" className="font-body" />
             {errors.make && <p className="text-sm text-destructive font-body mt-1">{errors.make.message}</p>}
           </div>
           <div className="md:col-span-2">
-            <Label htmlFor="model" className="font-body">Model</Label>
+            <Label htmlFor="model" className="font-body">Model*</Label>
             <Input id="model" {...register("model")} placeholder="e.g., Ranger" className="font-body" />
             {errors.model && <p className="text-sm text-destructive font-body mt-1">{errors.model.message}</p>}
           </div>
           <div>
-            <Label htmlFor="year" className="font-body">Year</Label>
+            <Label htmlFor="year" className="font-body">Year*</Label>
             <Input id="year" type="number" {...register("year")} placeholder="e.g., 2022" className="font-body" />
             {errors.year && <p className="text-sm text-destructive font-body mt-1">{errors.year.message}</p>}
           </div>
@@ -166,13 +166,13 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
         <h3 className="text-lg font-medium font-headline text-primary flex items-center"><Weight className="mr-2 h-5 w-5"/> Weight Specifications</h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="gvm" className="font-body">Gross Vehicle Mass (GVM) (kg)</Label>
+            <Label htmlFor="gvm" className="font-body">Gross Vehicle Mass (GVM) (kg)*</Label>
             <Input id="gvm" type="number" {...register("gvm")} placeholder="e.g., 3200" className="font-body" />
             <p className="text-xs text-muted-foreground font-body mt-1">Max operating weight of the vehicle.</p>
             {errors.gvm && <p className="text-sm text-destructive font-body mt-1">{errors.gvm.message}</p>}
           </div>
           <div>
-            <Label htmlFor="gcm" className="font-body">Gross Combined Mass (GCM) (kg)</Label>
+            <Label htmlFor="gcm" className="font-body">Gross Combined Mass (GCM) (kg)*</Label>
             <Input id="gcm" type="number" {...register("gcm")} placeholder="e.g., 6000" className="font-body" />
             <p className="text-xs text-muted-foreground font-body mt-1">Max combined weight of vehicle and trailer.</p>
             {errors.gcm && <p className="text-sm text-destructive font-body mt-1">{errors.gcm.message}</p>}
@@ -199,13 +199,13 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
 
         <div className="grid grid-cols-2 gap-4 mt-4">
           <div>
-            <Label htmlFor="maxTowCapacity" className="font-body">Max Towing Capacity (kg)</Label>
+            <Label htmlFor="maxTowCapacity" className="font-body">Max Towing Capacity (kg)*</Label>
             <Input id="maxTowCapacity" type="number" {...register("maxTowCapacity")} placeholder="e.g., 3500" className="font-body" />
             <p className="text-xs text-muted-foreground font-body mt-1">Max trailer ATM vehicle can tow.</p>
             {errors.maxTowCapacity && <p className="text-sm text-destructive font-body mt-1">{errors.maxTowCapacity.message}</p>}
           </div>
           <div>
-            <Label htmlFor="maxTowballMass" className="font-body">Max Towball Mass (kg)</Label>
+            <Label htmlFor="maxTowballMass" className="font-body">Max Towball Mass (kg)*</Label>
             <Input id="maxTowballMass" type="number" {...register("maxTowballMass")} placeholder="e.g., 350" className="font-body" />
             <p className="text-xs text-muted-foreground font-body mt-1">Max weight vehicle's towbar can support.</p>
             {errors.maxTowballMass && <p className="text-sm text-destructive font-body mt-1">{errors.maxTowballMass.message}</p>}
@@ -229,27 +229,27 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
         <h3 className="text-lg font-medium font-headline text-primary flex items-center"><Fuel className="mr-2 h-5 w-5"/> Dimensions, Fuel & Tyres</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div>
-            <Label htmlFor="wheelbase" className="font-body"><Ruler className="inline h-4 w-4 mr-1"/> Wheelbase (mm)</Label>
+            <Label htmlFor="wheelbase" className="font-body"><Ruler className="inline h-4 w-4 mr-1"/> Wheelbase (mm) (Optional)</Label>
             <Input id="wheelbase" type="number" {...register("wheelbase")} placeholder="e.g., 3220" className="font-body" />
             {errors.wheelbase && <p className="text-sm text-destructive font-body mt-1">{errors.wheelbase.message}</p>}
           </div>
           <div>
-            <Label htmlFor="overallHeight" className="font-body"><Ruler className="inline h-4 w-4 mr-1"/> Overall Height (mm)</Label>
+            <Label htmlFor="overallHeight" className="font-body"><Ruler className="inline h-4 w-4 mr-1"/> Overall Height (mm) (Optional)</Label>
             <Input id="overallHeight" type="number" {...register("overallHeight")} placeholder="e.g., 1850" className="font-body" />
             {errors.overallHeight && <p className="text-sm text-destructive font-body mt-1">{errors.overallHeight.message}</p>}
           </div>
           <div>
-            <Label htmlFor="fuelEfficiency" className="font-body">Fuel L/100km</Label>
+            <Label htmlFor="fuelEfficiency" className="font-body">Fuel L/100km*</Label>
             <Input id="fuelEfficiency" type="number" step="0.1" {...register("fuelEfficiency")} placeholder="e.g., 12.5" className="font-body" />
             {errors.fuelEfficiency && <p className="text-sm text-destructive font-body mt-1">{errors.fuelEfficiency.message}</p>}
           </div>
           <div className="md:col-start-1">
-            <Label htmlFor="recommendedTyrePressureUnladenPsi" className="font-body"><Disc className="inline h-4 w-4 mr-1"/> Tyre PSI (Unladen)</Label>
+            <Label htmlFor="recommendedTyrePressureUnladenPsi" className="font-body"><Disc className="inline h-4 w-4 mr-1"/> Tyre PSI (Unladen) (Optional)</Label>
             <Input id="recommendedTyrePressureUnladenPsi" type="number" {...register("recommendedTyrePressureUnladenPsi")} placeholder="e.g., 36" className="font-body" />
             {errors.recommendedTyrePressureUnladenPsi && <p className="text-sm text-destructive font-body mt-1">{errors.recommendedTyrePressureUnladenPsi.message}</p>}
           </div>
           <div>
-            <Label htmlFor="recommendedTyrePressureLadenPsi" className="font-body"><Disc className="inline h-4 w-4 mr-1"/> Tyre PSI (Laden)</Label>
+            <Label htmlFor="recommendedTyrePressureLadenPsi" className="font-body"><Disc className="inline h-4 w-4 mr-1"/> Tyre PSI (Laden) (Optional)</Label>
             <Input id="recommendedTyrePressureLadenPsi" type="number" {...register("recommendedTyrePressureLadenPsi")} placeholder="e.g., 42" className="font-body" />
             {errors.recommendedTyrePressureLadenPsi && <p className="text-sm text-destructive font-body mt-1">{errors.recommendedTyrePressureLadenPsi.message}</p>}
           </div>
@@ -275,17 +275,17 @@ export function VehicleForm({ initialData, onSave, onCancel, isLoading }: Vehicl
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div className="sm:col-span-3">
-                    <Label htmlFor={`storageLocations.${index}.name`} className="text-xs font-body">Name</Label>
+                    <Label htmlFor={`storageLocations.${index}.name`} className="text-xs font-body">Name*</Label>
                     <Input {...register(`storageLocations.${index}.name`)} placeholder="e.g., Boot, Roof Box" className="font-body bg-background text-sm h-9"/>
                     {errors.storageLocations?.[index]?.name && <p className="text-xs text-destructive font-body mt-1">{errors.storageLocations[index]?.name?.message}</p>}
                 </div>
                  <div>
-                    <Label htmlFor={`storageLocations.${index}.longitudinalPosition`} className="text-xs font-body">Longitudinal</Label>
+                    <Label htmlFor={`storageLocations.${index}.longitudinalPosition`} className="text-xs font-body">Longitudinal*</Label>
                     <Controller name={`storageLocations.${index}.longitudinalPosition`} control={control} render={({ field: controllerField }) => (<Select onValueChange={controllerField.onChange} value={controllerField.value} ><SelectTrigger className="font-body bg-background text-sm h-9"><SelectValue placeholder="Select position" /></SelectTrigger><SelectContent><SelectItem value="front-of-front-axle">Front of Front Axle</SelectItem><SelectItem value="between-axles">Between Axles</SelectItem><SelectItem value="rear-of-rear-axle">Rear of Rear Axle</SelectItem><SelectItem value="roof-center">Roof (Centered)</SelectItem></SelectContent></Select>)}/>
                     {errors.storageLocations?.[index]?.longitudinalPosition && <p className="text-xs text-destructive font-body mt-1">{errors.storageLocations[index]?.longitudinalPosition?.message}</p>}
                 </div>
                 <div>
-                    <Label htmlFor={`storageLocations.${index}.lateralPosition`} className="text-xs font-body">Lateral</Label>
+                    <Label htmlFor={`storageLocations.${index}.lateralPosition`} className="text-xs font-body">Lateral*</Label>
                     <Controller name={`storageLocations.${index}.lateralPosition`} control={control} render={({ field: controllerField }) => (<Select onValueChange={controllerField.onChange} value={controllerField.value}><SelectTrigger className="font-body bg-background text-sm h-9"><SelectValue placeholder="Select position" /></SelectTrigger><SelectContent><SelectItem value="left">Left</SelectItem><SelectItem value="center">Center</SelectItem><SelectItem value="right">Right</SelectItem></SelectContent></Select>)}/>
                     {errors.storageLocations?.[index]?.lateralPosition && <p className="text-xs text-destructive font-body mt-1">{errors.storageLocations[index]?.lateralPosition?.message}</p>}
                 </div>
