@@ -8,7 +8,8 @@ interface VideoCardProps {
 }
 
 export function VideoCard({ video }: VideoCardProps) {
-  const placeholderUrl = `https://placehold.co/600x400.png`;
+  // Use the dataAiHint to create a more specific placeholder image URL
+  const placeholderUrl = `https://placehold.co/600x400.png?text=${encodeURIComponent(video.title)}`;
 
   return (
     <Card className="flex flex-col h-full shadow-lg hover:shadow-xl transition-shadow duration-300">

@@ -23,7 +23,7 @@ export const sampleVideos: EducationalVideo[] = [
     description: 'A comprehensive guide to your first campsite arrival and setup process, ensuring a smooth start to your stay.',
     videoId: 'L_jWHffIx5E',
     category: 'Setup & Arrival',
-    dataAiHint: 'campsite arrival'
+    dataAiHint: 'campsite setup'
   },
   {
     id: 'vid2',
@@ -31,7 +31,7 @@ export const sampleVideos: EducationalVideo[] = [
     description: 'Master the art of reversing and parking your caravan with these practical tips and techniques for all skill levels.',
     videoId: 'jNQXAC9IVRw',
     category: 'Driving & Maneuvering',
-    dataAiHint: 'caravan reverse'
+    dataAiHint: 'caravan reversing'
   },
   {
     id: 'vid3',
@@ -39,7 +39,7 @@ export const sampleVideos: EducationalVideo[] = [
     description: 'Demystifying crucial caravan weights like ATM, GVM, and Tow Ball Weight, and why they are vital for safe towing.',
     videoId: 'M7lc1UVf-VE',
     category: 'Weights & Safety',
-    dataAiHint: 'caravan weights'
+    dataAiHint: 'caravan weighbridge'
   },
   {
     id: 'vid4',
@@ -47,7 +47,7 @@ export const sampleVideos: EducationalVideo[] = [
     description: 'Learn how to safely handle a flat tyre or a sudden blowout on your caravan while on the road.',
     videoId: '_MygxyR0k4',
     category: 'Maintenance & Troubleshooting',
-    dataAiHint: 'flat tyre'
+    dataAiHint: 'tyre change'
   },
   {
     id: 'vid5',
@@ -55,7 +55,7 @@ export const sampleVideos: EducationalVideo[] = [
     description: 'A complete guide to your caravan\'s electrical systems, including 12V, 240V, solar power, and battery management.',
     videoId: '09839XhXYps',
     category: 'On-Road Living',
-    dataAiHint: 'caravan power'
+    dataAiHint: 'solar panels'
   },
   {
     id: 'vid6',
@@ -63,7 +63,7 @@ export const sampleVideos: EducationalVideo[] = [
     description: 'Everything you need to know about managing water in your caravan: filling tanks, handling grey/black water, and conservation.',
     videoId: 'LXb3EKWsInQ',
     category: 'On-Road Living',
-    dataAiHint: 'water management'
+    dataAiHint: 'water tank'
   },
   {
     id: 'vid7',
@@ -79,7 +79,7 @@ export const sampleVideos: EducationalVideo[] = [
     description: 'A step-by-step, hygienic guide to emptying and maintaining your caravan\'s toilet cassette or black water tank.',
     videoId: 'Q7HXT3askF8',
     category: 'On-Road Living',
-    dataAiHint: 'toilet cassette'
+    dataAiHint: 'dump point'
   },
   {
     id: 'vid9',
@@ -87,7 +87,7 @@ export const sampleVideos: EducationalVideo[] = [
     description: 'Effective techniques for safely navigating narrow roads, tight turns, and other challenging spots with your caravan.',
     videoId: 's04078C2Z5g',
     category: 'Driving & Maneuvering',
-    dataAiHint: 'tricky roads'
+    dataAiHint: 'narrow road'
   },
   {
     id: 'vid10',
@@ -95,7 +95,7 @@ export const sampleVideos: EducationalVideo[] = [
     description: 'How to prepare your caravan and stay safe when encountering unexpected weather conditions like strong winds, heavy rain, or storms.',
     videoId: 'e_SLF0Z2AbQ',
     category: 'Safety & Preparedness',
-    dataAiHint: 'bad weather'
+    dataAiHint: 'stormy weather'
   },
   {
     id: 'vid11',
@@ -103,7 +103,7 @@ export const sampleVideos: EducationalVideo[] = [
     description: 'Valuable tips on selecting campsites that best suit your caravanning experience level and preferences.',
     videoId: 'kY6nqtB0eXI',
     category: 'Planning & Lifestyle',
-    dataAiHint: 'choose campsite'
+    dataAiHint: 'campsite choice'
   },
   {
     id: 'vid12',
@@ -111,7 +111,7 @@ export const sampleVideos: EducationalVideo[] = [
     description: 'A guide to essential caravan maintenance tasks you can (and should) perform while on your travels to keep things running smoothly.',
     videoId: 'LXb3EKWsInQ',
     category: 'Maintenance & Troubleshooting',
-    dataAiHint: 'road maintenance'
+    dataAiHint: 'roadside maintenance'
   },
   {
     id: 'vid13',
@@ -159,7 +159,7 @@ export const sampleVideos: EducationalVideo[] = [
     description: 'An essential overview of important road rules and regulations that specifically apply when you are towing a caravan.',
     videoId: 's04078C2Z5g',
     category: 'Driving & Maneuvering',
-    dataAiHint: 'caravan rules'
+    dataAiHint: 'road rules'
   },
   {
     id: 'vid19',
@@ -167,7 +167,7 @@ export const sampleVideos: EducationalVideo[] = [
     description: 'Key planning considerations and steps for successfully embarking on your first extended caravan adventure or the iconic "Big Lap".',
     videoId: 'V_4j922o41k',
     category: 'Planning & Lifestyle',
-    dataAiHint: 'long trip'
+    dataAiHint: 'map planning'
   },
   {
     id: 'vid20',
