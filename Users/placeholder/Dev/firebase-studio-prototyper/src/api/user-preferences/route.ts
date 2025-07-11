@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
@@ -56,6 +55,7 @@ const userPreferencesUpdateSchema = z
     city: z.string().optional(),
     state: z.string().optional(),
     country: z.string().optional(),
+    homeAddress: z.string().optional().nullable(),
   })
   .refine(
     (obj) => Object.values(obj).some((v) => v !== undefined),
