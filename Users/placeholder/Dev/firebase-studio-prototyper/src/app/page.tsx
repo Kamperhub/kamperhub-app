@@ -1,30 +1,39 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo, useContext } from 'react';
-import { useQueryClient, useMutation } from '@tanstack/react-query';
-import type { NavItem } from '@/lib/navigation';
-import { navItems as defaultNavItems } from '@/lib/navigation';
+import React, { useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } from '@dnd-kit/sortable';
-import { SortableNavItemCard } from '@/components/features/dashboard/SortableNavItemCard';
-import { Button } from '@/components/ui/button';
-import { Car, CornerDownLeft } from 'lucide-react';
 import Image from 'next/image';
-import { updateUserPreferences } from '@/lib/api-client';
+import type { NavItem } from '@/lib/navigation';
+import { navItems as defaultNavItems } from '@/lib/navigation';
+import { updateUserPreferences, fetchAllVehicleData } from '@/lib/api-client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { NavigationContext } from '@/components/layout/AppShell';
+
+import { SortableNavItemCard } from '@/components/features/dashboard/SortableNavItemCard';
+import { GettingStartedGuide } from '@/components/features/dashboard/GettingStartedGuide';
+import { Button } from '@/components/ui/button';
+import { Car, CornerDownLeft, Loader2 } from 'lucide-react';
 import { StartTripDialog } from '@/components/features/dashboard/StartTripDialog';
 import { ReturnTripDialog } from '@/components/features/dashboard/ReturnTripDialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 export default function DashboardPage() {
-  const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>(defaultNavItems);
-  const { user, userProfile: userPrefs } = useAuth();
+  const { user, userProfile: userPrefs, isAuthLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  useEffect(() => {
+  const { data: pageData, isLoading: isLoadingData, error: dataError } = useQuery({
+    queryKey: ['allVehicleData', user?.uid],
+    queryFn: fetchAllVehicleData,
+    enabled: !!user,
+  });
+
+  const orderedNavItems = useMemo(() => {
     const mainPageNavItems = defaultNavItems;
     const storedLayoutHrefs = userPrefs?.dashboardLayout;
 
@@ -40,10 +49,9 @@ export default function DashboardPage() {
         }
       });
       finalItems = finalItems.filter(item => currentMainPageHrefs.has(item.href));
-      setOrderedNavItems(finalItems);
-    } else {
-      setOrderedNavItems(mainPageNavItems);
+      return finalItems;
     }
+    return mainPageNavItems;
   }, [userPrefs]);
   
   const updateUserPreferencesMutation = useMutation({
@@ -52,7 +60,7 @@ export default function DashboardPage() {
       toast({ title: "Layout Save Failed", description: (error as Error).message, variant: "destructive" });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
+      queryClient.invalidateQueries({ queryKey: ['userProfile', user?.uid] });
     }
   });
 
@@ -71,7 +79,6 @@ export default function DashboardPage() {
         const newIndex = items.findIndex(item => item.href === over?.id);
         const newOrderedItems = arrayMove(items, oldIndex, newIndex);
         
-        // Save the new layout to user preferences
         const newLayoutHrefs = newOrderedItems.map(item => item.href);
         updateUserPreferencesMutation.mutate(newLayoutHrefs);
         
@@ -81,6 +88,35 @@ export default function DashboardPage() {
   };
   
   const itemHrefs = useMemo(() => orderedNavItems.map(item => item.href), [orderedNavItems]);
+  const isNewUser = !pageData?.vehicles || pageData.vehicles.length === 0;
+
+  if (isAuthLoading || isLoadingData) {
+    return (
+        <div className="space-y-8">
+            <div className="flex items-center gap-4">
+                <Skeleton className="h-16 w-16 rounded-md"/>
+                <div className="space-y-2">
+                    <Skeleton className="h-8 w-64"/>
+                    <Skeleton className="h-5 w-80"/>
+                </div>
+            </div>
+            <Skeleton className="h-48 w-full"/>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
+            </div>
+        </div>
+    );
+  }
+
+  if (dataError) {
+      return (
+          <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Error Loading Dashboard</AlertTitle>
+              <AlertDescription>{(dataError as Error).message}</AlertDescription>
+          </Alert>
+      );
+  }
 
   return (
     <div className="space-y-8">
@@ -110,15 +146,19 @@ export default function DashboardPage() {
         </div>
       </div>
       
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={itemHrefs} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {orderedNavItems.map((item) => (
-              <SortableNavItemCard key={item.href} id={item.href} item={item} />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+      {isNewUser ? (
+        <GettingStartedGuide />
+      ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={itemHrefs} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {orderedNavItems.map((item) => (
+                <SortableNavItemCard key={item.href} id={item.href} item={item} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
     </div>
   );
 }
