@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, WorldMap } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, Globe, WorldMap } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -10,21 +10,22 @@ export interface NavItem {
   keywords: string;
 }
 
-// This is now the central hub for all travel-related pages.
+// This is the new central hub for all travel-related pages.
+// THIS IS THE CORRECT, STATIC DEFINITION.
 export const tripManagerItems: NavItem[] = [
+  {
+    href: '/triplog',
+    label: 'Trip Log',
+    icon: History,
+    description: "Review your past adventures, recall saved trips for re-planning, and see a history of your individual journeys.",
+    keywords: 'trip history'
+  },
   {
     href: '/journeys',
     label: 'Journeys',
     icon: Map,
     description: "Group individual trips into epic multi-leg journeys. Plan, track, and map your grand adventures.",
     keywords: 'journey adventure roadtrip'
-  },
-  {
-    href: '/world-map',
-    label: 'World Map',
-    icon: WorldMap,
-    description: "View all your completed trips and journeys on an interactive global map. Explore your travel history at a glance.",
-    keywords: 'world map history travel'
   },
   {
     href: '/trip-expense-planner',
@@ -34,23 +35,24 @@ export const tripManagerItems: NavItem[] = [
     keywords: 'route map budget expense'
   },
   {
-    href: '/triplog',
-    label: 'Trip Log',
-    icon: History,
-    description: "Review your past adventures, recall saved trips for re-planning, and see a history of your individual journeys.",
-    keywords: 'trip history'
-  },
-  {
     href: '/trip-packing',
     label: 'Trip Packing Assistant',
     icon: Luggage,
     description: "Use our AI assistant to generate smart, personalized packing lists for your individual trips and passengers.",
     keywords: 'packing checklist luggage'
   },
+  {
+    href: '/world-map',
+    label: 'World Map',
+    icon: WorldMap,
+    description: "View all your completed trips and journeys on an interactive global map. Explore your travel history at a glance.",
+    keywords: 'world map history travel'
+  },
 ];
 
 
-// Main navigation items for the dashboard grid. "Journeys" and "World Map" have been moved.
+// Main navigation items for the dashboard grid. 
+// THIS IS THE CORRECT, CONSOLIDATED LIST. "Journeys" and "World Map" have been correctly removed.
 export const navItems: NavItem[] = [
   {
     href: '/dashboard-details',
