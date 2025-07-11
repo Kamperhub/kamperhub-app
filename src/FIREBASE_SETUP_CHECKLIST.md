@@ -122,7 +122,7 @@ Many app features depend on Google services. An incorrect API key or disabled se
     *   If it's not enabled, click **"Enable"**.
 
 4.  **Search for and Enable "Places API"**:
-    *   **Required for:** The address autocomplete search boxes in the Trip Planner.
+    *   **Required for:** The address autocomplete search boxes and the "Show Fuel Stations" feature.
     *   If it's not enabled, click **"Enable"**.
 
 5.  **Search for and Enable "Routes API"**:

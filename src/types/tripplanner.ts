@@ -12,6 +12,11 @@ export interface TripPlannerFormValues {
   maxHeight?: number;
 }
 
+export interface FuelStation {
+  name: string;
+  location: google.maps.LatLngLiteral;
+}
+
 export interface RouteDetails {
   distance: { text: string; value: number };
   duration: { text: string; value: number };
@@ -20,6 +25,7 @@ export interface RouteDetails {
   polyline?: string;
   warnings?: string[];
   tollInfo?: { text: string; value: number } | null;
+  fuelStations?: FuelStation[];
 }
 
 export interface FuelEstimate {

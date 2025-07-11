@@ -6,7 +6,7 @@ import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { usePathname, useSearchParams } from 'next/navigation';
-import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip, Occupant } from '@/types/tripplanner';
+import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip, Occupant, FuelStation } from '@/types/tripplanner';
 import { RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import type { Journey } from '@/types/journey';
 import type { StoredVehicle } from '@/types/vehicle';
@@ -27,7 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
+import { Map, AdvancedMarker, Pin, InfoWindow, useMap } from '@vis.gl/react-google-maps';
 import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Users, AlertTriangle, XCircle, Edit3, Car, Settings, TowerControl, Home, Info, Map as MapIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -128,6 +128,8 @@ export function TripPlannerClient() {
   const [tripOccupants, setTripOccupants] = useState<Occupant[]>([]);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
+  const [showFuelStations, setShowFuelStations] = useState(false);
+  const [activeFuelStation, setActiveFuelStation] = useState<FuelStation | null>(null);
 
 
   const { data: userPrefs } = useQuery<Partial<UserProfile>>({
@@ -162,7 +164,6 @@ export function TripPlannerClient() {
   const [isSaveTripDialogOpen, setIsSaveTripDialogOpen] = useState(false);
   const [pendingTripName, setPendingTripName] = useState('');
   const [pendingTripNotes, setPendingTripNotes] = useState('');
-
 
   const map = useMap();
 
@@ -251,7 +252,7 @@ export function TripPlannerClient() {
         }
       }
     }
-  }, [reset, setValue, toast, userPrefs, allVehicles]); 
+  }, [reset, setValue, toast, userPrefs, allVehicles, getValues]); 
 
   const onSubmit: SubmitHandler<TripPlannerFormValues> = async (data) => {
     setIsLoading(true);
@@ -344,7 +345,7 @@ export function TripPlannerClient() {
   };
 
   const createTripMutation = useMutation({
-    mutationFn: createTrip,
+    mutationFn: (data: Omit<LoggedTrip, 'id' | 'timestamp'>) => createTrip(data),
     onSuccess: (savedTrip) => {
       queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
       queryClient.invalidateQueries({ queryKey: ['journeys', user?.uid] });
@@ -356,7 +357,7 @@ export function TripPlannerClient() {
   });
   
   const updateTripMutation = useMutation({
-    mutationFn: updateTrip,
+    mutationFn: (data: Partial<LoggedTrip> & { id: string }) => updateTrip(data),
     onSuccess: (updatedTrip) => {
       queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
       queryClient.invalidateQueries({ queryKey: ['journeys', user?.uid] });
@@ -573,6 +574,10 @@ export function TripPlannerClient() {
                       <Switch id="avoid-tolls-switch" checked={avoidTolls} onCheckedChange={setAvoidTolls} disabled={isLoading}/>
                       <Label htmlFor="avoid-tolls-switch" className="font-body">Avoid Tolls?</Label>
                     </div>
+                     <div className="flex items-center space-x-2 pt-2">
+                      <Switch id="show-fuel-switch" checked={showFuelStations} onCheckedChange={setShowFuelStations} disabled={!routeDetails}/>
+                      <Label htmlFor="show-fuel-switch" className="font-body">Show Fuel Stations</Label>
+                    </div>
                     <div>
                         <Label htmlFor="journey-select" className="font-body">Assign to Journey (Optional)</Label>
                         <Select value={selectedJourneyId || "none"} onValueChange={(val) => setSelectedJourneyId(val === "none" ? null : val)}>
@@ -645,6 +650,16 @@ export function TripPlannerClient() {
                   <RouteRenderer routeDetails={routeDetails} />
                   {routeDetails?.startLocation && <AdvancedMarker position={routeDetails.startLocation} title={`Start`}><Pin background={'hsl(var(--primary))'} borderColor={'hsl(var(--primary))'} glyphColor={'hsl(var(--primary-foreground))'} /></AdvancedMarker>}
                   {routeDetails?.endLocation && <AdvancedMarker position={routeDetails.endLocation} title={`End`}><Pin background={'hsl(var(--accent))'} borderColor={'hsl(var(--accent))'} glyphColor={'hsl(var(--accent-foreground))'} /></AdvancedMarker>}
+                  {showFuelStations && routeDetails?.fuelStations?.map((station, index) => (
+                    <AdvancedMarker key={index} position={station.location} title={station.name} onClick={() => setActiveFuelStation(station)}>
+                        <div className="bg-white rounded-full p-1 border-2 border-yellow-500 shadow-md">
+                            <Fuel className="h-4 w-4 text-yellow-600" />
+                        </div>
+                    </AdvancedMarker>
+                  ))}
+                  {activeFuelStation && (
+                    <InfoWindow position={activeFuelStation.location} onCloseClick={() => setActiveFuelStation(null)}><p>{activeFuelStation.name}</p></InfoWindow>
+                  )}
                 </Map>
               </div></CardContent></Card>
               {error && <Alert variant="destructive"><AlertTitle className="font-headline">Error</AlertTitle><AlertDescription className="font-body">{error}</AlertDescription></Alert>}
