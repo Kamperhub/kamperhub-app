@@ -6,7 +6,7 @@ import type { ChatMessage } from '@/types/chatbot';
 import { caravanSupportChatbot, type CaravanSupportChatbotInput, type CaravanSupportChatbotOutput } from '@/ai/flows/caravan-support-chatbot';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Send, User, Bot, FileText, Info } from 'lucide-react';
 import Link from 'next/link';
@@ -23,14 +23,14 @@ export function ChatInterface() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const viewportRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const navContext = useContext(NavigationContext);
 
   useEffect(() => {
-    if (viewportRef.current) {
-      viewportRef.current.scrollTo({ top: viewportRef.current.scrollHeight, behavior: 'smooth' });
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [messages]);
 
@@ -108,7 +108,7 @@ export function ChatInterface() {
           Try asking: "What trips do I have?" or "Add an expense of $50 for fuel to my Fraser Island trip".
         </AlertDescription>
       </Alert>
-      <ScrollArea className="flex-grow p-4" viewportRef={viewportRef}>
+      <ScrollArea className="flex-grow p-4" viewportRef={scrollAreaRef}>
         <div className="space-y-4">
             {messages.map(msg => (
             <div key={msg.id} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
