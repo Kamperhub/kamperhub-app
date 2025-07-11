@@ -144,7 +144,7 @@ Many app features depend on Google services. An incorrect API key or disabled se
 
 8.  **Verify your API Key Permissions**:
     *   Go back to the [Credentials page](https://console.cloud.google.com/apis/credentials).
-    *   Find the key you are using for `GOOGLE_API_KEY`.
+    *   Find the key you are using for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
     *   Click its name to see its details.
     *   Under **"API restrictions"**, ensure it has permission to use all five of the APIs listed above. If it's unrestricted ("Don't restrict key"), that is fine for local development.
 

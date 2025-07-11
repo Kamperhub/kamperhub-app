@@ -9,6 +9,8 @@ import { AuthGuard } from './AuthGuard';
 import { APIProvider } from '@vis.gl/react-google-maps';
 import { Loader2 } from 'lucide-react';
 import { initializeFirebaseAppCheck } from '@/lib/firebase';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 interface NavigationContextType {
   setIsNavigating: (isNavigating: boolean) => void;
@@ -18,7 +20,7 @@ export const NavigationContext = createContext<NavigationContextType | undefined
 
 // A new internal component to hold the main layout structure.
 // This allows AuthGuard to wrap the entire visible app.
-const MainLayout = ({ children }: { children: React.ReactNode }) => {
+const MainLayout = ({ children, apiKeyMissing }: { children: React.ReactNode, apiKeyMissing: boolean }) => {
   const pathname = usePathname();
   const isAuthPage = pathname === '/login' || pathname === '/signup';
 
@@ -26,6 +28,15 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8 pb-24 sm:pb-8">
+        {apiKeyMissing && !isAuthPage && (
+           <Alert variant="destructive" className="mb-6">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle className="font-headline">Google Maps API Key Missing</AlertTitle>
+              <AlertDescription className="font-body">
+                The `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is not set in your `.env.local` file. Map-related features will not work. Please see the setup guide to fix this.
+              </AlertDescription>
+            </Alert>
+        )}
         {children}
       </main>
       {!isAuthPage && <BottomNavigation />}
@@ -51,6 +62,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const apiKeyMissing = !apiKey;
+  
+  const AppContent = () => {
+    return isAuthPage ? (
+      <MainLayout apiKeyMissing={apiKeyMissing}>{children}</MainLayout>
+    ) : (
+      <AuthGuard>
+        <MainLayout apiKeyMissing={apiKeyMissing}>{children}</MainLayout>
+      </AuthGuard>
+    );
+  }
 
   return (
     <NavigationContext.Provider value={{ setIsNavigating }}>
@@ -65,13 +87,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           solutionChannel="GMP_visgl_rgm_reactfirebase_v1"
           libraries={['places', 'routes', 'geometry']}
         >
-          {isAuthPage ? (
-            <MainLayout>{children}</MainLayout>
-          ) : (
-            <AuthGuard>
-              <MainLayout>{children}</MainLayout>
-            </AuthGuard>
-          )}
+          <AppContent/>
         </APIProvider>
     </NavigationContext.Provider>
   );
