@@ -28,7 +28,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
-import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Users, AlertTriangle, XCircle, Edit3, Car, Settings, TowerControl, Home, Info, Map as MapIcon, ChevronLeft } from 'lucide-react';
+import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Users, AlertTriangle, XCircle, Edit3, Car, Settings, TowerControl, Home, Info, Map as MapIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from "date-fns";
@@ -47,7 +47,6 @@ import { createTrip, updateTrip, fetchUserPreferences, fetchVehicles, fetchCarav
 import type { UserProfile } from '@/types/auth';
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { NavigationContext } from '@/components/layout/AppShell';
 
 const tripPlannerSchema = z.object({
   startLocation: z.string().min(3, "Start location is required (min 3 chars)"),
@@ -122,7 +121,6 @@ export function TripPlannerClient() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const navContext = useContext(NavigationContext);
 
   const [activeTrip, setActiveTrip] = useState<LoggedTrip | null>(null);
   const [tripBudget, setTripBudget] = useState<BudgetCategory[]>([]);
@@ -164,11 +162,6 @@ export function TripPlannerClient() {
   const [isSaveTripDialogOpen, setIsSaveTripDialogOpen] = useState(false);
   const [pendingTripName, setPendingTripName] = useState('');
   const [pendingTripNotes, setPendingTripNotes] = useState('');
-
-  const handleNavigation = () => {
-    navContext?.setIsNavigating(true);
-  };
-
 
   const map = useMap();
 
@@ -509,13 +502,6 @@ export function TripPlannerClient() {
 
   return (
     <>
-      <Button asChild variant="link" className="p-0 h-auto font-body text-muted-foreground hover:text-primary -ml-1 mb-8">
-        <Link href="/trip-manager" onClick={handleNavigation}>
-          <ChevronLeft className="mr-1 h-4 w-4" />
-          Return to Trip Manager
-        </Link>
-      </Button>
-
       <Tabs defaultValue="itinerary" className="w-full">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between mb-6 gap-4">
           <TabsList className="grid w-full grid-cols-3 max-w-lg">
