@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, Globe, WorldMap } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, Globe } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -13,13 +13,6 @@ export interface NavItem {
 // This is the new central hub for all travel-related pages.
 // THIS IS THE CORRECT, STATIC DEFINITION.
 export const tripManagerItems: NavItem[] = [
-  {
-    href: '/triplog',
-    label: 'Trip Log',
-    icon: History,
-    description: "Review your past adventures, recall saved trips for re-planning, and see a history of your individual journeys.",
-    keywords: 'trip history'
-  },
   {
     href: '/journeys',
     label: 'Journeys',
@@ -35,6 +28,13 @@ export const tripManagerItems: NavItem[] = [
     keywords: 'route map budget expense'
   },
   {
+    href: '/triplog',
+    label: 'Trip Log',
+    icon: History,
+    description: "Review your past adventures, recall saved trips for re-planning, and see a history of your individual journeys.",
+    keywords: 'trip history'
+  },
+  {
     href: '/trip-packing',
     label: 'Trip Packing Assistant',
     icon: Luggage,
@@ -44,7 +44,7 @@ export const tripManagerItems: NavItem[] = [
   {
     href: '/world-map',
     label: 'World Map',
-    icon: WorldMap,
+    icon: Globe,
     description: "View all your completed trips and journeys on an interactive global map. Explore your travel history at a glance.",
     keywords: 'world map history travel'
   },
