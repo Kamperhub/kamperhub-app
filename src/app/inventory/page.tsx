@@ -6,27 +6,19 @@ import { InventoryPageClient } from '@/components/features/inventory/InventoryPa
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { fetchVehiclePageData, fetchTrips } from '@/lib/api-client';
+import { fetchAllVehicleData } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function InventoryPage() {
     const { user, isAuthLoading } = useAuth();
     
-    // Reverted to two separate, stable queries instead of the single faulty one.
-    const { data: vehiclePageData, isLoading: isLoadingVehicleData, error: vehicleError } = useQuery({
-        queryKey: ['vehiclePageData', user?.uid],
-        queryFn: fetchVehiclePageData,
+    const { data: inventoryPageData, isLoading: isLoadingData, error } = useQuery({
+        queryKey: ['allVehicleData', user?.uid],
+        queryFn: fetchAllVehicleData,
         enabled: !!user,
     });
 
-    const { data: trips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery({
-        queryKey: ['trips', user?.uid],
-        queryFn: fetchTrips,
-        enabled: !!user,
-    });
-
-    const isLoading = isAuthLoading || isLoadingVehicleData || isLoadingTrips;
-    const error = vehicleError || tripsError;
+    const isLoading = isAuthLoading || isLoadingData;
 
     if (isLoading) {
         return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-64 w-full" /></div>
@@ -43,14 +35,6 @@ export default function InventoryPage() {
             </div>
         )
     }
-
-    // Combine the data from the two queries into the single structure the client component expects.
-    const inventoryPageData = {
-        userProfile: vehiclePageData?.userProfile || null,
-        caravans: vehiclePageData?.caravans || [],
-        vehicles: vehiclePageData?.vehicles || [],
-        trips: trips || [],
-    };
 
     return <InventoryPageClient initialData={inventoryPageData} />;
 }
