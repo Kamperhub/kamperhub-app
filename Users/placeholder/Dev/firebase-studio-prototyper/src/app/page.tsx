@@ -74,16 +74,12 @@ export default function DashboardPage() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (active.id !== over?.id) {
-      setOrderedNavItems((items) => {
-        const oldIndex = items.findIndex(item => item.href === active.id);
-        const newIndex = items.findIndex(item => item.href === over?.id);
-        const newOrderedItems = arrayMove(items, oldIndex, newIndex);
-        
-        const newLayoutHrefs = newOrderedItems.map(item => item.href);
-        updateUserPreferencesMutation.mutate(newLayoutHrefs);
-        
-        return newOrderedItems;
-      });
+      const oldIndex = orderedNavItems.findIndex(item => item.href === active.id);
+      const newIndex = orderedNavItems.findIndex(item => item.href === over?.id);
+      const newOrderedItems = arrayMove(orderedNavItems, oldIndex, newIndex);
+      
+      const newLayoutHrefs = newOrderedItems.map(item => item.href);
+      updateUserPreferencesMutation.mutate(newLayoutHrefs);
     }
   };
   
