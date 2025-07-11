@@ -4,6 +4,11 @@
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { ChevronLeft } from 'lucide-react';
+import { useContext } from 'react';
+import { NavigationContext } from '@/components/layout/AppShell';
 
 const TripPlannerLoadingSkeleton = () => (
   <div className="space-y-6">
@@ -49,7 +54,20 @@ const TripPlannerClient = dynamic(
 
 
 export default function TripPlannerPage() {
+  const navContext = useContext(NavigationContext);
+  const handleNavigation = () => {
+    if(navContext) navContext.setIsNavigating(true);
+  };
+
   return (
-    <TripPlannerClient />
+    <div className="space-y-8">
+      <Button asChild variant="link" className="p-0 h-auto font-body text-muted-foreground hover:text-primary -ml-1">
+        <Link href="/trip-manager" onClick={handleNavigation}>
+          <ChevronLeft className="mr-1 h-4 w-4" />
+          Return to Trip Manager
+        </Link>
+      </Button>
+      <TripPlannerClient />
+    </div>
   );
 }
