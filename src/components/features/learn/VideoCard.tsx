@@ -9,7 +9,7 @@ interface VideoCardProps {
 }
 
 export function VideoCard({ video }: VideoCardProps) {
-  // Use a generic "Coming Soon" placeholder for all videos.
+  // Use a generic placeholder without text from the service.
   const placeholderUrl = `https://placehold.co/600x400.png`;
 
   return (
