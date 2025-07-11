@@ -17,7 +17,7 @@ interface GooglePlacesAutocompleteInputProps<
   placeholder?: string;
   errors: FieldErrors<TFieldValues>;
   setValue: UseFormSetValue<TFieldValues>;
-  isApiReady: boolean; // New prop
+  isApiReady: boolean;
 }
 
 export function GooglePlacesAutocompleteInput<
@@ -30,33 +30,29 @@ export function GooglePlacesAutocompleteInput<
   placeholder,
   errors,
   setValue,
-  isApiReady, // Destructure new prop
+  isApiReady,
 }: GooglePlacesAutocompleteInputProps<TFieldValues, TName>) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
     if (
-      !isApiReady || // Check the new prop first
+      !isApiReady ||
       !inputRef.current ||
       typeof window.google === 'undefined' ||
-      !window.google.maps ||
-      !window.google.maps.places ||
-      typeof window.google.maps.places.Autocomplete === 'undefined'
+      !window.google.maps?.places?.Autocomplete
     ) {
-      // console.warn(`Google Maps Autocomplete API not ready for input: ${name} or input ref not available.`);
       return;
     }
 
-    // Clear any existing listeners from a previous instance if the ref was reused.
     if (autocompleteRef.current && typeof window.google.maps.event !== 'undefined') {
       window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
     }
 
     try {
       const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
-        fields: ["formatted_address", "geometry", "name"],
-        types: ["geocode"], 
+        fields: ["formatted_address"],
+        types: ["geocode"],
       });
       autocompleteRef.current = autocomplete;
 
@@ -71,7 +67,7 @@ export function GooglePlacesAutocompleteInput<
     } catch (error) {
       console.error(`Error initializing Google Places Autocomplete for ${name}:`, error);
     }
-
+    
     const currentInputRef = inputRef.current;
     const onKeyDownPreventSubmit = (event: KeyboardEvent) => {
       const pacContainer = document.querySelector('.pac-container');
@@ -88,13 +84,12 @@ export function GooglePlacesAutocompleteInput<
       if (currentInputRef) {
         currentInputRef.removeEventListener('keydown', onKeyDownPreventSubmit);
       }
-      if (autocompleteRef.current && typeof window.google !== 'undefined' && window.google.maps && window.google.maps.event) {
+      if (autocompleteRef.current && typeof window.google?.maps?.event !== 'undefined') {
         window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
       }
-       autocompleteRef.current = null; 
+      autocompleteRef.current = null;
     };
-  // Use isApiReady in the dependency array. Name and setValue are stable from react-hook-form for a given instance.
-  }, [isApiReady, name, setValue]); 
+  }, [isApiReady, name, setValue]);
 
   return (
     <div>
@@ -114,9 +109,10 @@ export function GooglePlacesAutocompleteInput<
             onChange={(e) => field.onChange(e.target.value)}
             onBlur={field.onBlur}
             value={field.value || ''}
-            placeholder={placeholder}
+            placeholder={!isApiReady ? "Google Maps API key missing..." : placeholder}
             className="font-body"
-            autoComplete="off" 
+            autoComplete="off"
+            disabled={!isApiReady} // Disable if API is not ready
           />
         )}
       />
