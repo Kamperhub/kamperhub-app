@@ -1,3 +1,4 @@
+
 // src/app/api/journeys/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -7,21 +8,21 @@ import { z, ZodError } from 'zod';
 import { decode, encode } from '@googlemaps/polyline-codec';
 import type { firestore } from 'firebase-admin';
 
-async function verifyUserAndGetInstances(req: NextRequest) {
+async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string; firestore: admin.firestore.Firestore; }> {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
-    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
+    throw new Error('Server configuration error.');
   }
   const authHeader = req.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing Authorization header.' }, { status: 401 }) };
+    throw new Error('Unauthorized: Missing Authorization header.');
   }
   const idToken = authHeader.split('Bearer ')[1];
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
-    return { uid: decodedToken.uid, firestore, errorResponse: null };
+    return { uid: decodedToken.uid, firestore };
   } catch (error: any) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
+    throw new Error('Unauthorized: Invalid ID token.');
   }
 }
 
@@ -81,29 +82,22 @@ const updateJourneySchema = z.object({
 });
 
 // GET all journeys for the user
-export async function GET(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse) return errorResponse;
-  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
-
-
+export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const journeysSnapshot = await firestore.collection('users').doc(uid).collection('journeys').orderBy('createdAt', 'desc').get();
     const journeys = journeysSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Journey[];
     return NextResponse.json(journeys, { status: 200 });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch journeys' }, { status: 500 });
+  } catch (error: any) {
+    console.error("GET /api/journeys failed:", error);
+    return NextResponse.json({ error: 'Failed to fetch journeys', details: error.message }, { status: 500 });
   }
 }
 
 // POST a new journey
-export async function POST(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse) return errorResponse;
-  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
-
-
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
     const parsedData = createJourneySchema.parse(body);
     
@@ -121,6 +115,7 @@ export async function POST(req: NextRequest) {
     await newJourneyRef.set(newJourney);
     return NextResponse.json(newJourney, { status: 201 });
   } catch (error: any) {
+    console.error("POST /api/journeys failed:", error);
     if (error instanceof ZodError) {
       return NextResponse.json({ error: 'Invalid data', details: error.format() }, { status: 400 });
     }
@@ -129,13 +124,9 @@ export async function POST(req: NextRequest) {
 }
 
 // PUT (update) an existing journey
-export async function PUT(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse) return errorResponse;
-  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
-
-
+export async function PUT(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
     const parsedData = updateJourneySchema.parse(body);
     const { id, ...updateData } = parsedData;
@@ -147,15 +138,14 @@ export async function PUT(req: NextRequest) {
         updatedAt: new Date().toISOString(),
     });
     
-    // If tripIds were part of the update, recalculate the master polyline
     if (updateData.tripIds) {
       await recalculateAndSaveMasterPolyline(id, uid, firestore);
     }
 
     const updatedDoc = await journeyRef.get();
     return NextResponse.json(updatedDoc.data(), { status: 200 });
-
   } catch (error: any) {
+    console.error("PUT /api/journeys failed:", error);
     if (error instanceof ZodError) {
       return NextResponse.json({ error: 'Invalid data', details: error.format() }, { status: 400 });
     }
@@ -164,13 +154,9 @@ export async function PUT(req: NextRequest) {
 }
 
 // DELETE a journey
-export async function DELETE(req: NextRequest) {
-    const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-    if (errorResponse) return errorResponse;
-    if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
-
-
+export async function DELETE(req: NextRequest): Promise<NextResponse> {
     try {
+        const { uid, firestore } = await verifyUserAndGetInstances(req);
         const { id } = await req.json();
         if (!id || typeof id !== 'string') {
             return NextResponse.json({ error: 'Journey ID is required.' }, { status: 400 });
@@ -178,11 +164,9 @@ export async function DELETE(req: NextRequest) {
         
         await firestore.collection('users').doc(uid).collection('journeys').doc(id).delete();
         
-        // Note: This does not unlink trips from the journey. A more robust solution
-        // might involve a transaction to loop through trips and set journeyId to null.
-        
         return NextResponse.json({ message: 'Journey deleted successfully.' }, { status: 200 });
     } catch (err: any) {
+        console.error("DELETE /api/journeys failed:", err);
         return NextResponse.json({ error: 'Internal Server Error', details: err.message }, { status: 500 });
     }
 }

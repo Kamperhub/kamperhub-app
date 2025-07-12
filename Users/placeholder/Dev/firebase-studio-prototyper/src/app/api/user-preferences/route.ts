@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
@@ -22,18 +23,22 @@ const sanitizeData = (data: any) => {
   }
 };
 
-async function getUserIdFromRequest(req: NextRequest, auth: admin.auth.Auth): Promise<{uid: string | null, errorResponse: NextResponse | null}> {
+async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string; firestore: admin.firestore.Firestore; }> {
+    const { auth, firestore, error } = getFirebaseAdmin();
+    if (error || !auth || !firestore) {
+      throw new Error('Server configuration error.');
+    }
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-        return { uid: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+        throw new Error('Unauthorized: Missing or invalid Authorization header.');
     }
     const idToken = authHeader.split('Bearer ')[1];
     try {
         const decoded = await auth.verifyIdToken(idToken);
-        return { uid: decoded.uid, errorResponse: null };
+        return { uid: decoded.uid, firestore };
     } catch (error: any) {
         console.error('Token verification failed:', error);
-        return { uid: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
+        throw new Error('Unauthorized: Invalid ID token.');
     }
 }
 
@@ -64,83 +69,29 @@ const userPreferencesUpdateSchema = z
   );
 
 // GET user preferences
-export async function GET(req: NextRequest) {
-  const { auth, firestore, error: adminError } = getFirebaseAdmin();
-  if (adminError || !auth || !firestore) {
-    return NextResponse.json({ error: 'Server configuration error.', details: adminError?.message }, { status: 503 });
-  }
-
-  const { uid, errorResponse } = await getUserIdFromRequest(req, auth);
-  if (errorResponse) return errorResponse;
-  if (!uid) return NextResponse.json({ error: 'Could not determine user.'}, { status: 401});
-
-
+export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const userDocRef = firestore.collection('users').doc(uid);
     const userDocSnap = await userDocRef.get();
 
     if (!userDocSnap.exists) {
-       return NextResponse.json(
-        { 
-          error: 'User profile not found.',
-          details: `A profile for the authenticated user (UID: ${uid}) does not exist in the Firestore 'users' collection. This indicates a data integrity problem that may require creating the user profile document.`
-        },
-        { status: 404 } // Use 404 for resource not found
-      );
+       return NextResponse.json({ error: 'User profile not found.' }, { status: 404 });
     }
 
     const userData = userDocSnap.data() || {};
-    
-    // Add specific try/catch for serialization to prevent crashes
-    let serializableData;
-    try {
-        serializableData = sanitizeData(userData);
-    } catch (serializationError: any) {
-        console.error('CRITICAL: Failed to serialize user profile data for UID:', uid, 'Error:', serializationError);
-        return NextResponse.json(
-            { error: 'Server Error: Could not process user profile data.', details: serializationError.message },
-            { status: 500 }
-        );
-    }
-
-    return NextResponse.json(serializableData, {
-      status: 200,
-      headers: { 'Cache-Control': 'no-store' }
-    });
+    const serializableData = sanitizeData(userData);
+    return NextResponse.json(serializableData, { status: 200, headers: { 'Cache-Control': 'no-store' } });
   } catch (err: any) {
-    console.error('Error in user-preferences GET handler for UID:', uid, 'Error:', err);
-    
-    let errorInfo = 'Failed to process user preferences on the server.';
-    let errorDetails = err.message;
-    
-    if (err.code === 5 || (err.details && err.details.toLowerCase().includes('database not found')) || (err.message && err.message.toLowerCase().includes('not_found'))) {
-      errorInfo = `Database Not Found or Inaccessible`;
-      errorDetails = `CRITICAL: The server could not find the Firestore database named 'kamperhubv2'. This usually means either (a) the Firestore database has not been created in the Firebase console for this project, or (b) the Project ID in your GOOGLE_APPLICATION_CREDENTIALS_JSON does not match the client-side NEXT_PUBLIC_FIREBASE_PROJECT_ID. Please follow the setup checklist carefully. Original Error: ${err.message}`;
-    } else if (err.code === 16 || (err.message && err.message.toLowerCase().includes('unauthenticated'))) {
-      errorInfo = '16 UNAUTHENTICATED: The server is not authorized to access Google Cloud services.';
-      errorDetails = `This is a server-side configuration error. The service account credentials in GOOGLE_APPLICATION_CREDENTIALS_JSON may be invalid, for the wrong project, or lack the necessary IAM permissions (e.g., 'Editor' or 'Cloud Datastore User' role). Please use the setup checklist to verify your configuration. Original Error: ${err.message}`;
-    }
-    
-    return NextResponse.json(
-      { error: errorInfo, details: errorDetails },
-      { status: 500 }
-    );
+    console.error('GET /api/user-preferences failed:', err);
+    return NextResponse.json({ error: 'Failed to fetch user preferences', details: err.message }, { status: 500 });
   }
 }
 
 // PUT (update) user preferences
-export async function PUT(req: NextRequest) {
-  const { auth, firestore, error: adminError } = getFirebaseAdmin();
-  if (adminError || !auth || !firestore) {
-    return NextResponse.json({ error: 'Server configuration error.', details: adminError?.message }, { status: 503 });
-  }
-
-  const { uid, errorResponse } = await getUserIdFromRequest(req, auth);
-  if (errorResponse) return errorResponse;
-  if (!uid) return NextResponse.json({ error: 'Could not determine user.'}, { status: 401});
-
-
+export async function PUT(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
     const parsedData = userPreferencesUpdateSchema.parse(body);
 
@@ -157,21 +108,12 @@ export async function PUT(req: NextRequest) {
     const updatedSnap = await userDocRef.get();
     const updatedData = sanitizeData(updatedSnap.data());
 
-    return NextResponse.json(
-      { message: 'User profile and preferences updated successfully.', preferences: updatedData },
-      { status: 200 }
-    );
+    return NextResponse.json({ message: 'User profile and preferences updated successfully.', preferences: updatedData }, { status: 200 });
   } catch (err: any) {
-    console.error('Error updating user preferences:', err);
+    console.error('PUT /api/user-preferences failed:', err);
     if (err instanceof ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid preferences data.', details: err.format() },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid preferences data.', details: err.format() }, { status: 400 });
     }
-    return NextResponse.json(
-      { error: 'Failed to update user preferences.', details: err.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to update user preferences.', details: err.message }, { status: 500 });
   }
 }

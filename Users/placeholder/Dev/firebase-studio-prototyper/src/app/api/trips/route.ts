@@ -1,3 +1,4 @@
+
 // src/app/api/trips/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -7,23 +8,23 @@ import { z, ZodError } from 'zod';
 import type { firestore } from 'firebase-admin';
 import { decode, encode } from '@googlemaps/polyline-codec';
 
-async function verifyUserAndGetInstances(req: NextRequest) {
+async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string; firestore: firestore.Firestore; }> {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
-    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
+    throw new Error('Server configuration error.');
   }
 
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+    throw new Error('Unauthorized: Missing or invalid Authorization header.');
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
-    return { uid: decodedToken.uid, firestore, errorResponse: null };
+    return { uid: decodedToken.uid, firestore };
   } catch (error: any) {
-    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
+    throw new Error('Unauthorized: Invalid ID token.');
   }
 }
 
@@ -185,47 +186,10 @@ const updateTripSchema = createTripSchema.partial().extend({
 });
 
 
-const handleApiError = (error: any) => {
-  console.error('API Error:', error);
-  let errorTitle = 'Internal Server Error';
-  let errorDetails = 'An unexpected error occurred.';
-  let statusCode = 500;
-
-  if (error instanceof ZodError) {
-    return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
-  }
-  
-  if (error.code) {
-      switch(error.code) {
-          case 5: // NOT_FOUND
-              errorTitle = 'Database Not Found';
-              errorDetails = `The Firestore database 'kamperhubv2' could not be found. Please verify its creation in your Firebase project.`;
-              statusCode = 500;
-              break;
-          case 16: // UNAUTHENTICATED
-              errorTitle = 'Server Authentication Failed';
-              errorDetails = `The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or lack permission for Firestore. Please check your setup.`;
-              statusCode = 500;
-              break;
-          default:
-              errorDetails = error.message;
-              break;
-      }
-  } else {
-    errorDetails = error.message;
-  }
-
-  return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: statusCode });
-};
-
 // GET all trips for the authenticated user
-export async function GET(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse) return errorResponse;
-  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
-
-
+export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const tripsSnapshot = await firestore.collection('users').doc(uid).collection('trips').get();
     const trips: LoggedTrip[] = [];
     tripsSnapshot.forEach(doc => {
@@ -235,18 +199,15 @@ export async function GET(req: NextRequest) {
     });
     return NextResponse.json(trips, { status: 200 });
   } catch (err: any) {
-    return handleApiError(err);
+    console.error("GET /api/trips failed:", err);
+    return NextResponse.json({ error: 'Failed to fetch trips', details: err.message }, { status: 500 });
   }
 }
 
 // POST a new trip for the authenticated user
-export async function POST(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse) return errorResponse;
-  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
-
-
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
     const parsedData = createTripSchema.parse(body);
 
@@ -288,17 +249,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(newTrip, { status: 201 });
 
   } catch (err: any) {
-    return handleApiError(err);
+    console.error("POST /api/trips failed:", err);
+    if (err instanceof ZodError) {
+      return NextResponse.json({ error: 'Invalid data provided.', details: err.format() }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Failed to create trip', details: err.message }, { status: 500 });
   }
 }
 
 // PUT (update) an existing trip for the authenticated user
-export async function PUT(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse) return errorResponse;
-  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
-  
+export async function PUT(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
     const parsedData = updateTripSchema.parse(body);
     const { id: tripId, ...updateData } = parsedData;
@@ -317,7 +279,6 @@ export async function PUT(req: NextRequest) {
         const oldJourneyId = oldTripData.journeyId;
         const newJourneyId = "journeyId" in updateData ? updateData.journeyId : oldJourneyId;
 
-        // If journey assignment has changed...
         if (oldJourneyId !== newJourneyId) {
             if (oldJourneyId) {
                 const oldJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(oldJourneyId);
@@ -334,23 +295,19 @@ export async function PUT(req: NextRequest) {
                 journeysToUpdate.push(newJourneyId);
             }
         } else if (newJourneyId) {
-            // Journey didn't change, but it might still need recalculation
             journeysToUpdate.push(newJourneyId);
         }
 
         const finalUpdateData = { ...updateData, updatedAt: new Date().toISOString() };
         transaction.set(tripRef, finalUpdateData, { merge: true });
 
-        // Check if route has changed, which necessitates a polyline recalculation
         if (updateData.routeDetails?.polyline !== oldTripData.routeDetails.polyline || updateData.plannedStartDate !== oldTripData.plannedStartDate) {
             journeyNeedsRecalculation = true;
         }
     });
     
-    // After transaction, run recalculations if needed
     if (journeyNeedsRecalculation) {
-      const uniqueJourneysToUpdate = [...new Set(journeysToUpdate)];
-      for (const journeyId of uniqueJourneysToUpdate) {
+      for (const journeyId of [...new Set(journeysToUpdate)]) {
         if(journeyId) {
           await recalculateAndSaveMasterPolyline(journeyId, uid, firestore);
         }
@@ -362,18 +319,18 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ message: 'Trip updated successfully.', trip: updatedTrip }, { status: 200 });
   } catch (err: any) {
-    return handleApiError(err);
+    console.error("PUT /api/trips failed:", err);
+    if (err instanceof ZodError) {
+      return NextResponse.json({ error: 'Invalid data provided.', details: err.format() }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Failed to update trip', details: err.message }, { status: 500 });
   }
 }
 
 // DELETE a trip for the authenticated user
-export async function DELETE(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse) return errorResponse;
-  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
-
-
+export async function DELETE(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const { id: tripId } = await req.json();
     
     if (!tripId || typeof tripId !== 'string') {
@@ -408,6 +365,7 @@ export async function DELETE(req: NextRequest) {
     
     return NextResponse.json({ message: 'Trip and its associated packing list deleted successfully.' }, { status: 200 });
   } catch (err: any) {
-    return handleApiError(err);
+    console.error("DELETE /api/trips failed:", err);
+    return NextResponse.json({ error: 'Failed to delete trip', details: err.message }, { status: 500 });
   }
 }
