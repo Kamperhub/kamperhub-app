@@ -1,124 +1,101 @@
-
 "use client";
 
-import React, { useState, useEffect, useMemo, useContext } from 'react';
-import { useQueryClient, useMutation } from '@tanstack/react-query';
-import type { NavItem } from '@/lib/navigation';
-import { navItems as defaultNavItems } from '@/lib/navigation';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } from '@dnd-kit/sortable';
-import { SortableNavItemCard } from '@/components/features/dashboard/SortableNavItemCard';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Car, CornerDownLeft } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { CheckCircle, ArrowRight, LogIn } from 'lucide-react';
 import Image from 'next/image';
-import { updateUserPreferences } from '@/lib/api-client';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
-import { NavigationContext } from '@/components/layout/AppShell';
-import { StartTripDialog } from '@/components/features/dashboard/StartTripDialog';
-import { ReturnTripDialog } from '@/components/features/dashboard/ReturnTripDialog';
+import { navItems } from '@/lib/navigation'; // Using navItems for feature descriptions
 
-export default function DashboardPage() {
-  const [orderedNavItems, setOrderedNavItems] = useState<NavItem[]>(defaultNavItems);
-  const { user, userProfile: userPrefs } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    const mainPageNavItems = defaultNavItems;
-    const storedLayoutHrefs = userPrefs?.dashboardLayout;
-
-    if (storedLayoutHrefs && Array.isArray(storedLayoutHrefs) && storedLayoutHrefs.length > 0) {
-      const itemsFromStorage = storedLayoutHrefs.map(href => mainPageNavItems.find(item => item.href === href)).filter(Boolean) as NavItem[];
-      const currentMainPageHrefs = new Set(mainPageNavItems.map(item => item.href));
-      const itemsInStorageHrefs = new Set(itemsFromStorage.map(item => item.href));
-
-      let finalItems = [...itemsFromStorage];
-      mainPageNavItems.forEach(defaultItem => {
-        if (!itemsInStorageHrefs.has(defaultItem.href)) {
-          finalItems.push(defaultItem);
-        }
-      });
-      finalItems = finalItems.filter(item => currentMainPageHrefs.has(item.href));
-      setOrderedNavItems(finalItems);
-    } else {
-      setOrderedNavItems(mainPageNavItems);
-    }
-  }, [userPrefs]);
-  
-  const updateUserPreferencesMutation = useMutation({
-    mutationFn: (newLayout: string[]) => updateUserPreferences({ dashboardLayout: newLayout }),
-    onError: (error) => {
-      toast({ title: "Layout Save Failed", description: (error as Error).message, variant: "destructive" });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.uid] });
-    }
-  });
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (active.id !== over?.id) {
-      setOrderedNavItems((items) => {
-        const oldIndex = items.findIndex(item => item.href === active.id);
-        const newIndex = items.findIndex(item => item.href === over?.id);
-        const newOrderedItems = arrayMove(items, oldIndex, newIndex);
-        
-        // Save the new layout to user preferences
-        const newLayoutHrefs = newOrderedItems.map(item => item.href);
-        updateUserPreferencesMutation.mutate(newLayoutHrefs);
-        
-        return newOrderedItems;
-      });
-    }
-  };
-  
-  const itemHrefs = useMemo(() => orderedNavItems.map(item => item.href), [orderedNavItems]);
+export default function LandingPage() {
+  const features = [
+    "Manage tow vehicle and caravan specifications",
+    "Track inventory weight with real-time calculations",
+    "Receive weight compliance and safety alerts",
+    "Use customizable pre-departure & setup checklists",
+    "Plan trips with height-aware mapping & navigation",
+    "Get AI-powered support and packing suggestions"
+  ];
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
-        <div className="flex items-center">
+    <div className="bg-background font-body">
+      <main>
+        {/* Hero Section */}
+        <section className="text-center py-12 md:py-20 px-4">
           <Image
             src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.firebasestorage.app/o/KamperHub%20512x512.jpg?alt=media&token=00bf2acd-dbca-4cc2-984e-58461f67fdbd"
             alt="KamperHub Logo"
-            width={60}
-            height={60}
-            className="mr-4 rounded-md"
-            priority
+            width={120}
+            height={120}
+            className="mx-auto mb-6 rounded-2xl shadow-md"
             data-ai-hint="logo brand"
           />
-          <div>
-            <h1 className="text-3xl font-headline text-primary">Welcome to KamperHub</h1>
-            <p className="font-body text-muted-foreground">Your ultimate travelling companion for everyone.</p>
+          <h1 className="text-4xl md:text-6xl font-headline text-primary">
+            Your Ultimate Caravanning Companion
+          </h1>
+          <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground">
+            Plan, pack, and travel with confidence. KamperHub brings all your essential caravanning tools into one smart, easy-to-use app.
+          </p>
+          <div className="mt-8 flex justify-center gap-4">
+            <Button asChild size="lg" className="font-headline text-lg">
+              <Link href="/signup">Get Started for Free</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="font-headline text-lg">
+              <Link href="/login"><LogIn className="mr-2 h-5 w-5"/> Log In</Link>
+            </Button>
           </div>
-        </div>
-        <div className="flex gap-2 flex-shrink-0">
-          <StartTripDialog>
-            <Button className="font-body animate-pulse"><Car className="mr-2 h-4 w-4"/>Start a Trip</Button>
-          </StartTripDialog>
-          <ReturnTripDialog>
-            <Button className="font-body" variant="outline"><CornerDownLeft className="mr-2 h-4 w-4"/>Plan Return</Button>
-          </ReturnTripDialog>
-        </div>
-      </div>
-      
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={itemHrefs} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {orderedNavItems.map((item) => (
-              <SortableNavItemCard key={item.href} id={item.href} item={item} />
-            ))}
+        </section>
+
+        {/* Features Section */}
+        <section id="features" className="py-12 md:py-20 bg-muted/50">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-headline text-primary">Everything You Need for the Road Ahead</h2>
+              <p className="mt-2 max-w-3xl mx-auto text-lg text-muted-foreground">
+                From weight management to trip planning, KamperHub is packed with features designed for every caravanner.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {navItems.filter(item => !['/my-account', '/contact', '/dashboard-details'].includes(item.href)).map((feature) => (
+                <Card key={feature.label} className="text-center shadow-lg hover:shadow-xl transition-shadow">
+                  <CardHeader>
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
+                      <feature.icon className="h-6 w-6" />
+                    </div>
+                    <CardTitle className="font-headline text-xl">{feature.label}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">{feature.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
-        </SortableContext>
-      </DndContext>
+        </section>
+        
+        {/* Data Usage Transparency Section */}
+        <section id="data-usage" className="py-12 md:py-20">
+            <div className="container mx-auto px-4 text-center">
+                 <h2 className="text-3xl md:text-4xl font-headline text-primary">Your Data, Your Control</h2>
+                 <p className="mt-2 max-w-3xl mx-auto text-lg text-muted-foreground">We request access to certain Google services to enhance your experience. Here’s why:</p>
+                 <div className="mt-8 max-w-md mx-auto bg-card border p-6 rounded-lg shadow-sm">
+                     <h3 className="font-headline text-xl flex items-center justify-center"><img src="/google-tasks.svg" alt="Google Tasks Logo" className="w-6 h-6 mr-2" /> Google Tasks</h3>
+                     <p className="mt-2 text-muted-foreground">We request permission to access your Google Tasks to create detailed, personalized packing lists for your trips directly in your Google account. This allows you to manage your packing outside of KamperHub. We do not read or store any of your existing tasks.</p>
+                 </div>
+            </div>
+        </section>
+
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t">
+        <div className="container mx-auto py-6 px-4 text-center text-muted-foreground">
+          <p>&copy; {new Date().getFullYear()} KamperHub. All Rights Reserved.</p>
+          <Link href="/learn?tab=tos" className="text-sm hover:text-primary hover:underline">
+              Privacy Policy & Terms of Service
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }

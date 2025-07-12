@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useContext } from 'react';
@@ -78,7 +77,7 @@ export default function SignupPage() {
 
   useEffect(() => {
     if (!isAuthLoading && user) {
-      router.push('/');
+      router.push('/dashboard');
     }
   }, [user, isAuthLoading, router]);
 
@@ -133,7 +132,7 @@ export default function SignupPage() {
         duration: 7000,
       });
       
-      router.push('/'); 
+      router.push('/dashboard'); 
     } catch (error: any) {
       let toastMessage = 'An unexpected error occurred. Please try again.';
       if (error instanceof Error) {

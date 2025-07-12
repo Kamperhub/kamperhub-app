@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useContext } from 'react';
@@ -41,7 +40,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isAuthLoading && user) {
-      router.push('/');
+      router.push('/dashboard');
     }
   }, [user, isAuthLoading, router]);
 
@@ -66,7 +65,7 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, trimmedEmail, password);
-      router.push('/');
+      router.push('/dashboard');
     } catch (error: any) {
       const authError = error as AuthError;
       let toastMessage = 'An unexpected error occurred during login. Please try again.';
