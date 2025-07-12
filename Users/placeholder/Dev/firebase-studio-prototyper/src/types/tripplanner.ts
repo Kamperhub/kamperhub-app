@@ -12,9 +12,9 @@ export interface TripPlannerFormValues {
   maxHeight?: number;
 }
 
-export interface Waypoint {
-  address: string; // The address string of the waypoint as entered by user or resolved
-  location?: google.maps.LatLngLiteral; // Optional: geocoded LatLng of the waypoint
+export interface FuelStation {
+  name: string;
+  location: google.maps.LatLngLiteral;
 }
 
 export interface RouteDetails {
