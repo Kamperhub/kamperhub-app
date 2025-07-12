@@ -1,3 +1,4 @@
+
 // src/app/api/inventory/[caravanId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -19,7 +20,7 @@ const sanitizeData = (data: any) => {
     return JSON.parse(jsonString);
 };
 
-async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string | null, firestore: admin.firestore.Firestore | null, errorResponse: NextResponse | null }> {
+async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string | null; firestore: admin.firestore.Firestore | null; errorResponse: NextResponse | null; }> {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
     return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
@@ -104,6 +105,7 @@ export async function GET(req: NextRequest, { params }: { params: { caravanId: s
     const inventoryDocSnap = await inventoryDocRef.get();
 
     if (!inventoryDocSnap.exists) {
+      // If no inventory exists for this caravan, return an empty array, which is a valid state.
       return NextResponse.json({ items: [] }, { status: 200 });
     }
     
