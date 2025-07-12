@@ -1,9 +1,10 @@
+
 "use client";
 
 import React, { useContext } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, UserCircle, LogIn, LogOut, MessageSquare, Loader2, AlertTriangle } from 'lucide-react';
+import { Home, UserCircle, LogIn, LogOut, MessageSquare, Loader2, AlertTriangle, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
@@ -62,12 +63,14 @@ export function Header() {
       });
     }
   };
+  
+  const homeLink = user ? "/dashboard" : "/";
 
   return (
     <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-40">
        <EnvironmentBanner />
       <div className="container mx-auto px-4 py-3 flex items-center justify-between h-[68px]">
-        <Link href="/" className="flex items-center" onClick={handleNavigation}>
+        <Link href={homeLink} className="flex items-center" onClick={handleNavigation}>
           <Image
             src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.firebasestorage.app/o/Kamper%20Social%20Media%20Banner.jpg?alt=media&token=1050fb50-5c13-4f03-8cad-d80954cf9072"
             alt="KamperHub Banner Logo"
@@ -80,9 +83,9 @@ export function Header() {
         </Link>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <Link href="/" passHref>
+          <Link href={homeLink} passHref>
             <Button variant="ghost" size="icon" aria-label="Go to Homepage" className="p-0 hover:bg-primary/80" onClick={handleNavigation}>
-              <Home className="h-7 w-7" />
+              <LayoutDashboard className="h-7 w-7" />
             </Button>
           </Link>
 
