@@ -286,3 +286,4 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     ```
 6.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
 
+
