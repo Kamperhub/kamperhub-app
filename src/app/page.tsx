@@ -24,7 +24,7 @@ export default function LandingPage() {
             data-ai-hint="logo brand"
           />
           <h1 className="text-4xl md:text-6xl font-headline text-primary">
-            Your Ultimate Traveling Companion
+            Your Ultimate Travelling Companion
           </h1>
           <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground">
             Plan, pack, and travel with confidence. KamperHub brings all your essential caravanning tools into one smart, easy-to-use app.
@@ -39,29 +39,30 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Features Section */}
+        {/* Features Section - Restored to single-column list */}
         <section id="features" className="py-12 md:py-20 bg-muted/50">
-          <div className="container mx-auto px-4">
+          <div className="container mx-auto px-4 max-w-3xl">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-headline text-primary">Everything You Need for the Road Ahead</h2>
-              <p className="mt-2 max-w-3xl mx-auto text-lg text-muted-foreground">
-                From weight management to trip planning, KamperHub is packed with features designed for every traveler.
+              <p className="mt-2 text-lg text-muted-foreground">
+                From weight management to trip planning, KamperHub is packed with features designed for every traveller.
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {navItems.filter(item => !['/my-account', '/contact', '/dashboard-details'].includes(item.href)).map((feature) => (
-                <Card key={feature.label} className="text-center shadow-lg hover:shadow-xl transition-shadow">
-                  <CardHeader>
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
-                      <feature.icon className="h-6 w-6" />
+            <div className="space-y-10">
+              {navItems.filter(item => !['/my-account', '/contact', '/dashboard-details', '/chatbot'].includes(item.href)).map((feature) => {
+                const Icon = feature.icon;
+                return (
+                  <div key={feature.label} className="flex items-start gap-4">
+                    <div className="flex-shrink-0 mt-1">
+                      <Icon className="h-8 w-8 text-primary" />
                     </div>
-                    <CardTitle className="font-headline text-xl">{feature.label}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">{feature.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
+                    <div>
+                      <h3 className="text-xl font-headline text-foreground">{feature.label}</h3>
+                      <p className="text-muted-foreground mt-1">{feature.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
