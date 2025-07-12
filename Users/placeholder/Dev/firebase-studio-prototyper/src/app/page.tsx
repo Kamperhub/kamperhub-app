@@ -29,36 +29,39 @@ export default function LandingPage() {
           <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground">
             Plan, pack, and travel with confidence. KamperHub brings all your essential caravanning tools into one smart, easy-to-use app.
           </p>
-          <div className="mt-8 flex justify-center items-center gap-4">
-              <Link href="/signup" className="text-primary hover:underline font-body">
-                Get Started for Free
-              </Link>
-              <Link href="/login" className="text-primary hover:underline font-body">
-                Log In
-              </Link>
+          <div className="mt-8 flex justify-center gap-4">
+            <Button asChild size="lg" className="font-headline text-lg">
+              <Link href="/signup">Get Started for Free</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="font-headline text-lg">
+              <Link href="/login">Log In</Link>
+            </Button>
           </div>
         </section>
 
         {/* Features Section */}
         <section id="features" className="py-12 md:py-20 bg-muted/50">
-          <div className="container mx-auto px-4 max-w-2xl">
+          <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-headline text-primary">Everything You Need for the Road Ahead</h2>
-              <p className="mt-2 text-lg text-muted-foreground">
+              <p className="mt-2 max-w-3xl mx-auto text-lg text-muted-foreground">
                 From weight management to trip planning, KamperHub is packed with features designed for every traveller.
               </p>
             </div>
-            <div className="space-y-12">
-              {navItems.filter(item => !['/my-account', '/contact', '/dashboard-details', '/chatbot', '/trip-manager', '/learn', '/bookings', '/checklists'].includes(item.href)).map((feature) => {
-                const Icon = feature.icon;
-                return (
-                  <div key={feature.label} className="text-center">
-                      <Icon className="h-8 w-8 text-primary mx-auto mb-2" />
-                      <h3 className="text-2xl font-headline text-foreground">{feature.label}</h3>
-                      <p className="text-muted-foreground mt-2 max-w-md mx-auto">{feature.description}</p>
-                  </div>
-                );
-              })}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {navItems.filter(item => !['/my-account', '/contact', '/dashboard-details'].includes(item.href)).map((feature) => (
+                <Card key={feature.label} className="text-center shadow-lg hover:shadow-xl transition-shadow">
+                  <CardHeader>
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
+                      <feature.icon className="h-6 w-6" />
+                    </div>
+                    <CardTitle className="font-headline text-xl">{feature.label}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">{feature.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
         </section>
