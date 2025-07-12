@@ -20,23 +20,23 @@ const sanitizeData = (data: any) => {
     return JSON.parse(jsonString);
 };
 
-async function verifyUserAndGetInstances(req: NextRequest) {
+async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string; firestore: admin.firestore.Firestore; }> {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
-    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
+    throw new Error('Server configuration error.');
   }
 
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+    throw new Error('Unauthorized: Missing or invalid Authorization header.');
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
-    return { uid: decodedToken.uid, firestore, errorResponse: null };
+    return { uid: decodedToken.uid, firestore };
   } catch (error: any) {
-    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
+    throw new Error('Unauthorized: Invalid ID token.');
   }
 }
 
@@ -45,15 +45,15 @@ const createVehicleSchema = z.object({
   make: z.string().min(1, "Make is required"),
   model: z.string().min(1, "Model is required"),
   year: z.coerce.number().min(1900).max(new Date().getFullYear() + 2),
-  gvm: z.coerce.number().positive(),
-  gcm: z.coerce.number().positive(),
-  maxTowCapacity: z.coerce.number().positive(),
-  maxTowballMass: z.coerce.number().positive(),
-  fuelEfficiency: z.coerce.number().min(0.1),
+  gvm: z.coerce.number().positive("GVM must be a positive number"),
+  gcm: z.coerce.number().positive("GCM must be a positive number"),
+  maxTowCapacity: z.coerce.number().positive("Max Towing Capacity must be a positive number"),
+  maxTowballMass: z.coerce.number().positive("Max Towball Mass must be a positive number"),
+  fuelEfficiency: z.coerce.number().min(0.1, "Fuel efficiency must be a positive number"),
   kerbWeight: z.coerce.number().min(1).optional().nullable(),
   frontAxleLimit: z.coerce.number().min(1).optional().nullable(),
   rearAxleLimit: z.coerce.number().min(1).optional().nullable(),
-  wheelbase: z.coerce.number().min(1000).optional().nullable(),
+  wheelbase: z.coerce.number().min(1).optional().nullable(),
   overallHeight: z.coerce.number().min(1).optional().nullable(),
   recommendedTyrePressureUnladenPsi: z.coerce.number().min(0).optional().nullable(),
   recommendedTyrePressureLadenPsi: z.coerce.number().min(0).optional().nullable(),
@@ -66,46 +66,18 @@ const updateVehicleSchema = createVehicleSchema.extend({
   id: z.string().min(1, "Vehicle ID is required for updates"),
 });
 
-const handleApiError = (error: any) => {
+const handleApiError = (error: any): NextResponse => {
   console.error('API Error:', error);
-  let errorTitle = 'Internal Server Error';
-  let errorDetails = 'An unexpected error occurred.';
-  let statusCode = 500;
-
   if (error instanceof ZodError) {
     return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
   }
-  
-  if (error.code) {
-      switch(error.code) {
-          case 5: // NOT_FOUND
-              errorTitle = 'Database Not Found';
-              errorDetails = `The Firestore database 'kamperhubv2' could not be found. Please verify its creation in your Firebase project.`;
-              statusCode = 500;
-              break;
-          case 16: // UNAUTHENTICATED
-              errorTitle = 'Server Authentication Failed';
-              errorDetails = `The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or lack permission for Firestore. Please check your setup.`;
-              statusCode = 500;
-              break;
-          default:
-              errorDetails = error.message;
-              break;
-      }
-  } else {
-    errorDetails = error.message;
-  }
-
-  return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: statusCode });
+  return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
 };
 
 // GET all vehicles for the authenticated user
-export async function GET(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse) return errorResponse;
-  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
-
+export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const vehiclesSnapshot = await firestore.collection('users').doc(uid).collection('vehicles').get();
     const vehicles = vehiclesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(Boolean);
     const sanitizedVehicles = sanitizeData(vehicles);
@@ -116,12 +88,9 @@ export async function GET(req: NextRequest) {
 }
 
 // POST a new vehicle for the authenticated user
-export async function POST(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse) return errorResponse;
-  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
-
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
     const parsedData = createVehicleSchema.parse(body);
 
@@ -142,12 +111,9 @@ export async function POST(req: NextRequest) {
 }
 
 // PUT (update) an existing vehicle for the authenticated user
-export async function PUT(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse) return errorResponse;
-  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
-  
+export async function PUT(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body: StoredVehicle = await req.json();
     const parsedData = updateVehicleSchema.parse(body);
 
@@ -162,12 +128,9 @@ export async function PUT(req: NextRequest) {
 }
 
 // DELETE a vehicle for the authenticated user
-export async function DELETE(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse) return errorResponse;
-  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
-
+export async function DELETE(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const { id } = await req.json();
     if (!id || typeof id !== 'string') {
       return NextResponse.json({ error: 'Vehicle ID is required.' }, { status: 400 });

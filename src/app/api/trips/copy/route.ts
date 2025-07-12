@@ -1,62 +1,82 @@
+
 // src/app/api/trips/copy/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import type { ChecklistItem, ChecklistStage } from '@/types/checklist';
 import { z, ZodError } from 'zod';
-import type admin from 'firebase-admin';
+import type { firestore } from 'firebase-admin';
+import { decode, encode } from '@googlemaps/polyline-codec';
+import type { Journey } from '@/types/journey';
 
-async function verifyUserAndGetInstances(req: NextRequest) {
+async function recalculateAndSaveMasterPolyline(journeyId: string, userId: string, db: firestore.Firestore) {
+    const journeyRef = db.collection('users').doc(userId).collection('journeys').doc(journeyId);
+    const journeyDoc = await journeyRef.get();
+    if (!journeyDoc.exists) {
+        console.warn(`Journey ${journeyId} not found for recalculation.`);
+        return;
+    }
+
+    const journeyData = journeyDoc.data() as Journey;
+    const tripIds = journeyData.tripIds || [];
+
+    if (tripIds.length === 0) {
+        await journeyRef.update({ masterPolyline: null });
+        return;
+    }
+
+    const tripRefs = tripIds.map(id => db.collection('users').doc(userId).collection('trips').doc(id));
+    const tripDocs = await db.getAll(...tripRefs);
+    const validTrips = tripDocs.map(doc => doc.data() as LoggedTrip).filter(trip => trip && trip.routeDetails?.polyline);
+
+    validTrips.sort((a, b) => {
+        const dateA = a.plannedStartDate ? new Date(a.plannedStartDate).getTime() : 0;
+        const dateB = b.plannedStartDate ? new Date(b.plannedStartDate).getTime() : 0;
+        return dateA - dateB;
+    });
+
+    const allCoordinates: [number, number][] = [];
+    validTrips.forEach(trip => {
+        if (trip.routeDetails?.polyline) {
+            try {
+                const decodedPath = decode(trip.routeDetails.polyline, 5);
+                allCoordinates.push(...decodedPath);
+            } catch (e) {
+                console.error(`Could not decode polyline for trip ${trip.id}:`, e);
+            }
+        }
+    });
+
+    const masterPolyline = allCoordinates.length > 0 ? encode(allCoordinates, 5) : null;
+    await journeyRef.update({ masterPolyline });
+}
+
+async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string; firestore: firestore.Firestore; }> {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
-    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
+    throw new Error('Server configuration error.');
   }
 
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+    throw new Error('Unauthorized: Missing or invalid Authorization header.');
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
-    return { uid: decodedToken.uid, firestore, errorResponse: null };
+    return { uid: decodedToken.uid, firestore };
   } catch (error: any) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
+    throw new Error('Unauthorized: Invalid ID token.');
   }
 }
 
-const handleApiError = (error: any) => {
+const handleApiError = (error: any): NextResponse => {
   console.error('API Error:', error);
-  let errorTitle = 'Internal Server Error';
-  let errorDetails = 'An unexpected error occurred.';
-  let statusCode = 500;
-
   if (error instanceof ZodError) {
     return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
   }
-  
-  if (error.code) {
-      switch(error.code) {
-          case 5: // NOT_FOUND
-              errorTitle = 'Database Not Found';
-              errorDetails = `The Firestore database 'kamperhubv2' could not be found. Please verify its creation in your Firebase project.`;
-              statusCode = 500;
-              break;
-          case 16: // UNAUTHENTICATED
-              errorTitle = 'Server Authentication Failed';
-              errorDetails = `The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or lack permission for Firestore. Please check your setup.`;
-              statusCode = 500;
-              break;
-          default:
-              errorDetails = error.message;
-              break;
-      }
-  } else {
-    errorDetails = error.message;
-  }
-
-  return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: statusCode });
+  return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
 };
 
 const copyTripSchema = z.object({
@@ -64,11 +84,9 @@ const copyTripSchema = z.object({
   destinationJourneyId: z.string().min(1, "Destination Journey ID is required"),
 });
 
-export async function POST(req: NextRequest) {
-    const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-    if (errorResponse || !uid || !firestore) return errorResponse;
-
+export async function POST(req: NextRequest): Promise<NextResponse> {
     try {
+        const { uid, firestore } = await verifyUserAndGetInstances(req);
         const body = await req.json();
         const { sourceTripId, destinationJourneyId } = copyTripSchema.parse(body);
 
@@ -108,24 +126,28 @@ export async function POST(req: NextRequest) {
                 name: `Copy of: ${sourceTripData.name}`,
                 timestamp: new Date().toISOString(),
                 journeyId: destinationJourneyId,
-                // Reset fields for a new trip as per requirements
-                expenses: [], // Keep budget, but reset expenses
+                expenses: [],
                 isCompleted: false,
                 plannedStartDate: null,
                 plannedEndDate: null,
                 checklists: checklists,
             };
 
-            // Set the new trip document
             transaction.set(newTripRef, newTripData);
 
-            // Update the destination journey's tripIds array
             transaction.update(destinationJourneyRef, {
-                tripIds: admin.firestore.FieldValue.arrayUnion(newTripRef.id)
+                tripIds: firestore.FieldValue.arrayUnion(newTripRef.id)
             });
 
             newTripDataForResponse = newTripData;
         });
+
+        // After the transaction completes, recalculate the master polyline
+        await recalculateAndSaveMasterPolyline(destinationJourneyId, uid, firestore);
+        
+        if (!newTripDataForResponse) {
+          throw new Error("Transaction failed to produce new trip data.");
+        }
         
         return NextResponse.json(newTripDataForResponse, { status: 201 });
 
