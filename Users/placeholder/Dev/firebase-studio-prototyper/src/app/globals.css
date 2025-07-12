@@ -1,4 +1,7 @@
-
+/* 
+  This file contains the core color theme for the KamperHub application.
+  You can modify the HSL values for variables like --primary, --accent, and --background here.
+*/
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
