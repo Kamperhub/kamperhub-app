@@ -87,11 +87,14 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 
 2.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
     *   In your `kamperhub-s4hc2` Project settings, go to the **Service accounts** tab.
-    *   **CRITICAL SECURITY:** If you have any existing service account keys listed, delete them.
-    *   Click "Generate new private key". A new, secure JSON file will download.
+    *   **CRITICAL: Which Service Account to Use?** You may see multiple service accounts. For your local development, you should use the one named **`firebase-adminsdk-...`** which usually has the "Owner" role.
+    *   **CRITICAL: DO NOT DELETE OR DISABLE SERVICE ACCOUNTS.** Never delete the service accounts themselves (especially the `firebase-app-hosting-compute@...` account). You only need to manage their **keys**.
+    *   Click on the correct service account (e.g., `firebase-adminsdk-...`) to manage its keys.
+    *   Navigate to the **"Keys"** tab for that service account.
+    *   **CRITICAL SECURITY:** If there are any existing keys listed, delete them by clicking the trash can icon. This ensures you are not using a key that might have been accidentally exposed.
+    *   Click **"Add Key"** -> **"Create new key"**. Select **JSON** as the key type and click **Create**. A new, secure JSON file will download.
     *   Open the downloaded file, copy the **entire JSON content**, and paste it inside the single quotes for `GOOGLE_APPLICATION_CREDENTIALS_JSON`. **It must all be on one line.**
-    *   **CRITICAL: The `project_id` field inside this JSON file must also be `kamperhub-s4hc2`.**
-    *   **CRITICAL: The `private_key` field in the JSON contains `\n` characters. The app is now designed to handle these correctly, so you should not need to modify them manually.**
+    *   The `project_id` field inside this JSON file must also be `kamperhub-s4hc2`.
 
 3.  **Google Cloud API Keys (`GOOGLE_API_KEY` & `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)**
     *   Go to the [Google Cloud Credentials page](https://console.cloud.google.com/apis/credentials) for your `kamperhub-s4hc2` project.
