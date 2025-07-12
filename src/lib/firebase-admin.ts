@@ -26,6 +26,7 @@ export function getFirebaseAdmin() {
     }
 
     let jsonString = serviceAccountJsonString.trim();
+    // Some shells might wrap the string in extra quotes, remove them.
     if ((jsonString.startsWith("'") && jsonString.endsWith("'")) || (jsonString.startsWith('"') && jsonString.endsWith('"'))) {
         jsonString = jsonString.substring(1, jsonString.length - 1);
     }
@@ -37,7 +38,6 @@ export function getFirebaseAdmin() {
         throw new Error(`FATAL: The GOOGLE_APPLICATION_CREDENTIALS_JSON string in your .env.local file is not valid JSON. Please copy it again carefully. The JSON parser failed with: ${e.message}`);
     }
 
-    // --- NEW VALIDATION STEP ---
     if (serviceAccount.project_id !== clientProjectId) {
         throw new Error(`FATAL: Project ID Mismatch. Server key is for project '${serviceAccount.project_id}', but client keys are for project '${clientProjectId}'. All keys in your .env.local file MUST come from the same Firebase project. Please review the 'FIREBASE_SETUP_CHECKLIST.md' guide carefully.`);
     }
@@ -46,7 +46,8 @@ export function getFirebaseAdmin() {
       throw new Error("FATAL: The 'private_key' field is missing from your service account JSON. Please ensure you have copied the entire JSON file correctly.");
     }
     
-    // Replace literal \n with actual newlines
+    // The private key from Google's JSON contains literal `\n` characters.
+    // The Admin SDK expects actual newline characters. This line performs that replacement.
     if (serviceAccount.private_key) {
       serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
     }
