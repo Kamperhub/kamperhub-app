@@ -6,32 +6,37 @@ import Image from 'next/image';
 import { navItems } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { LogIn } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function LandingPage() {
+
+  // Filter for the features to be displayed on the landing page, excluding meta-pages
+  const featuresToDisplay = navItems.filter(item => 
+    !['/my-account', '/contact', '/dashboard-details', '/trip-manager', '/learn'].includes(item.href)
+  );
 
   return (
     <div className="bg-background font-body">
       <main>
         {/* Hero Section */}
-        <section className="text-center py-12 md:py-20 px-4">
+        <section className="text-center py-10">
           <Image
             src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.firebasestorage.app/o/KamperHub%20512x512.jpg?alt=media&token=00bf2acd-dbca-4cc2-984e-58461f67fdbd"
             alt="KamperHub Logo"
             width={120}
             height={120}
-            className="mx-auto mb-6 rounded-2xl shadow-md"
+            className="mx-auto mb-6 rounded-2xl shadow-sm"
             data-ai-hint="logo brand"
             priority
           />
-          <h1 className="text-4xl md:text-6xl font-headline text-primary">
+          <h1 className="text-4xl md:text-5xl font-headline text-primary">
             Your Ultimate Travelling Companion
           </h1>
-          <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground">
+          <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
             Plan, pack, and travel with confidence. KamperHub brings all your essential caravanning tools into one smart, easy-to-use app.
           </p>
           <div className="mt-8 flex justify-center gap-4">
-            <Button asChild size="lg" className="font-headline text-lg">
+             <Button asChild size="lg" className="font-headline text-lg">
               <Link href="/signup">Get Started for Free</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="font-headline text-lg">
@@ -41,7 +46,7 @@ export default function LandingPage() {
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-12 md:py-20 bg-muted/50">
+        <section id="features" className="py-16 bg-muted/50">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-headline text-primary">Everything You Need for the Road Ahead</h2>
@@ -50,7 +55,7 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {navItems.filter(item => !['/my-account', '/contact', '/dashboard-details', '/trip-manager'].includes(item.href)).map((feature) => (
+              {featuresToDisplay.map((feature) => (
                 <Card key={feature.label} className="text-center shadow-lg hover:shadow-xl transition-shadow">
                   <CardHeader>
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
@@ -68,7 +73,7 @@ export default function LandingPage() {
         </section>
         
         {/* Data Usage Transparency Section */}
-        <section id="data-usage" className="py-12 md:py-20">
+        <section id="data-usage" className="py-20">
             <div className="container mx-auto px-4 text-center">
                  <h2 className="text-3xl md:text-4xl font-headline text-primary">Your Data, Your Control</h2>
                  <p className="mt-2 max-w-3xl mx-auto text-lg text-muted-foreground">We provide optional features that can connect to your Google account. Here’s why:</p>
