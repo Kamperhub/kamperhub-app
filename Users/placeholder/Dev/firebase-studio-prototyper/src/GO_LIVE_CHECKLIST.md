@@ -26,24 +26,25 @@ Your local development started in "test mode". For production, you must switch t
 
 1.  Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
 
-2.  **Create a Browser Key (for the client-side):**
+2.  **Create a Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**.
-    *   Name it `KamperHub Browser Key`.
+    *   Name it `Kamperhub Browser Key`.
     *   Under **"Application restrictions"**, select **"Websites"**.
     *   Click **"ADD"** and enter your production domain (e.g., `https://kamperhub.com/*`). This locks the key so it only works on your website.
     *   Under **"API restrictions"**, select **"Restrict key"** and choose only the APIs the browser needs:
         *   Maps JavaScript API
         *   Places API
+        *   Places API (New)
     *   Click **Save**.
     *   Copy this key. You will use it for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in your App Hosting configuration.
 
-3.  **Create a Server Key (for the backend):**
+3.  **Create a Server Key (for `GOOGLE_API_KEY`):**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**.
-    *   Name it `KamperHub Server Key (No Referrer Restrictions)`.
+    *   Name it `Kamperhub Server Key`.
     *   Under **"Application restrictions"**, select **"None"**. **Do NOT add website or IP restrictions to this key.** Server-to-server calls do not have an HTTP referrer and will be blocked if you add one. Its security comes from being kept secret on the server.
     *   Under **"API restrictions"**, select **"Restrict key"** and choose only the APIs the server needs:
         *   Routes API
-        *   Gemini API
+        *   Gemini API (also known as Generative Language API)
     *   Click **Save**.
     *   Copy this key. You will use it for `GOOGLE_API_KEY` in your App Hosting configuration.
 
@@ -109,36 +110,19 @@ Many app features depend on Google services. An incorrect API key or disabled se
 
 1.  **Go to the [Google Cloud APIs & Services Dashboard for kamperhub-s4hc2](https://console.cloud.google.com/apis/dashboard?project=kamperhub-s4hc2).**
 
-2.  Click **"Enable APIs and Services"** at the top. You must search for and enable the following **five APIs** one by one if they are not already enabled.
+2.  Click **"Enable APIs and Services"** at the top. You must search for and enable the following APIs if they are not already enabled.
 
-3.  **Search for and Enable "Maps JavaScript API"**:
-    *   **Required for:** Displaying the interactive map in the Trip Planner.
-    *   **API Key Used:** `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
-    *   If it's not enabled, click **"Enable"**.
+3.  **Client-Side APIs** (Used by `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):
+    *   **Maps JavaScript API**
+    *   **Places API**
+    *   **Places API (New)**
 
-4.  **Search for and Enable "Places API"**:
-    *   **Required for:** The address autocomplete search boxes in the Trip Planner.
-    *   **API Key Used:** `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
-    *   If it's not enabled, click **"Enable"**.
+4.  **Server-Side APIs** (Used by `GOOGLE_API_KEY`):
+    *   **Routes API**
+    *   **Gemini API** (may be listed as "Generative Language API")
 
-5.  **Search for and Enable "Routes API"**:
-    *   **Required for:** Calculating driving directions, distance, duration, and height-aware routing.
-    *   **API Key Used:** `GOOGLE_API_KEY` (Server-side)
-    *   **CRITICAL:** If this is not enabled, the Trip Planner will fail with an error. Click **"Enable"**.
-    > [!WARNING]
-    > **"Routes API" vs. "Directions API"**
-    > You must enable the **Routes API**. The older **Directions API** is **not** sufficient and will cause errors.
-
-6.  **Search for and Enable "Gemini API"**:
-    *   **Required for:** All AI features, including the Chatbot and the Packing Assistant.
-    *   **API Key Used:** `GOOGLE_API_KEY` (Server-side)
-    *   **NOTE:** This was formerly called the "Generative Language API". Searching for either name should work.
-    *   If it's not enabled, click **"Enable"**.
-
-7.  **Search for and Enable "Google Tasks API"**:
-    *   **Required for:** The "Send to Google Tasks" feature on the Trip Packing page.
-    *   **API Key Used:** This API uses OAuth 2.0 and does not use an API key.
-    *   **CRITICAL:** If this is not enabled, the integration will fail. Click **"Enable"**.
+5.  **OAuth API** (Does not use an API key):
+    *   **Google Tasks API**
 
 ### **Step 3.6: CRITICAL - Configure OAuth Consent Screen & Credentials**
 
@@ -182,8 +166,8 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
     *   **CRITICAL: Set `NEXT_PUBLIC_APP_ENV` to `"production"`.** This tells the app it's in live mode.
     *   `NEXT_PUBLIC_FIREBASE_*`: Use the values from your Firebase Console project settings.
     *   `GOOGLE_APPLICATION_CREDENTIALS_JSON`: **Use the same one-line JSON string** for your service account key that you used in local development.
-    *   `GOOGLE_API_KEY`: Use the **KamperHub Server Key** you created in Step 1.2.
-    *   `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`: Use the **KamperHub Browser Key** you created in Step 1.2.
+    *   `GOOGLE_API_KEY`: Use the **Kamperhub Server Key** you created in Step 1.2.
+    *   `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`: Use the **Kamperhub Browser Key** you created in Step 1.2.
     *   `NEXT_PUBLIC_APP_URL`: Set this to `https://kamperhub.com`
     *   `STRIPE_SECRET_KEY`: Use the **live** secret key (`sk_live_...`) from Step 2.4.
     *   `NEXT_PUBLIC_STRIPE_PAYMENT_LINK`: Use the **live** payment link URL from Step 2.3.
