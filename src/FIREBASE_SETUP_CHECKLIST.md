@@ -8,7 +8,10 @@
 
 ### Step 1: Create Your Local Environment File
 
-All your secret keys will live in a special file that is NOT committed to version control.
+All your secret keys will live in a special file that is **NEVER** committed to version control.
+
+> [!WARNING]
+> **CRITICAL SECURITY WARNING:** Your `.env.local` file contains highly sensitive secret keys. **NEVER commit this file to GitHub or any other public repository.** The project is now configured with a `.gitignore` file to help prevent this, but you are ultimately responsible for keeping your secrets safe.
 
 1.  In the main folder of your project (the same level as `package.json`), create a new file named **exactly**:
     `.env.local`
@@ -33,9 +36,9 @@ All your secret keys will live in a special file that is NOT committed to versio
     # This MUST be a single line of JSON wrapped in single quotes.
     GOOGLE_APPLICATION_CREDENTIALS_JSON='PASTE_YOUR_ENTIRE_SERVICE_ACCOUNT_JSON_HERE'
     
-    # Generative AI (Genkit / Gemini) API Key
-    # IMPORTANT: This key MUST NOT have "HTTP referrer" restrictions. Use a key with no restrictions or IP address restrictions.
-    GOOGLE_API_KEY="YOUR_GENERATIVE_AI_API_KEY_HERE"
+    # Generative AI (Genkit / Gemini) & Server-Side Routes API Key
+    # Use your secure "Kamperhub Server Key" for this value. It has no "HTTP referrer" restrictions.
+    GOOGLE_API_KEY="YOUR_SERVER_API_KEY_HERE"
 
     # Application URL and Environment
     # NEXT_PUBLIC_APP_URL MUST match the exposed URL of your application when it's running (e.g., http://localhost:8083)
@@ -49,14 +52,13 @@ All your secret keys will live in a special file that is NOT committed to versio
     STRIPE_SECRET_KEY="sk_test_..."
     STRIPE_WEBHOOK_SECRET="whsec_..."
     
-    # Google API Configuration (for Google Tasks, etc.)
+    # Google API Configuration (for Google Tasks, etc. - Uses OAuth, not an API key)
     GOOGLE_CLIENT_ID="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
     GOOGLE_CLIENT_SECRET="YOUR_GOOGLE_CLIENT_SECRET"
 
-    # Google Maps API Key
-    # NOTE: It's often best practice to use the same key for Maps and AI to simplify management,
-    # as long as that key does not have HTTP referrer restrictions.
-    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="YOUR_GOOGLE_MAPS_API_KEY_HERE"
+    # Google Maps & Places API Key (for the browser)
+    # Use your "Kamperhub Browser Key" for this value. It should have "HTTP referrer" restrictions.
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="YOUR_BROWSER_API_KEY_HERE"
     ```
 
 ---
@@ -90,15 +92,19 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   **CRITICAL: The `project_id` field inside this JSON file must also be `kamperhub-s4hc2`.**
     *   **CRITICAL: The `private_key` field in the JSON contains `\n` characters. The app is now designed to handle these correctly, so you should not need to modify them manually.**
 
-3.  **Google API Keys (`GOOGLE_API_KEY` & `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)**
+3.  **Google Cloud API Keys (`GOOGLE_API_KEY` & `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)**
     *   Go to the [Google Cloud Credentials page](https://console.cloud.google.com/apis/credentials) for your `kamperhub-s4hc2` project.
-    *   **CRITICAL - Understand Key Restrictions:**
-        *   **HTTP referrer restrictions** are for client-side browser use only. They will cause an `API_KEY_HTTP_REFERRER_BLOCKED` error for server-side calls like AI and Directions.
-        *   **IP address restrictions** are for secure server-side use. This is the best practice for production.
-        *   **No restrictions** keys work on both client and server, which is convenient for local development but less secure for production.
-    *   **ACTION:**
-        *   Create or identify a key that **DOES NOT** have HTTP referrer restrictions. A key with "None" or "IP Address" restrictions is required.
-        *   Paste this key into both the `GOOGLE_API_KEY` and `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variables in your `.env.local` file. Using the same secure key for both simplifies management.
+    *   **CRITICAL:** It is highly recommended to create **two new, dedicated API keys** and delete any old or auto-generated keys ("Browser key", "API key 1", etc.).
+    *   **Create Your Server Key (for `GOOGLE_API_KEY`):**
+        *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Server Key`.
+        *   Restrict this key to **Routes API** and **Gemini API**.
+        *   Under "Application restrictions", choose **"None"**. This is a secret server key and must not have browser restrictions.
+        *   Paste this key into the `GOOGLE_API_KEY` variable.
+    *   **Create Your Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
+        *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Browser Key`.
+        *   Restrict this key to **Maps JavaScript API**, **Places API**, and **Places API (New)**.
+        *   Under "Application restrictions", choose **"Websites"** and add your local development URL (e.g., `http://localhost:8083/*`).
+        *   Paste this key into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable.
 
 4.  **Google OAuth Keys (`GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`)**
     *   Go to the [Google Cloud Credentials page](https://console.cloud.google.com/apis/credentials) for your `kamperhub-s4hc2` project.
@@ -115,43 +121,19 @@ Many app features depend on Google services. An incorrect API key or disabled se
 
 1.  **Go to the [Google Cloud APIs & Services Dashboard for kamperhub-s4hc2](https://console.cloud.google.com/apis/dashboard?project=kamperhub-s4hc2).**
 
-2.  Click **"Enable APIs and Services"** at the top. You must search for and enable the following **five APIs** one by one if they are not already enabled.
+2.  Click **"Enable APIs and Services"** at the top. You must search for and enable the following APIs if they are not already enabled.
 
-3.  **Search for and Enable "Maps JavaScript API"**:
-    *   **Required for:** Displaying the interactive map in the Trip Planner.
-    *   **API Key Used:** `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
-    *   If it's not enabled, click **"Enable"**.
+3.  **Client-Side APIs** (Used by `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):
+    *   **Maps JavaScript API**
+    *   **Places API**
+    *   **Places API (New)**
 
-4.  **Search for and Enable "Places API"**:
-    *   **Required for:** The address autocomplete search boxes and the "Show Fuel Stations" feature.
-    *   **API Key Used:** `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
-    *   If it's not enabled, click **"Enable"**.
+4.  **Server-Side APIs** (Used by `GOOGLE_API_KEY`):
+    *   **Routes API**
+    *   **Gemini API** (may be listed as "Generative Language API")
 
-5.  **Search for and Enable "Routes API"**:
-    *   **Required for:** Calculating driving directions, distance, duration, and height-aware routing.
-    *   **API Key Used:** `GOOGLE_API_KEY` (Server-side)
-    *   **CRITICAL:** If this is not enabled, the Trip Planner will fail with an error. Click **"Enable"**.
-    > [!WARNING]
-    > **"Routes API" vs. "Directions API"**
-    > You must enable the **Routes API**. The older **Directions API** is **not** sufficient and will cause errors.
-
-6.  **Search for and Enable "Gemini API"**:
-    *   **Required for:** All AI features, including the Chatbot and the Packing Assistant.
-    *   **API Key Used:** `GOOGLE_API_KEY` (Server-side)
-    *   **NOTE:** This was formerly called the "Generative Language API". Searching for either name should work.
-    *   If it's not enabled, click **"Enable"**.
-
-7.  **Search for and Enable "Google Tasks API"**:
-    *   **Required for:** The "Send to Google Tasks" feature on the Trip Packing page.
-    *   **API Key Used:** This API uses OAuth 2.0 and does not use an API key.
-    *   **CRITICAL:** If this is not enabled, the integration will fail. Click **"Enable"**.
-
-8.  **Verify your API Key Permissions**:
-    *   Go back to the [Credentials page](https://console.cloud.google.com/apis/credentials).
-    *   Find the key you are using for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
-    *   Click its name to see its details.
-    *   Under **"API restrictions"**, ensure it has permission to use **Maps JavaScript API** and **Places API**.
-    *   Find the key you are using for `GOOGLE_API_KEY`. It should have permission for **Routes API** and **Gemini API**. If they are the same key, it needs all four APIs.
+5.  **OAuth API** (Does not use an API key):
+    *   **Google Tasks API**
 
 ---
 
@@ -303,3 +285,5 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     }
     ```
 6.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
+
+    
