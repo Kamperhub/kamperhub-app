@@ -8,7 +8,6 @@ import type { StoredCaravan } from '@/types/caravan';
 import type { LoggedTrip } from '@/types/tripplanner';
 import type admin from 'firebase-admin';
 
-
 const firestoreTimestampReplacer = (key: any, value: any) => {
     if (value && typeof value.toDate === 'function') {
         return value.toDate().toISOString();
@@ -26,7 +25,7 @@ const sanitizeData = (data: any) => {
     }
 };
 
-async function verifyUserAndGetInstances(req: NextRequest) {
+async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string | null, firestore: admin.firestore.Firestore | null, errorResponse: NextResponse | null }> {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
     return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
@@ -46,7 +45,7 @@ async function verifyUserAndGetInstances(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest): Promise<NextResponse> {
     const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
     if (errorResponse) return errorResponse;
     if (!uid || !firestore) {

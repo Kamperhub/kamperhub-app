@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { InventoryItem } from '@/types/inventory';
 import { z, ZodError } from 'zod';
+import type admin from 'firebase-admin';
 
 // A robust replacer function for JSON.stringify to handle Firestore Timestamps.
 const firestoreTimestampReplacer = (key: any, value: any) => {
@@ -18,7 +19,7 @@ const sanitizeData = (data: any) => {
     return JSON.parse(jsonString);
 };
 
-async function verifyUserAndGetInstances(req: NextRequest) {
+async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string | null, firestore: admin.firestore.Firestore | null, errorResponse: NextResponse | null }> {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
     return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
@@ -26,7 +27,7 @@ async function verifyUserAndGetInstances(req: NextRequest) {
 
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
@@ -34,7 +35,7 @@ async function verifyUserAndGetInstances(req: NextRequest) {
     const decodedToken = await auth.verifyIdToken(idToken);
     return { uid: decodedToken.uid, firestore, errorResponse: null };
   } catch (error: any) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
   }
 }
 
@@ -52,7 +53,7 @@ const updateInventorySchema = z.object({
   items: z.array(inventoryItemSchema),
 });
 
-const handleApiError = (error: any) => {
+const handleApiError = (error: any): NextResponse => {
   console.error('API Error:', error);
   let errorTitle = 'Internal Server Error';
   let errorDetails = 'An unexpected error occurred.';
@@ -86,9 +87,12 @@ const handleApiError = (error: any) => {
 };
 
 // GET the inventory for a specific caravan
-export async function GET(req: NextRequest, { params }: { params: { caravanId: string } }) {
+export async function GET(req: NextRequest, { params }: { params: { caravanId: string } }): Promise<NextResponse> {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
+  if (errorResponse) return errorResponse;
+  if (!uid || !firestore) {
+    return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
+  }
 
   const { caravanId } = params;
   if (!caravanId) {
@@ -100,7 +104,6 @@ export async function GET(req: NextRequest, { params }: { params: { caravanId: s
     const inventoryDocSnap = await inventoryDocRef.get();
 
     if (!inventoryDocSnap.exists) {
-      // If no inventory exists for this caravan, return an empty array, which is a valid state.
       return NextResponse.json({ items: [] }, { status: 200 });
     }
     
@@ -115,9 +118,12 @@ export async function GET(req: NextRequest, { params }: { params: { caravanId: s
 }
 
 // PUT (create/replace) the inventory for a specific caravan
-export async function PUT(req: NextRequest, { params }: { params: { caravanId: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: { caravanId: string } }): Promise<NextResponse> {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
+  if (errorResponse) return errorResponse;
+   if (!uid || !firestore) {
+    return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
+  }
 
   const { caravanId } = params;
   if (!caravanId) {
