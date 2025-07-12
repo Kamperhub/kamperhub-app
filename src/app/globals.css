@@ -34,16 +34,6 @@
     --ring: 136 29% 30%;
  
     --radius: 0.5rem;
-
-    /* Custom sidebar colors to match new theme */
-    --sidebar-background: 45 50% 94%; /* Slightly darker beige */
-    --sidebar-foreground: 136 29% 25%; /* Darker forest green */
-    --sidebar-primary: 359 45% 51%;    /* Accent Orange */
-    --sidebar-primary-foreground: 60 9.1% 97.8%;
-    --sidebar-accent: 136 29% 40%;    /* Mid forest green */
-    --sidebar-accent-foreground: 60 9.1% 97.8%;
-    --sidebar-border: 45 30% 85%;
-    --sidebar-ring: 359 45% 51%;
   }
  
   .dark {
@@ -74,16 +64,6 @@
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 136 35% 70%;
-
-    /* Custom sidebar colors for dark theme */
-    --sidebar-background: 240 10% 5%;
-    --sidebar-foreground: 136 30% 75%;
-    --sidebar-primary: 359 55% 61%;
-    --sidebar-primary-foreground: 60 9.1% 97.8%;
-    --sidebar-accent: 136 30% 55%;
-    --sidebar-accent-foreground: 60 9.1% 97.8%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 359 55% 61%;
   }
 }
  

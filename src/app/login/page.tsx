@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useContext } from 'react';
@@ -203,7 +204,7 @@ export default function LoginPage() {
                         </Button>
                       </DialogClose>
                       <Button type="button" onClick={handlePasswordResetRequest} disabled={isResettingPassword} className="font-body bg-primary text-primary-foreground hover:bg-primary/90">
-                        {isResettingPassword && <LogInIcon className="mr-2 h-4 w-4 animate-spin" />}
+                        {isResettingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Send Reset Link
                       </Button>
                     </DialogFooter>
