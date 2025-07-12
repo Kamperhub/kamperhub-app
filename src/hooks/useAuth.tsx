@@ -47,49 +47,57 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { setSubscriptionDetails } = useSubscription();
   
   useEffect(() => {
-    console.log("AuthProvider: Mounting and setting up auth state listener.");
     if (firebaseInitializationError) {
-      console.error("AuthProvider: Firebase initialization failed.", firebaseInitializationError);
       setAuthStatus('ERROR');
       setProfileError(`Firebase Client Error: ${firebaseInitializationError}`);
       return;
     }
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
-      console.log("AuthProvider: Auth state changed.");
       setUser(currentUser);
       
       if (currentUser) {
-        console.log(`AuthProvider: User is logged in (UID: ${currentUser.uid}). Setting status to LOADING.`);
         setAuthStatus('LOADING');
         setProfileError(null);
         
         try {
           const profileDocRef = doc(db, "users", currentUser.uid);
-          console.log(`AuthProvider: Fetching user profile from Firestore at path: users/${currentUser.uid}`);
-          
           const docSnap = await getDocWithTimeout(profileDocRef, 7000);
 
           if (docSnap.exists()) {
-              console.log("AuthProvider: User profile document found.");
               const profile = docSnap.data() as UserProfile;
               setUserProfile(profile);
-              console.log("AuthProvider: User profile state updated.", profile);
               setSubscriptionDetails(
                 profile.subscriptionTier || 'free',
                 profile.stripeCustomerId,
                 profile.trialEndsAt
               );
-              console.log("AuthProvider: Subscription details updated. Setting status to READY.");
               setAuthStatus('READY');
           } else {
-             const errorMsg = `User profile not found. Your authentication record for '${currentUser.email}' exists, but your profile data is missing from the database. This can happen if signup was interrupted. Please ask the administrator to delete this user from the Firebase Authentication console, then sign up again.`;
-             console.error(`AuthProvider: ${errorMsg}`);
-             setProfileError(errorMsg);
-             setAuthStatus('ERROR');
+             // If the user doc doesn't exist, it could be a new signup.
+             // We'll create a minimal profile to avoid an error state.
+             const minimalProfile: UserProfile = {
+                uid: currentUser.uid,
+                email: currentUser.email,
+                displayName: currentUser.displayName,
+                firstName: null,
+                lastName: null,
+                city: null,
+                state: null,
+                country: null,
+                subscriptionTier: 'free',
+                stripeCustomerId: null,
+                createdAt: new Date().toISOString(),
+             };
+             // Although we create a minimal profile here for the session,
+             // the proper profile creation should happen during the signup flow.
+             // This just prevents the app from breaking if that flow is interrupted.
+             setUserProfile(minimalProfile);
+             setSubscriptionDetails('free', null, null);
+             setAuthStatus('READY');
+             console.warn(`User document for ${currentUser.uid} not found. Using a minimal profile for this session.`);
           }
         } catch (error: any) {
-          console.error("AuthProvider: Error fetching user profile:", error);
           let errorMsg = `Failed to load user profile. Error: ${error.message}`;
            if (error.code === 'permission-denied' || error.message.toLowerCase().includes('permission denied')) {
             errorMsg = "PERMISSION_DENIED: Your app is being blocked by Firestore Security Rules. Please follow the instructions in FIREBASE_SETUP_CHECKLIST.md to deploy the rules file.";
@@ -100,20 +108,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setAuthStatus('ERROR');
         }
       } else {
-        console.log("AuthProvider: No user is logged in. Setting status to UNAUTHENTICATED.");
         setUserProfile(null);
         setSubscriptionDetails('free');
         setAuthStatus('UNAUTHENTICATED');
         setProfileError(null);
       }
     }, (error) => {
-        console.error("AuthProvider: Firebase auth state listener encountered an error:", error);
         setProfileError(`An error occurred during authentication. Please refresh the page. Error: ${error.message}`);
         setAuthStatus('ERROR');
     });
 
     return () => {
-      console.log("AuthProvider: Unmounting and cleaning up auth listener.");
       unsubscribeAuth();
     }
   }, [setSubscriptionDetails]);
