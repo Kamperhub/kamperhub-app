@@ -25,9 +25,8 @@ Your local development started in "test mode". For production, you must switch t
 > **Do not reuse your unrestricted local development API key in production.** Your public (browser) key is visible in your website's code. If it's unrestricted, anyone could steal it and use it, potentially running up a large bill on your account. Creating new, restricted keys is a critical security step.
 
 1.  Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
-2.  **Delete any old or auto-generated keys.** This includes keys named "Browser key (auto created by Firebase)", "API key 1", or any other key you are not actively using. The goal is to have **only two keys** for this application.
 
-3.  **Create a Browser Key (for the client-side):**
+2.  **Create a Browser Key (for the client-side):**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**.
     *   Name it `Kamperhub Browser Key`.
     *   Under **"Application restrictions"**, select **"Websites"**.
@@ -38,7 +37,7 @@ Your local development started in "test mode". For production, you must switch t
     *   Click **Save**.
     *   Copy this key. You will use it for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in your App Hosting configuration.
 
-4.  **Create a Server Key (for the backend):**
+3.  **Create a Server Key (for the backend):**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**.
     *   Name it `Kamperhub Server Key`.
     *   Under **"Application restrictions"**, select **"None"**. **Do NOT add website or IP restrictions to this key.** Server-to-server calls do not have an HTTP referrer and will be blocked if you add one. Its security comes from being kept secret on the server.
