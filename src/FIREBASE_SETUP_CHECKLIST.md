@@ -87,7 +87,8 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 
 2.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
     *   In your `kamperhub-s4hc2` Project settings, go to the **Service accounts** tab.
-    *   Click "Generate new private key". A JSON file will download.
+    *   **CRITICAL SECURITY:** If you have any existing service account keys listed, delete them.
+    *   Click "Generate new private key". A new, secure JSON file will download.
     *   Open the downloaded file, copy the **entire JSON content**, and paste it inside the single quotes for `GOOGLE_APPLICATION_CREDENTIALS_JSON`. **It must all be on one line.**
     *   **CRITICAL: The `project_id` field inside this JSON file must also be `kamperhub-s4hc2`.**
     *   **CRITICAL: The `private_key` field in the JSON contains `\n` characters. The app is now designed to handle these correctly, so you should not need to modify them manually.**
@@ -285,6 +286,3 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     }
     ```
 6.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
-
-
-
