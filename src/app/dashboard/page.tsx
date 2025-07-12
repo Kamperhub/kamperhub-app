@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useContext } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } from '@dnd-kit/sortable';
@@ -10,6 +11,7 @@ import { navItems as defaultNavItems } from '@/lib/navigation';
 import { updateUserPreferences, fetchAllVehicleData } from '@/lib/api-client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { NavigationContext } from '@/components/layout/AppShell';
 
 import { SortableNavItemCard } from '@/components/features/dashboard/SortableNavItemCard';
 import { GettingStartedGuide } from '@/components/features/dashboard/GettingStartedGuide';
@@ -25,6 +27,7 @@ export default function DashboardPage() {
   const { user, userProfile: userPrefs, isAuthLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navContext = useContext(NavigationContext);
 
   const { data: pageData, isLoading: isLoadingData, error: dataError } = useQuery({
     queryKey: ['allVehicleData', user?.uid],

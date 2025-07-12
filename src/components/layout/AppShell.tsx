@@ -61,11 +61,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     initializeFirebaseAppCheck();
   }, []);
 
-  const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const isPublicPage = pathname === '/' || pathname === '/login' || pathname === '/signup';
   const apiKeyMissing = !apiKey;
   
   const AppContent = () => {
-    return isAuthPage ? (
+    return isPublicPage ? (
       <MainLayout apiKeyMissing={apiKeyMissing}>{children}</MainLayout>
     ) : (
       <AuthGuard>
