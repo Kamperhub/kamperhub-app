@@ -158,7 +158,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="info@kamperhub.com"
+                  placeholder="your.email@example.com"
                   disabled={isSubmitting}
                   className="font-body pl-10"
                   autoComplete="email"
