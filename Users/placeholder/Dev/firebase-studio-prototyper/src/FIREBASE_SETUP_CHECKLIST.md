@@ -79,11 +79,17 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 
 Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys and paste them into the `.env.local` file.
 
+> [!WARNING]
+> **Login Error: `auth/api-key-expired`**
+> If you see this error, it means your `NEXT_PUBLIC_FIREBASE_API_KEY` is no longer valid. Follow the instructions in **Step 3.1** below to get your current, correct Firebase SDK configuration and update your `.env.local` file.
+
 1.  **Firebase Client Keys (`NEXT_PUBLIC_FIREBASE_*`)**
-    *   In your `kamperhub-s4hc2` Project settings, under "Your apps", find your web app.
-    *   Look for the "Firebase SDK snippet" and select the **Config** option.
-    *   Copy each value (`apiKey`, `authDomain`, `projectId`, etc.) and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file.
-    *   **CRITICAL: Verify that `NEXT_PUBLIC_FIREBASE_PROJECT_ID` is set to `kamperhub-s4hc2`**
+    *   In your `kamperhub-s4hc2` Project settings, under the "General" tab, scroll down to the "Your apps" section.
+    *   Find your web app (it's likely named something like `kamperhub-s4hc2`).
+    *   Look for the "Firebase SDK snippet" section and select the **Config** option.
+    *   This will display an object with keys like `apiKey`, `authDomain`, `projectId`, etc.
+    *   **CRITICAL:** Carefully copy each value from this Config object and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file.
+    *   **CRITICAL:** Verify that the `projectId` from the config matches `kamperhub-s4hc2`.
 
 2.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
     *   In your `kamperhub-s4hc2` Project settings, go to the **Service accounts** tab.
@@ -286,7 +292,4 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     }
     ```
 6.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
-
-
-
 
