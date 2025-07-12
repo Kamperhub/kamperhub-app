@@ -24,7 +24,7 @@ export default function LandingPage() {
             data-ai-hint="logo brand"
           />
           <h1 className="text-4xl md:text-6xl font-headline text-primary">
-            Your Ultimate Caravanning Companion
+            Your Ultimate caravan travelling companion
           </h1>
           <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground">
             Plan, pack, and travel with confidence. KamperHub brings all your essential caravanning tools into one smart, easy-to-use app.
@@ -45,7 +45,7 @@ export default function LandingPage() {
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-headline text-primary">Everything You Need for the Road Ahead</h2>
               <p className="mt-2 max-w-3xl mx-auto text-lg text-muted-foreground">
-                From weight management to trip planning, KamperHub is packed with features designed for every caravanner.
+                From weight management to trip planning, KamperHub is packed with features designed for every traveller.
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -75,13 +75,13 @@ export default function LandingPage() {
                      <div className="bg-card border p-6 rounded-lg shadow-sm text-left">
                          <h3 className="font-headline text-xl flex items-center"><img src="/google-tasks.svg" alt="Google Tasks Logo" className="w-6 h-6 mr-2" /> Google Tasks (Optional)</h3>
                          <p className="mt-2 text-muted-foreground">
-                            You can choose to connect your Google Account to authorize KamperHub to create detailed packing checklists directly in your Google Tasks. This allows you to manage your packing outside our app. We only request permission to create new tasks and do not read, store, or delete any of your existing tasks.
+                            You can choose to connect your Google Account to authorize KamperHub to create detailed packing checklists directly in your Google Tasks. This is an optional feature to help you manage your packing outside our app. We only request permission to create new tasks and do not read, store, or delete any of your existing tasks.
                          </p>
                      </div>
                      <div className="bg-card border p-6 rounded-lg shadow-sm text-left">
                          <h3 className="font-headline text-xl flex items-center"><img src="/google-calendar.svg" alt="Google Calendar Logo" className="w-6 h-6 mr-2" /> Google Calendar (Optional)</h3>
                          <p className="mt-2 text-muted-foreground">
-                            The "Add to Calendar" feature for your trips works by generating a standard Google Calendar event link. Clicking this link opens Google Calendar in a new tab with pre-filled event details for you to save. This feature does not require you to grant KamperHub any permissions and we do not access your calendar data.
+                            The "Add to Calendar" feature for your trips works by generating a standard Google Calendar event link. Clicking this link opens Google Calendar in a new tab with pre-filled event details for you to save. This feature does not require you to grant KamperHub any special permissions and we do not access or store your calendar data.
                          </p>
                      </div>
                  </div>
