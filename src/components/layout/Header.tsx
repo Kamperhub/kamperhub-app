@@ -43,7 +43,9 @@ export function Header() {
   const navContext = useContext(NavigationContext);
 
   const handleNavigation = () => {
-    navContext?.setIsNavigating(true);
+    if (navContext) {
+      navContext.setIsNavigating(true);
+    }
   };
 
   const handleLogout = async () => {

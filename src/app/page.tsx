@@ -34,12 +34,12 @@ export default function LandingPage() {
               <Link href="/signup">Get Started for Free</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="font-headline text-lg">
-              <Link href="/login"><LogIn className="mr-2 h-5 w-5"/> Log In</Link>
+              <Link href="/login">Log In</Link>
             </Button>
           </div>
         </section>
 
-        {/* Features Section - Restored to single-column list */}
+        {/* Features Section */}
         <section id="features" className="py-12 md:py-20 bg-muted/50">
           <div className="container mx-auto px-4 max-w-3xl">
             <div className="text-center mb-12">
