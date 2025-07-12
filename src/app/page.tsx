@@ -24,7 +24,7 @@ export default function LandingPage() {
             data-ai-hint="logo brand"
           />
           <h1 className="text-4xl md:text-6xl font-headline text-primary">
-            Your Ultimate Travelling Companion
+            Your Ultimate Traveling Companion
           </h1>
           <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground">
             Plan, pack, and travel with confidence. KamperHub brings all your essential caravanning tools into one smart, easy-to-use app.
@@ -45,7 +45,7 @@ export default function LandingPage() {
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-headline text-primary">Everything You Need for the Road Ahead</h2>
               <p className="mt-2 max-w-3xl mx-auto text-lg text-muted-foreground">
-                From weight management to trip planning, KamperHub is packed with features designed for every traveller.
+                From weight management to trip planning, KamperHub is packed with features designed for every traveler.
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
