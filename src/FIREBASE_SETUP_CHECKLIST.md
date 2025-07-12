@@ -97,12 +97,12 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   **CRITICAL:** It is highly recommended to create **two new, dedicated API keys** and delete any old or auto-generated keys ("Browser key", "API key 1", etc.).
     *   **Create Your Server Key (for `GOOGLE_API_KEY`):**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Server Key`.
-        *   Restrict this key to **Routes API** and **Gemini API**.
+        *   Restrict this key to **Routes API**, **Gemini API**, and **Places API**. The Places API is required for the backend to search for fuel stations along a route.
         *   Under "Application restrictions", choose **"None"**. This is a secret server key and must not have browser restrictions.
         *   Paste this key into the `GOOGLE_API_KEY` variable.
     *   **Create Your Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Browser Key`.
-        *   Restrict this key to **Maps JavaScript API**, **Places API**, and **Places API (New)**.
+        *   Restrict this key to **Maps JavaScript API** and **Places API**.
         *   Under "Application restrictions", choose **"Websites"** and add your local development URL (e.g., `http://localhost:8083/*`).
         *   Paste this key into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable.
 
@@ -126,11 +126,11 @@ Many app features depend on Google services. An incorrect API key or disabled se
 3.  **Client-Side APIs** (Used by `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):
     *   **Maps JavaScript API**
     *   **Places API**
-    *   **Places API (New)**
 
 4.  **Server-Side APIs** (Used by `GOOGLE_API_KEY`):
     *   **Routes API**
     *   **Gemini API** (may be listed as "Generative Language API")
+    *   **Places API** (Required for fuel station search)
 
 5.  **OAuth API** (Does not use an API key):
     *   **Google Tasks API**
@@ -286,4 +286,5 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     ```
 6.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
 
-    
+
+
