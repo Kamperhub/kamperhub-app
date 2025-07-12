@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
-import { z, ZodError } from 'zod';
+import { z } from 'zod';
 import Stripe from 'stripe';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -67,16 +67,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const stripeCustomerId = userData?.stripeCustomerId;
 
     let stripeMessage = '';
+    // --- NEW: Delete the Stripe Customer, which cancels all subscriptions ---
     if (stripeCustomerId && stripe) {
       try {
         await stripe.customers.del(stripeCustomerId);
         stripeMessage = `Stripe customer ${stripeCustomerId} and all associated subscriptions were successfully deleted.`;
         console.log(`[Admin Delete] ${stripeMessage}`);
       } catch (stripeError: any) {
+        // Don't block deletion if Stripe fails (e.g., customer already deleted)
         stripeMessage = `Warning: Could not delete Stripe customer ${stripeCustomerId}. Error: ${stripeError.message}`;
         console.warn(`[Admin Delete] ${stripeMessage}`);
       }
     }
+    // --- END NEW ---
 
     await userDoc.ref.delete();
     
@@ -103,3 +106,4 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
   }
 }
+
