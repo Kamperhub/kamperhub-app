@@ -11,7 +11,9 @@ import { NavigationContext } from '@/components/layout/AppShell';
 export default function NotFound() {
   const navContext = useContext(NavigationContext);
   const handleNavigation = () => {
-    navContext?.setIsNavigating(true);
+    if (navContext) {
+      navContext.setIsNavigating(true);
+    }
   };
 
   return (
