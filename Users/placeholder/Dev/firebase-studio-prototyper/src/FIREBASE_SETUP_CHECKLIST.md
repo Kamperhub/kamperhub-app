@@ -80,8 +80,8 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys and paste them into the `.env.local` file.
 
 > [!WARNING]
-> **Login Error: `auth/api-key-expired`**
-> If you see this error, it means your `NEXT_PUBLIC_FIREBASE_API_KEY` is no longer valid. Follow the instructions in **Step 3.1** below to get your current, correct Firebase SDK configuration and update your `.env.local` file.
+> **Login Error: `auth/api-key-expired` or `auth/invalid-api-key`**
+> If you see this error, it means your `NEXT_PUBLIC_FIREBASE_API_KEY` is incorrect, invalid, or has been deleted from Google Cloud. Follow the instructions in **Step 3.1** below to get your current, correct Firebase SDK configuration and update your `.env.local` file.
 
 1.  **Firebase Client Keys (`NEXT_PUBLIC_FIREBASE_*`)**
     *   In your `kamperhub-s4hc2` Project settings, under the "General" tab, scroll down to the "Your apps" section.
@@ -292,4 +292,3 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     }
     ```
 6.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
-
