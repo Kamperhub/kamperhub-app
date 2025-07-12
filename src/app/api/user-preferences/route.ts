@@ -69,7 +69,7 @@ const userPreferencesUpdateSchema = z
   );
   
 const handleApiError = (error: any): NextResponse => {
-  console.error('API Error:', error);
+  console.error('API Error in user-preferences route:', error);
   if (error instanceof ZodError) {
     return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
   }
