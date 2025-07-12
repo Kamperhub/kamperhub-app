@@ -1,35 +1,35 @@
-
 // src/app/api/bookings/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { BookingEntry } from '@/types/booking';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { z, ZodError } from 'zod';
+import type admin from 'firebase-admin';
 
 const ACCOMMODATION_CATEGORY_NAME = "Accommodation";
 
-async function verifyUserAndGetInstances(req: NextRequest) {
+async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string; firestore: admin.firestore.Firestore; }> {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
-    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
+    throw new Error('Server configuration error.');
   }
 
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+    throw new Error('Unauthorized: Missing or invalid Authorization header.');
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
-    return { uid: decodedToken.uid, firestore, errorResponse: null };
+    return { uid: decodedToken.uid, firestore };
   } catch (error: any) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
+    throw new Error('Unauthorized: Invalid ID token.');
   }
 }
 
 // Zod schemas for validation
-const createBookingSchema = z.object({
+const bookingSchema = z.object({
   siteName: z.string().min(1, "Site name is required"),
   locationAddress: z.string().optional(),
   contactPhone: z.string().optional(),
@@ -45,18 +45,24 @@ const createBookingSchema = z.object({
     path: ["checkOutDate"],
 });
 
-// For updates, the base schema is the same, but we also expect an ID
-const updateBookingSchema = createBookingSchema.extend({
+// For updates, the base schema is the same, but we also expect an ID and timestamp
+const updateBookingSchema = bookingSchema.extend({
   id: z.string().min(1, "Booking ID is required for updates"),
+  timestamp: z.string().datetime(),
 });
 
+const handleApiError = (error: any): NextResponse => {
+  console.error('API Error in bookings route:', error);
+  if (error instanceof ZodError) {
+    return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
+  }
+  return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+};
 
 // GET all bookings for the authenticated user
-export async function GET(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
-
+export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const bookingsSnapshot = await firestore.collection('users').doc(uid).collection('bookings').get();
     const bookings: BookingEntry[] = [];
     bookingsSnapshot.forEach(doc => {
@@ -69,35 +75,18 @@ export async function GET(req: NextRequest) {
       }
     });
     
-    // Let NextResponse handle serialization, it's more robust.
     return NextResponse.json(bookings, { status: 200 });
   } catch (err: any) {
-    console.error('API Error in GET /api/bookings:', err);
-    let errorTitle = 'Internal Server Error';
-    let errorDetails = 'An unexpected error occurred.';
-    let statusCode = 500;
-
-    if (err.code) {
-        switch(err.code) {
-            case 5: errorTitle = 'Database Not Found'; errorDetails = `The Firestore database 'kamperhubv2' could not be found.`; statusCode = 500; break;
-            case 16: errorTitle = 'Server Authentication Failed'; errorDetails = `The server's credentials are not valid.`; statusCode = 500; break;
-            default: errorDetails = err.message; break;
-        }
-    } else {
-        errorDetails = err.message;
-    }
-    return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: statusCode });
+    return handleApiError(err);
   }
 }
 
 // POST a new booking for the authenticated user
-export async function POST(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
-
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
-    const parsedData = createBookingSchema.parse(body);
+    const parsedData = bookingSchema.parse(body);
     const { assignedTripId, budgetedCost, ...bookingDetails } = parsedData;
 
     const newBookingRef = firestore.collection('users').doc(uid).collection('bookings').doc();
@@ -138,29 +127,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(newBooking, { status: 201 });
 
   } catch (err: any) {
-    console.error('API Error in POST /api/bookings:', err);
-    if (err instanceof ZodError) {
-        return NextResponse.json({ error: 'Invalid data provided.', details: err.format() }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Internal Server Error', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
 // PUT (update) an existing booking for the authenticated user
-export async function PUT(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
-  
+export async function PUT(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
-    // For update, we add the id field to the base schema
-    const parsedBookingData = createBookingSchema.extend({id: z.string()}).parse(body);
-    const { id: bookingId, assignedTripId: newTripId, budgetedCost: newCostValue } = parsedBookingData;
+    const parsedBookingData = updateBookingSchema.parse(body);
+    const { id: bookingId, assignedTripId: newTripId, budgetedCost: newCostValue, ...restData } = parsedBookingData;
     const newCost = newCostValue || 0;
 
     const bookingRef = firestore.collection('users').doc(uid).collection('bookings').doc(bookingId);
 
-    const finalUpdatedBooking: BookingEntry = { ...parsedBookingData, timestamp: new Date().toISOString() };
+    const finalUpdatedBookingData = {
+        id: bookingId,
+        ...restData,
+        assignedTripId: newTripId,
+        budgetedCost: newCost,
+        timestamp: new Date().toISOString(),
+    };
     
     await firestore.runTransaction(async (transaction) => {
       const bookingDoc = await transaction.get(bookingRef);
@@ -170,7 +158,6 @@ export async function PUT(req: NextRequest) {
       const oldTripId = oldBookingData.assignedTripId;
       const oldCost = oldBookingData.budgetedCost || 0;
       
-      // Step 1: Remove the old cost from the old trip's budget, if applicable
       if (oldTripId && oldCost > 0) {
         const oldTripRef = firestore.collection('users').doc(uid).collection('trips').doc(oldTripId);
         const oldTripDoc = await transaction.get(oldTripRef);
@@ -186,7 +173,6 @@ export async function PUT(req: NextRequest) {
         }
       }
       
-      // Step 2: Add the new cost to the new trip's budget, if applicable
       if (newTripId && newCost > 0) {
         const newTripRef = firestore.collection('users').doc(uid).collection('trips').doc(newTripId);
         const newTripDoc = await transaction.get(newTripRef);
@@ -204,26 +190,19 @@ export async function PUT(req: NextRequest) {
         transaction.update(newTripRef, { budget });
       }
       
-      // Step 3: Update the booking document itself
-      transaction.set(bookingRef, finalUpdatedBooking, { merge: true });
+      transaction.set(bookingRef, finalUpdatedBookingData, { merge: true });
     });
     
-    return NextResponse.json({ message: 'Booking updated successfully.', booking: finalUpdatedBooking }, { status: 200 });
+    return NextResponse.json({ message: 'Booking updated successfully.', booking: finalUpdatedBookingData }, { status: 200 });
   } catch (err: any) {
-    console.error('API Error in PUT /api/bookings:', err);
-    if (err instanceof ZodError) {
-        return NextResponse.json({ error: 'Invalid data provided.', details: err.format() }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Internal Server Error', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
 // DELETE a booking for the authenticated user
-export async function DELETE(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
-
+export async function DELETE(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const { id } = await req.json();
     if (!id || typeof id !== 'string') {
       return NextResponse.json({ error: 'Booking ID is required for deletion.' }, { status: 400 });
@@ -258,7 +237,6 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({ message: 'Booking deleted successfully.' }, { status: 200 });
   } catch (err: any) {
-    console.error('API Error in DELETE /api/bookings:', err);
-    return NextResponse.json({ error: 'Internal Server Error', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }

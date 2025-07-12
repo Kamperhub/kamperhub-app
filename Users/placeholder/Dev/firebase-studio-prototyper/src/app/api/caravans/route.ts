@@ -1,4 +1,3 @@
-
 // src/app/api/caravans/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -121,6 +120,14 @@ const updateCaravanSchema = createCaravanSchema.extend({
   id: z.string().min(1, "Caravan ID is required for updates"),
 });
 
+const handleApiError = (error: any): NextResponse => {
+  console.error('API Error in caravans route:', error);
+  if (error instanceof ZodError) {
+    return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
+  }
+  return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+};
+
 // GET all caravans for the authenticated user
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
@@ -130,8 +137,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const sanitizedCaravans = sanitizeData(caravans);
     return NextResponse.json(sanitizedCaravans, { status: 200 });
   } catch (err: any) {
-    console.error("GET /api/caravans failed:", err);
-    return NextResponse.json({ error: 'Failed to fetch caravans', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
@@ -159,11 +165,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const sanitizedNewCaravan = sanitizeData(newCaravan);
     return NextResponse.json(sanitizedNewCaravan, { status: 201 });
   } catch (err: any) {
-    console.error("POST /api/caravans failed:", err);
-    if (err instanceof ZodError) {
-      return NextResponse.json({ error: 'Invalid data provided.', details: err.format() }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Failed to create caravan', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
@@ -181,11 +183,7 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
     const sanitizedParsedData = sanitizeData(parsedData);
     return NextResponse.json({ message: 'Caravan updated successfully.', caravan: sanitizedParsedData }, { status: 200 });
   } catch (err: any) {
-    console.error("PUT /api/caravans failed:", err);
-    if (err instanceof ZodError) {
-      return NextResponse.json({ error: 'Invalid data provided.', details: err.format() }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Failed to update caravan', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
@@ -202,7 +200,6 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
     
     return NextResponse.json({ message: 'Caravan deleted successfully.' }, { status: 200 });
   } catch (err: any) {
-    console.error("DELETE /api/caravans failed:", err);
-    return NextResponse.json({ error: 'Failed to delete caravan', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }

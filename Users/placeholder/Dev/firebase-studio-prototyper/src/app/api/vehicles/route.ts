@@ -1,4 +1,3 @@
-
 // src/app/api/vehicles/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -45,15 +44,15 @@ const createVehicleSchema = z.object({
   make: z.string().min(1, "Make is required"),
   model: z.string().min(1, "Model is required"),
   year: z.coerce.number().min(1900).max(new Date().getFullYear() + 2),
-  gvm: z.coerce.number().positive(),
-  gcm: z.coerce.number().positive(),
-  maxTowCapacity: z.coerce.number().positive(),
-  maxTowballMass: z.coerce.number().positive(),
-  fuelEfficiency: z.coerce.number().min(0.1),
+  gvm: z.coerce.number().positive("GVM must be a positive number"),
+  gcm: z.coerce.number().positive("GCM must be a positive number"),
+  maxTowCapacity: z.coerce.number().positive("Max Towing Capacity must be a positive number"),
+  maxTowballMass: z.coerce.number().positive("Max Towball Mass must be a positive number"),
+  fuelEfficiency: z.coerce.number().min(0.1, "Fuel efficiency must be a positive number"),
   kerbWeight: z.coerce.number().min(1).optional().nullable(),
   frontAxleLimit: z.coerce.number().min(1).optional().nullable(),
   rearAxleLimit: z.coerce.number().min(1).optional().nullable(),
-  wheelbase: z.coerce.number().min(1000).optional().nullable(),
+  wheelbase: z.coerce.number().min(1).optional().nullable(),
   overallHeight: z.coerce.number().min(1).optional().nullable(),
   recommendedTyrePressureUnladenPsi: z.coerce.number().min(0).optional().nullable(),
   recommendedTyrePressureLadenPsi: z.coerce.number().min(0).optional().nullable(),
@@ -66,6 +65,14 @@ const updateVehicleSchema = createVehicleSchema.extend({
   id: z.string().min(1, "Vehicle ID is required for updates"),
 });
 
+const handleApiError = (error: any): NextResponse => {
+  console.error('API Error in vehicles route:', error);
+  if (error instanceof ZodError) {
+    return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
+  }
+  return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+};
+
 // GET all vehicles for the authenticated user
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
@@ -75,8 +82,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const sanitizedVehicles = sanitizeData(vehicles);
     return NextResponse.json(sanitizedVehicles, { status: 200 });
   } catch (err: any) {
-    console.error("GET /api/vehicles failed:", err);
-    return NextResponse.json({ error: 'Failed to fetch vehicles', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
@@ -97,12 +103,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     
     const sanitizedNewVehicle = sanitizeData(newVehicle);
     return NextResponse.json(sanitizedNewVehicle, { status: 201 });
+
   } catch (err: any) {
-    console.error("POST /api/vehicles failed:", err);
-    if (err instanceof ZodError) {
-      return NextResponse.json({ error: 'Invalid data provided.', details: err.format() }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Failed to create vehicle', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
@@ -119,11 +122,7 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
     const sanitizedParsedData = sanitizeData(parsedData);
     return NextResponse.json({ message: 'Vehicle updated successfully.', vehicle: sanitizedParsedData }, { status: 200 });
   } catch (err: any) {
-    console.error("PUT /api/vehicles failed:", err);
-    if (err instanceof ZodError) {
-      return NextResponse.json({ error: 'Invalid data provided.', details: err.format() }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Failed to update vehicle', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
@@ -140,7 +139,6 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
     
     return NextResponse.json({ message: 'Vehicle deleted successfully.' }, { status: 200 });
   } catch (err: any) {
-    console.error("DELETE /api/vehicles failed:", err);
-    return NextResponse.json({ error: 'Failed to delete vehicle', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }

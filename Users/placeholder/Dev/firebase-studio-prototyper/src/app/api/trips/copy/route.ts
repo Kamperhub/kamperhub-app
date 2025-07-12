@@ -1,4 +1,3 @@
-
 // src/app/api/trips/copy/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -74,6 +73,14 @@ async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: strin
   }
 }
 
+const handleApiError = (error: any): NextResponse => {
+  console.error('API Error in trips/copy route:', error);
+  if (error instanceof ZodError) {
+    return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
+  }
+  return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+};
+
 const copyTripSchema = z.object({
   sourceTripId: z.string().min(1, "Source Trip ID is required"),
   destinationJourneyId: z.string().min(1, "Destination Journey ID is required"),
@@ -137,15 +144,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             newTripDataForResponse = newTripData;
         });
 
+        // After the transaction completes, recalculate the master polyline
         await recalculateAndSaveMasterPolyline(destinationJourneyId, uid, firestore);
+        
+        if (!newTripDataForResponse) {
+          throw new Error("Transaction failed to produce new trip data.");
+        }
         
         return NextResponse.json(newTripDataForResponse, { status: 201 });
 
     } catch (err: any) {
-        console.error("POST /api/trips/copy failed:", err);
-        if (err instanceof ZodError) {
-          return NextResponse.json({ error: 'Invalid data provided.', details: err.format() }, { status: 400 });
-        }
-        return NextResponse.json({ error: 'Failed to copy trip', details: err.message }, { status: 500 });
+        return handleApiError(err);
     }
 }

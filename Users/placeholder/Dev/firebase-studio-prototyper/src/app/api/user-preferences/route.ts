@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile } from '@/types/auth';
@@ -68,6 +67,14 @@ const userPreferencesUpdateSchema = z
     { message: 'At least one preference or profile field must be provided for an update.' }
   );
 
+const handleApiError = (error: any): NextResponse => {
+  console.error('API Error in user-preferences route:', error);
+  if (error instanceof ZodError) {
+    return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
+  }
+  return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+};
+
 // GET user preferences
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
@@ -83,8 +90,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const serializableData = sanitizeData(userData);
     return NextResponse.json(serializableData, { status: 200, headers: { 'Cache-Control': 'no-store' } });
   } catch (err: any) {
-    console.error('GET /api/user-preferences failed:', err);
-    return NextResponse.json({ error: 'Failed to fetch user preferences', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
@@ -110,10 +116,6 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ message: 'User profile and preferences updated successfully.', preferences: updatedData }, { status: 200 });
   } catch (err: any) {
-    console.error('PUT /api/user-preferences failed:', err);
-    if (err instanceof ZodError) {
-      return NextResponse.json({ error: 'Invalid preferences data.', details: err.format() }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Failed to update user preferences.', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
