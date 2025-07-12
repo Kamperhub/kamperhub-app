@@ -79,15 +79,22 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 
 Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys and paste them into the `.env.local` file.
 
+> [!WARNING]
+> **Login Error: `auth/api-key-expired` or `auth/invalid-api-key`**
+> If you see this error, it means your `NEXT_PUBLIC_FIREBASE_API_KEY` is incorrect, invalid, or has been deleted from Google Cloud. Follow the instructions in **Step 3.1** below to get your current, correct Firebase SDK configuration and update your `.env.local` file.
+
 1.  **Firebase Client Keys (`NEXT_PUBLIC_FIREBASE_*`)**
-    *   In your `kamperhub-s4hc2` Project settings, under "Your apps", find your web app.
-    *   Look for the "Firebase SDK snippet" and select the **Config** option.
-    *   Copy each value (`apiKey`, `authDomain`, `projectId`, etc.) and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file.
-    *   **CRITICAL: Verify that `NEXT_PUBLIC_FIREBASE_PROJECT_ID` is set to `kamperhub-s4hc2`**
+    *   In your `kamperhub-s4hc2` Project settings, under the "General" tab, scroll down to the "Your apps" section.
+    *   Find your web app (it's likely named something like `kamperhub-s4hc2`).
+    *   Look for the "Firebase SDK snippet" section and select the **Config** option.
+    *   This will display an object with keys like `apiKey`, `authDomain`, `projectId`, etc.
+    *   **CRITICAL:** Carefully copy each value from this Config object and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file.
+    *   **CRITICAL:** Verify that the `projectId` from the config matches `kamperhub-s4hc2`.
 
 2.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
     *   In your `kamperhub-s4hc2` Project settings, go to the **Service accounts** tab.
-    *   Click "Generate new private key". A JSON file will download.
+    *   **CRITICAL SECURITY:** If you have any existing service account keys listed, delete them.
+    *   Click "Generate new private key". A new, secure JSON file will download.
     *   Open the downloaded file, copy the **entire JSON content**, and paste it inside the single quotes for `GOOGLE_APPLICATION_CREDENTIALS_JSON`. **It must all be on one line.**
     *   **CRITICAL: The `project_id` field inside this JSON file must also be `kamperhub-s4hc2`.**
     *   **CRITICAL: The `private_key` field in the JSON contains `\n` characters. The app is now designed to handle these correctly, so you should not need to modify them manually.**
@@ -218,7 +225,10 @@ If the above steps are correct, the final check is to ensure your service accoun
 
 ### Step 7: FINAL & CRITICAL - Deploy Security Rules
 
-This is the final step and solves most `UNAUTHENTICATED` errors seen on the dashboard.
+> [!WARNING]
+> **This is the most likely reason your app is stuck on "Initializing Session" or shows "PERMISSION_DENIED" errors.**
+
+The IAM role gives your *server* permission to access the database, but Firestore **Security Rules** control what your *app users* are allowed to do. You must deploy the rules included with the project.
 
 1.  In the application file explorer on the left, open the newly created `firestore.rules` file and copy its entire contents.
 2.  Go to the [Firebase Console](https://console.firebase.google.com/) for your `kamperhub-s4hc2` project.
