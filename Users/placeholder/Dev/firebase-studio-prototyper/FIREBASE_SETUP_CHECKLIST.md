@@ -8,7 +8,10 @@
 
 ### Step 1: Create Your Local Environment File
 
-All your secret keys will live in a special file that is NOT committed to version control.
+All your secret keys will live in a special file that is **NEVER** committed to version control.
+
+> [!WARNING]
+> **CRITICAL SECURITY WARNING:** Your `.env.local` file contains highly sensitive secret keys. **NEVER commit this file to GitHub or any other public repository.** The project is now configured with a `.gitignore` file to help prevent this, but you are ultimately responsible for keeping your secrets safe.
 
 1.  In the main folder of your project (the same level as `package.json`), create a new file named **exactly**:
     `.env.local`
@@ -37,12 +40,12 @@ All your secret keys will live in a special file that is NOT committed to versio
     # IMPORTANT: This key MUST NOT have "HTTP referrer" restrictions. Use a key with no restrictions or IP address restrictions.
     GOOGLE_API_KEY="YOUR_GENERATIVE_AI_API_KEY_HERE"
 
-    # Application URL
-    # This MUST match the base URL of your application when it's running.
-    # In the dev environment, check the terminal: if it says "started server on ... http://localhost:3000",
-    # the exposed URL is http://localhost:8083. If it says "http://localhost:3001", the URL is http://localhost:8084.
-    # This URL is used by services like Stripe and Google OAuth to redirect the user back to your app.
+    # Application URL and Environment
+    # NEXT_PUBLIC_APP_URL MUST match the exposed URL of your application when it's running (e.g., http://localhost:8083)
+    # This is used by services like Stripe and Google OAuth to redirect the user back to your app.
+    # NEXT_PUBLIC_APP_ENV MUST be "development" for local testing. It controls features like the environment banner.
     NEXT_PUBLIC_APP_URL="http://localhost:8083"
+    NEXT_PUBLIC_APP_ENV="development"
 
     # Stripe Configuration (for subscriptions)
     NEXT_PUBLIC_STRIPE_PAYMENT_LINK=https://buy.stripe.com/...
@@ -56,7 +59,7 @@ All your secret keys will live in a special file that is NOT committed to versio
     # Google Maps API Key
     # NOTE: It's often best practice to use the same key for Maps and AI to simplify management,
     # as long as that key does not have HTTP referrer restrictions.
-    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="YOUR_GOOGLE_MAPS_API_KEY_HERE"
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="YOUR_GOOGLE_MAPS_API_KEY"
     ```
 
 ---
@@ -113,7 +116,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 
 Many app features depend on Google services. An incorrect API key or disabled services will cause features to fail.
 
-1.  **Go to the [Google Cloud APIs & Services Dashboard](https://console.cloud.google.com/apis/dashboard) for your `kamperhub-s4hc2` project.**
+1.  **Go to the [Google Cloud APIs & Services Dashboard for kamperhub-s4hc2](https://console.cloud.google.com/apis/dashboard?project=kamperhub-s4hc2).**
 
 2.  Click **"Enable APIs and Services"** at the top. You must search for and enable the following **five APIs** one by one if they are not already enabled.
 
@@ -122,7 +125,7 @@ Many app features depend on Google services. An incorrect API key or disabled se
     *   If it's not enabled, click **"Enable"**.
 
 4.  **Search for and Enable "Places API"**:
-    *   **Required for:** The address autocomplete search boxes in the Trip Planner.
+    *   **Required for:** The address autocomplete search boxes and the "Show Fuel Stations" feature.
     *   If it's not enabled, click **"Enable"**.
 
 5.  **Search for and Enable "Routes API"**:
@@ -132,8 +135,9 @@ Many app features depend on Google services. An incorrect API key or disabled se
     > **"Routes API" vs. "Directions API"**
     > You must enable the **Routes API**. The older **Directions API** is **not** sufficient and will cause errors.
 
-6.  **Search for and Enable "Generative Language API"**:
+6.  **Search for and Enable "Gemini API"**:
     *   **Required for:** All AI features, including the Chatbot and the Packing Assistant.
+    *   **NOTE:** This was formerly called the "Generative Language API". Searching for either name should work.
     *   If it's not enabled, click **"Enable"**.
 
 7.  **Search for and Enable "Google Tasks API"**:
@@ -142,7 +146,7 @@ Many app features depend on Google services. An incorrect API key or disabled se
 
 8.  **Verify your API Key Permissions**:
     *   Go back to the [Credentials page](https://console.cloud.google.com/apis/credentials).
-    *   Find the key you are using for `GOOGLE_API_KEY`.
+    *   Find the key you are using for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
     *   Click its name to see its details.
     *   Under **"API restrictions"**, ensure it has permission to use all five of the APIs listed above. If it's unrestricted ("Don't restrict key"), that is fine for local development.
 
@@ -155,7 +159,7 @@ Many app features depend on Google services. An incorrect API key or disabled se
 
 This step is mandatory for allowing users to connect their Google Accounts (for features like Google Tasks).
 
-1.  **Go to the [OAuth Consent Screen page](https://console.cloud.google.com/apis/credentials/consent) in the Google Cloud Console for your `kamperhub-s4hc2` project.**
+1.  **Go to the [OAuth Consent Screen page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials/consent?project=kamperhub-s4hc2).**
 2.  **Set User Type:** If prompted, select **"External"** and click **Create**.
 3.  **Fill in App Information:**
     *   **App name:** KamperHub
@@ -296,3 +300,5 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     }
     ```
 6.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
+
+    

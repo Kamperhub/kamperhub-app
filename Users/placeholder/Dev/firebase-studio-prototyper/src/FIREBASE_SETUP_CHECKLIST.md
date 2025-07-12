@@ -8,7 +8,10 @@
 
 ### Step 1: Create Your Local Environment File
 
-All your secret keys will live in a special file that is NOT committed to version control.
+All your secret keys will live in a special file that is **NEVER** committed to version control.
+
+> [!WARNING]
+> **CRITICAL SECURITY WARNING:** Your `.env.local` file contains highly sensitive secret keys. **NEVER commit this file to GitHub or any other public repository.** The project is now configured with a `.gitignore` file to help prevent this, but you are ultimately responsible for keeping your secrets safe.
 
 1.  In the main folder of your project (the same level as `package.json`), create a new file named **exactly**:
     `.env.local`
@@ -56,7 +59,7 @@ All your secret keys will live in a special file that is NOT committed to versio
     # Google Maps API Key
     # NOTE: It's often best practice to use the same key for Maps and AI to simplify management,
     # as long as that key does not have HTTP referrer restrictions.
-    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="YOUR_GOOGLE_MAPS_API_KEY_HERE"
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="YOUR_GOOGLE_MAPS_API_KEY"
     ```
 
 ---
@@ -122,7 +125,7 @@ Many app features depend on Google services. An incorrect API key or disabled se
     *   If it's not enabled, click **"Enable"**.
 
 4.  **Search for and Enable "Places API"**:
-    *   **Required for:** The address autocomplete search boxes in the Trip Planner.
+    *   **Required for:** The address autocomplete search boxes and the "Show Fuel Stations" feature.
     *   If it's not enabled, click **"Enable"**.
 
 5.  **Search for and Enable "Routes API"**:
@@ -297,3 +300,5 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     }
     ```
 6.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
+
+    
