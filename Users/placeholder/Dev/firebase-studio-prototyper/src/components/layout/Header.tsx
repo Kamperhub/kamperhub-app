@@ -43,7 +43,9 @@ export function Header() {
   const navContext = useContext(NavigationContext);
 
   const handleNavigation = () => {
-    navContext?.setIsNavigating(true);
+    if (navContext) {
+      navContext.setIsNavigating(true);
+    }
   };
 
   const handleLogout = async () => {
@@ -64,7 +66,7 @@ export function Header() {
     }
   };
   
-  const homeLink = user ? "/dashboard" : "/";
+  const homeLink = user ? "/" : "/"; // Always link home to the landing page
 
   return (
     <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-40">
@@ -83,11 +85,13 @@ export function Header() {
         </Link>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <Link href={homeLink} passHref>
-            <Button variant="ghost" size="icon" aria-label="Go to Homepage" className="p-0 hover:bg-primary/80" onClick={handleNavigation}>
-              <LayoutDashboard className="h-7 w-7" />
-            </Button>
-          </Link>
+          {user && (
+            <Link href="/dashboard" passHref>
+              <Button variant="ghost" size="icon" aria-label="Go to Dashboard" className="p-0 hover:bg-primary/80" onClick={handleNavigation}>
+                <LayoutDashboard className="h-7 w-7" />
+              </Button>
+            </Link>
+          )}
 
           <Link href="/chatbot" passHref>
             <Button variant="ghost" size="icon" aria-label="AI Chatbot" className="p-0 hover:bg-primary/80" onClick={handleNavigation}>
