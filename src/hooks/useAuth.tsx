@@ -8,12 +8,14 @@ import { auth, db, firebaseInitializationError } from '@/lib/firebase';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from './useSubscription';
 
-export type AuthStatus = 'LOADING' | 'UNAUTHENTICATED' | 'READY' | 'ERROR';
+export type AuthStatus = 'LOADING' | 'UNAUTHENTICATED' | 'AUTHENTICATED' | 'ERROR';
+export type ProfileStatus = 'LOADING' | 'SUCCESS' | 'ERROR';
 
 interface AuthContextType {
   user: FirebaseUser | null;
   userProfile: UserProfile | null;
   authStatus: AuthStatus;
+  profileStatus: ProfileStatus; // New state for profile fetching
   profileError: string | null;
   isAuthLoading: boolean;
 }
@@ -43,6 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [authStatus, setAuthStatus] = useState<AuthStatus>('LOADING');
+  const [profileStatus, setProfileStatus] = useState<ProfileStatus>('LOADING'); // New state
   const [profileError, setProfileError] = useState<string | null>(null);
   const { setSubscriptionDetails } = useSubscription();
   
@@ -57,10 +60,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(currentUser);
       
       if (currentUser) {
-        // Keep status as LOADING until profile is fetched.
-        setAuthStatus('LOADING');
-        setProfileError(null);
+        // AUTHENTICATION is successful immediately.
+        setAuthStatus('AUTHENTICATED');
         
+        // Now, fetch profile data in the background.
+        setProfileStatus('LOADING');
+        setProfileError(null);
         try {
           const profileDocRef = doc(db, "users", currentUser.uid);
           const docSnap = await getDocWithTimeout(profileDocRef, 7000);
@@ -73,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 profile.stripeCustomerId,
                 profile.trialEndsAt
               );
-              setAuthStatus('READY'); // Explicitly set to READY only on success
+              setProfileStatus('SUCCESS');
           } else {
              const minimalProfile: UserProfile = {
                 uid: currentUser.uid, email: currentUser.email, displayName: currentUser.displayName,
@@ -82,7 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
              };
              setUserProfile(minimalProfile);
              setSubscriptionDetails('free', null, null);
-             setAuthStatus('READY'); // Set to ready even with minimal profile
+             setProfileStatus('SUCCESS'); // Still a success, just with a default profile.
              console.warn(`User document for ${currentUser.uid} not found. Using a minimal profile.`);
           }
         } catch (error: any) {
@@ -93,12 +98,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUserProfile(null);
           setSubscriptionDetails('free');
           setProfileError(errorMsg);
-          setAuthStatus('ERROR');
+          setProfileStatus('ERROR'); // Set profile status to ERROR
+          // Do not change authStatus here, user is still authenticated.
         }
       } else {
+        // No user, so reset everything.
         setUserProfile(null);
         setSubscriptionDetails('free');
         setAuthStatus('UNAUTHENTICATED');
+        setProfileStatus('LOADING');
         setProfileError(null);
       }
     }, (error) => {
@@ -109,9 +117,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribeAuth();
   }, [setSubscriptionDetails]);
   
+  // The main auth loading state is now simpler.
   const isAuthLoading = authStatus === 'LOADING';
 
-  const value = { user, userProfile, authStatus, profileError, isAuthLoading };
+  const value = { user, userProfile, authStatus, profileStatus, profileError, isAuthLoading };
 
   return (
     <AuthContext.Provider value={value}>

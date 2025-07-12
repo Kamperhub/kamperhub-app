@@ -8,7 +8,7 @@ import { Loader2, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
-const LoadingScreen = () => {
+const LoadingScreen = ({ message }: { message: string }) => {
   const [showSlowLoadMessage, setShowSlowLoadMessage] = useState(false);
 
   useEffect(() => {
@@ -25,7 +25,7 @@ const LoadingScreen = () => {
         {!showSlowLoadMessage ? (
           <>
             <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-            <p className="text-lg font-semibold text-primary font-body">Initializing Session...</p>
+            <p className="text-lg font-semibold text-primary font-body">{message}</p>
           </>
         ) : (
           <Alert variant="destructive" className="mt-6 max-w-2xl text-left shadow-lg">
@@ -101,7 +101,7 @@ const ErrorScreen = ({ error }: { error: string | null }) => {
 
 
 export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { authStatus, profileError } = useAuth();
+  const { authStatus, profileStatus, profileError } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -111,17 +111,23 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
   }, [authStatus, router]);
 
   if (authStatus === 'LOADING') {
-    return <LoadingScreen />;
-  }
-
-  if (authStatus === 'ERROR') {
-    return <ErrorScreen error={profileError} />;
+    return <LoadingScreen message="Initializing Session..." />;
   }
   
-  if (authStatus === 'READY') {
+  if (profileStatus === 'ERROR') {
+    return <ErrorScreen error={profileError} />;
+  }
+
+  // Show a loading screen while the profile is being fetched in the background,
+  // even though the user is authenticated. This prevents flashing of incomplete data.
+  if (authStatus === 'AUTHENTICATED' && profileStatus === 'LOADING') {
+    return <LoadingScreen message="Loading Your Profile..." />;
+  }
+  
+  if (authStatus === 'AUTHENTICATED' && profileStatus === 'SUCCESS') {
     return <>{children}</>;
   }
   
-  // This handles the UNAUTHENTICATED case before the redirect effect runs, showing a loader.
-  return <LoadingScreen />;
+  // Fallback loading screen for any other state (e.g., initial render before effects)
+  return <LoadingScreen message="Initializing..." />;
 };
