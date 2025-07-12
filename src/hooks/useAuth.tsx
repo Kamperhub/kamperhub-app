@@ -57,6 +57,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(currentUser);
       
       if (currentUser) {
+        // Keep status as LOADING until profile is fetched.
         setAuthStatus('LOADING');
         setProfileError(null);
         
@@ -72,30 +73,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 profile.stripeCustomerId,
                 profile.trialEndsAt
               );
-              setAuthStatus('READY');
+              setAuthStatus('READY'); // Explicitly set to READY only on success
           } else {
-             // If the user doc doesn't exist, it could be a new signup.
-             // We'll create a minimal profile to avoid an error state.
              const minimalProfile: UserProfile = {
-                uid: currentUser.uid,
-                email: currentUser.email,
-                displayName: currentUser.displayName,
-                firstName: null,
-                lastName: null,
-                city: null,
-                state: null,
-                country: null,
-                subscriptionTier: 'free',
-                stripeCustomerId: null,
-                createdAt: new Date().toISOString(),
+                uid: currentUser.uid, email: currentUser.email, displayName: currentUser.displayName,
+                firstName: null, lastName: null, city: null, state: null, country: null,
+                subscriptionTier: 'free', stripeCustomerId: null, createdAt: new Date().toISOString(),
              };
-             // Although we create a minimal profile here for the session,
-             // the proper profile creation should happen during the signup flow.
-             // This just prevents the app from breaking if that flow is interrupted.
              setUserProfile(minimalProfile);
              setSubscriptionDetails('free', null, null);
-             setAuthStatus('READY');
-             console.warn(`User document for ${currentUser.uid} not found. Using a minimal profile for this session.`);
+             setAuthStatus('READY'); // Set to ready even with minimal profile
+             console.warn(`User document for ${currentUser.uid} not found. Using a minimal profile.`);
           }
         } catch (error: any) {
           let errorMsg = `Failed to load user profile. Error: ${error.message}`;
@@ -118,9 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setAuthStatus('ERROR');
     });
 
-    return () => {
-      unsubscribeAuth();
-    }
+    return () => unsubscribeAuth();
   }, [setSubscriptionDetails]);
   
   const isAuthLoading = authStatus === 'LOADING';

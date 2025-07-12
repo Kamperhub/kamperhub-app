@@ -104,7 +104,7 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
   const { authStatus, profileError } = useAuth();
   const router = useRouter();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (authStatus === 'UNAUTHENTICATED') {
       router.push('/login');
     }
@@ -117,10 +117,11 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
   if (authStatus === 'ERROR') {
     return <ErrorScreen error={profileError} />;
   }
-
+  
   if (authStatus === 'READY') {
     return <>{children}</>;
   }
-
+  
+  // This handles the UNAUTHENTICATED case before the redirect effect runs, showing a loader.
   return <LoadingScreen />;
 };
