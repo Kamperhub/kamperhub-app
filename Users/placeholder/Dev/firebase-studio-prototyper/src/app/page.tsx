@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -23,7 +24,7 @@ export default function LandingPage() {
             data-ai-hint="logo brand"
           />
           <h1 className="text-4xl md:text-6xl font-headline text-primary">
-            Your Ultimate Travelling Companion
+            Your Ultimate Caravan Travelling Companion
           </h1>
           <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground">
             Plan, pack, and travel with confidence. KamperHub brings all your essential caravanning tools into one smart, easy-to-use app.
