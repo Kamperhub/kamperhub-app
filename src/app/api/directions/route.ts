@@ -3,11 +3,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import type { RouteDetails } from '@/types/tripplanner';
 
 const directionsRequestSchema = z.object({
   origin: z.string(),
   destination: z.string(),
+  isTowing: z.boolean(),
   vehicleHeight: z.number().positive().optional(),
+  caravanHeight: z.number().positive().optional(),
   axleCount: z.number().int().positive().optional(),
   avoidTolls: z.boolean().optional(),
 });
@@ -28,7 +31,6 @@ function formatDuration(isoDuration: string): string {
 }
 
 export async function POST(req: NextRequest) {
-  // Use the unrestricted server-side GOOGLE_API_KEY for server-to-server calls
   const apiKey = process.env.GOOGLE_API_KEY;
 
   if (!apiKey) {
@@ -44,9 +46,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body.', details: parsedBody.error.format() }, { status: 400 });
     }
 
-    const { origin, destination, vehicleHeight, axleCount, avoidTolls } = parsedBody.data;
+    const { origin, destination, isTowing, vehicleHeight, caravanHeight, axleCount, avoidTolls } = parsedBody.data;
 
-    // Base request body for Google's Routes API
+    let finalHeight: number | undefined;
+    if (isTowing) {
+        finalHeight = Math.max(vehicleHeight || 0, caravanHeight || 0);
+    } else {
+        finalHeight = vehicleHeight;
+    }
+    if (finalHeight === 0) finalHeight = undefined;
+
+
     const requestBody: any = {
       origin: { address: origin },
       destination: { address: destination },
@@ -59,16 +69,14 @@ export async function POST(req: NextRequest) {
       polylineEncoding: 'ENCODED_POLYLINE',
     };
     
-    // If height or axle count is provided, add vehicleInfo to the request
     const vehicleInfo: any = {};
-    if (vehicleHeight && vehicleHeight > 0) {
-      vehicleInfo.dimensions = { height: vehicleHeight };
+    if (finalHeight) {
+      vehicleInfo.dimensions = { height: finalHeight };
     }
     if (axleCount && axleCount > 0) {
       vehicleInfo.axleCount = axleCount;
     }
 
-    // Add route modifiers for vehicle info and toll avoidance
     const routeModifiers: any = {};
     if (Object.keys(vehicleInfo).length > 0) {
         routeModifiers.vehicleInfo = vehicleInfo;
@@ -86,7 +94,6 @@ export async function POST(req: NextRequest) {
         headers: {
             'Content-Type': 'application/json',
             'X-Goog-Api-Key': apiKey,
-            // Field mask to request specific fields, reducing data transfer and cost
             'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.warnings,routes.polyline.encodedPolyline,routes.legs,routes.travelAdvisory.tollInfo',
         },
         body: JSON.stringify(requestBody)
@@ -102,8 +109,9 @@ export async function POST(req: NextRequest) {
           const errorData = JSON.parse(errorBody);
           if (errorData.error?.message) {
             errorMessage = errorData.error.message;
-            if (errorMessage.includes("Routes API has not been used in project")) {
-              errorMessage = "The Google Routes API is not enabled for this project. Please enable it in the Google Cloud Console (see Step 3.5 in the setup guide) and ensure your API key has permissions for it.";
+            if (errorMessage.includes("API has not been used in project")) {
+                const apiName = errorMessage.includes("Routes API") ? "Routes API" : "Places API";
+                errorMessage = `The Google ${apiName} is not enabled for this project. Please enable it in the Google Cloud Console (see Step 3.5 in the setup guide) and ensure your API key has permissions for it.`;
             } else if (errorMessage.toLowerCase().includes('api_key_not_valid')) {
                errorMessage = "The provided GOOGLE_API_KEY is invalid. Please check the key in your .env.local file.";
             } else if (errorMessage.toLowerCase().includes('invalid json payload')) {
@@ -111,7 +119,6 @@ export async function POST(req: NextRequest) {
             }
           }
         } catch(e) {
-          // This block catches if JSON.parse fails
           if (errorBody.toLowerCase().includes('api key not valid')) {
             errorMessage = "The provided GOOGLE_API_KEY is invalid. Please check the key in your .env.local file and restart the server.";
           } else if (errorBody.toLowerCase().includes('http referrer')) {
@@ -121,45 +128,54 @@ export async function POST(req: NextRequest) {
         
         throw new Error(errorMessage);
     }
-    
-    const data = await response.json();
-    
-    if (data.routes && data.routes.length > 0) {
-        const route = data.routes[0];
-        const tollInfo = route.travelAdvisory?.tollInfo;
-        let adaptedTollInfo = null;
 
-        if (tollInfo?.estimatedPrice?.length > 0) {
-          const totalTollCost = tollInfo.estimatedPrice.reduce((sum: number, price: any) => {
-            const units = price.units ? parseInt(price.units) : 0;
-            const nanos = price.nanos ? price.nanos / 1_000_000_000 : 0;
-            return sum + units + nanos;
-          }, 0);
-          
-          if (totalTollCost > 0) {
-            adaptedTollInfo = {
-              text: `$${totalTollCost.toFixed(2)} (${tollInfo.estimatedPrice[0].currencyCode || 'USD'})`,
-              value: totalTollCost
-            };
-          }
-        }
-        
-        const adaptedResponse = {
-            distance: { text: `${(route.distanceMeters / 1000).toFixed(1)} km`, value: route.distanceMeters },
-            duration: { text: formatDuration(route.duration), value: parseInt(route.duration.slice(0,-1), 10)},
-            startLocation: route.legs[0]?.startLocation?.latLng,
-            endLocation: route.legs[route.legs.length - 1]?.endLocation?.latLng,
-            polyline: route.polyline.encodedPolyline,
-            warnings: route.warnings || [],
-            tollInfo: adaptedTollInfo,
-        };
-        return NextResponse.json(adaptedResponse, { status: 200 });
-    } else {
-        return NextResponse.json({ error: "No routes found." }, { status: 404 });
+    const responseBodyText = await response.text();
+    if (!responseBodyText) {
+        return NextResponse.json({ error: "No routes found between the specified locations. The destination may be unreachable by car." }, { status: 404 });
     }
+
+    const data = JSON.parse(responseBodyText);
+    
+    if (!data.routes || data.routes.length === 0) {
+        return NextResponse.json({ error: "No routes found between the specified locations. Please check the start and end points." }, { status: 404 });
+    }
+
+    const route = data.routes[0];
+    const tollInfo = route.travelAdvisory?.tollInfo;
+    let adaptedTollInfo = null;
+
+    if (tollInfo?.estimatedPrice?.length > 0) {
+        const totalTollCost = tollInfo.estimatedPrice.reduce((sum: number, price: any) => {
+        const units = price.units ? parseInt(price.units) : 0;
+        const nanos = price.nanos ? price.nanos / 1_000_000_000 : 0;
+        return sum + units + nanos;
+        }, 0);
+        
+        if (totalTollCost > 0) {
+        adaptedTollInfo = {
+            text: `$${totalTollCost.toFixed(2)} (${tollInfo.estimatedPrice[0].currencyCode || 'USD'})`,
+            value: totalTollCost
+        };
+        }
+    }
+
+    const adaptedResponse: RouteDetails = {
+        distance: { text: `${((route?.distanceMeters || 0) / 1000).toFixed(1)} km`, value: route?.distanceMeters || 0 },
+        duration: { text: formatDuration(route?.duration || '0s'), value: parseInt(route?.duration?.slice(0,-1) || '0', 10)},
+        startLocation: route?.legs?.[0]?.startLocation?.latLng,
+        endLocation: route?.legs?.[(route.legs.length - 1)]?.endLocation?.latLng,
+        polyline: route?.polyline?.encodedPolyline,
+        warnings: route?.warnings || [],
+        tollInfo: adaptedTollInfo,
+        fuelStations: [],
+    };
+    return NextResponse.json(adaptedResponse, { status: 200 });
 
   } catch (error: any) {
     console.error('Error in directions API route:', error);
+    if (error instanceof SyntaxError && error.message.includes("Unexpected token")) {
+        return NextResponse.json({ error: `The server received an unexpected response from the mapping service. This can happen with unusual locations. Please try again.`, details: error.message }, { status: 500 });
+    }
     return NextResponse.json({ error: `Error calculating route: ${error.message}` || 'An internal server error occurred.' }, { status: 500 });
   }
 }

@@ -10,6 +10,8 @@ import { decode, encode } from '@googlemaps/polyline-codec';
 import type { Journey } from '@/types/journey';
 
 // This function should be imported from the centralized location if needed.
+// For now, we are placing it here temporarily for simplicity, assuming it's used
+// in more than one trips-related endpoint. Ideally this would live in a shared lib.
 async function recalculateAndSaveMasterPolyline(journeyId: string, userId: string, db: firestore.Firestore) {
     const journeyRef = db.collection('users').doc(userId).collection('journeys').doc(journeyId);
     const journeyDoc = await journeyRef.get();
