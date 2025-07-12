@@ -8,26 +8,9 @@ import type { firestore } from 'firebase-admin';
 import { decode, encode } from '@googlemaps/polyline-codec';
 import type { Journey } from '@/types/journey';
 
-async function verifyUserAndGetInstances(req: NextRequest) {
-  const { auth, firestore, error } = getFirebaseAdmin();
-  if (error || !auth || !firestore) {
-    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
-  }
-
-  const authorizationHeader = req.headers.get('Authorization');
-  if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
-  }
-  const idToken = authorizationHeader.split('Bearer ')[1];
-
-  try {
-    const decodedToken = await auth.verifyIdToken(idToken);
-    return { uid: decodedToken.uid, firestore, errorResponse: null };
-  } catch (error: any) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
-  }
-}
-
+// This function should be imported from the centralized location if needed.
+// For now, we are placing it here temporarily for simplicity, assuming it's used
+// in more than one trips-related endpoint. Ideally this would live in a shared lib.
 async function recalculateAndSaveMasterPolyline(journeyId: string, userId: string, db: firestore.Firestore) {
     const journeyRef = db.collection('users').doc(userId).collection('journeys').doc(journeyId);
     const journeyDoc = await journeyRef.get();
@@ -44,7 +27,8 @@ async function recalculateAndSaveMasterPolyline(journeyId: string, userId: strin
         return;
     }
 
-    const tripDocs = await Promise.all(tripIds.map(id => db.collection('users').doc(userId).collection('trips').doc(id).get()));
+    const tripRefs = tripIds.map(id => db.collection('users').doc(userId).collection('trips').doc(id));
+    const tripDocs = await db.getAll(...tripRefs);
     const validTrips = tripDocs.map(doc => doc.data() as LoggedTrip).filter(trip => trip && trip.routeDetails?.polyline);
 
     validTrips.sort((a, b) => {
@@ -55,7 +39,7 @@ async function recalculateAndSaveMasterPolyline(journeyId: string, userId: strin
 
     const allCoordinates: [number, number][] = [];
     validTrips.forEach(trip => {
-        if (trip.routeDetails.polyline) {
+        if (trip.routeDetails?.polyline) {
             try {
                 const decodedPath = decode(trip.routeDetails.polyline, 5);
                 allCoordinates.push(...decodedPath);
@@ -67,6 +51,26 @@ async function recalculateAndSaveMasterPolyline(journeyId: string, userId: strin
 
     const masterPolyline = allCoordinates.length > 0 ? encode(allCoordinates, 5) : null;
     await journeyRef.update({ masterPolyline });
+}
+
+async function verifyUserAndGetInstances(req: NextRequest) {
+  const { auth, firestore, error } = getFirebaseAdmin();
+  if (error || !auth || !firestore) {
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
+  }
+
+  const authorizationHeader = req.headers.get('Authorization');
+  if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+  }
+  const idToken = authorizationHeader.split('Bearer ')[1];
+
+  try {
+    const decodedToken = await auth.verifyIdToken(idToken);
+    return { uid: decodedToken.uid, firestore, errorResponse: null };
+  } catch (error: any) {
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
+  }
 }
 
 const handleApiError = (error: any) => {
@@ -109,7 +113,8 @@ const copyTripSchema = z.object({
 
 export async function POST(req: NextRequest) {
     const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-    if (errorResponse || !uid || !firestore) return errorResponse;
+    if (errorResponse) return errorResponse;
+    if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
 
     try {
         const body = await req.json();

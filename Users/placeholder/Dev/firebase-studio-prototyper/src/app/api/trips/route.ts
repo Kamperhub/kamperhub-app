@@ -15,7 +15,7 @@ async function verifyUserAndGetInstances(req: NextRequest) {
 
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
@@ -23,21 +23,25 @@ async function verifyUserAndGetInstances(req: NextRequest) {
     const decodedToken = await auth.verifyIdToken(idToken);
     return { uid: decodedToken.uid, firestore, errorResponse: null };
   } catch (error: any) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
   }
 }
 
-// Moved from journeys route to be reusable here
+// Centralized function to calculate and save the master polyline for a journey
 async function recalculateAndSaveMasterPolyline(journeyId: string, userId: string, db: firestore.Firestore, transaction?: firestore.Transaction) {
+    console.log(`[Polyline] Recalculating for Journey ID: ${journeyId}`);
     const journeyRef = db.collection('users').doc(userId).collection('journeys').doc(journeyId);
     
-    // Use the transaction if provided, otherwise fetch directly
-    const get = transaction ? transaction.get.bind(transaction) : db.getAll.bind(db);
-
-    const journeyDoc = await (transaction ? transaction.get(journeyRef) : journeyRef.get());
+    let journeyDoc;
+    if (transaction) {
+        journeyDoc = await transaction.get(journeyRef);
+    } else {
+        journeyDoc = await journeyRef.get();
+    }
+    
 
     if (!journeyDoc.exists) {
-        console.warn(`Journey ${journeyId} not found for recalculation.`);
+        console.warn(`[Polyline] Journey ${journeyId} not found for recalculation.`);
         return;
     }
 
@@ -45,12 +49,14 @@ async function recalculateAndSaveMasterPolyline(journeyId: string, userId: strin
     const tripIds = journeyData.tripIds || [];
 
     if (tripIds.length === 0) {
+        console.log(`[Polyline] Journey ${journeyId} has no trips. Clearing master polyline.`);
         if(transaction) transaction.update(journeyRef, { masterPolyline: null });
         else await journeyRef.update({ masterPolyline: null });
         return;
     }
 
     const tripRefs = tripIds.map(id => db.collection('users').doc(userId).collection('trips').doc(id));
+    
     const tripDocs = await (transaction ? Promise.all(tripRefs.map(ref => transaction.get(ref))) : db.getAll(...tripRefs));
 
     const validTrips = tripDocs.map(doc => doc.data() as LoggedTrip).filter(trip => trip && trip.routeDetails?.polyline);
@@ -63,17 +69,19 @@ async function recalculateAndSaveMasterPolyline(journeyId: string, userId: strin
 
     const allCoordinates: [number, number][] = [];
     validTrips.forEach(trip => {
-        if (trip.routeDetails.polyline) {
+        if (trip.routeDetails?.polyline) {
             try {
                 const decodedPath = decode(trip.routeDetails.polyline, 5);
                 allCoordinates.push(...decodedPath);
             } catch (e) {
-                console.error(`Could not decode polyline for trip ${trip.id}:`, e);
+                console.error(`[Polyline] Could not decode polyline for trip ${trip.id}:`, e);
             }
         }
     });
 
     const masterPolyline = allCoordinates.length > 0 ? encode(allCoordinates, 5) : null;
+    console.log(`[Polyline] Saving new master polyline for Journey ${journeyId}. Length: ${masterPolyline?.length || 0}`);
+    
     if(transaction) transaction.update(journeyRef, { masterPolyline });
     else await journeyRef.update({ masterPolyline });
 }
@@ -99,6 +107,11 @@ const latLngSchema = z.object({
   lng: z.number(),
 });
 
+const fuelStationSchema = z.object({
+    name: z.string(),
+    location: latLngSchema,
+});
+
 const routeDetailsSchema = z.object({
   distance: z.object({ text: z.string(), value: z.number() }),
   duration: z.object({ text: z.string(), value: z.number() }),
@@ -107,6 +120,7 @@ const routeDetailsSchema = z.object({
   polyline: z.string().optional().nullable(),
   warnings: z.array(z.string()).optional().nullable(),
   tollInfo: z.object({ text: z.string(), value: z.number() }).nullable().optional(),
+  fuelStations: z.array(fuelStationSchema).optional(),
 });
 
 
@@ -207,13 +221,15 @@ const handleApiError = (error: any) => {
 // GET all trips for the authenticated user
 export async function GET(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
+  if (errorResponse) return errorResponse;
+  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
+
 
   try {
     const tripsSnapshot = await firestore.collection('users').doc(uid).collection('trips').get();
     const trips: LoggedTrip[] = [];
     tripsSnapshot.forEach(doc => {
-      if (doc.exists()) {
+      if (doc.exists) {
         trips.push(doc.data() as LoggedTrip);
       }
     });
@@ -226,7 +242,9 @@ export async function GET(req: NextRequest) {
 // POST a new trip for the authenticated user
 export async function POST(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
+  if (errorResponse) return errorResponse;
+  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
+
 
   try {
     const body = await req.json();
@@ -277,7 +295,8 @@ export async function POST(req: NextRequest) {
 // PUT (update) an existing trip for the authenticated user
 export async function PUT(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
+  if (errorResponse) return errorResponse;
+  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
   
   try {
     const body = await req.json();
@@ -285,7 +304,7 @@ export async function PUT(req: NextRequest) {
     const { id: tripId, ...updateData } = parsedData;
 
     const tripRef = firestore.collection('users').doc(uid).collection('trips').doc(tripId);
-    let journeyToUpdate: string | null = null;
+    let journeysToUpdate: string[] = [];
     let journeyNeedsRecalculation = false;
 
     await firestore.runTransaction(async (transaction) => {
@@ -298,41 +317,51 @@ export async function PUT(req: NextRequest) {
         const oldJourneyId = oldTripData.journeyId;
         const newJourneyId = "journeyId" in updateData ? updateData.journeyId : oldJourneyId;
 
+        // If journey assignment has changed...
         if (oldJourneyId !== newJourneyId) {
             if (oldJourneyId) {
                 const oldJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(oldJourneyId);
                 transaction.update(oldJourneyRef, {
                     tripIds: firestore.FieldValue.arrayRemove(tripId)
                 });
+                journeysToUpdate.push(oldJourneyId);
             }
             if (newJourneyId) {
                 const newJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(newJourneyId);
                 transaction.update(newJourneyRef, {
                     tripIds: firestore.FieldValue.arrayUnion(tripId)
                 });
+                journeysToUpdate.push(newJourneyId);
             }
+        } else if (newJourneyId) {
+            // Journey didn't change, but it might still need recalculation
+            journeysToUpdate.push(newJourneyId);
         }
 
         const finalUpdateData = { ...updateData, updatedAt: new Date().toISOString() };
         transaction.set(tripRef, finalUpdateData, { merge: true });
 
-        journeyToUpdate = newJourneyId || oldJourneyId;
-        // Check if route has changed
-        if (updateData.routeDetails?.polyline !== oldTripData.routeDetails.polyline) {
+        // Check if route has changed, which necessitates a polyline recalculation
+        if (updateData.routeDetails?.polyline !== oldTripData.routeDetails.polyline || updateData.plannedStartDate !== oldTripData.plannedStartDate) {
             journeyNeedsRecalculation = true;
         }
     });
     
-    if (journeyToUpdate && journeyNeedsRecalculation) {
-        await recalculateAndSaveMasterPolyline(journeyToUpdate, uid, firestore);
+    // After transaction, run recalculations if needed
+    if (journeyNeedsRecalculation) {
+      const uniqueJourneysToUpdate = [...new Set(journeysToUpdate)];
+      for (const journeyId of uniqueJourneysToUpdate) {
+        if(journeyId) {
+          await recalculateAndSaveMasterPolyline(journeyId, uid, firestore);
+        }
+      }
     }
 
     const updatedDoc = await tripRef.get();
     const updatedTrip = updatedDoc.data() as LoggedTrip;
 
     return NextResponse.json({ message: 'Trip updated successfully.', trip: updatedTrip }, { status: 200 });
-  } catch (err: any)
-   {
+  } catch (err: any) {
     return handleApiError(err);
   }
 }
@@ -340,7 +369,9 @@ export async function PUT(req: NextRequest) {
 // DELETE a trip for the authenticated user
 export async function DELETE(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
+  if (errorResponse) return errorResponse;
+  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
+
 
   try {
     const { id: tripId } = await req.json();

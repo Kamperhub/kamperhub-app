@@ -41,7 +41,8 @@ async function recalculateAndSaveMasterPolyline(journeyId: string, userId: strin
         return;
     }
 
-    const tripDocs = await Promise.all(tripIds.map(id => db.collection('users').doc(userId).collection('trips').doc(id).get()));
+    const tripRefs = tripIds.map(id => db.collection('users').doc(userId).collection('trips').doc(id));
+    const tripDocs = await db.getAll(...tripRefs);
     const validTrips = tripDocs.map(doc => doc.data() as LoggedTrip).filter(trip => trip && trip.routeDetails?.polyline);
 
     // Ensure trips are sorted by their planned start date to create a logical path
@@ -53,7 +54,7 @@ async function recalculateAndSaveMasterPolyline(journeyId: string, userId: strin
 
     const allCoordinates: [number, number][] = [];
     validTrips.forEach(trip => {
-        if (trip.routeDetails.polyline) {
+        if (trip.routeDetails?.polyline) {
             try {
                 const decodedPath = decode(trip.routeDetails.polyline, 5);
                 allCoordinates.push(...decodedPath);
@@ -82,7 +83,9 @@ const updateJourneySchema = z.object({
 // GET all journeys for the user
 export async function GET(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
+  if (errorResponse) return errorResponse;
+  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
+
 
   try {
     const journeysSnapshot = await firestore.collection('users').doc(uid).collection('journeys').orderBy('createdAt', 'desc').get();
@@ -96,7 +99,9 @@ export async function GET(req: NextRequest) {
 // POST a new journey
 export async function POST(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
+  if (errorResponse) return errorResponse;
+  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
+
 
   try {
     const body = await req.json();
@@ -126,7 +131,9 @@ export async function POST(req: NextRequest) {
 // PUT (update) an existing journey
 export async function PUT(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
+  if (errorResponse) return errorResponse;
+  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
+
 
   try {
     const body = await req.json();
@@ -159,7 +166,9 @@ export async function PUT(req: NextRequest) {
 // DELETE a journey
 export async function DELETE(req: NextRequest) {
     const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-    if (errorResponse || !uid || !firestore) return errorResponse;
+    if (errorResponse) return errorResponse;
+    if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
+
 
     try {
         const { id } = await req.json();
