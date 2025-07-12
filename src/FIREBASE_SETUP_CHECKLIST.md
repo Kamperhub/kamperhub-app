@@ -119,14 +119,17 @@ Many app features depend on Google services. An incorrect API key or disabled se
 
 3.  **Search for and Enable "Maps JavaScript API"**:
     *   **Required for:** Displaying the interactive map in the Trip Planner.
+    *   **API Key Used:** `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
     *   If it's not enabled, click **"Enable"**.
 
 4.  **Search for and Enable "Places API"**:
     *   **Required for:** The address autocomplete search boxes and the "Show Fuel Stations" feature.
+    *   **API Key Used:** `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
     *   If it's not enabled, click **"Enable"**.
 
 5.  **Search for and Enable "Routes API"**:
     *   **Required for:** Calculating driving directions, distance, duration, and height-aware routing.
+    *   **API Key Used:** `GOOGLE_API_KEY` (Server-side)
     *   **CRITICAL:** If this is not enabled, the Trip Planner will fail with an error. Click **"Enable"**.
     > [!WARNING]
     > **"Routes API" vs. "Directions API"**
@@ -134,18 +137,21 @@ Many app features depend on Google services. An incorrect API key or disabled se
 
 6.  **Search for and Enable "Gemini API"**:
     *   **Required for:** All AI features, including the Chatbot and the Packing Assistant.
+    *   **API Key Used:** `GOOGLE_API_KEY` (Server-side)
     *   **NOTE:** This was formerly called the "Generative Language API". Searching for either name should work.
     *   If it's not enabled, click **"Enable"**.
 
 7.  **Search for and Enable "Google Tasks API"**:
     *   **Required for:** The "Send to Google Tasks" feature on the Trip Packing page.
+    *   **API Key Used:** This API uses OAuth 2.0 and does not use an API key.
     *   **CRITICAL:** If this is not enabled, the integration will fail. Click **"Enable"**.
 
 8.  **Verify your API Key Permissions**:
     *   Go back to the [Credentials page](https://console.cloud.google.com/apis/credentials).
     *   Find the key you are using for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
     *   Click its name to see its details.
-    *   Under **"API restrictions"**, ensure it has permission to use all five of the APIs listed above. If it's unrestricted ("Don't restrict key"), that is fine for local development.
+    *   Under **"API restrictions"**, ensure it has permission to use **Maps JavaScript API** and **Places API**.
+    *   Find the key you are using for `GOOGLE_API_KEY`. It should have permission for **Routes API** and **Gemini API**. If they are the same key, it needs all four APIs.
 
 ---
 
