@@ -9,6 +9,7 @@ import type { firestore } from 'firebase-admin';
 import { decode, encode } from '@googlemaps/polyline-codec';
 import type { Journey } from '@/types/journey';
 
+// This function should be imported from the centralized location if needed.
 async function recalculateAndSaveMasterPolyline(journeyId: string, userId: string, db: firestore.Firestore) {
     const journeyRef = db.collection('users').doc(userId).collection('journeys').doc(journeyId);
     const journeyDoc = await journeyRef.get();
@@ -72,7 +73,7 @@ async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: strin
 }
 
 const handleApiError = (error: any): NextResponse => {
-  console.error('API Error:', error);
+  console.error('API Error in trips/copy route:', error);
   if (error instanceof ZodError) {
     return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
   }

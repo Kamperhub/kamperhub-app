@@ -4,7 +4,7 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest): Promise<NextResponse> {
   const { auth, firestore, error: adminError } = getFirebaseAdmin();
   if (adminError || !auth || !firestore) {
     console.error('Error getting Firebase Admin instances:', adminError?.message);
@@ -20,7 +20,6 @@ export async function GET(req: NextRequest) {
 
     const decodedToken = await auth.verifyIdToken(idToken);
     
-    // Check if the caller is the specific admin user (case-insensitive)
     if (decodedToken.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
       return NextResponse.json({ error: 'Forbidden: You do not have permission to perform this action.' }, { status: 403 });
     }

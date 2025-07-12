@@ -11,7 +11,7 @@ const updateSubscriptionSchema = z.object({
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<NextResponse> {
   const { auth, firestore, error: adminError } = getFirebaseAdmin();
   if (adminError || !auth || !firestore) {
     console.error('Error getting Firebase Admin instances:', adminError?.message);
@@ -76,17 +76,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body.', details: error.format() }, { status: 400 });
     }
     
-    let errorTitle = 'Internal Server Error';
-    let errorDetails = error.message;
-
-    if (error.code === 16 || (error.message && error.message.toLowerCase().includes('unauthenticated'))) {
-      errorTitle = `16 UNAUTHENTICATED: Server not authorized`;
-      errorDetails = `The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or lack IAM permissions. Please follow the setup checklist to verify your service account role and Firestore rules, then restart the server. Original Error: ${error.message}`;
-    } else if (error.code === 5 || (error.message && error.message.toLowerCase().includes('not_found'))) {
-      errorTitle = `DATABASE NOT FOUND`;
-      errorDetails = `The server could not find the Firestore database 'kamperhubv2'. Please verify it has been created in your Firebase project. Original Error: ${error.message}`;
-    }
-    
-    return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
   }
 }
