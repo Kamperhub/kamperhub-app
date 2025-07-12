@@ -1,3 +1,4 @@
+
 // src/app/api/trips/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -14,7 +15,7 @@ async function verifyUserAndGetInstances(req: NextRequest) {
 
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
@@ -22,7 +23,7 @@ async function verifyUserAndGetInstances(req: NextRequest) {
     const decodedToken = await auth.verifyIdToken(idToken);
     return { uid: decodedToken.uid, firestore, errorResponse: null };
   } catch (error: any) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
   }
 }
 
@@ -47,6 +48,11 @@ const latLngSchema = z.object({
   lng: z.number(),
 });
 
+const fuelStationSchema = z.object({
+    name: z.string(),
+    location: latLngSchema,
+});
+
 const routeDetailsSchema = z.object({
   distance: z.object({ text: z.string(), value: z.number() }),
   duration: z.object({ text: z.string(), value: z.number() }),
@@ -55,6 +61,7 @@ const routeDetailsSchema = z.object({
   polyline: z.string().optional().nullable(),
   warnings: z.array(z.string()).optional().nullable(),
   tollInfo: z.object({ text: z.string(), value: z.number() }).nullable().optional(),
+  fuelStations: z.array(fuelStationSchema).optional(),
 });
 
 
@@ -155,7 +162,8 @@ const handleApiError = (error: any) => {
 // GET all trips for the authenticated user
 export async function GET(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
+  if (errorResponse) return errorResponse;
+  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
 
   try {
     const tripsSnapshot = await firestore.collection('users').doc(uid).collection('trips').get();
@@ -174,7 +182,8 @@ export async function GET(req: NextRequest) {
 // POST a new trip for the authenticated user
 export async function POST(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
+  if (errorResponse) return errorResponse;
+  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
 
   try {
     const body = await req.json();
@@ -205,18 +214,12 @@ export async function POST(req: NextRequest) {
             if (!journeyDoc.exists) {
                 throw new Error("Journey not found. Cannot associate trip.");
             }
-            const journeyData = journeyDoc.data() as Journey;
-            const updatedTripIds = [...(journeyData.tripIds || []), newTrip.id];
-            
-            // Correct way to update array in a transaction
             transaction.update(journeyRef, { 
-              tripIds: updatedTripIds
+              tripIds: firestore.FieldValue.arrayUnion(newTrip.id) 
             });
-            // Create the new trip
             transaction.set(newTripRef, newTrip);
         });
     } else {
-      // Just create the trip if no journey is associated
       await newTripRef.set(newTrip);
     }
     
@@ -230,7 +233,8 @@ export async function POST(req: NextRequest) {
 // PUT (update) an existing trip for the authenticated user
 export async function PUT(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
+  if (errorResponse) return errorResponse;
+  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
   
   try {
     const body = await req.json();
@@ -247,42 +251,27 @@ export async function PUT(req: NextRequest) {
         
         const oldTripData = tripDoc.data() as LoggedTrip;
         const oldJourneyId = oldTripData.journeyId;
-        const newJourneyId = updateData.journeyId;
+        const newJourneyId = "journeyId" in updateData ? updateData.journeyId : oldJourneyId;
 
-        // If journey assignment has changed, we need to update the journey documents
         if (oldJourneyId !== newJourneyId) {
-            // Remove from old journey if it existed
             if (oldJourneyId) {
                 const oldJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(oldJourneyId);
-                const oldJourneyDoc = await transaction.get(oldJourneyRef);
-                if (oldJourneyDoc.exists) {
-                    const oldJourneyData = oldJourneyDoc.data() as Journey;
-                    const updatedOldTripIds = (oldJourneyData.tripIds || []).filter(id => id !== tripId);
-                    transaction.update(oldJourneyRef, { tripIds: updatedOldTripIds });
-                }
+                transaction.update(oldJourneyRef, {
+                    tripIds: firestore.FieldValue.arrayRemove(tripId)
+                });
             }
-            // Add to new journey if it exists
             if (newJourneyId) {
                 const newJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(newJourneyId);
-                const newJourneyDoc = await transaction.get(newJourneyRef);
-                 if (!newJourneyDoc.exists) {
-                    throw new Error("New journey not found.");
-                }
-                const newJourneyData = newJourneyDoc.data() as Journey;
-                const updatedNewTripIds = [...(newJourneyData.tripIds || []), tripId];
-                transaction.update(newJourneyRef, { tripIds: updatedNewTripIds });
+                transaction.update(newJourneyRef, {
+                    tripIds: firestore.FieldValue.arrayUnion(tripId)
+                });
             }
         }
 
-        // Now update the trip document itself
-        const finalUpdateData = {
-          ...updateData,
-          timestamp: new Date().toISOString(),
-        };
+        const finalUpdateData = { ...updateData, updatedAt: new Date().toISOString() };
         transaction.set(tripRef, finalUpdateData, { merge: true });
     });
-
-    // Fetch the updated doc to return the full object
+    
     const updatedDoc = await tripRef.get();
     const updatedTrip = updatedDoc.data() as LoggedTrip;
 
@@ -295,7 +284,8 @@ export async function PUT(req: NextRequest) {
 // DELETE a trip for the authenticated user
 export async function DELETE(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
+  if (errorResponse) return errorResponse;
+  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
 
   try {
     const { id: tripId } = await req.json();
@@ -309,24 +299,19 @@ export async function DELETE(req: NextRequest) {
 
     await firestore.runTransaction(async (transaction) => {
         const tripDoc = await transaction.get(tripDocRef);
-        if (!tripDoc.exists) return; // If trip doesn't exist, nothing to do.
+        if (!tripDoc.exists) return;
         
         const tripData = tripDoc.data() as LoggedTrip;
 
-        // If the trip is part of a journey, remove its ID from the journey's list
         if (tripData.journeyId) {
             const journeyRef = firestore.collection('users').doc(uid).collection('journeys').doc(tripData.journeyId);
-            const journeyDoc = await transaction.get(journeyRef);
-            if (journeyDoc.exists) {
-                const journeyData = journeyDoc.data() as Journey;
-                const updatedTripIds = (journeyData.tripIds || []).filter(id => id !== tripId);
-                transaction.update(journeyRef, { tripIds: updatedTripIds });
-            }
+            transaction.update(journeyRef, {
+                tripIds: firestore.FieldValue.arrayRemove(tripId)
+            });
         }
         
-        // Delete the trip and its packing list
         transaction.delete(tripDocRef);
-        transaction.delete(packingListDocRef); // This will succeed even if the packing list doc doesn't exist
+        transaction.delete(packingListDocRef);
     });
     
     return NextResponse.json({ message: 'Trip and its associated packing list deleted successfully.' }, { status: 200 });

@@ -1,8 +1,10 @@
+
 // src/app/api/bookings-page-data/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { BookingEntry } from '@/types/booking';
 import type { LoggedTrip } from '@/types/tripplanner';
+import type admin from 'firebase-admin';
 
 // A robust replacer function for JSON.stringify to handle Firestore Timestamps.
 const firestoreTimestampReplacer = (key: any, value: any) => {
@@ -27,7 +29,7 @@ async function verifyUserAndGetInstances(req: NextRequest) {
 
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
@@ -35,13 +37,16 @@ async function verifyUserAndGetInstances(req: NextRequest) {
     const decodedToken = await auth.verifyIdToken(idToken);
     return { uid: decodedToken.uid, firestore, errorResponse: null };
   } catch (error: any) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
   }
 }
 
 export async function GET(req: NextRequest) {
     const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-    if (errorResponse || !uid || !firestore) return errorResponse;
+    if (errorResponse) return errorResponse;
+    if (!uid || !firestore) {
+      return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
+    }
 
     try {
         const [bookingsSnapshot, tripsSnapshot] = await Promise.all([

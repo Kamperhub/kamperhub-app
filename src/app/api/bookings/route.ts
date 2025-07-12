@@ -1,9 +1,11 @@
+
 // src/app/api/bookings/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { BookingEntry } from '@/types/booking';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { z, ZodError } from 'zod';
+import type admin from 'firebase-admin';
 
 const ACCOMMODATION_CATEGORY_NAME = "Accommodation";
 
@@ -15,7 +17,7 @@ async function verifyUserAndGetInstances(req: NextRequest) {
 
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
@@ -23,7 +25,7 @@ async function verifyUserAndGetInstances(req: NextRequest) {
     const decodedToken = await auth.verifyIdToken(idToken);
     return { uid: decodedToken.uid, firestore, errorResponse: null };
   } catch (error: any) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
   }
 }
 
@@ -54,7 +56,8 @@ const updateBookingSchema = bookingSchema.extend({
 // GET all bookings for the authenticated user
 export async function GET(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
+  if (errorResponse) return errorResponse;
+  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
 
   try {
     const bookingsSnapshot = await firestore.collection('users').doc(uid).collection('bookings').get();
@@ -93,7 +96,8 @@ export async function GET(req: NextRequest) {
 // POST a new booking for the authenticated user
 export async function POST(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
+  if (errorResponse) return errorResponse;
+  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
 
   try {
     const body = await req.json();
@@ -149,17 +153,24 @@ export async function POST(req: NextRequest) {
 // PUT (update) an existing booking for the authenticated user
 export async function PUT(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
+  if (errorResponse) return errorResponse;
+  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
   
   try {
     const body = await req.json();
     const parsedBookingData = updateBookingSchema.parse(body);
-    const { id: bookingId, assignedTripId: newTripId, budgetedCost: newCostValue } = parsedBookingData;
+    const { id: bookingId, assignedTripId: newTripId, budgetedCost: newCostValue, ...restData } = parsedBookingData;
     const newCost = newCostValue || 0;
 
     const bookingRef = firestore.collection('users').doc(uid).collection('bookings').doc(bookingId);
 
-    const finalUpdatedBooking: BookingEntry = { ...parsedBookingData, timestamp: new Date().toISOString() };
+    const finalUpdatedBookingData = {
+        id: bookingId,
+        ...restData,
+        assignedTripId: newTripId,
+        budgetedCost: newCost,
+        timestamp: new Date().toISOString(),
+    };
     
     await firestore.runTransaction(async (transaction) => {
       const bookingDoc = await transaction.get(bookingRef);
@@ -204,10 +215,10 @@ export async function PUT(req: NextRequest) {
       }
       
       // Step 3: Update the booking document itself
-      transaction.set(bookingRef, finalUpdatedBooking, { merge: true });
+      transaction.set(bookingRef, finalUpdatedBookingData, { merge: true });
     });
     
-    return NextResponse.json({ message: 'Booking updated successfully.', booking: finalUpdatedBooking }, { status: 200 });
+    return NextResponse.json({ message: 'Booking updated successfully.', booking: finalUpdatedBookingData }, { status: 200 });
   } catch (err: any) {
     console.error('API Error in PUT /api/bookings:', err);
     if (err instanceof ZodError) {
@@ -220,7 +231,8 @@ export async function PUT(req: NextRequest) {
 // DELETE a booking for the authenticated user
 export async function DELETE(req: NextRequest) {
   const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
+  if (errorResponse) return errorResponse;
+  if (!uid || !firestore) return NextResponse.json({ error: 'Server or authentication instance is not available.' }, { status: 503 });
 
   try {
     const { id } = await req.json();
@@ -261,4 +273,3 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Internal Server Error', details: err.message }, { status: 500 });
   }
 }
-

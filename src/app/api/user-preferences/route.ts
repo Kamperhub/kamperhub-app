@@ -23,18 +23,18 @@ const sanitizeData = (data: any) => {
   }
 };
 
-async function getUserIdFromRequest(req: NextRequest, auth: admin.auth.Auth): Promise<string | null> {
+async function getUserIdFromRequest(req: NextRequest, auth: admin.auth.Auth): Promise<{uid: string | null, errorResponse: NextResponse | null}> {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-        return null;
+        return { uid: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
     }
     const idToken = authHeader.split('Bearer ')[1];
     try {
         const decoded = await auth.verifyIdToken(idToken);
-        return decoded.uid;
-    } catch (error) {
+        return { uid: decoded.uid, errorResponse: null };
+    } catch (error: any) {
         console.error('Token verification failed:', error);
-        return null;
+        return { uid: null, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
     }
 }
 
@@ -57,6 +57,7 @@ const userPreferencesUpdateSchema = z
     state: z.string().optional(),
     country: z.string().optional(),
     homeAddress: z.string().optional().nullable(),
+    hasDismissedGettingStartedGuide: z.boolean().optional(),
   })
   .refine(
     (obj) => Object.values(obj).some((v) => v !== undefined),
@@ -70,10 +71,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Server configuration error.', details: adminError?.message }, { status: 503 });
   }
 
-  const uid = await getUserIdFromRequest(req, auth);
-  if (!uid) {
-      return NextResponse.json({ error: 'Unauthorized: Invalid or missing token.' }, { status: 401 });
-  }
+  const { uid, errorResponse } = await getUserIdFromRequest(req, auth);
+  if (errorResponse) return errorResponse;
+  if (!uid) return NextResponse.json({ error: 'Could not determine user.'}, { status: 401});
+
 
   try {
     const userDocRef = firestore.collection('users').doc(uid);
@@ -113,7 +114,6 @@ export async function GET(req: NextRequest) {
     let errorInfo = 'Failed to process user preferences on the server.';
     let errorDetails = err.message;
     
-    // Check for "database not found" error first, as it's very specific
     if (err.code === 5 || (err.details && err.details.toLowerCase().includes('database not found')) || (err.message && err.message.toLowerCase().includes('not_found'))) {
       errorInfo = `Database Not Found or Inaccessible`;
       errorDetails = `CRITICAL: The server could not find the Firestore database named 'kamperhubv2'. This usually means either (a) the Firestore database has not been created in the Firebase console for this project, or (b) the Project ID in your GOOGLE_APPLICATION_CREDENTIALS_JSON does not match the client-side NEXT_PUBLIC_FIREBASE_PROJECT_ID. Please follow the setup checklist carefully. Original Error: ${err.message}`;
@@ -136,10 +136,10 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Server configuration error.', details: adminError?.message }, { status: 503 });
   }
 
-  const uid = await getUserIdFromRequest(req, auth);
-  if (!uid) {
-      return NextResponse.json({ error: 'Unauthorized: Invalid or missing token.' }, { status: 401 });
-  }
+  const { uid, errorResponse } = await getUserIdFromRequest(req, auth);
+  if (errorResponse) return errorResponse;
+  if (!uid) return NextResponse.json({ error: 'Could not determine user.'}, { status: 401});
+
 
   try {
     const body = await req.json();
