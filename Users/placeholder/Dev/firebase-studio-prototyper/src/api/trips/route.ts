@@ -32,8 +32,13 @@ async function recalculateAndSaveMasterPolyline(journeyId: string, userId: strin
     console.log(`[Polyline] Recalculating for Journey ID: ${journeyId}`);
     const journeyRef = db.collection('users').doc(userId).collection('journeys').doc(journeyId);
     
-    const get = transaction ? transaction.get.bind(transaction) : journeyRef.get.bind(journeyRef);
-    const journeyDoc = await get();
+    let journeyDoc;
+    if (transaction) {
+        journeyDoc = await transaction.get(journeyRef);
+    } else {
+        journeyDoc = await journeyRef.get();
+    }
+    
 
     if (!journeyDoc.exists) {
         console.warn(`[Polyline] Journey ${journeyId} not found for recalculation.`);
@@ -51,7 +56,8 @@ async function recalculateAndSaveMasterPolyline(journeyId: string, userId: strin
     }
 
     const tripRefs = tripIds.map(id => db.collection('users').doc(userId).collection('trips').doc(id));
-    const tripDocs = await (transaction ? transaction.getAll(...tripRefs) : db.getAll(...tripRefs));
+    
+    const tripDocs = await (transaction ? Promise.all(tripRefs.map(ref => transaction.get(ref))) : db.getAll(...tripRefs));
 
     const validTrips = tripDocs.map(doc => doc.data() as LoggedTrip).filter(trip => trip && trip.routeDetails?.polyline);
 
@@ -109,6 +115,7 @@ const routeDetailsSchema = z.object({
   polyline: z.string().optional().nullable(),
   warnings: z.array(z.string()).optional().nullable(),
   tollInfo: z.object({ text: z.string(), value: z.number() }).nullable().optional(),
+  fuelStations: z.array(z.any()).optional(),
 });
 
 
@@ -332,7 +339,9 @@ export async function PUT(req: NextRequest) {
     // After transaction, run recalculations
     if (journeyNeedsRecalculation) {
       for (const journeyId of [...new Set(journeysToUpdate)]) {
+        if(journeyId) {
           await recalculateAndSaveMasterPolyline(journeyId, uid, firestore);
+        }
       }
     }
 
