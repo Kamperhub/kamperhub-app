@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { InventoryItem } from '@/types/inventory';
 import { z, ZodError } from 'zod';
+import type admin from 'firebase-admin';
 
 // A robust replacer function for JSON.stringify to handle Firestore Timestamps.
 const firestoreTimestampReplacer = (key: any, value: any) => {
@@ -18,7 +19,7 @@ const sanitizeData = (data: any) => {
     return JSON.parse(jsonString);
 };
 
-async function verifyUserAndGetInstances(req: NextRequest) {
+async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string | null; firestore: admin.firestore.Firestore | null; errorResponse: NextResponse | null; }> {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
     return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
@@ -52,7 +53,7 @@ const updateInventorySchema = z.object({
   items: z.array(inventoryItemSchema),
 });
 
-const handleApiError = (error: any) => {
+const handleApiError = (error: any): NextResponse => {
   console.error('API Error:', error);
   let errorTitle = 'Internal Server Error';
   let errorDetails = 'An unexpected error occurred.';
