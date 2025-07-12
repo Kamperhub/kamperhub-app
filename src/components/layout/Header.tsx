@@ -85,11 +85,13 @@ export function Header() {
         </Link>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <Link href={homeLink} passHref>
-            <Button variant="ghost" size="icon" aria-label="Go to Homepage" className="p-0 hover:bg-primary/80" onClick={handleNavigation}>
-              <LayoutDashboard className="h-7 w-7" />
-            </Button>
-          </Link>
+          {user && (
+            <Link href="/dashboard" passHref>
+              <Button variant="ghost" size="icon" aria-label="Go to Dashboard" className="p-0 hover:bg-primary/80" onClick={handleNavigation}>
+                <LayoutDashboard className="h-7 w-7" />
+              </Button>
+            </Link>
+          )}
 
           <Link href="/chatbot" passHref>
             <Button variant="ghost" size="icon" aria-label="AI Chatbot" className="p-0 hover:bg-primary/80" onClick={handleNavigation}>
