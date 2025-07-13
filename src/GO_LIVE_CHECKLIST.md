@@ -8,7 +8,7 @@
 
 ## **Phase 1: Firebase Project Configuration for Production**
 
-Your Firebase project (`kamperhub-s4hc2`) needs to be configured for live traffic. This involves securing your database and creating production-ready API keys.
+Your Firebase project (`kamperhub-s4hc2`) needs to be configured for live traffic. This involves securing your database, creating production-ready API keys, and setting up App Check.
 
 ### **Step 1.1: Secure Your Firestore Database**
 
@@ -47,6 +47,27 @@ Your local development started in "test mode". For production, you must switch t
         *   Places API
     *   Click **Save**.
     *   Copy this key. You will use it for `GOOGLE_API_KEY` in your App Hosting configuration.
+
+### **Step 1.3: CRITICAL - Configure App Check for Production**
+
+1.  **Enforce App Check for Services:**
+    *   Go to the [Firebase App Check page for kamperhub-s4hc2](https://console.firebase.google.com/project/kamperhub-s4hc2/appcheck).
+    *   In the "Services" tab, enforce App Check for **Cloud Firestore** and **Cloud Storage**. This is a critical security step to protect your backend.
+
+2.  **Create and Configure the reCAPTCHA Key:**
+    *   Go to the [Google Cloud reCAPTCHA Enterprise page for kamperhub-s4hc2](https://console.cloud.google.com/security/recaptcha?project=kamperhub-s4hc2).
+    *   Click **"+ CREATE KEY"** at the top.
+    *   **Label:** Give it a name like `KamperHub Production Key`.
+    *   **Choose integration type:** Select **Website**.
+    *   **Domains:**
+        *   **CRITICAL:** Add your live production domain (e.g., `kamperhub.com`).
+        *   **CRITICAL:** Remove `localhost` if it exists. Production keys should not work on local development.
+    *   **Use reCAPTCHA checkbox:** Uncheck this box for score-based, invisible protection.
+    *   **Click "CREATE KEY"**.
+
+3.  **Get and Set the Site Key:**
+    *   After creation, copy the **site key ID**.
+    *   You will use this key for the `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY` variable in your **App Hosting backend configuration**.
 
 > [!NOTE]
 > The `GOOGLE_APPLICATION_CREDENTIALS_JSON` service account key that you used for local development **does not need to change**. It is already secure and should be copied directly from your `.env.local` file to your App Hosting secret configuration.
@@ -168,6 +189,7 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
     *   `GOOGLE_APPLICATION_CREDENTIALS_JSON`: **Use the same one-line JSON string** for your service account key that you used in local development.
     *   `GOOGLE_API_KEY`: Use the **Kamperhub Server Key** you created in Step 1.2.
     *   `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`: Use the **Kamperhub Browser Key** you created in Step 1.2.
+    *   `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY`: Use the **production** site key from Step 1.3.
     *   `NEXT_PUBLIC_APP_URL`: Set this to `https://kamperhub.com`
     *   `STRIPE_SECRET_KEY`: Use the **live** secret key (`sk_live_...`) from Step 2.4.
     *   `NEXT_PUBLIC_STRIPE_PAYMENT_LINK`: Use the **live** payment link URL from Step 2.3.
