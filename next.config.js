@@ -31,8 +31,8 @@ const nextConfig = {
       "img-src 'self' data: https://placehold.co https://firebasestorage.googleapis.com https://maps.gstatic.com https://maps.googleapis.com https://*.googleusercontent.com https://*.stripe.com",
       // Fonts
       "font-src 'self' https://fonts.gstatic.com",
-      // Connections - Allow self, Google APIs, local dev server, Stripe, and Cloud IDE resources
-      "connect-src 'self' http://localhost:8083 ws://localhost:8083 https://*.googleapis.com wss://*.cloudworkstations.dev https://*.cloudworkstations.dev https://*.stripe.com https://m.stripe.network https://*.cloudworkstations.googleusercontent.com https://vscode-resource.vscode-cdn.net",
+      // Connections - Allow self, Google APIs, local dev server, Stripe, and Cloud IDE resources, including websockets
+      "connect-src 'self' https://*.googleapis.com wss://*.cloudworkstations.dev https://*.cloudworkstations.dev https://*.stripe.com https://m.stripe.network https://*.cloudworkstations.googleusercontent.com wss://*.cloudworkstations.googleusercontent.com https://vscode-resource.vscode-cdn.net",
       // Workers - Allow self, blobs, and Cloud IDE resources
       "worker-src 'self' blob: https://*.cloudworkstations.googleusercontent.com https://vscode-resource.vscode-cdn.net",
       // Frames - Allow self, Google (for Recaptcha/maps), and Stripe (for portal and payment forms)
@@ -50,6 +50,10 @@ const nextConfig = {
           {
             key: 'Content-Security-Policy',
             value: cspHeader.replace(/\s{2,}/g, ' ').trim(),
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload',
           },
         ],
       },
