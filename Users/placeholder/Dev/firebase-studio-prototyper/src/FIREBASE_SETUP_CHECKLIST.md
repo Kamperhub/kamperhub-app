@@ -225,7 +225,10 @@ If the above steps are correct, the final check is to ensure your service accoun
 
 ### Step 7: FINAL & CRITICAL - Deploy Security Rules
 
-This is the final step and solves most `UNAUTHENTICATED` errors seen on the dashboard.
+> [!WARNING]
+> **This is the most likely reason your app is stuck on "Initializing Session" or shows "PERMISSION_DENIED" errors.**
+
+The IAM role gives your *server* permission to access the database, but Firestore **Security Rules** control what your *app users* are allowed to do. You must deploy the rules included with the project.
 
 1.  In the application file explorer on the left, open the newly created `firestore.rules` file and copy its entire contents.
 2.  Go to the [Firebase Console](https://console.firebase.google.com/) for your `kamperhub-s4hc2` project.
@@ -292,3 +295,5 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     }
     ```
 6.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
+
+    
