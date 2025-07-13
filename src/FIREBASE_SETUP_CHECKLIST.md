@@ -100,7 +100,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   **CRITICAL: The `project_id` field inside this JSON file must also be `kamperhub-s4hc2`.**
 
 3.  **Google Cloud API Keys (`GOOGLE_API_KEY` & `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)**
-    *   Go to the [Google Cloud Credentials page](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
+    *   Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
     *   **CRITICAL:** It is highly recommended to create **two new, dedicated API keys** and delete any old or auto-generated keys ("Browser key", "API key 1", etc.).
     *   **Create Your Server Key (for `GOOGLE_API_KEY`):**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Server Key`.
@@ -114,7 +114,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
         *   Paste this key into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable.
 
 4.  **Google OAuth Keys (`GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`)**
-    *   Go to the [Google Cloud Credentials page](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
+    *   Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
     *   Find or create credentials of type **"OAuth 2.0 Client ID"**.
     *   **CRITICAL: If creating a new one, select "Web application" as the application type.**
     *   On the details page for your Client ID, you will find the **Client ID** and **Client Secret**.
@@ -192,6 +192,7 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
 
 2.  **Create a reCAPTCHA Enterprise Key:**
     *   Go to the [Google Cloud reCAPTCHA Enterprise page for kamperhub-s4hc2](https://console.cloud.google.com/security/recaptcha?project=kamperhub-s4hc2).
+    *   **CRITICAL: Use this page.** From the search results in your screenshot, this corresponds to the **"reCAPTCHA Enterprise"** item with the Google logo.
     *   Click **"+ CREATE KEY"** at the top.
     *   **Label:** Give it a descriptive name like `KamperHub Web Key`.
     *   **Choose integration type:** Select **Website**.
