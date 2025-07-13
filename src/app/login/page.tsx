@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, type AuthError } from 'firebase/auth';
-import { LogInIcon, Mail, KeyRound, Loader2, Eye, EyeOff } from 'lucide-react';
+import { LogInIcon, Mail, KeyRound, Loader2, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import {
   Dialog,
@@ -24,12 +24,14 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { NavigationContext } from '@/components/layout/AppShell';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
   const { user, isAuthLoading } = useAuth();
@@ -51,6 +53,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setLoginError(null);
     const trimmedEmail = email.trim();
 
     if (!trimmedEmail) {
@@ -69,30 +72,37 @@ export default function LoginPage() {
       router.push('/dashboard');
     } catch (error: any) {
       const authError = error as AuthError;
-      let toastMessage = 'An unexpected error occurred during login. Please try again.';
+      let errorMessage = 'An unexpected error occurred during login. Please try again.';
 
       if (authError.code) {
         switch (authError.code) {
           case 'auth/invalid-email':
-            toastMessage = 'The email address is not valid.';
+            errorMessage = 'The email address is not valid.';
             break;
           case 'auth/user-disabled':
-            toastMessage = 'This user account has been disabled.';
+            errorMessage = 'This user account has been disabled.';
             break;
           case 'auth/user-not-found':
           case 'auth/wrong-password':
           case 'auth/invalid-credential':
-            toastMessage = 'Invalid email or password. Please check your credentials.';
+            errorMessage = 'Invalid email or password. Please check your credentials.';
+            break;
+          case 'auth/api-key-expired':
+          case 'auth/invalid-api-key':
+            setLoginError('Your Firebase API Key is invalid or expired. Please check your .env.local file and follow Step 3.1 of the FIREBASE_SETUP_CHECKLIST.md guide carefully.');
+            errorMessage = 'Invalid Firebase API Key configuration.';
             break;
           default:
-            toastMessage = authError.message || 'An unknown login error occurred.';
+            errorMessage = authError.message || 'An unknown login error occurred.';
             break;
         }
       } else if (authError.message) {
-        toastMessage = authError.message;
+        errorMessage = authError.message;
       }
-
-      toast({ title: 'Login Failed', description: toastMessage, variant: 'destructive' });
+      
+      if(authError.code !== 'auth/invalid-api-key' && authError.code !== 'auth/api-key-expired') {
+        toast({ title: 'Login Failed', description: errorMessage, variant: 'destructive' });
+      }
       console.error("Firebase Login Error:", error);
     } finally {
       setIsSubmitting(false);
@@ -148,6 +158,15 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {loginError && (
+              <Alert variant="destructive" className="mb-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle className="font-headline">Configuration Error</AlertTitle>
+                  <AlertDescription className="font-body">
+                      {loginError}
+                  </AlertDescription>
+              </Alert>
+          )}
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <Label htmlFor="email" className="font-body">Email Address</Label>
