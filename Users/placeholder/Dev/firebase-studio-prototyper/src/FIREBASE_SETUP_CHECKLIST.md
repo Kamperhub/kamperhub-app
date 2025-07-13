@@ -29,6 +29,8 @@ All your secret keys will live in a special file that is **NEVER** committed to 
     NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="your-measurement-id"
 
     # App Check Configuration (for securing backend requests)
+    # The RECAPTCHA key is for production/staging. The DEBUG token is ONLY for local development.
+    # To get a debug token, run the app and look for a message in the browser console.
     NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY="your-recaptcha-enterprise-site-key"
     NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN="your-app-check-debug-token-if-needed"
 
@@ -98,7 +100,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   **CRITICAL: The `project_id` field inside this JSON file must also be `kamperhub-s4hc2`.**
 
 3.  **Google Cloud API Keys (`GOOGLE_API_KEY` & `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)**
-    *   Go to the [Google Cloud Credentials page](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
+    *   Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
     *   **CRITICAL:** It is highly recommended to create **two new, dedicated API keys** and delete any old or auto-generated keys ("Browser key", "API key 1", etc.).
     *   **Create Your Server Key (for `GOOGLE_API_KEY`):**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Server Key`.
@@ -112,7 +114,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
         *   Paste this key into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable.
 
 4.  **Google OAuth Keys (`GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`)**
-    *   Go to the [Google Cloud Credentials page](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
+    *   Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
     *   Find or create credentials of type **"OAuth 2.0 Client ID"**.
     *   **CRITICAL: If creating a new one, select "Web application" as the application type.**
     *   On the details page for your Client ID, you will find the **Client ID** and **Client Secret**.
@@ -175,6 +177,43 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
     *   Enter the URL that matches your `NEXT_PUBLIC_APP_URL` from your `.env.local` file, followed by `/api/auth/google/callback`.
     *   **Example:** Your `NEXT_PUBLIC_APP_URL` must be `http://localhost:8083`, and the redirect URI you enter must be `http://localhost:8083/api/auth/google/callback`.
     *   Click **Save**.
+
+---
+
+### Step 3.7: CRITICAL - Configure App Check with reCAPTCHA Enterprise
+
+> [!WARNING]
+> **If you see errors related to `app-check-token-request-failed`, it means this step was missed or done incorrectly.** App Check protects your backend resources (like APIs and databases) from abuse.
+
+1.  **Enable App Check in Firebase:**
+    *   Go to the [Firebase App Check page for kamperhub-s4hc2](https://console.firebase.google.com/project/kamperhub-s4hc2/appcheck).
+    *   Click on your web app (e.g., `kamperhub-s4hc2 (web)`).
+    *   In the "Providers" list, select **reCAPTCHA Enterprise** and click **"Save"**. You will be prompted to enable APIs; accept this.
+
+2.  **Create a reCAPTCHA Enterprise Key:**
+    *   Go to the [Google Cloud reCAPTCHA Enterprise page for kamperhub-s4hc2](https://console.cloud.google.com/security/recaptcha?project=kamperhub-s4hc2).
+    *   Click **"+ CREATE KEY"** at the top.
+    *   **Label:** Give it a descriptive name like `KamperHub Web Key`.
+    *   **Choose integration type:** Select **Website**.
+    *   **Domains:**
+        *   **CRITICAL:** Add the domain `localhost`. This is required for local testing.
+        *   Add any other domains where your app will be deployed.
+    *   **Use reCAPTCHA checkbox:** Uncheck this box. We will use an invisible score-based check.
+    *   **Click "CREATE KEY"**.
+
+3.  **Get and Set the Site Key:**
+    *   After creation, you will see your new key listed.
+    *   Click the "Copy key ID" button next to your `KamperHub Web Key`. This is your **site key**.
+    *   Paste this key into your `.env.local` file for the `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY` variable.
+
+4.  **Get and Set the Debug Token (for Local Development):**
+    *   Run your app (`npm run dev`).
+    *   Open the app preview in a new browser tab.
+    *   Open the browser's developer console (usually by pressing F12).
+    *   You should see a message from Firebase that looks like this: `App Check debug token: [some-long-uuid-string]`.
+    *   Copy **only the long string part** of that token.
+    *   Paste it into your `.env.local` file for the `NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN` variable.
+    *   **CRITICAL:** Stop and restart your `npm run dev` server after setting the debug token. The app will only use it after a restart.
 
 ---
 
@@ -291,3 +330,4 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     }
     ```
 5.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
+
