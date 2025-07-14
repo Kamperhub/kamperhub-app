@@ -26,7 +26,7 @@ import { NavigationContext } from '@/components/layout/AppShell';
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export default function MyAccountPage() {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, profileStatus } = useAuth();
   const { hasProAccess, subscriptionTier, stripeCustomerId, isTrialActive, trialEndsAt } = useSubscription();
   const queryClient = useQueryClient();
   const navContext = useContext(NavigationContext);
@@ -82,7 +82,7 @@ export default function MyAccountPage() {
   
 
   const handleNavigation = () => {
-    navContext?.setIsNavigating(true);
+    if (navContext) navContext.setIsNavigating(true);
   };
 
   const handleLogout = async () => {
@@ -152,6 +152,7 @@ export default function MyAccountPage() {
         city: data.city,
         state: data.state,
         country: data.country,
+        homeAddress: data.homeAddress,
       });
 
       if (auth.currentUser) await auth.currentUser.reload();
@@ -271,8 +272,13 @@ export default function MyAccountPage() {
   
   const isAdminUser = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  if (!user || !userProfile) {
-    return null;
+  if (profileStatus === 'LOADING' || !user || !userProfile) {
+     return (
+        <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
+            <p className="font-body text-muted-foreground">Loading Account...</p>
+        </div>
+    );
   }
   
   const initialProfileDataForEdit: EditProfileFormData = {
@@ -283,6 +289,7 @@ export default function MyAccountPage() {
     city: userProfile.city || '',
     state: userProfile.state || '',
     country: userProfile.country || '',
+    homeAddress: userProfile.homeAddress || '',
   };
   
   const fullName = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ');
@@ -352,6 +359,10 @@ export default function MyAccountPage() {
              <p className="font-body text-sm flex items-center">
                 <Globe className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
                 <strong>Country:</strong>&nbsp;{userProfile.country || '[Not Provided]'}
+            </p>
+            <p className="font-body text-sm flex items-center">
+                <Home className="h-4 w-4 mr-2 text-primary/80 opacity-70" />
+                <strong>Home Address:</strong>&nbsp;{userProfile.homeAddress || '[Not Set]'}
             </p>
           </div>
 

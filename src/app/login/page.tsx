@@ -137,11 +137,21 @@ export default function LoginPage() {
     }
   };
 
-  if (isAuthLoading || user) {
+  if (isAuthLoading && !user) {
     return (
         <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
             <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
             <p className="font-body text-muted-foreground">Loading...</p>
+        </div>
+    );
+  }
+
+  // If user is logged in, useEffect will redirect. Return loader in the meantime.
+  if (user) {
+     return (
+        <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
+            <p className="font-body text-muted-foreground">Redirecting to dashboard...</p>
         </div>
     );
   }
