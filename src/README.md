@@ -4,7 +4,19 @@ This is a Next.js starter project for KamperHub, built within Firebase Studio. I
 
 ---
 
-## Getting Started: Running the Local Development Environment
+## **Setup Order: Getting Started**
+
+To get your local development environment running correctly, you **must** complete the setup checklists in the following order. This ensures that services that depend on each other are configured correctly.
+
+1.  **Firebase First:** Start with the `FIREBASE_SETUP_CHECKLIST.md`. This guide configures all the essential backend services, including authentication, database, and core API keys.
+
+2.  **Stripe Second:** Next, complete the `STRIPE_SETUP_CHECKLIST.md`. This configures your environment for testing subscriptions, which relies on settings from the Firebase setup.
+
+Once these two checklists are complete, your local environment will be fully functional. You can then run the application using the three terminal commands below.
+
+---
+
+## **Running the Local Development Environment**
 
 To run the full application locally with all features enabled (including the web app, AI services, and Stripe subscription testing), you will need to open **three separate terminal windows** and run one command in each.
 
@@ -41,9 +53,3 @@ Make sure your app is running on the correct port (check the `npm run dev` outpu
 stripe listen --forward-to localhost:8083/api/stripe-webhook
 ```
 You must leave this terminal running in the background while testing payments.
-
----
-
-### **Initial Setup**
-
-Before running the application for the first time, please follow the detailed setup instructions in `FIREBASE_SETUP_CHECKLIST.md` and `STRIPE_SETUP_CHECKLIST.md`. These guides are crucial for correctly configuring your local environment variables in the `.env.local` file.
