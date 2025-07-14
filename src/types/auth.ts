@@ -1,4 +1,3 @@
-
 // src/types/auth.ts
 
 import type { CaravanDefaultChecklistSet } from './checklist';

@@ -57,7 +57,7 @@ const userPreferencesUpdateSchema = z
     state: z.string().optional(),
     country: z.string().optional(),
     homeAddress: z.string().optional().nullable(),
-    hasDismissedGettingStartedGuide: z.boolean().optional(), // Added new field
+    hasDismissedGettingStartedGuide: z.boolean().optional(),
   })
   .refine(
     (obj) => Object.values(obj).some((v) => v !== undefined),

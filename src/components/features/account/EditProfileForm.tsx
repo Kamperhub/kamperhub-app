@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -9,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save, XCircle, Mail, User, MapPin, Building, Globe, UserCircle as UserCircleIcon, Home } from 'lucide-react';
-import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesAutocompleteInput';
 
 // Schema for the fields that can be edited
 export const editProfileSchema = z.object({
@@ -22,6 +20,7 @@ export const editProfileSchema = z.object({
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State / Region is required"),
   country: z.string().min(1, "Country is required"),
+  homeAddress: z.string().optional().nullable(),
 });
 
 export type EditProfileFormData = z.infer<typeof editProfileSchema>;
@@ -34,7 +33,7 @@ interface EditProfileFormProps {
 }
 
 export function EditProfileForm({ initialData, onSave, onCancel, isLoading }: EditProfileFormProps) {
-  const { control, register, handleSubmit, formState: { errors }, setValue } = useForm<EditProfileFormData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<EditProfileFormData>({
     resolver: zodResolver(editProfileSchema),
     defaultValues: {
       firstName: initialData.firstName || '',
@@ -44,6 +43,7 @@ export function EditProfileForm({ initialData, onSave, onCancel, isLoading }: Ed
       city: initialData.city || '',
       state: initialData.state || '',
       country: initialData.country || '',
+      homeAddress: initialData.homeAddress || '',
     }
   });
 
@@ -102,6 +102,14 @@ export function EditProfileForm({ initialData, onSave, onCancel, isLoading }: Ed
       </div>
       
       <h3 className="font-headline text-md text-primary pt-2 border-t mt-4">Location Details*</h3>
+       <div>
+          <Label htmlFor="homeAddress" className="font-body">Home Address (Optional)</Label>
+          <div className="relative">
+            <Home className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input id="homeAddress" {...register("homeAddress")} placeholder="e.g., 123 Example St" disabled={isLoading} className="font-body pl-10" />
+          </div>
+          {errors.homeAddress && <p className="text-xs text-destructive font-body mt-1">{errors.homeAddress.message}</p>}
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <Label htmlFor="editCity" className="font-body">City*</Label>
