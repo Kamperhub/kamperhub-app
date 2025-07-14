@@ -43,6 +43,11 @@ export interface Occupant {
   notes?: string | null;
 }
 
+// Represents a waypoint in a multi-stop trip
+export interface Waypoint {
+    address: string;
+}
+
 export interface LoggedTrip {
   id: string;
   name: string;
@@ -76,3 +81,5 @@ export interface LoggedTrip {
 
 // Key for localStorage
 export const RECALLED_TRIP_DATA_KEY = 'kamperhub_recalled_trip_data';
+
+    

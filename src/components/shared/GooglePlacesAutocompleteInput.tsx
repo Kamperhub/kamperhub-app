@@ -6,6 +6,7 @@ import type { Control, UseFormSetValue, FieldErrors, FieldPath, FieldValues } fr
 import { Controller } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useMap } from '@vis.gl/react-google-maps';
 
 interface GooglePlacesAutocompleteInputProps<
   TFieldValues extends FieldValues = FieldValues,
@@ -34,6 +35,7 @@ export function GooglePlacesAutocompleteInput<
 }: GooglePlacesAutocompleteInputProps<TFieldValues, TName>) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const map = useMap(); // Get map instance from context
 
   useEffect(() => {
     if (
@@ -55,6 +57,11 @@ export function GooglePlacesAutocompleteInput<
         types: ["geocode"],
       });
       autocompleteRef.current = autocomplete;
+
+      // Bind the suggestions to the map's viewport for better relevance
+      if (map) {
+        autocomplete.bindTo("bounds", map);
+      }
 
       autocomplete.addListener('place_changed', () => {
         const place = autocomplete.getPlace();
@@ -89,7 +96,7 @@ export function GooglePlacesAutocompleteInput<
       }
       autocompleteRef.current = null;
     };
-  }, [isApiReady, name, setValue]);
+  }, [isApiReady, name, setValue, map]); // Added map to dependency array
 
   return (
     <div>
@@ -112,7 +119,7 @@ export function GooglePlacesAutocompleteInput<
             placeholder={!isApiReady ? "Google Maps API key missing..." : placeholder}
             className="font-body"
             autoComplete="off"
-            disabled={!isApiReady} // Disable if API is not ready
+            disabled={!isApiReady}
           />
         )}
       />
@@ -124,3 +131,5 @@ export function GooglePlacesAutocompleteInput<
     </div>
   );
 }
+
+    

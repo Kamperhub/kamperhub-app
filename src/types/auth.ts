@@ -21,11 +21,11 @@ export interface UserProfile {
   createdAt: string; // ISO Date string or Firestore Timestamp
   updatedAt?: string; // ISO Date string or Firestore Timestamp
   isAdmin?: boolean;
+  hasDismissedGettingStartedGuide?: boolean; // New field to track guide dismissal
 
   // User Preferences
   activeVehicleId?: string | null;
   activeCaravanId?: string | null;
-  activeWdhId?: string | null; // This is now obsolete but kept for graceful data migration if needed
   dashboardLayout?: string[] | null;
   caravanWaterLevels?: Record<string, Record<string, number>> | null; // { [caravanId]: { [tankId]: level } }
   caravanDefaultChecklists?: Record<string, CaravanDefaultChecklistSet> | null; // { [caravanId]: ChecklistSet }
@@ -39,31 +39,6 @@ export interface UserProfile {
   } | null;
 }
 
-// This interface was for the old mock system.
-export interface MockAuthSession {
-  isLoggedIn: boolean;
-  username: string | null;
-  email?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
-  subscriptionTier?: SubscriptionTier | null;
-  stripeCustomerId?: string | null;
-  city?: string;
-  state?: string;
-  country?: string;
-}
-
-// This interface was for the old mock user registry.
-// It's being replaced by Firebase Authentication and Firestore for profile data.
-export interface MockUserRegistryEntry {
-  username: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  password?: string; // Only for mock system, Firebase handles actual passwords
-  city?: string;
-  state?: string;
-  country?: string;
-}
-
 export type SubscriptionTier = 'free' | 'pro' | 'trialing';
+
+    

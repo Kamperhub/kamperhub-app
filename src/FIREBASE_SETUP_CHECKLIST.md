@@ -192,7 +192,6 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
 
 2.  **Create a reCAPTCHA Enterprise Key:**
     *   Go to the [Google Cloud reCAPTCHA Enterprise page for kamperhub-s4hc2](https://console.cloud.google.com/security/recaptcha?project=kamperhub-s4hc2).
-    *   **CRITICAL: Use this page.** From the search results in your screenshot, this corresponds to the **"reCAPTCHA Enterprise"** item with the Google logo.
     *   Click **"+ CREATE KEY"** at the top.
     *   **Label:** Give it a descriptive name like `KamperHub Web Key`.
     *   **Choose integration type:** Select **Website**.
@@ -331,3 +330,5 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     }
     ```
 5.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
+
+    

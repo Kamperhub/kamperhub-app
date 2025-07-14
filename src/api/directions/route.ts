@@ -36,25 +36,26 @@ async function findFuelStationsAlongRoute(polyline: string, apiKey: string): Pro
         const decodedPath = decode(polyline, 5);
         if (decodedPath.length < 2) return [];
 
-        const searchPoints: google.maps.LatLngLiteral[] = [];
-        const totalDistance = google.maps.geometry.spherical.computeLength(decodedPath.map(p => new google.maps.LatLng(p[0], p[1])));
-        const interval = Math.min(100000, totalDistance / 5); // Search roughly every 100km, up to 5 points
+        const searchPoints: { latitude: number; longitude: number }[] = [];
+        let totalDistance = 0;
+        for (let i = 0; i < decodedPath.length - 1; i++) {
+            totalDistance += Math.sqrt(Math.pow(decodedPath[i+1][0] - decodedPath[i][0], 2) + Math.pow(decodedPath[i+1][1] - decodedPath[i][1], 2));
+        }
+        const interval = Math.min(100, totalDistance / 5);
 
-        if (interval < 10000) { // For short trips, just check start and middle
-            searchPoints.push({ lat: decodedPath[0][0], lng: decodedPath[0][1] });
+        if (interval < 10) { 
+            searchPoints.push({ latitude: decodedPath[0][0], longitude: decodedPath[0][1] });
             if (decodedPath.length > 2) {
                  const midPoint = decodedPath[Math.floor(decodedPath.length / 2)];
-                 searchPoints.push({ lat: midPoint[0], lng: midPoint[1] });
+                 searchPoints.push({ latitude: midPoint[0], longitude: midPoint[1] });
             }
         } else {
             let distanceCovered = 0;
-            searchPoints.push({ lat: decodedPath[0][0], lng: decodedPath[0][1] });
+            searchPoints.push({ latitude: decodedPath[0][0], longitude: decodedPath[0][1] });
             for (let i = 0; i < decodedPath.length - 1; i++) {
-                const start = new google.maps.LatLng(decodedPath[i][0], decodedPath[i][1]);
-                const end = new google.maps.LatLng(decodedPath[i+1][0], decodedPath[i+1][1]);
-                distanceCovered += google.maps.geometry.spherical.computeDistanceBetween(start, end);
+                distanceCovered += Math.sqrt(Math.pow(decodedPath[i+1][0] - decodedPath[i][0], 2) + Math.pow(decodedPath[i+1][1] - decodedPath[i][1], 2));
                 if (distanceCovered >= interval) {
-                    searchPoints.push({ lat: end.lat(), lng: end.lng() });
+                    searchPoints.push({ latitude: decodedPath[i+1][0], longitude: decodedPath[i+1][1] });
                     distanceCovered = 0;
                 }
             }
@@ -62,25 +63,39 @@ async function findFuelStationsAlongRoute(polyline: string, apiKey: string): Pro
 
         const uniqueFuelStations = new Map<string, FuelStation>();
         const searchPromises = searchPoints.map(point => {
-            const placesUrl = new URL('https://maps.googleapis.com/maps/api/place/nearbysearch/json');
-            placesUrl.searchParams.set('location', `${point.lat},${point.lng}`);
-            placesUrl.searchParams.set('radius', '50000'); // 50km radius
-            placesUrl.searchParams.set('type', 'gas_station');
-            placesUrl.searchParams.set('key', apiKey);
-            return fetch(placesUrl.toString()).then(res => res.json());
+            const placesUrl = new URL('https://places.googleapis.com/v1/places:searchNearby');
+            const body = {
+                "includedTypes": ["gas_station"],
+                "maxResultCount": 10,
+                "locationRestriction": {
+                    "circle": {
+                    "center": point,
+                    "radius": 50000.0
+                    }
+                }
+            };
+            return fetch(placesUrl.toString(), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Goog-Api-Key': apiKey,
+                    'X-Goog-FieldMask': 'places.displayName,places.location,places.id',
+                },
+                body: JSON.stringify(body)
+            }).then(res => res.json());
         });
 
         const results = await Promise.all(searchPromises);
 
         for (const result of results) {
-            if (result.results) {
-                for (const place of result.results) {
-                    if (place.geometry?.location && place.name && !uniqueFuelStations.has(place.place_id)) {
-                        uniqueFuelStations.set(place.place_id, {
-                            name: place.name,
+            if (result.places) {
+                for (const place of result.places) {
+                    if (place.location?.latitude && place.location?.longitude && place.displayName && !uniqueFuelStations.has(place.id)) {
+                        uniqueFuelStations.set(place.id, {
+                            name: place.displayName,
                             location: {
-                                lat: place.geometry.location.lat,
-                                lng: place.geometry.location.lng,
+                                lat: place.location.latitude,
+                                lng: place.location.longitude,
                             }
                         });
                     }
@@ -90,7 +105,7 @@ async function findFuelStationsAlongRoute(polyline: string, apiKey: string): Pro
         return Array.from(uniqueFuelStations.values());
     } catch (e) {
         console.error("Error finding fuel stations:", e);
-        return []; // Return empty on error
+        return [];
     }
 }
 
@@ -242,3 +257,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Error calculating route: ${error.message}` || 'An internal server error occurred.' }, { status: 500 });
   }
 }
+
+    
