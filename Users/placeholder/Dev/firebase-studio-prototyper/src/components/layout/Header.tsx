@@ -66,7 +66,7 @@ export function Header() {
     }
   };
   
-  const homeLink = user ? "/" : "/"; // Always link home to the landing page
+  const homeLink = user ? "/dashboard" : "/";
 
   return (
     <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-40">
