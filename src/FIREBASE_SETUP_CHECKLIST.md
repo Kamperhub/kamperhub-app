@@ -137,7 +137,7 @@ Many app features depend on Google services. An incorrect API key or disabled se
 
 3.  **Client-Side APIs** (Used by `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):
     *   **Maps JavaScript API**
-    *   **Places API**
+    *   **Places API** 
 
 4.  **Server-Side APIs** (Used by `GOOGLE_API_KEY`):
     *   **Routes API**
@@ -146,6 +146,10 @@ Many app features depend on Google services. An incorrect API key or disabled se
 
 5.  **OAuth API** (Does not use an API key):
     *   **Google Tasks API**
+
+> [!WARNING]
+> **Important Note on "Places API"**
+> When you search for "Places API" in the Google Cloud Console, you might see multiple results. The one you need to enable is simply named **"Places API"**. You do NOT need to enable the one called "Places API (New)". The application is configured to use the modern v1 endpoints provided by the standard "Places API" service.
 
 ---
 
@@ -335,6 +339,3 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     }
     ```
 5.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
-
-    
-    
