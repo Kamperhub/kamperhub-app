@@ -21,8 +21,8 @@ All your secret keys will live in a special file that is **NEVER** committed to 
     ```env
     # Firebase Client-Side Configuration (for the browser)
     NEXT_PUBLIC_FIREBASE_API_KEY="YOUR_API_KEY_HERE"
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com"
     NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com"
     NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-project.appspot.com"
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="your-sender-id"
     NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"
@@ -65,7 +65,7 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 
 ---
 
-### Step 2: Find Your Firebase Project (`kamperhub-s4hc2`)
+### Step 2: Find Your Firebase Project (Est. 2 mins)
 
 > [!IMPORTANT]
 > This is the most critical step. Your Firebase **Project ID** is `kamperhub-s4hc2`. You must get **all keys** from this specific project.
@@ -74,9 +74,12 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 2.  Click the gear icon ⚙️ next to **Project Overview** and select **Project settings**.
 3.  The **Project ID** listed on this General settings page must be `kamperhub-s4hc2`. This is the value you will use for `NEXT_PUBLIC_FIREBASE_PROJECT_ID`.
 
+> [!NOTE]
+> **Project ID vs. API Key:** The **Project ID** (`kamperhub-s4hc2`) identifies your entire project. The **API Key** (which you'll get in the next step) is a long string of characters that authorizes your app to *use* the project's services. They are two different, essential values.
+
 ---
 
-### Step 3: Populate Your Environment File
+### Step 3: Populate Your Environment File (Est. 15-20 mins)
 
 Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys and paste them into the `.env.local` file.
 
@@ -89,7 +92,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   Find your web app (it's likely named something like `kamperhub-s4hc2`).
     *   Look for the "Firebase SDK snippet" section and select the **Config** option.
     *   This will display an object with keys like `apiKey`, `authDomain`, `projectId`, etc.
-    *   **CRITICAL:** Carefully copy each value from this Config object and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file.
+    *   **CRITICAL:** Carefully copy each value from this Config object and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file. The `apiKey` value is your **Web API Key** and goes into `NEXT_PUBLIC_FIREBASE_API_KEY`.
     *   **CRITICAL:** Verify that the `projectId` from the config matches `kamperhub-s4hc2`.
 
 2.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
@@ -122,7 +125,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 
 ---
 
-### Step 3.5: CRITICAL - Verify Google Cloud APIs Are Enabled
+### Step 3.5: CRITICAL - Verify Google Cloud APIs Are Enabled (Est. 5 mins)
 
 Many app features depend on Google services. An incorrect API key or disabled services will cause features to fail.
 
@@ -144,7 +147,7 @@ Many app features depend on Google services. An incorrect API key or disabled se
 
 ---
 
-### Step 3.6: CRITICAL - Configure OAuth Consent Screen & Credentials
+### Step 3.6: CRITICAL - Configure OAuth Consent Screen & Credentials (Est. 5 mins)
 
 > [!WARNING]
 > **If you see a `403 That's an error... you do not have access` or `redirect_uri_mismatch` page from Google when trying to connect your account, it means this step was missed or done incorrectly.**
@@ -180,7 +183,7 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
 
 ---
 
-### Step 3.7: CRITICAL - Configure App Check with reCAPTCHA Enterprise
+### Step 3.7: CRITICAL - Configure App Check with reCAPTCHA Enterprise (Est. 5 mins)
 
 > [!WARNING]
 > **If you see errors related to `app-check-token-request-failed`, it means this step was missed or done incorrectly.** App Check protects your backend resources (like APIs and databases) from abuse.
@@ -217,7 +220,7 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
 
 ---
 
-### Step 4: CRITICAL - Verify Your Local Development Server Setup
+### Step 4: CRITICAL - Verify Your Local Development Server Setup (Est. 1 min)
 
 After populating `.env.local`, you **MUST** restart your local development server. The server only reads this file when it first starts.
 
@@ -233,7 +236,7 @@ After populating `.env.local`, you **MUST** restart your local development serve
 
 ---
 
-### Step 5: CRITICAL - Verify Firestore Database Exists (with ID `kamperhubv2`)
+### Step 5: CRITICAL - Verify Firestore Database Exists (with ID `kamperhubv2`) (Est. 2 mins)
 
 > [!IMPORTANT]
 > The application code is specifically configured to connect to a Firestore database with the **Database ID `kamperhubv2`**. This is different from your **Project ID**.
@@ -249,7 +252,7 @@ After populating `.env.local`, you **MUST** restart your local development serve
 
 ---
 
-### Step 6: CRITICAL - Verify Service Account Permissions
+### Step 6: CRITICAL - Verify Service Account Permissions (Est. 2 mins)
 
 If the above steps are correct, the final check is to ensure your service account has permission to access Firestore.
 
@@ -260,7 +263,7 @@ If the above steps are correct, the final check is to ensure your service accoun
 
 ---
 
-### Step 7: FINAL & CRITICAL - Deploy Security Rules
+### Step 7: FINAL & CRITICAL - Deploy Security Rules (Est. 2 mins)
 
 > [!WARNING]
 > **This is the most likely reason your app is stuck on "Initializing Session" or shows "PERMISSION_DENIED" errors.**
@@ -277,7 +280,7 @@ The IAM role gives your *server* permission to access the database, but Firestor
 
 ---
 
-### Step 8: Create Your First User Account (One-Time Only)
+### Step 8: Create Your First User Account (One-Time Only) (Est. 1 min)
 
 > [!NOTE]
 > This is a one-time step to create your initial user. Once the account exists, you will simply **log in** for future sessions. You only need to sign up again if you delete the user from Firebase.
@@ -312,7 +315,7 @@ The application needs permission to talk to Google Tasks. If this API is not ena
 
 To prevent a security issue called "Cross-Site Request Forgery", the connection process creates a temporary, single-use token in your Firestore database in a collection called `oauthStates`. If your security rules block this action, the connection will fail.
 
-1.  Go to the [Firebase Console Rules Editor for kamperhubv2](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/firestore/databases/-kamperhubv2-/rules).
+1.  Go to the [Firebase Console Rules Editor for kamperhub-s4hc2](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/firestore/databases/-kamperhubv2-/rules).
 2.  Make sure you have selected the **`kamperhubv2`** database from the dropdown at the top.
 3.  Click on the **"Rules"** tab.
 4.  Your rules should allow an authenticated user to create documents in the `oauthStates` collection. Add the following `match` block inside your `match /databases/{database}/documents` block if it doesn't exist:
@@ -330,3 +333,5 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     }
     ```
 5.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
+
+    
