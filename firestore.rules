@@ -1,64 +1,62 @@
 rules_version = '2';
 
-// Note: These rules grant access to a Firestore database with the
-// ID 'kamperhubv2'. Make sure you have created a database with this
-// specific ID in your Firebase project.
 service cloud.firestore {
-  match /databases/kamperhubv2/documents {
+  match /databases/{database}/documents {
 
-    // --- Core User Data Access ---
-    // This is the most critical rule for app functionality.
-    // It allows an authenticated user to access ONLY their own document
-    // within the 'users' collection.
+    // Default deny all access unless explicitly allowed.
+    // This is a critical security best practice.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Secure user profile data.
+    // A user can read or write their own profile document.
     match /users/{userId} {
-      // A user can only read their own profile data.
-      allow read: if request.auth != null && request.auth.uid == userId;
-      
-      // A user can create their own profile document (e.g., on signup).
-      allow create: if request.auth != null && request.auth.uid == userId;
-
-      // A user can update their own profile data.
-      allow update: if request.auth != null && request.auth.uid == userId;
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      // Allow any authenticated user to create their own profile document.
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
     }
 
-    // --- User Sub-collections ---
-    // These rules apply the same principle to all user-specific data.
-    match /users/{userId}/{collection}/{docId} {
-      allow read, write, delete, create: if request.auth != null && request.auth.uid == userId;
+    // Secure all sub-collections belonging to a user.
+    // This function ensures that any request to a sub-collection
+    // is made by the authenticated owner of that data.
+    function isUserAuthenticated(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
 
-    // --- Google Auth State Tokens ---
-    // This allows the app to securely manage the Google Tasks integration process.
+    // Rules for all user-specific collections
+    match /users/{userId}/vehicles/{vehicleId} {
+      allow read, write: if isUserAuthenticated(userId);
+    }
+    match /users/{userId}/caravans/{caravanId} {
+      allow read, write: if isUserAuthenticated(userId);
+    }
+    match /users/{userId}/inventories/{inventoryId} {
+      allow read, write: if isUserAuthenticated(userId);
+    }
+    match /users/{userId}/trips/{tripId} {
+      allow read, write: if isUserAuthenticated(userId);
+    }
+    match /users/{userId}/bookings/{bookingId} {
+      allow read, write: if isUserAuthenticated(userId);
+    }
+    match /users/{userId}/packingLists/{listId} {
+      allow read, write: if isUserAuthenticated(userId);
+    }
+    match /users/{userId}/journeys/{journeyId} {
+      allow read, write: if isUserAuthenticated(userId);
+    }
+
+    // Allow authenticated users to create a state token for Google OAuth flow.
+    // The state token is used to prevent cross-site request forgery.
     match /oauthStates/{state} {
-      // Allow any authenticated user to create a temporary state token for themselves.
-      // We check that the 'userId' in the document being created matches their own UID.
+      // Allow any authenticated user to create a state token for themselves.
+      // The document ID is the random 'state' string.
+      // We check that the 'userId' in the document being created matches the user's UID.
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       
       // Only the user who created the state token can read or delete it.
       allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-    }
-    
-    // --- Contact Form Submissions ---
-    // Allows anyone to submit a message through the contact form.
-    // This collection should be monitored for spam.
-    match /contactSubmissions/{submissionId} {
-      allow create: if request.auth == null || request.auth != null;
-      // Admin-only access for reading submissions would be managed by server-side logic
-      // or specific admin user rules if needed. For now, restrict read/write.
-      allow read, update, delete: if false; 
-    }
-
-    // --- Admin-only Access ---
-    // This rule demonstrates how you could restrict access to certain collections
-    // to only admin users, based on a custom claim in their token.
-    match /adminData/{docId} {
-        allow read, write: if request.auth != null && request.auth.token.isAdmin == true;
-    }
-    
-    // --- Default Deny ---
-    // Deny all other access to prevent unauthorized reads/writes.
-    match /{document=**} {
-      allow read, write: if false;
     }
   }
 }
