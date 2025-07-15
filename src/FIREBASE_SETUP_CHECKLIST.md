@@ -1,4 +1,3 @@
-
 # Firebase & Backend Setup Checklist
 
 > [!CAUTION]
