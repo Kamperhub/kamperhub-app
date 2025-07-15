@@ -64,21 +64,31 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
  * Initializes Firebase App Check on the client side.
  * This function is designed to be called from a useEffect hook in a top-level component
  * to ensure the DOM is ready, preventing reCAPTCHA placeholder errors.
+ * It prioritizes the debug token for local development.
  */
 export function initializeFirebaseAppCheck() {
-  if (typeof window !== 'undefined' && !appCheck) {
+  if (typeof window !== 'undefined' && app?.name && !appCheck) {
+    // For local development, prioritize the debug token if it exists.
+    if (process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN) {
+      console.log('[Firebase Client] App Check: Using debug token for local development.');
+      // Make the debug token available globally for Firebase to pick up.
+      (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN;
+    }
+
+    // Initialize with reCAPTCHA Enterprise provider if the key is available.
+    // The SDK will automatically use the debug token if window.FIREBASE_APPCHECK_DEBUG_TOKEN is set.
     if (process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY) {
       try {
         appCheck = initializeAppCheck(app, {
           provider: new ReCaptchaEnterpriseProvider(process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY),
           isTokenAutoRefreshEnabled: true
         });
-        console.log('[Firebase Client] App Check initialized.');
+        console.log('[Firebase Client] App Check initialized with reCAPTCHA Enterprise provider.');
       } catch(e: any) {
         console.error(`[Firebase Client] App Check initialization failed. Error: ${e.message}`);
       }
     } else {
-      console.log('[Firebase Client] App Check not initialized (NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY is not set).');
+      console.warn('[Firebase Client] App Check not initialized: NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY is not set.');
     }
   }
 }

@@ -33,7 +33,7 @@ Your local development started in "test mode". For production, you must switch t
     *   Click **"ADD"** and enter your production domain (e.g., `https://kamperhub.com/*`). This locks the key so it only works on your website.
     *   Under **"API restrictions"**, select **"Restrict key"** and choose only the APIs the browser needs:
         *   Maps JavaScript API
-        *   Places API (New)
+        *   Places API
     *   Click **Save**.
     *   Copy this key. You will use it for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in your App Hosting configuration.
 
@@ -44,7 +44,7 @@ Your local development started in "test mode". For production, you must switch t
     *   Under **"API restrictions"**, select **"Restrict key"** and choose only the APIs the server needs:
         *   Routes API
         *   Gemini API (also known as Generative Language API)
-        *   Places API (New)
+        *   Places API
     *   Click **Save**.
     *   Copy this key. You will use it for `GOOGLE_API_KEY` in your App Hosting configuration.
 
@@ -136,12 +136,12 @@ This step is different from local development. You will *not* use the Stripe CLI
 
 3.  **Client-Side APIs** (Used by `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):
     *   **Maps JavaScript API**
-    *   **Places API (New)** (Note: Ensure you enable the one named exactly "Places API (New)").
+    *   **Places API** (Note: Ensure you enable the one named exactly "Places API", not "Places API (New)").
 
 4.  **Server-Side APIs** (Used by `GOOGLE_API_KEY`):
     *   **Routes API**
     *   **Gemini API** (may be listed as "Generative Language API")
-    *   **Places API (New)** (The same "Places API (New)" is required by the server).
+    *   **Places API** (The same "Places API" is required by the server).
 
 5.  **OAuth API** (Does not use an API key):
     *   **Google Tasks API**
@@ -164,15 +164,11 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
     *   On the OAuth Consent Screen summary page, check the "Publishing status".
     *   If it says **"Testing"**, you can ONLY log in with Google accounts you have explicitly added as "Test users".
     *   If it says **"In production"**, any Google user can connect to the app. You should click the **"Publish App"** button to move it to production.
-5.  **Verify OAuth Client ID Settings:**
+5.  **Verify Redirect URI:**
     *   Go to the [Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
     *   Click on the name of your **OAuth 2.0 Client ID** (the one you used for `GOOGLE_CLIENT_ID`).
-    *   **Part A: Authorized JavaScript origins:** This tells Google which web pages are allowed to *start* the sign-in flow.
-        *   Under **"Authorized JavaScript origins"**, click **"+ ADD URI"**.
-        *   Enter your app's production domain: `https://kamperhub.com`
-    *   **Part B: Authorized redirect URIs:** This tells Google where it is allowed to *send the user back to* after they sign in.
-        *   Under **"Authorized redirect URIs"**, click **"+ ADD URI"**.
-        *   Enter the full callback URL for production: `https://kamperhub.com/api/auth/google/callback`
+    *   Under **"Authorized redirect URIs"**, click **"+ ADD URI"**.
+    *   Enter the production URL: `https://kamperhub.com/api/auth/google/callback`
     *   Click **Save**.
 
 ---
@@ -261,4 +257,3 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
 6.  Test the trip planner to ensure all Google Maps APIs are working correctly with the restricted keys.
 
 **Congratulations! Your KamperHub application is now live.**
-
