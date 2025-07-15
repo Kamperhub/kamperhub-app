@@ -10,7 +10,7 @@
 
 Your Firebase project (`kamperhub-s4hc2`) needs to be configured for live traffic. This involves securing your database, creating production-ready API keys, and setting up App Check.
 
-### **Step 1.1: Secure Your Firestore Database**
+### **Step 1.1: Secure Your Firestore Database (Est. 2 mins)**
 
 Your local development started in "test mode". For production, you must switch to secure rules.
 
@@ -19,7 +19,7 @@ Your local development started in "test mode". For production, you must switch t
 3.  Replace any existing rules with the contents of the `firestore.rules` file from your project. This ensures only authenticated users can access their own data.
 4.  Click **Publish**.
 
-### **Step 1.2: CRITICAL - Create Production API Keys**
+### **Step 1.2: CRITICAL - Create Production API Keys (Est. 10 mins)**
 
 > [!CAUTION]
 > **Do not reuse your unrestricted local development API key in production.** Your public (browser) key is visible in your website's code. If it's unrestricted, anyone could steal it and use it, potentially running up a large bill on your account. Creating new, restricted keys is a critical security step.
@@ -48,7 +48,7 @@ Your local development started in "test mode". For production, you must switch t
     *   Click **Save**.
     *   Copy this key. You will use it for `GOOGLE_API_KEY` in your App Hosting configuration.
 
-### **Step 1.3: CRITICAL - Configure App Check for Production**
+### **Step 1.3: CRITICAL - Configure App Check for Production (Est. 5 mins)**
 
 1.  **Enforce App Check for Services:**
     *   Go to the [Firebase App Check page for kamperhub-s4hc2](https://console.firebase.google.com/project/kamperhub-s4hc2/appcheck).
@@ -74,7 +74,7 @@ Your local development started in "test mode". For production, you must switch t
 
 ---
 
-## **Phase 2: Stripe Account Configuration for Production**
+## **Phase 2: Stripe Account Configuration for Production (Est. 10 mins)**
 
 Now, you'll switch Stripe from "Test mode" to "Live mode" and configure your real product and webhooks.
 
@@ -125,9 +125,10 @@ This step is different from local development. You will *not* use the Stripe CLI
 
 ## **Phase 3: Firebase & Google Cloud Final Configuration**
 
-### **Step 3.5: CRITICAL - Verify Google Cloud APIs Are Enabled**
+### **Step 3.5: CRITICAL - Verify Google Cloud APIs Are Enabled (Est. 5 mins)**
 
-Many app features depend on Google services. An incorrect API key or disabled services will cause features to fail.
+> [!IMPORTANT]
+> **Understanding Costs:** Simply **enabling** these APIs does **not** incur any costs. Billing is based on **usage**. Google provides a generous monthly free tier for most services (e.g., a $200 recurring credit for Maps Platform). For a new application, your usage will very likely fall within this free tier. However, you must still have a billing account enabled on your project to use them.
 
 1.  **Go to the [Google Cloud APIs & Services Dashboard for kamperhub-s4hc2](https://console.cloud.google.com/apis/dashboard?project=kamperhub-s4hc2).**
 
@@ -145,7 +146,7 @@ Many app features depend on Google services. An incorrect API key or disabled se
 5.  **OAuth API** (Does not use an API key):
     *   **Google Tasks API**
 
-### **Step 3.6: CRITICAL - Configure OAuth Consent Screen & Credentials**
+### **Step 3.6: CRITICAL - Configure OAuth Consent Screen & Credentials (Est. 5 mins)**
 
 > [!WARNING]
 > **If you see a `403 That's an error... you do not have access` or `redirect_uri_mismatch` page from Google when trying to connect your account, it means this step was missed or done incorrectly.**
