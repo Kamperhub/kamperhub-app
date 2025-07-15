@@ -104,10 +104,12 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 
 3.  **Google Cloud API Keys (`GOOGLE_API_KEY` & `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)**
     *   Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
-    *   **CRITICAL:** It is highly recommended to create **two new, dedicated API keys** and delete any old or auto-generated keys ("Browser key", "API key 1", etc.).
+    *   > [!CAUTION]
+    >   **IMPORTANT: Ignore Auto-Generated Keys**
+    >   Firebase may automatically create a generic, unrestricted API key in your project named "KamperHub (auto created by Firebase)" or "Browser key". **DO NOT USE THIS KEY.** For security, it is best practice to create and use dedicated, restricted keys as described below. You can safely delete the auto-generated key.
     *   **Create Your Server Key (for `GOOGLE_API_KEY`):**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Server Key`.
-        *   Restrict this key to **Routes API**, **Gemini API**, and **Places API**. The Places API is required for the backend to search for fuel stations along a route.
+        *   Restrict this key to **Routes API**, **Gemini API**, and **Places API**.
         *   Under "Application restrictions", choose **"None"**. This is a secret server key and must not have browser restrictions.
         *   Paste this key into the `GOOGLE_API_KEY` variable.
     *   **Create Your Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
@@ -135,12 +137,12 @@ Many app features depend on Google services. An incorrect API key or disabled se
 
 3.  **Client-Side APIs** (Used by `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):
     *   **Maps JavaScript API**
-    *   **Places API**
+    *   **Places API** (Note: Ensure you enable the one named exactly "Places API", not "Places API (New)").
 
 4.  **Server-Side APIs** (Used by `GOOGLE_API_KEY`):
     *   **Routes API**
     *   **Gemini API** (may be listed as "Generative Language API")
-    *   **Places API** (Required for fuel station search)
+    *   **Places API** (The same "Places API" is required by the server for fuel station search).
 
 5.  **OAuth API** (Does not use an API key):
     *   **Google Tasks API**
