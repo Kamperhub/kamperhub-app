@@ -25,6 +25,7 @@ export interface RouteDetails {
   polyline?: string;
   warnings?: string[];
   tollInfo?: { text: string; value: number } | null;
+  fuelStations?: FuelStation[];
 }
 
 export interface FuelEstimate {
@@ -42,12 +43,18 @@ export interface Occupant {
   notes?: string | null;
 }
 
+// Represents a waypoint in a multi-stop trip
+export interface Waypoint {
+    address: string;
+}
+
 export interface LoggedTrip {
   id: string;
   name: string;
   timestamp: string; // ISO string for date
   startLocationDisplay: string; // The string input by the user for start
   endLocationDisplay: string; // The string input by the user for end
+  waypoints?: Waypoint[]; // For multi-stop trips
   fuelEfficiency: number;
   fuelPrice: number;
   routeDetails: RouteDetails;

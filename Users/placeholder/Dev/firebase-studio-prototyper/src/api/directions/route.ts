@@ -64,25 +64,43 @@ async function findFuelStationsAlongRoute(polyline: string, apiKey: string): Pro
 
         const uniqueFuelStations = new Map<string, FuelStation>();
         const searchPromises = searchPoints.map(point => {
-            const placesUrl = new URL('https://maps.googleapis.com/maps/api/place/nearbysearch/json');
-            placesUrl.searchParams.set('location', `${point.lat},${point.lng}`);
-            placesUrl.searchParams.set('radius', '50000'); // 50km radius
-            placesUrl.searchParams.set('type', 'gas_station');
-            placesUrl.searchParams.set('key', apiKey);
-            return fetch(placesUrl.toString()).then(res => res.json());
+            const placesUrl = new URL('https://places.googleapis.com/v1/places:searchNearby');
+            const body = {
+                "includedTypes": ["gas_station"],
+                "maxResultCount": 10,
+                "locationRestriction": {
+                    "circle": {
+                    "center": {
+                        "latitude": point.lat,
+                        "longitude": point.lng
+                    },
+                    "radius": 50000.0
+                    }
+                }
+            };
+
+            return fetch(placesUrl.toString(), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Goog-Api-Key': apiKey,
+                    'X-Goog-FieldMask': 'places.displayName,places.location,places.id',
+                },
+                body: JSON.stringify(body)
+            }).then(res => res.json());
         });
 
         const results = await Promise.all(searchPromises);
 
         for (const result of results) {
-            if (result.results) {
-                for (const place of result.results) {
-                    if (place.geometry?.location && place.name && !uniqueFuelStations.has(place.place_id)) {
-                        uniqueFuelStations.set(place.place_id, {
-                            name: place.name,
+            if (result.places) {
+                for (const place of result.places) {
+                    if (place.location?.latitude && place.location?.longitude && place.displayName && !uniqueFuelStations.has(place.id)) {
+                        uniqueFuelStations.set(place.id, {
+                            name: place.displayName,
                             location: {
-                                lat: place.geometry.location.lat,
-                                lng: place.geometry.location.lng,
+                                lat: place.location.latitude,
+                                lng: place.location.longitude,
                             }
                         });
                     }
