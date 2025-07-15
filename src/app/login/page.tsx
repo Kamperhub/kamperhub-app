@@ -89,8 +89,8 @@ export default function LoginPage() {
             break;
           case 'auth/api-key-expired':
           case 'auth/invalid-api-key':
-            setLoginError('Your Firebase API Key is invalid or expired. Please check your .env.local file and follow Step 3.1 of the FIREBASE_SETUP_CHECKLIST.md guide carefully.');
-            errorMessage = 'Invalid Firebase API Key configuration.';
+            setLoginError('Your Browser API Key is invalid or expired. Please check your .env.local file and follow Step 3.3 of the FIREBASE_SETUP_CHECKLIST.md guide carefully.');
+            errorMessage = 'Invalid Browser API Key configuration.';
             break;
           default:
             errorMessage = authError.message || 'An unknown login error occurred.';
