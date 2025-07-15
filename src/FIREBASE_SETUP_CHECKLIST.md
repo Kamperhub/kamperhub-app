@@ -317,7 +317,7 @@ The application needs permission to talk to Google Tasks. If this API is not ena
 
 To prevent a security issue called "Cross-Site Request Forgery", the connection process creates a temporary, single-use token in your Firestore database in a collection called `oauthStates`. If your security rules block this action, the connection will fail.
 
-1.  Go to the [Firebase Console Rules Editor for kamperhub-s4hc2](https://console.cloud.google.com/u/0/project/kamperhub-s4hc2/firestore/databases/-kamperhubv2-/rules).
+1.  Go to the [Firebase Console Rules Editor for kamperhubv2](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/firestore/databases/-kamperhubv2-/rules).
 2.  Make sure you have selected the **`kamperhubv2`** database from the dropdown at the top.
 3.  Click on the **"Rules"** tab.
 4.  Your rules should allow an authenticated user to create documents in the `oauthStates` collection. Add the following `match` block inside your `match /databases/{database}/documents` block if it doesn't exist:
@@ -336,4 +336,5 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     ```
 5.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
 
+    
     
