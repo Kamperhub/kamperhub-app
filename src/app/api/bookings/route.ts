@@ -1,31 +1,29 @@
-
 // src/app/api/bookings/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { BookingEntry } from '@/types/booking';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { z, ZodError } from 'zod';
-import type admin from 'firebase-admin';
 
 const ACCOMMODATION_CATEGORY_NAME = "Accommodation";
 
-async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string; firestore: admin.firestore.Firestore; }> {
+async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
-    throw new Error('Server configuration error.');
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
   }
 
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    throw new Error('Unauthorized: Missing or invalid Authorization header.');
+    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
-    return { uid: decodedToken.uid, firestore };
+    return { uid: decodedToken.uid, firestore, errorResponse: null };
   } catch (error: any) {
-    throw new Error('Unauthorized: Invalid ID token.');
+    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
   }
 }
 
@@ -46,17 +44,51 @@ const bookingSchema = z.object({
     path: ["checkOutDate"],
 });
 
-// For updates, the base schema is the same, but we also expect an ID and timestamp
+// For updates, the base schema is the same, but we also expect an ID
 const updateBookingSchema = bookingSchema.extend({
   id: z.string().min(1, "Booking ID is required for updates"),
-  timestamp: z.string().datetime(),
 });
+
+const handleApiError = (error: any) => {
+  console.error('API Error:', error);
+  let errorTitle = 'Internal Server Error';
+  let errorDetails = 'An unexpected error occurred.';
+  let statusCode = 500;
+
+  if (error instanceof ZodError) {
+    return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
+  }
+  
+  if (error.code) {
+      switch(error.code) {
+          case 5: // NOT_FOUND
+              errorTitle = 'Database Not Found';
+              errorDetails = `The Firestore database 'kamperhubv2' could not be found. Please verify its creation in your Firebase project.`;
+              statusCode = 500;
+              break;
+          case 16: // UNAUTHENTICATED
+              errorTitle = 'Server Authentication Failed';
+              errorDetails = `The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or lack permission for Firestore. Please check your setup.`;
+              statusCode = 500;
+              break;
+          default:
+              errorDetails = error.message;
+              break;
+      }
+  } else {
+    errorDetails = error.message;
+  }
+
+  return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: statusCode });
+};
 
 
 // GET all bookings for the authenticated user
-export async function GET(req: NextRequest): Promise<NextResponse> {
+export async function GET(req: NextRequest) {
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse;
+
   try {
-    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const bookingsSnapshot = await firestore.collection('users').doc(uid).collection('bookings').get();
     const bookings: BookingEntry[] = [];
     bookingsSnapshot.forEach(doc => {
@@ -71,15 +103,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     
     return NextResponse.json(bookings, { status: 200 });
   } catch (err: any) {
-    console.error('API Error in GET /api/bookings:', err);
-    return NextResponse.json({ error: 'Failed to fetch bookings', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
 // POST a new booking for the authenticated user
-export async function POST(req: NextRequest): Promise<NextResponse> {
+export async function POST(req: NextRequest) {
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse;
+
   try {
-    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
     const parsedData = bookingSchema.parse(body);
     const { assignedTripId, budgetedCost, ...bookingDetails } = parsedData;
@@ -122,32 +155,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json(newBooking, { status: 201 });
 
   } catch (err: any) {
-    console.error('API Error in POST /api/bookings:', err);
-    if (err instanceof ZodError) {
-        return NextResponse.json({ error: 'Invalid data provided.', details: err.format() }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Internal Server Error', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
 // PUT (update) an existing booking for the authenticated user
-export async function PUT(req: NextRequest): Promise<NextResponse> {
+export async function PUT(req: NextRequest) {
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse;
+  
   try {
-    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
-    const parsedBookingData = updateBookingSchema.parse(body);
+    // For update, we add the id field to the base schema
+    const parsedBookingData = bookingSchema.extend({id: z.string()}).parse(body);
     const { id: bookingId, assignedTripId: newTripId, budgetedCost: newCostValue, ...restData } = parsedBookingData;
     const newCost = newCostValue || 0;
 
     const bookingRef = firestore.collection('users').doc(uid).collection('bookings').doc(bookingId);
 
-    const finalUpdatedBookingData = {
-        id: bookingId,
-        ...restData,
-        assignedTripId: newTripId,
-        budgetedCost: newCost,
-        timestamp: new Date().toISOString(),
-    };
+    const finalUpdatedBooking: BookingEntry = { ...parsedBookingData, timestamp: new Date().toISOString() };
     
     await firestore.runTransaction(async (transaction) => {
       const bookingDoc = await transaction.get(bookingRef);
@@ -189,23 +215,21 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
         transaction.update(newTripRef, { budget });
       }
       
-      transaction.set(bookingRef, finalUpdatedBookingData, { merge: true });
+      transaction.set(bookingRef, finalUpdatedBooking, { merge: true });
     });
     
-    return NextResponse.json({ message: 'Booking updated successfully.', booking: finalUpdatedBookingData }, { status: 200 });
+    return NextResponse.json({ message: 'Booking updated successfully.', booking: finalUpdatedBooking }, { status: 200 });
   } catch (err: any) {
-    console.error('API Error in PUT /api/bookings:', err);
-    if (err instanceof ZodError) {
-        return NextResponse.json({ error: 'Invalid data provided.', details: err.format() }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Internal Server Error', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
 // DELETE a booking for the authenticated user
-export async function DELETE(req: NextRequest): Promise<NextResponse> {
+export async function DELETE(req: NextRequest) {
+  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+  if (errorResponse || !uid || !firestore) return errorResponse;
+
   try {
-    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const { id } = await req.json();
     if (!id || typeof id !== 'string') {
       return NextResponse.json({ error: 'Booking ID is required for deletion.' }, { status: 400 });
@@ -239,7 +263,6 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ message: 'Booking deleted successfully.' }, { status: 200 });
   } catch (err: any) {
-    console.error('API Error in DELETE /api/bookings:', err);
-    return NextResponse.json({ error: 'Internal Server Error', details: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }

@@ -42,11 +42,6 @@ export interface Occupant {
   notes?: string | null;
 }
 
-// Represents a waypoint in a multi-stop trip
-export interface Waypoint {
-    address: string;
-}
-
 export interface LoggedTrip {
   id: string;
   name: string;

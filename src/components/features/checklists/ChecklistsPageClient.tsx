@@ -19,8 +19,8 @@ import { useToast } from '@/hooks/use-toast';
 import { fetchTrips, updateTrip } from '@/lib/api-client';
 import { fullRigChecklist, vehicleOnlyChecklist } from '@/types/checklist';
 import { cn } from '@/lib/utils';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
 
 // Utility to migrate old checklist format to new stage-based format
@@ -51,22 +51,24 @@ function migrateLegacyChecklist(legacyChecklist: any): ChecklistStage[] {
   }));
 }
 
-export function ChecklistsPageClient() {
+export function ChecklistsPageClient({ serverTrips }: { serverTrips: LoggedTrip[] }) {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { user } = useAuth();
 
+
+  const { data: loggedTrips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery<LoggedTrip[]>({
+      queryKey: ['trips', user?.uid],
+      queryFn: () => fetchTrips(),
+      initialData: serverTrips,
+      enabled: !!user,
+  });
+
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [checklist, setChecklist] = useState<ChecklistStage[]>([]);
   const [editingItem, setEditingItem] = useState<{ stageIndex: number; itemIndex: number } | null>(null);
   const [newItemText, setNewItemText] = useState<{ [stageIndex: number]: string }>({});
-
-  const { data: loggedTrips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery<LoggedTrip[]>({
-      queryKey: ['trips', user?.uid],
-      queryFn: fetchTrips,
-      enabled: !!user,
-  });
 
   const selectedTrip = useMemo(() => loggedTrips.find(trip => trip.id === selectedTripId), [loggedTrips, selectedTripId]);
 
@@ -88,9 +90,8 @@ export function ChecklistsPageClient() {
   const updateTripMutation = useMutation({
     mutationFn: (updatedTrip: Partial<LoggedTrip> & { id: string }) => updateTrip(updatedTrip as LoggedTrip),
     onSuccess: (data) => {
-      queryClient.setQueryData<LoggedTrip[]>(['trips', user?.uid], (oldData) => 
-        oldData ? oldData.map(t => t.id === data.trip.id ? data.trip : t) : [data.trip]
-      );
+      // Invalidate the query to refetch from the server, ensuring data consistency
+      queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
       toast({ title: "Checklist Saved" });
     },
     onError: (error: Error) => toast({ title: "Error Saving Checklist", description: error.message, variant: "destructive" }),
@@ -162,13 +163,7 @@ export function ChecklistsPageClient() {
     const origin = `origin=${encodeURIComponent(selectedTrip.startLocationDisplay)}`;
     const destination = `destination=${encodeURIComponent(selectedTrip.endLocationDisplay)}`;
     
-    let waypointsParam = '';
-    if (selectedTrip.waypoints && selectedTrip.waypoints.length > 0) {
-        const waypointsString = selectedTrip.waypoints.map(wp => encodeURIComponent(wp.address)).join('|');
-        waypointsParam = `&waypoints=${waypointsString}`;
-    }
-
-    const googleMapsUrl = `${baseUrl}&${origin}&${destination}${waypointsParam}`;
+    const googleMapsUrl = `${baseUrl}&${origin}&${destination}`;
     
     window.open(googleMapsUrl, '_blank');
     toast({

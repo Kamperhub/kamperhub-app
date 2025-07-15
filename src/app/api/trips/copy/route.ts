@@ -1,4 +1,3 @@
-
 // src/app/api/trips/copy/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -54,32 +53,57 @@ async function recalculateAndSaveMasterPolyline(journeyId: string, userId: strin
     await journeyRef.update({ masterPolyline });
 }
 
-async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string; firestore: firestore.Firestore; }> {
+async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
-    throw new Error('Server configuration error.');
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
   }
 
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    throw new Error('Unauthorized: Missing or invalid Authorization header.');
+    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
-    return { uid: decodedToken.uid, firestore };
+    return { uid: decodedToken.uid, firestore, errorResponse: null };
   } catch (error: any) {
-    throw new Error('Unauthorized: Invalid ID token.');
+    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
   }
 }
 
-const handleApiError = (error: any): NextResponse => {
-  console.error('API Error in trips/copy route:', error);
+const handleApiError = (error: any) => {
+  console.error('API Error:', error);
+  let errorTitle = 'Internal Server Error';
+  let errorDetails = 'An unexpected error occurred.';
+  let statusCode = 500;
+
   if (error instanceof ZodError) {
     return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
   }
-  return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+  
+  if (error.code) {
+      switch(error.code) {
+          case 5: // NOT_FOUND
+              errorTitle = 'Database Not Found';
+              errorDetails = `The Firestore database 'kamperhubv2' could not be found. Please verify its creation in your Firebase project.`;
+              statusCode = 500;
+              break;
+          case 16: // UNAUTHENTICATED
+              errorTitle = 'Server Authentication Failed';
+              errorDetails = `The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or lack permission for Firestore. Please check your setup.`;
+              statusCode = 500;
+              break;
+          default:
+              errorDetails = error.message;
+              break;
+      }
+  } else {
+    errorDetails = error.message;
+  }
+
+  return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: statusCode });
 };
 
 const copyTripSchema = z.object({
@@ -87,9 +111,11 @@ const copyTripSchema = z.object({
   destinationJourneyId: z.string().min(1, "Destination Journey ID is required"),
 });
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
+export async function POST(req: NextRequest) {
+    const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+    if (errorResponse || !uid || !firestore) return errorResponse;
+
     try {
-        const { uid, firestore } = await verifyUserAndGetInstances(req);
         const body = await req.json();
         const { sourceTripId, destinationJourneyId } = copyTripSchema.parse(body);
 
@@ -147,10 +173,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
         // After the transaction completes, recalculate the master polyline
         await recalculateAndSaveMasterPolyline(destinationJourneyId, uid, firestore);
-        
-        if (!newTripDataForResponse) {
-          throw new Error("Transaction failed to produce new trip data.");
-        }
         
         return NextResponse.json(newTripDataForResponse, { status: 201 });
 
