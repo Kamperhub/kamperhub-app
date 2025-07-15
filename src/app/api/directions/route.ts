@@ -9,9 +9,7 @@ import type { FuelStation, RouteDetails } from '@/types/tripplanner';
 const directionsRequestSchema = z.object({
   origin: z.string(),
   destination: z.string(),
-  isTowing: z.boolean(),
   vehicleHeight: z.number().positive().optional(),
-  caravanHeight: z.number().positive().optional(),
   axleCount: z.number().int().positive().optional(),
   avoidTolls: z.boolean().optional(),
 });
@@ -131,16 +129,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body.', details: parsedBody.error.format() }, { status: 400 });
     }
 
-    const { origin, destination, isTowing, vehicleHeight, caravanHeight, axleCount, avoidTolls } = parsedBody.data;
-
-    let finalHeight: number | undefined;
-    if (isTowing) {
-        finalHeight = Math.max(vehicleHeight || 0, caravanHeight || 0);
-    } else {
-        finalHeight = vehicleHeight;
-    }
-    if (finalHeight === 0) finalHeight = undefined;
-
+    const { origin, destination, vehicleHeight, axleCount, avoidTolls } = parsedBody.data;
 
     const requestBody: any = {
       origin: { address: origin },
@@ -155,8 +144,8 @@ export async function POST(req: NextRequest) {
     };
     
     const vehicleInfo: any = {};
-    if (finalHeight) {
-      vehicleInfo.dimensions = { height: finalHeight };
+    if (vehicleHeight && vehicleHeight > 0) {
+      vehicleInfo.dimensions = { height: vehicleHeight };
     }
     if (axleCount && axleCount > 0) {
       vehicleInfo.axleCount = axleCount;
