@@ -103,7 +103,10 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   **Create Your Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Browser Key`.
         *   Restrict this key to **Maps JavaScript API** and **Places API**.
-        *   Under "Application restrictions", choose **"Websites"** and add your local development URL (e.g., `http://localhost:8083/*`).
+        *   Under **"Application restrictions"**, choose **"Websites"**.
+        *   **CRITICAL FIX:** In the "Website restrictions" section, click **"ADD"**. You must add two entries:
+            1.  `localhost` (for running on your local machine outside this IDE)
+            2.  **Your current development URL**. This is the URL shown in your IDE's preview window. It will look similar to `*.cloudworkstations.dev`. Add this full domain with a wildcard at the beginning to cover all subdomains (e.g., `*.google.com`, `*.cloudworkstations.dev`).
         *   Paste this key into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable. **This key will also be used for Firebase authentication.**
 
 4.  **Google OAuth Keys (`GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`)**
