@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from 'lucide-react';
 import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, Globe, Fuel } from 'lucide-react';
 
@@ -52,11 +53,11 @@ export const tripManagerItems: NavItem[] = [
 // Main navigation items for the dashboard grid. 
 export const navItems: NavItem[] = [
   {
-    href: '/dashboard-details',
+    href: '/dashboard',
     label: 'Dashboard', 
     icon: LayoutDashboard,
-    description: "Access your travel statistics, rewards program, and other detailed dashboard views.",
-    keywords: 'statistics rewards'
+    description: "Your main hub. Access all features, start trips, and see a customized view of your tools.",
+    keywords: 'home main start'
   },
   {
     href: '/vehicles',

@@ -2,11 +2,11 @@
 "use client";
 
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { LogIn } from 'lucide-react';
 import Image from 'next/image';
 import { navItems } from '@/lib/navigation';
-import { Button } from '@/components/ui/button';
-import { LogIn } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClientBuildTimestamp } from '@/components/shared/ClientBuildTimestamp';
 
 export default function LandingPage() {
