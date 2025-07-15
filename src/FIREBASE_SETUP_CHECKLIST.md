@@ -184,7 +184,7 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
 ### Step 3.7: CRITICAL - Configure App Check with reCAPTCHA Enterprise (Est. 5 mins)
 
 > [!WARNING]
-> **If you see errors related to `app-check-token-request-failed`, it means this step was missed or done incorrectly.** App Check protects your backend resources (like APIs and databases) from abuse.
+> **If you see `403` errors related to `firebaseappcheck` or `identitytoolkit` in your browser console, it means this step was missed or done incorrectly.** App Check protects your backend resources (like APIs and databases) from abuse.
 
 1.  **Enable App Check in Firebase:**
     *   Go to the [Firebase App Check page for kamperhub-s4hc2](https://console.firebase.google.com/project/kamperhub-s4hc2/appcheck).
