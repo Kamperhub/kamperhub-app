@@ -33,7 +33,7 @@ Your local development started in "test mode". For production, you must switch t
     *   Click **"ADD"** and enter your production domain (e.g., `https://kamperhub.com/*`). This locks the key so it only works on your website.
     *   Under **"API restrictions"**, select **"Restrict key"** and choose only the APIs the browser needs:
         *   Maps JavaScript API
-        *   Places API
+        *   Places API (New)
     *   Click **Save**.
     *   Copy this key. You will use it for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in your App Hosting configuration.
 
@@ -44,7 +44,7 @@ Your local development started in "test mode". For production, you must switch t
     *   Under **"API restrictions"**, select **"Restrict key"** and choose only the APIs the server needs:
         *   Routes API
         *   Gemini API (also known as Generative Language API)
-        *   Places API
+        *   Places API (New)
     *   Click **Save**.
     *   Copy this key. You will use it for `GOOGLE_API_KEY` in your App Hosting configuration.
 
@@ -136,12 +136,12 @@ This step is different from local development. You will *not* use the Stripe CLI
 
 3.  **Client-Side APIs** (Used by `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):
     *   **Maps JavaScript API**
-    *   **Places API** (Note: Ensure you enable the one named exactly "Places API", not "Places API (New)").
+    *   **Places API (New)** (Note: Ensure you enable the one named exactly "Places API (New)").
 
 4.  **Server-Side APIs** (Used by `GOOGLE_API_KEY`):
     *   **Routes API**
     *   **Gemini API** (may be listed as "Generative Language API")
-    *   **Places API** (The same "Places API" is required by the server).
+    *   **Places API (New)** (The same "Places API (New)" is required by the server).
 
 5.  **OAuth API** (Does not use an API key):
     *   **Google Tasks API**
@@ -261,3 +261,4 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
 6.  Test the trip planner to ensure all Google Maps APIs are working correctly with the restricted keys.
 
 **Congratulations! Your KamperHub application is now live.**
+
