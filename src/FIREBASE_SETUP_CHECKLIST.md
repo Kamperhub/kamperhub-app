@@ -92,8 +92,8 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   Find your web app (it's likely named something like `kamperhub-s4hc2`).
     *   Look for the "Firebase SDK snippet" section and select the **Config** option.
     *   This will display an object with keys like `apiKey`, `authDomain`, `projectId`, etc.
-    *   **CRITICAL:** Carefully copy each value from this Config object and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file.
-    *   **CRITICAL:** Verify that the `projectId` from the config matches `kamperhub-s4hc2`. The `apiKey` value is your `NEXT_PUBLIC_FIREBASE_API_KEY`.
+    *   **CRITICAL:** Carefully copy each value from this Config object and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file. The `apiKey` value is your **Web API Key** and goes into `NEXT_PUBLIC_FIREBASE_API_KEY`.
+    *   **CRITICAL:** Verify that the `projectId` from the config matches `kamperhub-s4hc2`.
 
 2.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
     *   Go to the [Firebase Service Accounts page](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/settings/serviceaccounts/adminsdk).
@@ -104,7 +104,9 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 
 3.  **Google Cloud API Keys (`GOOGLE_API_KEY` & `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)**
     *   Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
-    *   **CRITICAL:** It is highly recommended to create **two new, dedicated API keys** and delete any old or auto-generated keys ("Browser key", "API key 1", etc.).
+    *   > [!CAUTION]
+    >   **IMPORTANT: Ignore Auto-Generated Keys**
+    >   Firebase may automatically create a generic, unrestricted API key in your project named "KamperHub (auto created by Firebase)" or "Browser key". **DO NOT USE THIS KEY.** For security, it is best practice to create and use dedicated, restricted keys as described below. You can safely delete the auto-generated key.
     *   **Create Your Server Key (for `GOOGLE_API_KEY`):**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Server Key`.
         *   Restrict this key to **Routes API**, **Gemini API**, and **Places API**. The Places API is required for the backend to search for fuel stations along a route.
@@ -315,7 +317,7 @@ The application needs permission to talk to Google Tasks. If this API is not ena
 
 To prevent a security issue called "Cross-Site Request Forgery", the connection process creates a temporary, single-use token in your Firestore database in a collection called `oauthStates`. If your security rules block this action, the connection will fail.
 
-1.  Go to the [Firebase Console Rules Editor for kamperhub-s4hc2](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/firestore/databases/-kamperhubv2-/rules).
+1.  Go to the [Firebase Console Rules Editor for kamperhub-s4hc2](https://console.cloud.google.com/u/0/project/kamperhub-s4hc2/firestore/databases/-kamperhubv2-/rules).
 2.  Make sure you have selected the **`kamperhubv2`** database from the dropdown at the top.
 3.  Click on the **"Rules"** tab.
 4.  Your rules should allow an authenticated user to create documents in the `oauthStates` collection. Add the following `match` block inside your `match /databases/{database}/documents` block if it doesn't exist:
@@ -333,3 +335,5 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     }
     ```
 5.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
+
+    
