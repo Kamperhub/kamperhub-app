@@ -11,6 +11,7 @@ import { NavigationContext } from './AppShell';
 export function BottomNavigation() {
   const pathname = usePathname();
   const navContext = useContext(NavigationContext);
+  const buildTimestamp = process.env.NEXT_PUBLIC_BUILD_TIMESTAMP || 'N/A';
 
   const handleNavigation = () => {
     if (navContext) {
@@ -44,7 +45,7 @@ export function BottomNavigation() {
             
             let isActive = false;
             if (isDashboardLink) {
-              isActive = pathname === '/' || pathname === '/dashboard-details';
+              isActive = pathname === '/' || pathname === '/dashboard' || pathname === '/dashboard-details';
             } else if (isTripManagerLink) {
               // Check if the current path or its dynamic parent (e.g., /journeys/[id]) is in the group
               isActive = tripManagerPaths.some(p => pathname.startsWith(p));
@@ -77,6 +78,7 @@ export function BottomNavigation() {
           })}
         </ul>
       </div>
+      <p className="text-[10px] text-center text-muted-foreground/50 pb-1">Build: {buildTimestamp}</p>
     </nav>
   );
 }

@@ -1,6 +1,9 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  env: {
+    NEXT_PUBLIC_BUILD_TIMESTAMP: new Date().toISOString(),
+  },
   experimental: {
     instrumentationHook: false, // This disables Next.js's default OpenTelemetry instrumentation
   },

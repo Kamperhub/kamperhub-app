@@ -9,6 +9,7 @@ import { LogIn, ListTodo, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function LandingPage() {
+  const buildTimestamp = process.env.NEXT_PUBLIC_BUILD_TIMESTAMP || new Date().toLocaleString();
 
   // Filter for the features to be displayed on the landing page, excluding meta-pages
   const featuresToDisplay = navItems.filter(item => 
@@ -102,6 +103,7 @@ export default function LandingPage() {
           <Link href="/learn?tab=tos" className="text-sm hover:text-primary hover:underline">
               Privacy Policy & Terms of Service
           </Link>
+          <p className="text-xs mt-2">Build: {buildTimestamp}</p>
         </div>
       </footer>
     </div>
