@@ -1,3 +1,4 @@
+
 // src/app/api/caravans/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';

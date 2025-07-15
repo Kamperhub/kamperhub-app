@@ -109,7 +109,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     >   Firebase may automatically create a generic, unrestricted API key in your project named "KamperHub (auto created by Firebase)" or "Browser key". **DO NOT USE THIS KEY.** For security, it is best practice to create and use dedicated, restricted keys as described below. You can safely delete the auto-generated key.
     *   **Create Your Server Key (for `GOOGLE_API_KEY`):**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Server Key`.
-        *   Restrict this key to **Routes API**, **Gemini API**, and **Places API**.
+        *   Restrict this key to **Routes API**, **Gemini API**, and **Places API**. The Places API is required for the backend to search for fuel stations along a route.
         *   Under "Application restrictions", choose **"None"**. This is a secret server key and must not have browser restrictions.
         *   Paste this key into the `GOOGLE_API_KEY` variable.
     *   **Create Your Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
