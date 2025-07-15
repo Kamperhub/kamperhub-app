@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, type AuthError } from 'firebase/auth';
-import { LogInIcon, Mail, KeyRound, Loader2, Eye, EyeOff, AlertTriangle, Copy } from 'lucide-react';
+import { LogInIcon, Mail, KeyRound, Loader2, Eye, EyeOff, AlertTriangle, Copy, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import {
   Dialog,
@@ -94,7 +94,6 @@ export default function LoginPage() {
           case 'auth/invalid-credential':
             errorMessage = 'Invalid email or password. Please check your credentials.';
             break;
-          case 'auth/api-key-expired':
           case 'auth/invalid-api-key':
             setLoginError('Your Browser API Key is invalid or expired. Please check your .env.local file and follow Step 3.3 of the FIREBASE_SETUP_CHECKLIST.md guide carefully.');
             errorMessage = 'Invalid Browser API Key configuration.';
@@ -177,25 +176,32 @@ export default function LoginPage() {
           {blockedReferer && (
               <Alert variant="destructive" className="mb-4 text-left">
                   <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle className="font-headline">Browser API Key Configuration Error</AlertTitle>
+                  <AlertTitle className="font-headline">Configuration Required: Referer Blocked</AlertTitle>
                   <AlertDescription className="font-body space-y-2 mt-2 text-xs">
-                      <p>The login failed because your API key's "HTTP referrer" restrictions are blocking requests from this development environment.</p>
+                      <p>The login failed because your API key is blocking requests from this app's URL.</p>
                       <p><strong>To fix this:</strong></p>
                       <ol className="list-decimal pl-5 space-y-1">
-                          <li>Go to the <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="underline font-semibold">Google Cloud Credentials page</a>.</li>
+                          <li>Click the "Copy URL" button below.</li>
+                          <li>Click the "Open Google Cloud" button to go to the credentials page.</li>
                           <li>Click on the name of your `Kamperhub Browser Key`.</li>
-                          <li>Under "Website restrictions," click **ADD**.</li>
-                          <li>Enter the exact URL below and save:</li>
+                          <li>Under "Website restrictions," click **ADD** and paste the URL you copied.</li>
+                           <li>For the best results, use a wildcard format. For example, if you copy `https://1234.google.com`, you should add `*.google.com` to the list.</li>
+                          <li>Save the key and refresh this page.</li>
                       </ol>
-                      <div className="flex items-center gap-2 mt-2 p-2 rounded-md bg-destructive/20">
-                         <code className="flex-grow font-mono">{blockedReferer}</code>
+                       <div className="flex items-center gap-2 mt-2">
+                         <Input value={blockedReferer} readOnly className="flex-grow font-mono text-xs h-8"/>
                          <Button
-                            variant="ghost" size="icon" className="h-6 w-6"
+                            type="button" variant="outline" size="icon" className="h-8 w-8 flex-shrink-0"
                             onClick={() => { navigator.clipboard.writeText(blockedReferer); toast({title: "Copied!", description: "URL copied to clipboard."})}}
                           >
                            <Copy className="h-4 w-4"/>
                          </Button>
                       </div>
+                      <Button asChild variant="secondary" className="w-full mt-2">
+                        <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4 mr-2"/> Open Google Cloud Credentials Page
+                        </a>
+                      </Button>
                   </AlertDescription>
               </Alert>
           )}
