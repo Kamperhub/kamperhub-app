@@ -257,3 +257,4 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
 6.  Test the trip planner to ensure all Google Maps APIs are working correctly with the restricted keys.
 
 **Congratulations! Your KamperHub application is now live.**
+
