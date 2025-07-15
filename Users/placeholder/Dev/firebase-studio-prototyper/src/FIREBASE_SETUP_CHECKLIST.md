@@ -152,6 +152,12 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 > **Important Note on "Places API"**
 > When you search for "Places API" in the Google Cloud Console, you might see multiple results. The one you need to enable is simply named **"Places API"**. You do NOT need to enable the one called "Places API (New)". The application is configured to use the modern v1 endpoints provided by the standard "Places API" service.
 
+8.  **Verify your Browser API Key Permissions**:
+    *   Go back to the [Credentials page](https://console.cloud.google.com/apis/credentials).
+    *   Find the key you are using for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
+    *   Click its name to see its details.
+    *   Under **"API restrictions"**, ensure it has permission to use the client-side APIs listed above (Maps JavaScript API and Places API). If it's unrestricted ("Don't restrict key"), that is fine for local development.
+
 ---
 
 ### Step 3.6: CRITICAL - Configure OAuth Consent Screen & Credentials (Est. 5 mins)
@@ -322,7 +328,7 @@ The application needs permission to talk to Google Tasks. If this API is not ena
 
 To prevent a security issue called "Cross-Site Request Forgery", the connection process creates a temporary, single-use token in your Firestore database in a collection called `oauthStates`. If your security rules block this action, the connection will fail.
 
-1.  Go to the [Firebase Console Rules Editor for kamperhubv2](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/firestore/databases/-kamperhubv2-/rules).
+1.  Go to the [Firebase Console Rules Editor for kamperhub-v2](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/firestore/databases/-kamperhubv2-/rules).
 2.  Make sure you have selected the **`kamperhubv2`** database from the dropdown at the top.
 3.  Click on the **"Rules"** tab.
 4.  Your rules should allow an authenticated user to create documents in the `oauthStates` collection. Add the following `match` block inside your `match /databases/{database}/documents` block if it doesn't exist:
@@ -340,3 +346,5 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     }
     ```
 5.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
+
+    
