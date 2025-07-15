@@ -176,16 +176,15 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
     *   While your app is in "Testing" mode, you must add your own Google account as a test user.
     *   On the OAuth Consent Screen page, go to the **"Test users"** section on the left menu (or find the "+ ADD USERS" button).
     *   Click **"+ ADD USERS"** and enter the email address of the Google account you will be using to test the app (e.g., your personal gmail.com account). This allows that account to bypass the "unverified app" screen during login.
-6.  **Verify Redirect URI:**
+6.  **Verify OAuth Client ID Settings:**
     *   Go back to the [Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
     *   Click on the name of your **OAuth 2.0 Client ID** (the one you used for `GOOGLE_CLIENT_ID`).
-    *   Under **"Authorized redirect URIs"**, click **"+ ADD URI"**.
-    > [!WARNING]
-    > **Port `8083` is Required for OAuth**
-    > In this development environment, your app runs internally on port 3000, but it is **exposed externally on port 8083**. Google's services connect to this external port.
-    > You **MUST** use the URL with port **8083** for your redirect URI to work. Do **NOT** use port 3000.
-    *   Enter the URL that matches your `NEXT_PUBLIC_APP_URL` from your `.env.local` file, followed by `/api/auth/google/callback`.
-    *   **Example:** Your `NEXT_PUBLIC_APP_URL` must be `http://localhost:8083`, and the redirect URI you enter must be `http://localhost:8083/api/auth/google/callback`.
+    *   **Part A: Authorized JavaScript origins:** This tells Google which web pages are allowed to *start* the sign-in flow.
+        *   Under **"Authorized JavaScript origins"**, click **"+ ADD URI"**.
+        *   Enter your app's base URL: `http://localhost:8083`
+    *   **Part B: Authorized redirect URIs:** This tells Google where it is allowed to *send the user back to* after they sign in.
+        *   Under **"Authorized redirect URIs"**, click **"+ ADD URI"**.
+        *   Enter the full callback URL: `http://localhost:8083/api/auth/google/callback`
     *   Click **Save**.
 
 ---
@@ -340,5 +339,3 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     }
     ```
 5.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
-
-    
