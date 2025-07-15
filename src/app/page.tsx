@@ -5,11 +5,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { navItems } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
-import { LogIn, ListTodo, Calendar } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ClientBuildTimestamp } from '@/components/shared/ClientBuildTimestamp';
 
 export default function LandingPage() {
-  const buildTimestamp = process.env.NEXT_PUBLIC_BUILD_TIMESTAMP || new Date().toLocaleString();
 
   // Filter for the features to be displayed on the landing page, excluding meta-pages
   const featuresToDisplay = navItems.filter(item => 
@@ -28,6 +28,7 @@ export default function LandingPage() {
             height={120}
             className="mx-auto mb-6 rounded-2xl shadow-md"
             data-ai-hint="logo brand"
+            priority
           />
           <h1 className="text-4xl md:text-6xl font-headline text-primary">
             Your Ultimate Travelling Companion
@@ -79,13 +80,13 @@ export default function LandingPage() {
                  <p className="mt-2 max-w-3xl mx-auto text-lg text-muted-foreground">We provide optional features that can connect to your Google account. Here’s why:</p>
                  <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                      <div className="bg-card border p-6 rounded-lg shadow-sm text-left">
-                         <h3 className="font-headline text-xl flex items-center"><ListTodo className="w-6 h-6 mr-2 text-blue-600" /> Google Tasks (Optional)</h3>
+                         <h3 className="font-headline text-xl flex items-center"><img src="/google-tasks.svg" alt="Google Tasks Logo" className="w-6 h-6 mr-2" /> Google Tasks (Optional)</h3>
                          <p className="mt-2 text-muted-foreground">
                             You can choose to connect your Google Account to authorize KamperHub to create detailed packing checklists directly in your Google Tasks. This is an optional feature to help you manage your packing outside our app. We only request permission to create new tasks and do not read, store, or delete any of your existing tasks.
                          </p>
                      </div>
                      <div className="bg-card border p-6 rounded-lg shadow-sm text-left">
-                         <h3 className="font-headline text-xl flex items-center"><Calendar className="w-6 h-6 mr-2 text-green-600" /> Google Calendar (Optional)</h3>
+                         <h3 className="font-headline text-xl flex items-center"><img src="/google-calendar.svg" alt="Google Calendar Logo" className="w-6 h-6 mr-2" /> Google Calendar (Optional)</h3>
                          <p className="mt-2 text-muted-foreground">
                             The "Add to Calendar" feature for your trips works by generating a standard Google Calendar event link. Clicking this link opens Google Calendar in a new tab with pre-filled event details for you to save. This feature does not require you to grant KamperHub any special permissions and we do not access or store your calendar data.
                          </p>
@@ -103,7 +104,7 @@ export default function LandingPage() {
           <Link href="/learn?tab=tos" className="text-sm hover:text-primary hover:underline">
               Privacy Policy & Terms of Service
           </Link>
-          <p className="text-xs mt-2">Build: {buildTimestamp}</p>
+          <ClientBuildTimestamp className="text-xs mt-2" />
         </div>
       </footer>
     </div>

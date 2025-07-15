@@ -7,11 +7,11 @@ import { usePathname } from 'next/navigation';
 import { navItems } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import { NavigationContext } from './AppShell';
+import { ClientBuildTimestamp } from '@/components/shared/ClientBuildTimestamp';
 
 export function BottomNavigation() {
   const pathname = usePathname();
   const navContext = useContext(NavigationContext);
-  const buildTimestamp = process.env.NEXT_PUBLIC_BUILD_TIMESTAMP || 'N/A';
 
   const handleNavigation = () => {
     if (navContext) {
@@ -78,7 +78,7 @@ export function BottomNavigation() {
           })}
         </ul>
       </div>
-      <p className="text-[10px] text-center text-muted-foreground/50 pb-1">Build: {buildTimestamp}</p>
+      <ClientBuildTimestamp className="text-[10px] text-center text-muted-foreground/50 pb-1" />
     </nav>
   );
 }
