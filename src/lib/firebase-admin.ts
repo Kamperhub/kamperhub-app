@@ -1,4 +1,3 @@
-
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 
@@ -30,12 +29,10 @@ export function getFirebaseAdmin() {
         jsonString = jsonString.substring(1, jsonString.length - 1);
     }
     
-    // Replace escaped newlines for the private key before parsing
-    const correctedJsonString = jsonString.replace(/\\n/g, '\n');
-
+    // The JSON string can now be parsed directly. Node's parser and the SDK handle the escaped newlines.
     let serviceAccount;
     try {
-        serviceAccount = JSON.parse(correctedJsonString);
+        serviceAccount = JSON.parse(jsonString);
     } catch (e: any) {
         throw new Error(`FATAL: The GOOGLE_APPLICATION_CREDENTIALS_JSON string in your .env.local file is not valid JSON. Please copy it again carefully. The JSON parser failed with: ${e.message}`);
     }

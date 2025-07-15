@@ -14,11 +14,12 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 export default function VehiclesPage() {
     const { user, isAuthLoading } = useAuth();
     
-    // Corrected to use the consolidated 'fetchAllVehicleData' query
+    // This now uses the single, consolidated data fetcher.
     const { data, isLoading, error } = useQuery({
         queryKey: ['allVehicleData', user?.uid],
         queryFn: fetchAllVehicleData,
         enabled: !!user,
+        staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     });
 
     const isLoadingPage = isAuthLoading || isLoading;
