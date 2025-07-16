@@ -1,3 +1,4 @@
+
 # KamperHub Go-Live Production Checklist
 
 > [!WARNING]
@@ -49,9 +50,11 @@ Your local development started in "test mode". For production, you must switch t
 
 ### **Step 1.3: CRITICAL - Configure App Check for Production (Est. 5 mins)**
 
-1.  **Enforce App Check for Services:**
+1.  **Enforce App Check on Your Backend Services:**
     *   Go to the [Firebase App Check page for kamperhub-s4hc2](https://console.firebase.google.com/project/kamperhub-s4hc2/appcheck).
-    *   In the "Services" tab, enforce App Check for **Cloud Firestore** and **Cloud Storage**. This is a critical security step to protect your backend.
+    *   Click on the **APIs** tab.
+    *   Find **Cloud Firestore API** in the list and click **"Enforce"**.
+    *   Find **Cloud Storage** in the list and click **"Enforce"**. This protects your database and file storage from unverified requests.
 
 2.  **Create and Configure the reCAPTCHA Key:**
     *   Go to the [Google Cloud reCAPTCHA Enterprise page for kamperhub-s4hc2](https://console.cloud.google.com/security/recaptcha?project=kamperhub-s4hc2).
@@ -161,8 +164,8 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
     *   Click **"SAVE AND CONTINUE"** through the "Scopes" and "Optional Info" pages. You do not need to add scopes here.
 4.  **Publishing Status - VERY IMPORTANT**:
     *   On the OAuth Consent Screen summary page, check the "Publishing status".
-    *   If it says **"Testing"**, you can ONLY log in with Google accounts you have explicitly added as "Test users".
-    *   If it says **"In production"**, any Google user can connect to the app. You should click the **"Publish App"** button to move it to production.
+    *   If it says **"Testing"**: You can ONLY log in with Google accounts you have explicitly added as "Test users".
+    *   If it says **"In production"**: Any Google user can connect to the app. You should click the **"Publish App"** button to move it to production.
 5.  **Verify Redirect URI:**
     *   Go to the [Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
     *   Click on the name of your **OAuth 2.0 Client ID** (the one you used for `GOOGLE_CLIENT_ID`).
