@@ -55,6 +55,7 @@
 
 3.  Find your secret key:
     *   **`STRIPE_SECRET_KEY`**: This is your "Secret key". It will start with `sk_test_...`. **Never expose this key to the browser.**
+    *   **NOTE:** You can safely delete and regenerate your API keys at any time. Just make sure the final, correct key is pasted into your `.env.local` file.
 
 4.  Copy and paste this key into the corresponding `STRIPE_SECRET_KEY` variable in your `.env.local` file.
 
