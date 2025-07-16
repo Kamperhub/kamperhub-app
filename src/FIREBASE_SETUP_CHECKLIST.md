@@ -192,7 +192,7 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
     *   In the "Providers" list, select **reCAPTCHA Enterprise** and click **"Save"**. You will be prompted to enable APIs; accept this.
 
 2.  **Create a reCAPTCHA Enterprise Key:**
-    *   Go to the [Google Cloud reCAPTCHA Enterprise page for kamperhub-s4hc2](https://console.cloud.google.com/security/recaptcha?project=kamperhub-s4hc2).
+    *   **CRITICAL:** Go to the **reCAPTCHA Enterprise** page in the Google Cloud Console. This is different from the older "reCAPTCHA" service. A direct link is [here](https://console.cloud.google.com/security/recaptcha?project=kamperhub-s4hc2).
     *   Click **"+ CREATE KEY"** at the top.
     *   **Label:** Give it a descriptive name like `KamperHub Web Key`.
     *   **Choose integration type:** Select **Website**.

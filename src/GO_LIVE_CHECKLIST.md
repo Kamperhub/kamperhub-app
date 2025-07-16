@@ -22,7 +22,7 @@ Your local development started in "test mode". For production, you must switch t
 ### **Step 1.2: CRITICAL - Create Production API Keys (Est. 10 mins)**
 
 > [!CAUTION]
-> **Do not reuse your local development API keys in production.** Your public (browser) key is visible in your website's code. If it's unrestricted, anyone could steal it and use it, potentially running up a large bill on your account. Creating new, restricted keys is a critical security step.
+> **Do not reuse your unrestricted local development API key in production.** Your public (browser) key is visible in your website's code. If it's unrestricted, anyone could steal it and use it, potentially running up a large bill on your account. Creating new, restricted keys is a critical security step.
 
 1.  Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
 
@@ -60,7 +60,7 @@ Your local development started in "test mode". For production, you must switch t
     > You do **not** need to enforce App Check on other services like "Cloud Functions", "Data Connect", or "Custom Backend" for this application to function correctly and securely.
 
 2.  **Create and Configure the reCAPTCHA Key:**
-    *   Go to the [Google Cloud reCAPTCHA Enterprise page for kamperhub-s4hc2](https://console.cloud.google.com/security/recaptcha?project=kamperhub-s4hc2).
+    *   **CRITICAL:** Go to the **reCAPTCHA Enterprise** page in the Google Cloud Console. This is different from the older "reCAPTCHA" service. A direct link is [here](https://console.cloud.google.com/security/recaptcha?project=kamperhub-s4hc2).
     *   Click **"+ CREATE KEY"** at the top.
     *   **Label:** Give it a name like `KamperHub Production Key`.
     *   **Choose integration type:** Select **Website**.
