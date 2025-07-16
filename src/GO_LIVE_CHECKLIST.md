@@ -22,7 +22,7 @@ Your local development started in "test mode". For production, you must switch t
 ### **Step 1.2: CRITICAL - Create Production API Keys (Est. 10 mins)**
 
 > [!CAUTION]
-> **Do not reuse your unrestricted local development API key in production.** Your public (browser) key is visible in your website's code. If it's unrestricted, anyone could steal it and use it, potentially running up a large bill on your account. Creating new, restricted keys is a critical security step.
+> **Do not reuse your local development API keys in production.** Your public (browser) key is visible in your website's code. If it's unrestricted, anyone could steal it and use it, potentially running up a large bill on your account. Creating new, restricted keys is a critical security step.
 
 1.  Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
 
@@ -52,7 +52,7 @@ Your local development started in "test mode". For production, you must switch t
 
 1.  **Enforce App Check for Services:**
     *   Go to the [Firebase App Check page for kamperhub-s4hc2](https://console.firebase.google.com/project/kamperhub-s4hc2/appcheck).
-    *   In the **APIs** tab, you will see a list of services.
+    *   Click on the **APIs** tab. You will see a list of services.
     *   Find **Cloud Firestore API** in the list and click **"Enforce"**.
     *   Find **Cloud Storage** in the list and click **"Enforce"**.
     *   Find **Authentication (Identity Platform)** in the list and click **"Enforce"**. This is a critical security step to protect your user login/signup from abuse.
@@ -262,5 +262,3 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
 6.  Test the trip planner to ensure all Google Maps APIs are working correctly with the restricted keys.
 
 **Congratulations! Your KamperHub application is now live.**
-
-    
