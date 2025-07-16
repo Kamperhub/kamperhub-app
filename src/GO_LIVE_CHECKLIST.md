@@ -30,6 +30,7 @@ Your local development started in "test mode". For production, you must switch t
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**.
     *   Name it `Kamperhub Browser Key`.
     *   Under **"Application restrictions"**, select **"Websites"**.
+    *   **CRITICAL:** Remove any existing `localhost` or development environment URLs.
     *   Click **"ADD"** and enter your production domain (e.g., `https://kamperhub.com/*`). This locks the key so it only works on your website.
     *   Under **"API restrictions"**, select **"Restrict key"** and choose only the APIs the browser needs:
         *   Maps JavaScript API
