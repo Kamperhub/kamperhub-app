@@ -56,6 +56,8 @@ Your local development started in "test mode". For production, you must switch t
     *   Find **Cloud Firestore API** in the list and click **"Enforce"**.
     *   Find **Cloud Storage** in the list and click **"Enforce"**.
     *   Find **Authentication (Identity Platform)** in the list and click **"Enforce"**. This is a critical security step to protect your user login/signup from abuse.
+    > [!NOTE]
+    > You do **not** need to enforce App Check on other services like "Cloud Functions", "Data Connect", or "Custom Backend" for this application to function correctly and securely.
 
 2.  **Create and Configure the reCAPTCHA Key:**
     *   Go to the [Google Cloud reCAPTCHA Enterprise page for kamperhub-s4hc2](https://console.cloud.google.com/security/recaptcha?project=kamperhub-s4hc2).
@@ -65,7 +67,7 @@ Your local development started in "test mode". For production, you must switch t
     *   **Domains:**
         *   **CRITICAL:** Add your live production domain (e.g., `kamperhub.com`).
         *   **CRITICAL:** Remove `localhost` if it exists. Production keys should not work on local development.
-    *   **Use reCAPTCHA checkbox:** Uncheck this box for score-based, invisible protection.
+    *   **Use tickbox challenge:** **Leave this box UNCHECKED.** Our app uses an invisible, score-based check.
     *   **Click "CREATE KEY"**.
 
 3.  **Get and Set the Site Key:**
@@ -165,8 +167,8 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
     *   Click **"SAVE AND CONTINUE"** through the "Scopes" and "Optional Info" pages. You do not need to add scopes here.
 4.  **Publishing Status - VERY IMPORTANT**:
     *   On the OAuth Consent Screen summary page, check the "Publishing status".
-    *   If it says **"Testing"**: You can ONLY log in with Google accounts you have explicitly added as "Test users".
-    *   If it says **"In production"**: Any Google user can connect to the app. You should click the **"Publish App"** button to move it to production.
+    *   If it says **"Testing"**, you can ONLY log in with Google accounts you have explicitly added as "Test users".
+    *   If it says **"In production"**, any Google user can connect to the app. You should click the **"Publish App"** button to move it to production.
 5.  **Verify Redirect URI:**
     *   Go to the [Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
     *   Click on the name of your **OAuth 2.0 Client ID** (the one you used for `GOOGLE_CLIENT_ID`).
@@ -260,3 +262,5 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
 6.  Test the trip planner to ensure all Google Maps APIs are working correctly with the restricted keys.
 
 **Congratulations! Your KamperHub application is now live.**
+
+    

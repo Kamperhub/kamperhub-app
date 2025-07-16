@@ -1,3 +1,4 @@
+
 # Firebase & Backend Setup Checklist
 
 > [!CAUTION]
@@ -198,7 +199,7 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
     *   **Domains:**
         *   **CRITICAL:** Add the domain `localhost`. This is required for local testing.
         *   Add any other domains where your app will be deployed.
-    *   **Use reCAPTCHA checkbox:** Uncheck this box. We will use an invisible score-based check.
+    *   **Use tickbox challenge:** **Leave this box UNCHECKED.** Our app uses an invisible, score-based check.
     *   **Click "CREATE KEY"**.
 
 3.  **Get and Set the Site Key:**
@@ -330,3 +331,5 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     }
     ```
 5.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
+
+    
