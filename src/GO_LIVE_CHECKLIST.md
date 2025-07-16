@@ -30,8 +30,8 @@ Your local development started in "test mode". For production, you must switch t
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**.
     *   Name it `Kamperhub Browser Key`.
     *   Under **"Application restrictions"**, select **"Websites"**.
-    *   **CRITICAL:** Remove any existing `localhost` or development environment URLs.
-    *   Click **"ADD"** and enter your production domain (e.g., `https://kamperhub.com/*`). This locks the key so it only works on your website.
+    *   **CRITICAL:** Remove any `localhost` or development environment URLs.
+    *   Click **"ADD"** and enter your production domain (e.g., `kamperhub.com` or `*.kamperhub.com`). This locks the key so it only works on your website.
     *   Under **"API restrictions"**, select **"Restrict key"** and choose only the APIs the browser needs:
         *   Maps JavaScript API
         *   Places API
@@ -108,6 +108,9 @@ Now, you'll switch Stripe from "Test mode" to "Live mode" and configure your rea
 2.  Ensure you are still in **"Live mode"**.
 3.  Copy your **"Publishable key"** (starts with `pk_live_...`). This is not used by the backend but is good practice to note.
 4.  Reveal and copy your **"Secret key"** (starts with `sk_live_...`).
+
+> [!NOTE]
+> **To replace a live Secret Key:** If you ever need to replace a key for security reasons, click the three-dots menu (`...`) next to the key and select **"Rotate key..."**. This will immediately create a new key and give you a grace period to update your application before the old key expires.
 
 ### **Step 2.5: Configure the Live Webhook**
 
@@ -189,10 +192,10 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
 ### **Step 4.2: Configure the Production Backend**
 
 1.  Once connected, a backend will be created. Click on it to manage its configuration.
-2.  Navigate to the **"Settings"** tab for your backend.
-3.  This is where you will add all the environment variables from your `.env.local` file, but with your **production keys**.
+2.  Go to the **"Settings"** tab for your backend. This is the **"App Hosting secret config"** where your live environment variables are stored.
+3.  Add all the variables from your `.env.local` file, but use your **production keys**:
     *   **CRITICAL: Set `NEXT_PUBLIC_APP_ENV` to `"production"`.** This tells the app it's in live mode.
-    *   `NEXT_PUBLIC_FIREBASE_*`: Use the values from your Firebase Console project settings.
+    *   `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, etc: Use the values from your Firebase Console project settings.
     *   `GOOGLE_APPLICATION_CREDENTIALS_JSON`: **Use the same one-line JSON string** for your service account key that you used in local development.
     *   `GOOGLE_API_KEY`: Use the **Kamperhub Server Key** you created in Step 1.2.
     *   `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`: Use the **Kamperhub Browser Key** you created in Step 1.2.
