@@ -52,7 +52,7 @@ Your local development started in "test mode". For production, you must switch t
 
 1.  **Enforce App Check for Services:**
     *   Go to the [Firebase App Check page for kamperhub-s4hc2](https://console.firebase.google.com/project/kamperhub-s4hc2/appcheck).
-    *   Click on the **APIs** tab. You will see a list of services.
+    *   In the **APIs** tab, you will see a list of services.
     *   Find **Cloud Firestore API** in the list and click **"Enforce"**.
     *   Find **Cloud Storage** in the list and click **"Enforce"**.
     *   Find **Authentication (Identity Platform)** in the list and click **"Enforce"**. This is a critical security step to protect your user login/signup from abuse.

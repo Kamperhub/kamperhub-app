@@ -104,9 +104,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Browser Key`.
         *   Restrict this key to **Maps JavaScript API** and **Places API**.
         *   Under **"Application restrictions"**, choose **"Websites"**.
-        *   **CRITICAL FIX:** In the "Website restrictions" section, click **"ADD"**. You must add two entries:
-            1.  `localhost` (for running on your local machine outside this IDE)
-            2.  **Your current development URL**. This is the URL shown in your IDE's preview window. It will look similar to `*.cloudworkstations.dev`. Add this full domain with a wildcard at the beginning to cover all subdomains (e.g., `*.google.com`, `*.cloudworkstations.dev`).
+        *   **CRITICAL FIX:** In the "Website restrictions" section, click **"ADD"**. You must add your current development URL. This is the URL shown in your IDE's preview window. It will look similar to `*.cloudworkstations.dev`. Add this full domain with a wildcard at the beginning (e.g., `*.google.com`, `*.cloudworkstations.dev`).
         *   Paste this key into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable. **This key will also be used for Firebase authentication.**
 
 4.  **Google OAuth Keys (`GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`)**
@@ -204,6 +202,9 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
 
 3.  **Get and Set the Site Key:**
     *   After creation, you will see your new key listed.
+    *   > [!NOTE]
+    >   **Key Status: "Incomplete: request tokens"**
+    >   It is normal for a new key to show this status. It means Google has created the key but is waiting for your app to use it for the first time. The key is valid and ready to use. Once you complete the next steps and run your app, this status will change to "Active".
     *   Click the "Copy key ID" button next to your `KamperHub Web Key`. This is your **site key**.
     *   Paste this key into your `.env.local` file for the `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY` variable.
 
