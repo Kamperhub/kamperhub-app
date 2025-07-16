@@ -61,6 +61,18 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 
 ---
 
+> [!TIP]
+> ### **Working Across Multiple Computers? (e.g., Laptop and Desktop)**
+> The API keys you create in the Google and Stripe dashboards are permanent and tied to your account—they don't change when you switch computers.
+> 
+> However, the `.env.local` file is **intentionally not synchronized** between machines for security. If you set up your keys on your laptop, that file will not automatically appear on your desktop.
+> 
+> **Solution:** To work on a different computer, you must either:
+> 1.  **Securely copy** your completed `.env.local` file from your first computer to your second one.
+> 2.  Create a new `.env.local` file on the second computer and repopulate it by copying the same keys from the Google and Stripe dashboards.
+
+---
+
 ### Step 2: Find Your Firebase Project (Est. 2 mins)
 
 > [!IMPORTANT]
