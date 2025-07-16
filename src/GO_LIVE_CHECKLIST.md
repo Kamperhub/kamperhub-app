@@ -53,12 +53,12 @@ Your local development started in "test mode". For production, you must switch t
 
 1.  **Enforce App Check for Services:**
     *   Go to the [Firebase App Check page for kamperhub-s4hc2](https://console.firebase.google.com/project/kamperhub-s4hc2/appcheck).
-    *   In the **APIs** tab, you will see a list of services.
+    *   Select the **APIs** tab. You will see a list of services that can be protected.
     *   Find **Cloud Firestore API** in the list and click **"Enforce"**.
     *   Find **Cloud Storage** in the list and click **"Enforce"**.
     *   Find **Authentication (Identity Platform)** in the list and click **"Enforce"**. This is a critical security step to protect your user login/signup from abuse.
     > [!NOTE]
-    > You do **not** need to enforce App Check on other services like "Cloud Functions", "Data Connect", or "Custom Backend" for this application to function correctly and securely.
+    > You do **not** need to enforce App Check on other services like "Data Connect", "Cloud Functions", or "Custom Backend" for this application to function correctly and securely.
 
 2.  **Create and Configure the reCAPTCHA Key:**
     *   **CRITICAL:** Go to the **reCAPTCHA Enterprise** page in the Google Cloud Console. This is different from the older "reCAPTCHA" service. A direct link is [here](https://console.cloud.google.com/security/recaptcha?project=kamperhub-s4hc2).
