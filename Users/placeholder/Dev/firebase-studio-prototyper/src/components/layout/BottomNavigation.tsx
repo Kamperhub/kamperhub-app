@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { navItems } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import { NavigationContext } from './AppShell';
+import { ClientBuildTimestamp } from '@/components/shared/ClientBuildTimestamp';
 
 export function BottomNavigation() {
   const pathname = usePathname();
@@ -21,7 +22,7 @@ export function BottomNavigation() {
   // The main dashboard nav items are too numerous for a bottom bar.
   // We'll define a specific, smaller set here.
   const bottomNavItems = [
-    navItems.find(item => item.href === '/dashboard-details'),
+    navItems.find(item => item.href === '/dashboard'),
     navItems.find(item => item.href === '/vehicles'),
     navItems.find(item => item.href === '/trip-manager'),
     navItems.find(item => item.href === '/inventory'),
@@ -39,12 +40,12 @@ export function BottomNavigation() {
           {bottomNavItems.map((item) => {
             if (!item) return null; // Should not happen with the filter, but good for safety
             
-            const isDashboardLink = item.href === '/dashboard-details';
+            const isDashboardLink = item.href === '/dashboard';
             const isTripManagerLink = item.href === '/trip-manager';
             
             let isActive = false;
             if (isDashboardLink) {
-              isActive = pathname === '/' || pathname === '/dashboard-details';
+              isActive = pathname === '/' || pathname === '/dashboard' || pathname === '/dashboard-details';
             } else if (isTripManagerLink) {
               // Check if the current path or its dynamic parent (e.g., /journeys/[id]) is in the group
               isActive = tripManagerPaths.some(p => pathname.startsWith(p));
@@ -77,6 +78,7 @@ export function BottomNavigation() {
           })}
         </ul>
       </div>
+      <ClientBuildTimestamp className="text-[10px] text-center text-muted-foreground/50 pb-1" />
     </nav>
   );
 }

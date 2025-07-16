@@ -19,48 +19,44 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 2.  Copy and paste the following block of text into your newly created `.env.local` file. You will fill in the placeholder values in the next steps.
 
     ```env
-    # Firebase Client-Side Configuration (for the browser)
-    NEXT_PUBLIC_FIREBASE_API_KEY="YOUR_API_KEY_HERE"
+    # --- Firebase Client-Side Configuration (for the browser) ---
+    # These values come from your Firebase project settings (see Step 3.1)
     NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com"
     NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-project.appspot.com"
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="your-sender-id"
     NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"
     NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="your-measurement-id"
+    
+    # --- Client-Side Google API Keys (for the browser) ---
+    # This key handles both Google Maps and Firebase authentication.
+    # It should have "HTTP referrer" restrictions.
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="YOUR_BROWSER_API_KEY_HERE"
 
-    # App Check Configuration (for securing backend requests)
-    # The RECAPTCHA key is for production/staging. The DEBUG token is ONLY for local development.
-    # To get a debug token, run the app and look for a message in the browser console.
+    # --- Server-Side Google API Keys (for the backend) ---
+    # This key handles Routes API and Gemini AI. It must NOT have HTTP referrer restrictions.
+    GOOGLE_API_KEY="YOUR_SERVER_API_KEY_HERE"
+    
+    # --- Firebase Server-Side Admin Configuration (for backend functions) ---
+    # This MUST be a single line of JSON string.
+    GOOGLE_APPLICATION_CREDENTIALS_JSON='PASTE_YOUR_ENTIRE_SERVICE_ACCOUNT_JSON_HERE'
+
+    # --- App Check Configuration (for securing backend requests) ---
     NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY="your-recaptcha-enterprise-site-key"
     NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN="your-app-check-debug-token-if-needed"
 
-    # Firebase Server-Side Admin Configuration (for backend functions)
-    # This MUST be a single line of JSON wrapped in single quotes.
-    GOOGLE_APPLICATION_CREDENTIALS_JSON='PASTE_YOUR_ENTIRE_SERVICE_ACCOUNT_JSON_HERE'
-    
-    # Generative AI (Genkit / Gemini) & Server-Side Routes API Key
-    # Use your secure "Kamperhub Server Key" for this value. It has no "HTTP referrer" restrictions.
-    GOOGLE_API_KEY="YOUR_SERVER_API_KEY_HERE"
-
-    # Application URL and Environment
-    # NEXT_PUBLIC_APP_URL MUST match the exposed URL of your application when it's running (e.g., http://localhost:8083)
-    # This is used by services like Stripe and Google OAuth to redirect the user back to your app.
-    # NEXT_PUBLIC_APP_ENV MUST be "development" for local testing. It controls features like the environment banner.
+    # --- Application URL and Environment ---
     NEXT_PUBLIC_APP_URL="http://localhost:8083"
     NEXT_PUBLIC_APP_ENV="development"
 
-    # Stripe Configuration (for subscriptions)
+    # --- Stripe Configuration (for subscriptions) ---
     NEXT_PUBLIC_STRIPE_PAYMENT_LINK=https://buy.stripe.com/...
     STRIPE_SECRET_KEY="sk_test_..."
     STRIPE_WEBHOOK_SECRET="whsec_..."
     
-    # Google API Configuration (for Google Tasks, etc. - Uses OAuth, not an API key)
+    # --- Google OAuth Configuration (for Google Tasks, etc.) ---
     GOOGLE_CLIENT_ID="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
     GOOGLE_CLIENT_SECRET="YOUR_GOOGLE_CLIENT_SECRET"
-
-    # Google Maps & Places API Key (for the browser)
-    # Use your "Kamperhub Browser Key" for this value. It should have "HTTP referrer" restrictions.
-    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="YOUR_BROWSER_API_KEY_HERE"
     ```
 
 ---
@@ -74,31 +70,23 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 2.  Click the gear icon ⚙️ next to **Project Overview** and select **Project settings**.
 3.  The **Project ID** listed on this General settings page must be `kamperhub-s4hc2`. This is the value you will use for `NEXT_PUBLIC_FIREBASE_PROJECT_ID`.
 
-> [!NOTE]
-> **Project ID vs. API Key:** The **Project ID** (`kamperhub-s4hc2`) identifies your entire project. The **API Key** (which you'll get in the next step) is a long string of characters that authorizes your app to *use* the project's services. They are two different, essential values.
-
 ---
 
 ### Step 3: Populate Your Environment File (Est. 15-20 mins)
 
 Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys and paste them into the `.env.local` file.
 
-> [!WARNING]
-> **Login Error: `auth/api-key-expired` or `auth/invalid-api-key`**
-> If you see this error, it means your `NEXT_PUBLIC_FIREBASE_API_KEY` is incorrect, invalid, or has been deleted from Google Cloud. Follow the instructions in **Step 3.1** below to get your current, correct Firebase SDK configuration and update your `.env.local` file.
-
-1.  **Firebase Client Keys (`NEXT_PUBLIC_FIREBASE_*`)**
+1.  **Firebase Client Config (`NEXT_PUBLIC_FIREBASE_*` except API Key)**
     *   In your [Firebase Project Settings](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/settings/general), under the "General" tab, scroll down to the "Your apps" section.
     *   Find your web app (it's likely named something like `kamperhub-s4hc2`).
     *   Look for the "Firebase SDK snippet" section and select the **Config** option.
-    *   This will display an object with keys like `apiKey`, `authDomain`, `projectId`, etc.
-    *   **CRITICAL:** Carefully copy each value from this Config object and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file. The `apiKey` value is your **Web API Key** and goes into `NEXT_PUBLIC_FIREBASE_API_KEY`.
+    *   **CRITICAL:** Carefully copy each value from this Config object (`authDomain`, `projectId`, etc.) and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file.
+    *   **NOTE:** You will *not* use the `apiKey` value from this snippet. That will be handled by `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
     *   **CRITICAL:** Verify that the `projectId` from the config matches `kamperhub-s4hc2`.
 
 2.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
     *   Go to the [Firebase Service Accounts page](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/settings/serviceaccounts/adminsdk).
-    *   **CRITICAL SECURITY:** If you have any existing service account keys listed, delete them.
-    *   Click "Generate new private key". A new, secure JSON file will download.
+    *   Under "Firebase admin SDK", click **"Generate new private key"**. A JSON file will download.
     *   Open the downloaded file, copy the **entire JSON content**, and paste it inside the single quotes for `GOOGLE_APPLICATION_CREDENTIALS_JSON`. **It must all be on one line.**
     *   **CRITICAL: The `project_id` field inside this JSON file must also be `kamperhub-s4hc2`.**
 
@@ -106,17 +94,19 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
     *   > [!CAUTION]
     >   **IMPORTANT: Ignore Auto-Generated Keys**
-    >   Firebase may automatically create a generic, unrestricted API key in your project named "KamperHub (auto created by Firebase)" or "Browser key". **DO NOT USE THIS KEY.** For security, it is best practice to create and use dedicated, restricted keys as described below. You can safely delete the auto-generated key.
+    >   Firebase may automatically create generic, unrestricted API keys. **DO NOT USE THESE KEYS.** For security, it is best practice to create and use dedicated, restricted keys as described below.
     *   **Create Your Server Key (for `GOOGLE_API_KEY`):**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Server Key`.
-        *   Restrict this key to **Routes API**, **Gemini API**, and **Places API**. The Places API is required for the backend to search for fuel stations along a route.
+        *   Restrict this key to **Routes API**, **Gemini API**, and **Places API**.
         *   Under "Application restrictions", choose **"None"**. This is a secret server key and must not have browser restrictions.
         *   Paste this key into the `GOOGLE_API_KEY` variable.
     *   **Create Your Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Browser Key`.
         *   Restrict this key to **Maps JavaScript API** and **Places API**.
-        *   Under "Application restrictions", choose **"Websites"** and add your local development URL (e.g., `http://localhost:8083/*`).
-        *   Paste this key into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable.
+        *   Under **"Application restrictions"**, choose **"Websites"**.
+        *   > [!WARNING]
+        >   **CRITICAL FIX:** In the "Website restrictions" section, click **"ADD"**. You must add your current development URL to allow Firebase Authentication to work. This is the URL shown in your IDE's preview window. It will look similar to `*.cloudworkstations.dev` or `*.google.com`. Add this full domain with a wildcard at the beginning (e.g., if your URL is `https://1234-567-890.cloudworkstations.dev`, you should add `*.cloudworkstations.dev` to the list).
+        *   Paste this key into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable. **This key will also be used for Firebase authentication.**
 
 4.  **Google OAuth Keys (`GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`)**
     *   Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
@@ -150,7 +140,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 
 > [!WARNING]
 > **Important Note on "Places API"**
-> When you search for "Places API" in the Google Cloud Console, you might see multiple results. The one you need to enable is simply named **"Places API"**. You do NOT need to enable the one called "Places API (New)". The application is configured to use the modern v1 endpoints provided by the standard "Places API" service.
+> You do **not** need the API named "Places API (New)". The one you must enable is named simply **"Places API"**.
 
 ---
 
@@ -193,7 +183,7 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
 ### Step 3.7: CRITICAL - Configure App Check with reCAPTCHA Enterprise (Est. 5 mins)
 
 > [!WARNING]
-> **If you see errors related to `app-check-token-request-failed`, it means this step was missed or done incorrectly.** App Check protects your backend resources (like APIs and databases) from abuse.
+> **If you see `403` errors related to `firebaseappcheck` or `identitytoolkit` in your browser console, it means this step was missed or done incorrectly.** App Check protects your backend resources (like APIs and databases) from abuse.
 
 1.  **Enable App Check in Firebase:**
     *   Go to the [Firebase App Check page for kamperhub-s4hc2](https://console.firebase.google.com/project/kamperhub-s4hc2/appcheck).
@@ -201,19 +191,21 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
     *   In the "Providers" list, select **reCAPTCHA Enterprise** and click **"Save"**. You will be prompted to enable APIs; accept this.
 
 2.  **Create a reCAPTCHA Enterprise Key:**
-    *   Go to the [Google Cloud reCAPTCHA Enterprise page for kamperhub-s4hc2](https://console.cloud.google.com/security/recaptcha?project=kamperhub-s4hc2).
+    *   **CRITICAL:** Go to the **reCAPTCHA Enterprise** page in the Google Cloud Console. This is different from the older "reCAPTCHA" service. A direct link is [here](https://console.cloud.google.com/security/recaptcha?project=kamperhub-s4hc2).
     *   Click **"+ CREATE KEY"** at the top.
     *   **Label:** Give it a descriptive name like `KamperHub Web Key`.
     *   **Choose integration type:** Select **Website**.
     *   **Domains:**
         *   **CRITICAL:** Add the domain `localhost`. This is required for local testing.
         *   Add any other domains where your app will be deployed.
-    *   **Use reCAPTCHA checkbox:** Uncheck this box. We will use an invisible score-based check.
+    *   **Use tickbox challenge:** **Leave this box UNCHECKED.** Our app uses an invisible, score-based check.
     *   **Click "CREATE KEY"**.
 
 3.  **Get and Set the Site Key:**
-    *   After creation, you will see your new key listed.
-    *   Click the "Copy key ID" button next to your `KamperHub Web Key`. This is your **site key**.
+    *   > [!NOTE]
+    >   **Key Status: "Incomplete: request tokens"**
+    >   It is normal for a new key to show this status. It means Google has created the key but is waiting for your app to use it for the first time. The key is valid and ready to use. Once you complete the next steps and run your app, this status will change to "Active".
+    *   After creation, click the "Copy key ID" button next to your `KamperHub Web Key`. This is your **site key**.
     *   Paste this key into your `.env.local` file for the `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY` variable.
 
 4.  **Get and Set the Debug Token (for Local Development):**
@@ -341,3 +333,4 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     ```
 5.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
 
+    
