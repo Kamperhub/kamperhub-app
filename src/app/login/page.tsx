@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useContext } from 'react';
@@ -105,7 +106,7 @@ export default function LoginPage() {
         errorMessage = authError.message;
       }
       
-      if(!blockedReferer) {
+      if(!blockedReferer && authError.code !== 'auth/invalid-api-key') {
         toast({ title: 'Login Failed', description: errorMessage, variant: 'destructive' });
       }
       console.error("Firebase Login Error:", error);
@@ -172,6 +173,15 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {loginError && (
+              <Alert variant="destructive" className="mb-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle className="font-headline">Configuration Error</AlertTitle>
+                  <AlertDescription className="font-body">
+                      {loginError}
+                  </AlertDescription>
+              </Alert>
+          )}
           {blockedReferer && (
               <Alert variant="destructive" className="mb-4 text-left">
                   <AlertTriangle className="h-4 w-4" />
