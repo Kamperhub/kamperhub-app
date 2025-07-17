@@ -1,3 +1,4 @@
+
 export interface WDHFormData {
   name: string;
   type: string;
@@ -33,7 +34,7 @@ export interface CaravanDiagram {
   id: string;
   name: string;
   url: string;
-  notes?: string;
+  notes?: string | null;
 }
 
 export interface CaravanFormData {
