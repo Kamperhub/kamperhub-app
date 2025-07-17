@@ -57,3 +57,4 @@ secretEnv:
     secret: NEXT_PUBLIC_APP_ENV
   - key: NEXT_PUBLIC_BUILD_TIMESTAMP
     secret: NEXT_PUBLIC_BUILD_TIMESTAMP
+
