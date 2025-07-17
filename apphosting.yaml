@@ -5,7 +5,7 @@
 # Specifies the region where your backend will be deployed.
 # It's best to choose a region close to your primary user base.
 # A list of available regions can be found here: https://firebase.google.com/docs/app-hosting/locations
-region: us-central1
+region: asia-southeast1
 
 # Defines the runtime resources and scaling behavior for your backend.
 runConfig:
