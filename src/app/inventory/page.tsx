@@ -12,12 +12,11 @@ import { useAuth } from '@/hooks/useAuth';
 export default function InventoryPage() {
     const { user, isAuthLoading } = useAuth();
     
-    // This now uses the single, consolidated data fetcher.
-    const { data: inventoryPageData, isLoading: isLoadingData, error } = useQuery({
+    const { data: pageData, isLoading: isLoadingData, error } = useQuery({
         queryKey: ['allVehicleData', user?.uid],
         queryFn: fetchAllVehicleData,
         enabled: !!user,
-        staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+        staleTime: 5 * 60 * 1000,
     });
 
     const isLoading = isAuthLoading || isLoadingData;
@@ -38,5 +37,5 @@ export default function InventoryPage() {
         )
     }
 
-    return <InventoryPageClient initialData={inventoryPageData} />;
+    return <InventoryPageClient initialData={pageData} />;
 }

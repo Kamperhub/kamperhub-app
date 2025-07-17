@@ -34,7 +34,7 @@ export interface CaravanDiagram {
   id: string;
   name: string;
   url: string;
-  notes?: string | null;
+  notes?: string;
 }
 
 export interface CaravanFormData {

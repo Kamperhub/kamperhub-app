@@ -1,4 +1,3 @@
-
 // src/app/api/all-vehicle-data/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -6,7 +5,9 @@ import type { UserProfile } from '@/types/auth';
 import type { StoredVehicle } from '@/types/vehicle';
 import type { StoredCaravan } from '@/types/caravan';
 import type { LoggedTrip } from '@/types/tripplanner';
+import type admin from 'firebase-admin';
 import { ZodError } from 'zod';
+
 
 const firestoreTimestampReplacer = (key: any, value: any) => {
     if (value && typeof value.toDate === 'function') {
@@ -25,64 +26,41 @@ const sanitizeData = (data: any) => {
     }
 };
 
-async function verifyUserAndGetInstances(req: NextRequest) {
+async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string; firestore: admin.firestore.Firestore; }> {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
-    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
+    throw new Error('Server configuration error.');
   }
 
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+    throw new Error('Unauthorized: Missing or invalid Authorization header.');
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
-    return { uid: decodedToken.uid, firestore, errorResponse: null };
+    return { uid: decodedToken.uid, firestore };
   } catch (error: any) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
+    throw new Error('Unauthorized: Invalid ID token.');
   }
 }
 
-const handleApiError = (error: any) => {
-  console.error('API Error:', error);
-  let errorTitle = 'Internal Server Error';
-  let errorDetails = 'An unexpected error occurred.';
-  let statusCode = 500;
-
-  if (error instanceof ZodError) {
-    return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
+const handleApiError = (error: any): NextResponse => {
+  console.error('API Error in all-vehicle-data route:', error);
+  if (error.message.includes('Unauthorized')) {
+    return NextResponse.json({ error: 'Unauthorized', details: error.message }, { status: 401 });
   }
-  
-  if (error.code) {
-      switch(error.code) {
-          case 5: // NOT_FOUND
-              errorTitle = 'Database Not Found';
-              errorDetails = `The Firestore database 'kamperhubv2' could not be found. Please verify its creation in your Firebase project.`;
-              statusCode = 500;
-              break;
-          case 16: // UNAUTHENTICATED
-              errorTitle = 'Server Authentication Failed';
-              errorDetails = `The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or lack permission for Firestore. Please check your setup.`;
-              statusCode = 500;
-              break;
-          default:
-              errorDetails = error.message;
-              break;
-      }
-  } else {
-    errorDetails = error.message;
+  if (error.message.includes('Server configuration error')) {
+    return NextResponse.json({ error: 'Server configuration error', details: error.message }, { status: 503 });
   }
-
-  return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: statusCode });
+  return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
 };
 
-export async function GET(req: NextRequest) {
-    const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-    if (errorResponse || !uid || !firestore) return errorResponse;
-
+export async function GET(req: NextRequest): Promise<NextResponse> {
     try {
+        const { uid, firestore } = await verifyUserAndGetInstances(req);
+
         const [vehiclesSnapshot, caravansSnapshot, userDocSnap, tripsSnapshot] = await Promise.all([
             firestore.collection('users').doc(uid).collection('vehicles').get(),
             firestore.collection('users').doc(uid).collection('caravans').get(),

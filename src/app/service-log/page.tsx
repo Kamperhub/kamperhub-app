@@ -8,6 +8,9 @@ import { Fuel, Wrench } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
+import { fetchAllVehicleData } from '@/lib/api-client';
 
 const FuelLogLoadingSkeleton = () => (
   <div className="space-y-4">
@@ -28,6 +31,18 @@ const MaintenanceLogClient = dynamic(
 
 
 export default function ServiceLogPage() {
+  const { user } = useAuth();
+  const { data } = useQuery({
+    queryKey: ['allVehicleData', user?.uid],
+    queryFn: fetchAllVehicleData,
+    enabled: !!user,
+  });
+
+  const allVehicles = [
+    ...(data?.vehicles || []).map(v => ({ id: v.id, name: `${v.year} ${v.make} ${v.model}`})),
+    ...(data?.caravans || []).map(c => ({ id: c.id, name: `${c.year} ${c.make} ${c.model} (Caravan)`})),
+  ];
+
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-headline mb-2 text-primary">Service & Fuel Log</h1>
@@ -51,7 +66,7 @@ export default function ServiceLogPage() {
               <CardDescription>Track every fill-up to monitor consumption and costs.</CardDescription>
             </CardHeader>
             <CardContent>
-                <FuelLogClient />
+                <FuelLogClient allVehicles={allVehicles} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -62,7 +77,7 @@ export default function ServiceLogPage() {
               <CardDescription>Record all service and repair tasks to maintain your vehicle's history.</CardDescription>
             </CardHeader>
             <CardContent>
-              <MaintenanceLogClient />
+              <MaintenanceLogClient allVehicles={allVehicles} />
             </CardContent>
           </Card>
         </TabsContent>
