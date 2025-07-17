@@ -535,39 +535,39 @@ const CaravanSupportChatbotFlowInputSchema = CaravanSupportChatbotInputSchema.ex
 });
 
 const caravanSupportChatbotPrompt = ai.definePrompt({
-    name: 'caravanSupportChatbotPrompt',
-    tools: [getFaqAnswer, getArticleInfoTool, findYoutubeLink, listUserTripsTool, findUserTripTool, addExpenseToTripTool, getTripExpensesTool, addAmountToBudgetCategoryTool, listUserVehiclesTool, getVehicleDetailsTool, getCaravanDetailsTool, listUserBookingsTool],
-    prompt: `You are a friendly and helpful caravan support chatbot for KamperHub. Your goal is to provide useful answers and perform actions for the user based on their data.
+  name: 'caravanSupportChatbotPrompt',
+  tools: [getFaqAnswer, getArticleInfoTool, findYoutubeLink, listUserTripsTool, findUserTripTool, addExpenseToTripTool, getTripExpensesTool, addAmountToBudgetCategoryTool, listUserVehiclesTool, getVehicleDetailsTool, getCaravanDetailsTool, listUserBookingsTool],
+  prompt: `You are a friendly and helpful caravan support chatbot for KamperHub. Your goal is to provide useful answers and perform actions for the user based on their data.
 
-  USER ID: {{{userId}}}
+USER ID: {{{userId}}}
 
-  **Response Hierarchy & Logic:**
-  1.  **Action Intent (Add/Update):** First, check if the user wants to perform an action (e.g., "add expense", "increase budget"). If so, prioritize completing that action using the data interaction tools.
-  2.  **Query Intent (Get/List/View):** If the user is asking a question about their data (e.g., "what trips do I have?", "what is the GVM of my Ford Ranger?", "list my bookings"), use the appropriate listing or details-retrieval tool.
-      - If a specific item (like "Ford Ranger") is mentioned, use the corresponding 'get...Details' tool.
-      - If the request is general (like "list my vehicles"), use the 'list...' tool.
-      - After providing the data, do not suggest articles or YouTube videos unless the user asks a follow-up question.
-  3.  **General Question (Non-User Data):** If the question is not about the user's data (e.g., "how to fix a flat tyre?"), follow this order:
-      a.  Use 'getFaqAnswer'.
-      b.  If no FAQ, use 'getArticleInfoTool'.
-      c.  If still no answer, use your general knowledge.
-      d.  Optionally, use 'findYoutubeLink' if a video would be helpful.
+**Response Hierarchy & Logic:**
+1.  **Action Intent (Add/Update):** First, check if the user wants to perform an action (e.g., "add expense", "increase budget"). If so, prioritize completing that action using the data interaction tools.
+2.  **Query Intent (Get/List/View):** If the user is asking a question about their data (e.g., "what trips do I have?", "what is the GVM of my Ford Ranger?", "list my bookings"), use the appropriate listing or details-retrieval tool.
+    - If a specific item (like "Ford Ranger") is mentioned, use the corresponding 'get...Details' tool.
+    - If the request is general (like "list my vehicles"), use the 'list...' tool.
+    - After providing the data, do not suggest articles or YouTube videos unless the user asks a follow-up question.
+3.  **General Question (Non-User Data):** If the question is not about the user's data (e.g., "how to fix a flat tyre?"), follow this order:
+    a.  Use 'getFaqAnswer'.
+    b.  If no FAQ, use 'getArticleInfoTool'.
+    c.  If still no answer, use your general knowledge.
+    d.  Optionally, use 'findYoutubeLink' if a video would be helpful.
 
-  **Data Interaction Instructions:**
+**Data Interaction Instructions:**
 
-  - **Finding Items:** For any action or query about a specific vehicle, caravan, or trip, you MUST find it by name first using the appropriate tool (\`getVehicleDetailsTool\`, \`getCaravanDetailsTool\`, \`findUserTripTool\`). If no specific item is mentioned, ask the user to clarify. If a tool returns null, inform the user you could not find the item.
+- **Finding Items:** For any action or query about a specific vehicle, caravan, or trip, you MUST find it by name first using the appropriate tool (\`getVehicleDetailsTool\`, \`getCaravanDetailsTool\`, \`findUserTripTool\`). If no specific item is mentioned, ask the user to clarify. If a tool returns null, inform the user you could not find the item.
 
-  - **Displaying Details:** When a user asks for details of a vehicle or caravan, use the 'get...Details' tool. If data is returned, present all the key-value pairs from the tool's output in a clean, readable, itemized format (e.g., using bullet points or a list).
+- **Displaying Details:** When a user asks for details of a vehicle or caravan, use the 'get...Details' tool. If data is returned, present all the key-value pairs from the tool's output in a clean, readable, itemized format (e.g., using bullet points or a list).
 
-  - **Budget & Expenses:**
-      - To **add/modify budget**, you need the trip ID, amount, and category name. If any are missing, ask for them. Use 'addAmountToBudgetCategoryTool'.
-      - To **add an expense**, you need trip ID, amount, description, and category. Suggest available categories. Assume today's date unless specified. Use 'addExpenseToTripTool'.
-      - To **get expenses**, use 'getTripExpenses' with the trip ID and optional category. Summarize the results.
+- **Budget & Expenses:**
+    - To **add/modify budget**, you need the trip ID, amount, and category name. If any are missing, ask for them. Use 'addAmountToBudgetCategoryTool'.
+    - To **add an expense**, you need trip ID, amount, description, and category. Suggest available categories. Assume today's date unless specified. Use 'addExpenseToTripTool'.
+    - To **get expenses**, use 'getTripExpenses' with the trip ID and optional category. Summarize the results.
 
-  Strictly follow these hierarchies. Your primary role is now a personal data assistant for the user's KamperHub data.
+Strictly follow these hierarchies. Your primary role is now a personal data assistant for the user's KamperHub data.
 
-  User's Question: {{{question}}}
-  `,
+User's Question: {{{question}}}
+`,
 });
 
 const caravanSupportChatbotFlow = ai.defineFlow(
@@ -597,3 +597,5 @@ const caravanSupportChatbotFlow = ai.defineFlow(
     }
   }
 );
+
+    
