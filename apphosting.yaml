@@ -1,7 +1,28 @@
 # Settings to manage and configure a Firebase App Hosting backend.
-# https://firebase.google.com/docs/app-hosting/configure
+# For a full list of options, see the Firebase App Hosting documentation:
+# https://firebase.google.com/docs/app-hosting/configure-backend
 
+# Specifies the region where your backend will be deployed.
+# It's best to choose a region close to your primary user base.
+# A list of available regions can be found here: https://firebase.google.com/docs/app-hosting/locations
+region: us-central1
+
+# Defines the runtime resources and scaling behavior for your backend.
 runConfig:
-  # Increase this value if you'd like to automatically spin up
-  # more instances in response to increased traffic.
-  maxInstances: 1
+  # The number of CPU cores to allocate to each backend instance.
+  # A good starting point is 1. You can increase this for more computationally intensive tasks.
+  # Valid values: 1, 2, 4
+  cpu: 1
+
+  # The amount of memory to allocate to each instance.
+  # 512MiB is a cost-effective starting point for a standard Next.js app.
+  # Valid values: 512Mi, 1Gi, 2Gi, 4Gi, 8Gi, 16Gi, 32Gi
+  memoryMiB: 512
+
+  # The number of concurrent requests a single instance can handle before scaling up.
+  # The default of 80 is a good balance for most web applications.
+  concurrency: 80
+
+  # The maximum number of instances your backend can scale up to.
+  # This is a key control for managing costs. Start low and increase as needed.
+  maxInstances: 2
