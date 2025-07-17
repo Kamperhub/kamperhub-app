@@ -10,11 +10,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Save, XCircle, DollarSign, Route } from 'lucide-react';
+import { Calendar as CalendarIcon, Save, XCircle, DollarSign, Route } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format, parse, isValid } from 'date-fns';
-
-const DATE_FORMAT = 'yyyy-MM-dd';
+import { format, parseISO, isValid } from 'date-fns';
+import { cn } from '@/lib/utils';
+import type { DateRange } from 'react-day-picker';
 
 const bookingSchema = z.object({
   siteName: z.string().min(1, "Site name is required"),
@@ -22,27 +24,22 @@ const bookingSchema = z.object({
   contactPhone: z.string().optional(),
   contactWebsite: z.string().url("Must be a valid URL (e.g., https://example.com)").optional().or(z.literal('')),
   confirmationNumber: z.string().optional(),
-  checkInDate: z.string().refine(val => isValid(parse(val, DATE_FORMAT, new Date())), {
-    message: "Invalid date format. Please use YYYY-MM-DD.",
-  }),
-  checkOutDate: z.string().refine(val => isValid(parse(val, DATE_FORMAT, new Date())), {
-    message: "Invalid date format. Please use YYYY-MM-DD.",
-  }),
+  dateRange: z.object({
+      from: z.date({ required_error: "A check-in date is required." }),
+      to: z.date().optional(),
+  }, { required_error: "Please select a date range." }),
   notes: z.string().optional(),
   budgetedCost: z.coerce.number().min(0, "Budgeted cost must be non-negative").optional().nullable(),
   assignedTripId: z.string().nullable().optional(),
 }).refine(data => {
-    const checkIn = parse(data.checkInDate, DATE_FORMAT, new Date());
-    const checkOut = parse(data.checkOutDate, DATE_FORMAT, new Date());
-    if (isValid(checkIn) && isValid(checkOut)) {
-        return checkOut >= checkIn;
+    if (data.dateRange.from && data.dateRange.to) {
+        return data.dateRange.to >= data.dateRange.from;
     }
     return true;
 }, {
     message: "Check-out date must be on or after check-in date",
-    path: ["checkOutDate"],
+    path: ["dateRange"],
 });
-
 
 type BookingFormData = z.infer<typeof bookingSchema>;
 
@@ -64,8 +61,10 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
       contactPhone: initialData?.contactPhone || '',
       contactWebsite: initialData?.contactWebsite || '',
       confirmationNumber: initialData?.confirmationNumber || '',
-      checkInDate: initialData?.checkInDate ? format(new Date(initialData.checkInDate), DATE_FORMAT) : '',
-      checkOutDate: initialData?.checkOutDate ? format(new Date(initialData.checkOutDate), DATE_FORMAT) : '',
+      dateRange: {
+        from: initialData?.checkInDate && isValid(parseISO(initialData.checkInDate)) ? parseISO(initialData.checkInDate) : undefined,
+        to: initialData?.checkOutDate && isValid(parseISO(initialData.checkOutDate)) ? parseISO(initialData.checkOutDate) : undefined,
+      },
       notes: initialData?.notes || '',
       budgetedCost: initialData?.budgetedCost ?? null,
       assignedTripId: initialData?.assignedTripId ?? null,
@@ -73,15 +72,18 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
   });
 
   const onSubmit: SubmitHandler<BookingFormData> = (data) => {
-    const checkInDate = parse(data.checkInDate, DATE_FORMAT, new Date());
-    const checkOutDate = parse(data.checkOutDate, DATE_FORMAT, new Date());
-    
+    // The 'to' date can be the same as 'from', so ensure it exists.
+    const checkOutDate = data.dateRange.to || data.dateRange.from;
+
     const dataToSave = {
         ...data,
-        checkInDate: checkInDate.toISOString(),
+        checkInDate: data.dateRange.from.toISOString(),
         checkOutDate: checkOutDate.toISOString(),
     };
-    onSave(dataToSave);
+    // We don't want to save the dateRange object itself.
+    delete (dataToSave as any).dateRange;
+
+    onSave(dataToSave as Omit<BookingEntry, 'id' | 'timestamp'>);
   };
 
   return (
@@ -92,17 +94,37 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
         {errors.siteName && <p className="text-sm text-destructive font-body mt-1">{errors.siteName.message}</p>}
       </div>
 
-       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="checkInDate" className="font-body">Check-in Date (YYYY-MM-DD)*</Label>
-          <Input id="checkInDate" {...register("checkInDate")} placeholder="e.g., 2025-12-25" className="font-body" />
-          {errors.checkInDate && <p className="text-sm text-destructive font-body mt-1">{errors.checkInDate.message}</p>}
-        </div>
-         <div>
-          <Label htmlFor="checkOutDate" className="font-body">Check-out Date (YYYY-MM-DD)*</Label>
-          <Input id="checkOutDate" {...register("checkOutDate")} placeholder="e.g., 2025-12-28" className="font-body" />
-          {errors.checkOutDate && <p className="text-sm text-destructive font-body mt-1">{errors.checkOutDate.message}</p>}
-        </div>
+       <div>
+        <Label htmlFor="dateRange" className="font-body">Booking Dates*</Label>
+        <Controller name="dateRange" control={control} render={({ field }) => (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button id="dateRange" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value?.from && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {field.value?.from ? (
+                    field.value.to ? (
+                      <>
+                        {format(field.value.from, "LLL dd, y")} -{" "}
+                        {format(field.value.to, "LLL dd, y")}
+                      </>
+                    ) : (
+                      format(field.value.from, "LLL dd, y")
+                    )
+                  ) : (
+                    <span>Pick a date range</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar initialFocus mode="range" defaultMonth={field.value?.from} selected={field.value as DateRange | undefined} onSelect={field.onChange} numberOfMonths={2} />
+              </PopoverContent>
+            </Popover>
+        )} />
+        {errors.dateRange?.from && <p className="text-sm text-destructive font-body mt-1">{errors.dateRange.from.message}</p>}
+        {errors.dateRange?.to && <p className="text-sm text-destructive font-body mt-1">{errors.dateRange.to.message}</p>}
+        {errors.dateRange && typeof errors.dateRange === 'object' && !('from' in errors.dateRange) && !('to' in errors.dateRange) && (
+            <p className="text-sm text-destructive font-body mt-1">{(errors.dateRange as any).message}</p>
+        )}
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
