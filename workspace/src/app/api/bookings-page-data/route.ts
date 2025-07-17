@@ -1,12 +1,11 @@
-// src/app/api/all-vehicle-data/route.ts
+// src/app/api/bookings-page-data/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
-import type { UserProfile } from '@/types/auth';
-import type { StoredVehicle } from '@/types/vehicle';
-import type { StoredCaravan } from '@/types/caravan';
+import type { BookingEntry } from '@/types/booking';
 import type { LoggedTrip } from '@/types/tripplanner';
 import type admin from 'firebase-admin';
 
+// A robust replacer function for JSON.stringify to handle Firestore Timestamps.
 const firestoreTimestampReplacer = (key: any, value: any) => {
     if (value && typeof value.toDate === 'function') {
         return value.toDate().toISOString();
@@ -14,15 +13,12 @@ const firestoreTimestampReplacer = (key: any, value: any) => {
     return value;
 };
 
+// Helper function to create a clean, JSON-safe object.
 const sanitizeData = (data: any) => {
-    try {
-        const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
-        return JSON.parse(jsonString);
-    } catch (error: any) {
-        console.error('Error in sanitizeData:', error);
-        throw new Error(`Failed to serialize data: ${error.message}`);
-    }
+    const jsonString = JSON.stringify(data, firestoreTimestampReplacer);
+    return JSON.parse(jsonString);
 };
+
 
 async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string; firestore: admin.firestore.Firestore; }> {
   const { auth, firestore, error } = getFirebaseAdmin();
@@ -45,7 +41,7 @@ async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: strin
 }
 
 const handleApiError = (error: any): NextResponse => {
-  console.error('API Error in all-vehicle-data route:', error);
+  console.error('API Error in bookings-page-data route:', error);
   if (error.message.includes('Unauthorized')) {
     return NextResponse.json({ error: 'Unauthorized', details: error.message }, { status: 401 });
   }
@@ -59,28 +55,36 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     try {
         const { uid, firestore } = await verifyUserAndGetInstances(req);
 
-        const [vehiclesSnapshot, caravansSnapshot, userDocSnap, tripsSnapshot] = await Promise.all([
-            firestore.collection('users').doc(uid).collection('vehicles').get(),
-            firestore.collection('users').doc(uid).collection('caravans').get(),
-            firestore.collection('users').doc(uid).get(),
+        const [bookingsSnapshot, tripsSnapshot] = await Promise.all([
+            firestore.collection('users').doc(uid).collection('bookings').get(),
             firestore.collection('users').doc(uid).collection('trips').get()
         ]);
 
-        const vehicles = vehiclesSnapshot.docs.map(doc => doc.data() as StoredVehicle);
-        const caravans = caravansSnapshot.docs.map(doc => doc.data() as StoredCaravan);
-        const userProfile = userDocSnap.exists ? userDocSnap.data() as UserProfile : null;
-        const trips = tripsSnapshot.docs.map(doc => doc.data() as LoggedTrip);
-
-        const data = {
-            vehicles,
-            caravans,
-            userProfile,
-            trips,
-        };
+        const bookings: BookingEntry[] = [];
+        bookingsSnapshot.forEach(doc => {
+            try {
+                if (doc.exists) {
+                    bookings.push(doc.data() as BookingEntry);
+                }
+            } catch (docError: any) {
+                console.warn(`Skipping malformed booking document ID ${doc.id} due to error: ${docError.message}`);
+            }
+        });
         
-        const sanitizedData = sanitizeData(data);
+        const trips: LoggedTrip[] = [];
+        tripsSnapshot.forEach(doc => {
+            try {
+                if (doc.exists) {
+                    trips.push(doc.data() as LoggedTrip);
+                }
+            } catch (docError: any) {
+                console.warn(`Skipping malformed trip document ID ${doc.id} due to error: ${docError.message}`);
+            }
+        });
 
+        const sanitizedData = sanitizeData({ bookings, trips });
         return NextResponse.json(sanitizedData, { status: 200 });
+        
     } catch (err: any) {
         return handleApiError(err);
     }
