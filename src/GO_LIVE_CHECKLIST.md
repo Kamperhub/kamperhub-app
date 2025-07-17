@@ -184,6 +184,12 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
 
 ## **Phase 4: Deployment to Firebase App Hosting**
 
+> [!WARNING]
+> ### **Critical Security Notice: Secrets Management**
+> **DO NOT** add your secret keys to the `apphosting.yaml` file. That file is for public infrastructure configuration and is committed to your repository.
+> 
+> All secret keys listed below MUST be added to the **"App Hosting secret config"** section within the Firebase App Hosting console for your backend. This is a secure key-value store that injects your secrets at runtime, keeping them safe and out of your codebase.
+
 ### **Step 4.1: Connect Your GitHub Repository**
 
 1.  Go to the [Firebase App Hosting console for kamperhub-s4hc2](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/hosting/backends).
@@ -192,8 +198,8 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
 ### **Step 4.2: Configure the Production Backend**
 
 1.  Once connected, a backend will be created. Click on it to manage its configuration.
-2.  Go to the **"Settings"** tab for your backend. This is the **"App Hosting secret config"** where your live environment variables are stored.
-3.  Add all the variables from your `.env.local` file, but use your **production keys**:
+2.  Navigate to the **"Settings"** tab for your backend.
+3.  This is where you will add all the environment variables from your `.env.local` file, but with your **production keys**.
     *   **CRITICAL: Set `NEXT_PUBLIC_APP_ENV` to `"production"`.** This tells the app it's in live mode.
     *   `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, etc: Use the values from your Firebase Console project settings.
     *   `GOOGLE_APPLICATION_CREDENTIALS_JSON`: **Use the same one-line JSON string** for your service account key that you used in local development.
