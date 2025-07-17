@@ -22,13 +22,13 @@
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Browser Key`.
     *   Under **"Application restrictions"**, select **"Websites"**. Remove any `localhost` URLs and add your production domain (e.g., `https://kamperhub.com/*`).
     *   Under **"API restrictions"**, restrict the key to **Maps JavaScript API** and **Places API**.
-    *   Copy this key. You will use it in Step 1.4.
+    *   Copy this key. You will use it in Step 2.2.
 
 3.  **Create a Server Key (for `GOOGLE_API_KEY`):**
-    *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Server Key`.
+    *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `KamperHub Server Key`.
     *   Under **"Application restrictions"**, select **"None"**.
     *   Under **"API restrictions"**, restrict the key to **Routes API** and **Gemini API**.
-    *   Copy this key. You will use it in Step 1.4.
+    *   Copy this key. You will use it in Step 2.2.
 
 ### **Step 1.3: CRITICAL - Configure Production App Check (Est. 5 mins)**
 (This section remains the same)
@@ -58,28 +58,54 @@ You will repeat this process for **every single variable** in your `.env.local` 
 4.  Leave all other settings as default and click **"Create secret"**.
 5.  **Repeat this for all variables**, including `GOOGLE_API_KEY`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `GOOGLE_APPLICATION_CREDENTIALS_JSON` (paste the entire one-line JSON string as the value), etc.
 
-### **Step 2.3: Grant Permissions to Your App Hosting Backend**
+### **Step 2.3: CRITICAL - Grant Permissions to Your App Hosting Backend**
+> [!WARNING]
+> This is a critical step. Without this permission, your live application will not be able to read its API keys and will fail to start.
+
 Your App Hosting backend needs permission to read the secrets you just created.
 
 1.  Go to the [Google Cloud IAM page for kamperhub-s4hc2](https://console.cloud.google.com/iam-admin/iam?project=kamperhub-s4hc2).
 2.  Find the principal (the "user") that looks like `service-PROJECT_NUMBER@gcp-sa-apphosting.iam.gserviceaccount.com`. This is your App Hosting backend's identity.
-3.  Click the pencil icon to edit its roles.
+3.  Click the pencil icon ✏️ to edit its roles.
 4.  Click **"+ ADD ANOTHER ROLE"**.
-5.  In the "Select a role" filter, type **`Secret Manager Secret Accessor`** and select it.
+5.  In the "Select a role" filter, type **`Secret Manager Secret Accessor`** and select it from the list.
+6.  Click **Save**.
+
+### **Step 2.4: CRITICAL - Set Least-Privilege Roles for Security**
+> [!IMPORTANT]
+> For the best security, your service account should only have the permissions it absolutely needs. Overly broad roles like "Editor" or "Firebase Admin" should be removed in a production environment.
+
+1.  Go to the [Google Cloud IAM page for kamperhub-s4hc2](https://console.cloud.google.com/iam-admin/iam?project=kamperhub-s4hc2).
+2.  Find the service account you are using for the backend (its email address is in the `client_email` field of your `GOOGLE_APPLICATION_CREDENTIALS_JSON`). It usually looks like `firebase-adminsdk-...@...gserviceaccount.com`.
+3.  Click the pencil icon ✏️ to edit its roles.
+4.  **Ensure it has the following essential roles:**
+    *   **`Cloud Datastore User`**: Allows reading and writing to the Firestore database.
+    *   **`Firebase Authentication Admin`**: Allows managing users (needed for the admin page).
+    *   **`Service Account Token Creator`**: Needed for some internal Google Cloud operations.
+5.  **For maximum security, REMOVE the following broad roles if they exist:**
+    *   `Editor`
+    *   `Firebase Admin`
+    *   `Owner`
 6.  Click **Save**.
 
 ---
 
 ## **Phase 3: Update `apphosting.yaml` to Use Secrets**
 
-Your `apphosting.yaml` file tells Firebase App Hosting which secrets to load into your application as environment variables. It has been pre-filled for you with all the necessary secret references. You do not need to edit this file unless you add new secrets.
+> [!WARNING]
+> ### Critical Security Notice: Where to Store Secrets
+> **DO NOT** add your secret keys/values directly into the `apphosting.yaml` file. That file is for public infrastructure configuration and is committed to your repository.
+>
+> All secret keys **MUST** be added to **Google Secret Manager** as described in Phase 2. The `apphosting.yaml` file below is correctly configured to **reference** those secrets securely.
+
+Your `apphosting.yaml` file tells Firebase App Hosting which secrets to load into your application as environment variables. It has been pre-filled for you with all the necessary secret references. You should not need to edit this file unless you add new secrets.
 
 ---
 
 ## **Phase 4: Final Configuration & Deployment**
 
 ### **Step 4.1: Finalize Stripe and Google Cloud Settings**
-*   **Stripe:** Create your live product, payment link, and webhook (pointing to `https://kamperhub.com/api/stripe-webhook`).
+*   **Stripe:** Create your live product, payment link, and webhook (pointing to `https://kamperhub.com/api/stripe-webhook`). To replace a live Secret Key, go to **Developers > API Keys**, click the **`...`** menu next to the key, and select **"Rotate key..."**. Copy the new key and update it in Google Secret Manager.
 *   **Google Cloud:** Ensure your production browser API key has the correct "HTTP Referrer" restriction for `kamperhub.com`. Ensure your OAuth Redirect URI is set to `https://kamperhub.com/api/auth/google/callback`.
 
 ### **Step 4.2: Deploy Your Application**
