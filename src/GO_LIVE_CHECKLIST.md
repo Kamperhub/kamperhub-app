@@ -25,7 +25,7 @@
     *   Copy this key. You will use it in Step 1.4.
 
 3.  **Create a Server Key (for `GOOGLE_API_KEY`):**
-    *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Server Key`.
+    *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `KamperHub Server Key`.
     *   Under **"Application restrictions"**, select **"None"**.
     *   Under **"API restrictions"**, restrict the key to **Routes API** and **Gemini API**.
     *   Copy this key. You will use it in Step 1.4.
@@ -68,6 +68,23 @@ Your App Hosting backend needs permission to read the secrets you just created.
 5.  In the "Select a role" filter, type **`Secret Manager Secret Accessor`** and select it.
 6.  Click **Save**.
 
+### **Step 2.4: CRITICAL - Set Least-Privilege Roles for Security**
+> [!IMPORTANT]
+> For the best security, your service account should only have the permissions it absolutely needs. Overly broad roles like "Editor" or "Firebase Admin" should be removed in a production environment.
+
+1.  Go to the [Google Cloud IAM page for kamperhub-s4hc2](https://console.cloud.google.com/iam-admin/iam?project=kamperhub-s4hc2).
+2.  Find the service account you are using for the backend (its email address is in the `client_email` field of your `GOOGLE_APPLICATION_CREDENTIALS_JSON`). It usually looks like `firebase-adminsdk-...@...gserviceaccount.com`.
+3.  Click the pencil icon to edit its roles.
+4.  **Ensure it has the following essential roles:**
+    *   **`Cloud Datastore User`**: Allows reading and writing to the Firestore database.
+    *   **`Firebase Authentication Admin`**: Allows managing users (needed for the admin page).
+    *   **`Service Account Token Creator`**: Needed for some internal Google Cloud operations.
+5.  **For maximum security, REMOVE the following broad roles if they exist:**
+    *   `Editor`
+    *   `Firebase Admin`
+    *   `Owner`
+6.  Click **Save**.
+
 ---
 
 ## **Phase 3: Update `apphosting.yaml` to Use Secrets**
@@ -92,3 +109,5 @@ Your `apphosting.yaml` file tells Firebase App Hosting which secrets to load int
 1.  Commit all your latest code changes.
 2.  Push your changes to your GitHub repository by running `git push`.
 3.  Firebase App Hosting will automatically detect the push, build your application, securely inject the secrets you configured, and deploy the new version to your custom domain.
+
+    
