@@ -4,26 +4,28 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { BookingEntry } from '@/types/booking';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { z, ZodError } from 'zod';
+import type admin from 'firebase-admin';
 
 const ACCOMMODATION_CATEGORY_NAME = "Accommodation";
 
-async function verifyUserAndGetInstances(req: NextRequest) {
+async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string; firestore: admin.firestore.Firestore; }> {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
-    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
+    // This will be caught by the outer try-catch and returned as a 503
+    throw new Error('Server configuration error.');
   }
 
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+    throw new Error('Unauthorized: Missing or invalid Authorization header.');
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
-    return { uid: decodedToken.uid, firestore, errorResponse: null };
+    return { uid: decodedToken.uid, firestore };
   } catch (error: any) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
+    throw new Error('Unauthorized: Invalid ID token.');
   }
 }
 
@@ -49,46 +51,25 @@ const updateBookingSchema = bookingSchema.extend({
   id: z.string().min(1, "Booking ID is required for updates"),
 });
 
-const handleApiError = (error: any) => {
-  console.error('API Error:', error);
-  let errorTitle = 'Internal Server Error';
-  let errorDetails = 'An unexpected error occurred.';
-  let statusCode = 500;
 
+const handleApiError = (error: any): NextResponse => {
+  console.error('API Error in bookings route:', error);
   if (error instanceof ZodError) {
     return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
   }
-  
-  if (error.code) {
-      switch(error.code) {
-          case 5: // NOT_FOUND
-              errorTitle = 'Database Not Found';
-              errorDetails = `The Firestore database 'kamperhubv2' could not be found. Please verify its creation in your Firebase project.`;
-              statusCode = 500;
-              break;
-          case 16: // UNAUTHENTICATED
-              errorTitle = 'Server Authentication Failed';
-              errorDetails = `The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or lack permission for Firestore. Please check your setup.`;
-              statusCode = 500;
-              break;
-          default:
-              errorDetails = error.message;
-              break;
-      }
-  } else {
-    errorDetails = error.message;
+   if (error.message.includes('Unauthorized')) {
+    return NextResponse.json({ error: 'Unauthorized', details: error.message }, { status: 401 });
   }
-
-  return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: statusCode });
+  if (error.message.includes('Server configuration error')) {
+    return NextResponse.json({ error: 'Server configuration error', details: error.message }, { status: 503 });
+  }
+  return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
 };
 
-
 // GET all bookings for the authenticated user
-export async function GET(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
-
+export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const bookingsSnapshot = await firestore.collection('users').doc(uid).collection('bookings').get();
     const bookings: BookingEntry[] = [];
     bookingsSnapshot.forEach(doc => {
@@ -108,11 +89,9 @@ export async function GET(req: NextRequest) {
 }
 
 // POST a new booking for the authenticated user
-export async function POST(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
-
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
     const parsedData = bookingSchema.parse(body);
     const { assignedTripId, budgetedCost, ...bookingDetails } = parsedData;
@@ -160,20 +139,23 @@ export async function POST(req: NextRequest) {
 }
 
 // PUT (update) an existing booking for the authenticated user
-export async function PUT(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
-  
+export async function PUT(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
-    // For update, we add the id field to the base schema
-    const parsedBookingData = bookingSchema.extend({id: z.string()}).parse(body);
+    const parsedBookingData = updateBookingSchema.parse(body);
     const { id: bookingId, assignedTripId: newTripId, budgetedCost: newCostValue, ...restData } = parsedBookingData;
     const newCost = newCostValue || 0;
 
     const bookingRef = firestore.collection('users').doc(uid).collection('bookings').doc(bookingId);
 
-    const finalUpdatedBooking: BookingEntry = { ...parsedBookingData, timestamp: new Date().toISOString() };
+    const finalUpdatedBookingData: BookingEntry = {
+        id: bookingId,
+        ...restData,
+        assignedTripId: newTripId || null,
+        budgetedCost: newCost,
+        timestamp: new Date().toISOString(),
+    };
     
     await firestore.runTransaction(async (transaction) => {
       const bookingDoc = await transaction.get(bookingRef);
@@ -215,21 +197,19 @@ export async function PUT(req: NextRequest) {
         transaction.update(newTripRef, { budget });
       }
       
-      transaction.set(bookingRef, finalUpdatedBooking, { merge: true });
+      transaction.set(bookingRef, finalUpdatedBookingData, { merge: true });
     });
     
-    return NextResponse.json({ message: 'Booking updated successfully.', booking: finalUpdatedBooking }, { status: 200 });
+    return NextResponse.json({ message: 'Booking updated successfully.', booking: finalUpdatedBookingData }, { status: 200 });
   } catch (err: any) {
     return handleApiError(err);
   }
 }
 
 // DELETE a booking for the authenticated user
-export async function DELETE(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
-
+export async function DELETE(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const { id } = await req.json();
     if (!id || typeof id !== 'string') {
       return NextResponse.json({ error: 'Booking ID is required for deletion.' }, { status: 400 });
@@ -244,6 +224,7 @@ export async function DELETE(req: NextRequest) {
         const bookingData = bookingDoc.data() as BookingEntry;
         const { assignedTripId, budgetedCost } = bookingData;
 
+        // If the booking was assigned to a trip and had a cost, remove that cost from the trip's budget.
         if (assignedTripId && budgetedCost && budgetedCost > 0) {
             const tripRef = firestore.collection('users').doc(uid).collection('trips').doc(assignedTripId);
             const tripDoc = await transaction.get(tripRef);
@@ -254,7 +235,7 @@ export async function DELETE(req: NextRequest) {
                         return { ...cat, budgetedAmount: Math.max(0, cat.budgetedAmount - budgetedCost) };
                     }
                     return cat;
-                }).filter(cat => !(cat.name === ACCOMMODATION_CATEGORY_NAME && cat.budgetedAmount <= 0));
+                }).filter(cat => !(cat.name === ACCOMMODATION_CATEGORY_NAME && cat.budgetedAmount <= 0)); // Remove category if budget is zero or less
                 transaction.update(tripRef, { budget });
             }
         }
