@@ -235,7 +235,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       journeyId: parsedData.journeyId || null,
     };
     
-    // If a journeyId is provided, update the journey as well in a transaction
     if (newTrip.journeyId) {
         const journeyRef = firestore.collection('users').doc(uid).collection('journeys').doc(newTrip.journeyId);
         await firestore.runTransaction(async (transaction) => {
@@ -282,7 +281,6 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
         const oldJourneyId = oldTripData.journeyId;
         const newJourneyId = "journeyId" in updateData ? updateData.journeyId : oldJourneyId;
 
-        // If journey assignment has changed...
         if (oldJourneyId !== newJourneyId) {
             if (oldJourneyId) {
                 const oldJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(oldJourneyId);
@@ -311,7 +309,6 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
         }
     });
     
-    // After transaction, run recalculations
     if (journeyNeedsRecalculation) {
       for (const journeyId of [...new Set(journeysToUpdate)]) {
         if(journeyId) {
