@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, Globe } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, Globe, Fuel } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -11,7 +11,6 @@ export interface NavItem {
 }
 
 // This is the new central hub for all travel-related pages.
-// THIS IS THE CORRECT, STATIC DEFINITION.
 export const tripManagerItems: NavItem[] = [
   {
     href: '/journeys',
@@ -42,6 +41,13 @@ export const tripManagerItems: NavItem[] = [
     keywords: 'packing checklist luggage'
   },
   {
+    href: '/trip-manager/checklists',
+    label: 'Procedural Checklists',
+    icon: ListChecks,
+    description: 'Use pre-departure, setup, and pack-down checklists for your trips. Never miss a step!',
+    keywords: 'checklist safety setup',
+  },
+  {
     href: '/world-map',
     label: 'World Map',
     icon: Globe,
@@ -52,14 +58,13 @@ export const tripManagerItems: NavItem[] = [
 
 
 // Main navigation items for the dashboard grid. 
-// THIS IS THE CORRECT, CONSOLIDATED LIST. "Journeys" and "World Map" have been correctly removed.
 export const navItems: NavItem[] = [
   {
-    href: '/dashboard-details',
+    href: '/dashboard',
     label: 'Dashboard', 
     icon: LayoutDashboard,
-    description: "Access your travel statistics, rewards program, and other detailed dashboard views.",
-    keywords: 'statistics rewards'
+    description: "Your main hub. Access all features, start trips, and see a customized view of your tools.",
+    keywords: 'home main start'
   },
   {
     href: '/vehicles',
@@ -83,11 +88,11 @@ export const navItems: NavItem[] = [
     keywords: 'trip planner log packing journey map'
   },
   {
-    href: '/checklists',
-    label: 'Checklists',
-    icon: ListChecks,
-    description: "Create pre-departure, setup, and pack-down checklists for trips and caravan defaults. Never miss a step!",
-    keywords: 'travel list'
+    href: '/service-log',
+    label: 'Service & Fuel Log',
+    icon: Fuel,
+    description: "Keep a detailed history of your fuel consumption and maintenance tasks for all your vehicles.",
+    keywords: 'fuel maintenance service'
   },
   {
     href: '/bookings',
@@ -100,7 +105,7 @@ export const navItems: NavItem[] = [
     href: '/learn',
     label: 'Support & Learn',
     icon: BookOpen,
-    description: "Access helpful articles, video guides, and the user manual to master your caravanning adventures.",
+    description: "Access helpful articles, guides, and the user manual to master your caravanning adventures.",
     keywords: 'support guide manual'
   },
   {
@@ -119,7 +124,7 @@ export const navItems: NavItem[] = [
   },
 ];
 
-// Specific items for the /dashboard-details page (this remains the same)
+// Specific items for the /dashboard-details page
 export const dashboardDetailItems: NavItem[] = [
   {
     href: '/stats',

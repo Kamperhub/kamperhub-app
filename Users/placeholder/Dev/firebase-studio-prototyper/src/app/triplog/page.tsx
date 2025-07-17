@@ -132,7 +132,7 @@ export default function TripLogPage() {
 
   const handleStartTrip = useCallback((tripId: string) => {
     navContext?.setIsNavigating(true);
-    router.push(`/checklists?tripId=${tripId}`);
+    router.push(`/trip-manager/checklists?tripId=${tripId}`);
     toast({ title: "Opening Trip Checklists", description: "Navigating to checklists..." });
   }, [router, toast, navContext]);
 

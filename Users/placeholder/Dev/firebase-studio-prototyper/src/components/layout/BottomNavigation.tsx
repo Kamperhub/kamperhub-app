@@ -31,7 +31,7 @@ export function BottomNavigation() {
 
 
   // New logic: Define which paths belong to the Trip Manager group
-  const tripManagerPaths = ['/trip-manager', '/trip-expense-planner', '/triplog', '/trip-packing', '/journeys', '/world-map'];
+  const tripManagerPaths = ['/trip-manager', '/trip-expense-planner', '/triplog', '/trip-packing', '/journeys', '/world-map', '/trip-manager/checklists'];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-top md:hidden z-50">
