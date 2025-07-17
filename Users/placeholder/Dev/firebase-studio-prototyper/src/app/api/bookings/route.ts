@@ -11,6 +11,7 @@ const ACCOMMODATION_CATEGORY_NAME = "Accommodation";
 async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string; firestore: admin.firestore.Firestore; }> {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
+    // This will be caught by the outer try-catch and returned as a 503
     throw new Error('Server configuration error.');
   }
 
@@ -45,16 +46,22 @@ const bookingSchema = z.object({
     path: ["checkOutDate"],
 });
 
-// For updates, the base schema is the same, but we also expect an ID and timestamp
+// For updates, the base schema is the same, but we also expect an ID
 const updateBookingSchema = bookingSchema.extend({
   id: z.string().min(1, "Booking ID is required for updates"),
-  timestamp: z.string().datetime(),
 });
+
 
 const handleApiError = (error: any): NextResponse => {
   console.error('API Error in bookings route:', error);
   if (error instanceof ZodError) {
     return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
+  }
+   if (error.message.includes('Unauthorized')) {
+    return NextResponse.json({ error: 'Unauthorized', details: error.message }, { status: 401 });
+  }
+  if (error.message.includes('Server configuration error')) {
+    return NextResponse.json({ error: 'Server configuration error', details: error.message }, { status: 503 });
   }
   return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
 };
