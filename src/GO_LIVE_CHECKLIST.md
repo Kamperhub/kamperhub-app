@@ -31,6 +31,7 @@
     *   Copy this key. You will use it in Step 1.4.
 
 ### **Step 1.3: CRITICAL - Configure Production App Check (Est. 5 mins)**
+(This section remains the same)
 
 1.  Go to the [Firebase App Check page for kamperhub-s4hc2](https://console.firebase.google.com/project/kamperhub-s4hc2/appcheck/apps).
 2.  Select your web app, go to the **Providers** tab, and enable **reCAPTCHA Enterprise**.
