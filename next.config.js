@@ -6,6 +6,8 @@ const nextConfig = {
   },
   experimental: {
     instrumentationHook: false, // This disables Next.js's default OpenTelemetry instrumentation
+    // This allows the Next.js dev server to accept requests from the cloud IDE's previewer.
+    allowedDevOrigins: ["*.cloudworkstations.dev", "*.google.com"],
   },
   webpack: (config, { dev, isServer }) => {
     // Enable WebAssembly experiments to support all package features.
