@@ -534,19 +534,11 @@ const CaravanSupportChatbotFlowInputSchema = CaravanSupportChatbotInputSchema.ex
   userId: z.string(),
 });
 
-const caravanSupportChatbotFlow = ai.defineFlow(
-  {
-    name: 'caravanSupportChatbotFlow',
-    inputSchema: CaravanSupportChatbotFlowInputSchema,
-    outputSchema: CaravanSupportChatbotOutputSchema,
-  },
-  async (input): Promise<CaravanSupportChatbotOutput> => {
-    try {
-      // The prompt is now defined inside the flow, which can help with some build-time type inference issues.
-      const prompt = ai.definePrompt({
-        name: 'caravanSupportChatbotPrompt',
-        tools: [getFaqAnswer, getArticleInfoTool, findYoutubeLink, listUserTripsTool, findUserTripTool, addExpenseToTripTool, getTripExpensesTool, addAmountToBudgetCategoryTool, listUserVehiclesTool, getVehicleDetailsTool, getCaravanDetailsTool, listUserBookingsTool],
-        prompt: `You are a friendly and helpful caravan support chatbot for KamperHub. Your goal is to provide useful answers and perform actions for the user based on their data.
+// CORRECT: Define the prompt once at the module level.
+const caravanSupportChatbotPrompt = ai.definePrompt({
+  name: 'caravanSupportChatbotPrompt',
+  tools: [getFaqAnswer, getArticleInfoTool, findYoutubeLink, listUserTripsTool, findUserTripTool, addExpenseToTripTool, getTripExpensesTool, addAmountToBudgetCategoryTool, listUserVehiclesTool, getVehicleDetailsTool, getCaravanDetailsTool, listUserBookingsTool],
+  prompt: `You are a friendly and helpful caravan support chatbot for KamperHub. Your goal is to provide useful answers and perform actions for the user based on their data.
 
       USER ID: {{{userId}}}
 
@@ -577,9 +569,18 @@ const caravanSupportChatbotFlow = ai.defineFlow(
 
       User's Question: {{{question}}}
       `,
-      });
+});
 
-      const {output} = await prompt(input);
+
+const caravanSupportChatbotFlow = ai.defineFlow(
+  {
+    name: 'caravanSupportChatbotFlow',
+    inputSchema: CaravanSupportChatbotFlowInputSchema,
+    outputSchema: CaravanSupportChatbotOutputSchema,
+  },
+  async (input): Promise<CaravanSupportChatbotOutput> => {
+    try {
+      const {output} = await caravanSupportChatbotPrompt(input);
       if (!output) {
         throw new Error('The AI returned an empty or invalid response.');
       }
@@ -598,3 +599,4 @@ const caravanSupportChatbotFlow = ai.defineFlow(
     }
   }
 );
+    
