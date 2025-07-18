@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { CaravanForm } from './CaravanForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Link2 as LinkIcon, Ruler, PackagePlus, MapPin, Droplet, Weight, Axe, Loader2, FileText, Disc, Flame } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, Link2 as LinkIcon, Ruler, PackagePlus, MapPin, Droplet, Weight, Axe, Loader2, Disc, Flame } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
@@ -248,19 +248,6 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
                       </div>
                     </div>
                   )}
-                   {(caravan.diagrams && caravan.diagrams.length > 0) && (
-                      <div className="w-full">
-                        <h4 className="text-sm font-semibold font-body mb-1.5 text-foreground flex items-center"><FileText className="w-4 h-4 mr-2 text-primary"/>Associated Diagrams:</h4>
-                        <ul className="list-disc pl-5 space-y-1">
-                          {caravan.diagrams.map(diag => (
-                            <li key={diag.id}>
-                              <a href={diag.url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent hover:underline font-body">{diag.name}</a>
-                              {diag.notes && <p className="text-xs text-muted-foreground pl-1">{diag.notes}</p>}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
                 </CardFooter>
               </Card>
             )

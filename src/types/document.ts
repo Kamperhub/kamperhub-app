@@ -1,4 +1,3 @@
-
 // src/types/document.ts
 
 export const documentTags = [
