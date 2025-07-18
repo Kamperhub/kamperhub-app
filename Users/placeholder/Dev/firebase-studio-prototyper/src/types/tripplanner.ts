@@ -20,12 +20,12 @@ export interface FuelStation {
 export interface RouteDetails {
   distance: { text: string; value: number };
   duration: { text: string; value: number };
-  startLocation?: google.maps.LatLngLiteral;
-  endLocation?: google.maps.LatLngLiteral;
+  startLocation?: google.maps.LatLngLiteral | null;
+  endLocation?: google.maps.LatLngLiteral | null;
   polyline?: string;
   warnings?: string[];
   tollInfo?: { text: string; value: number } | null;
-  fuelStations?: FuelStation[];
+  fuelStations?: FuelStation[] | null;
 }
 
 export interface FuelEstimate {
@@ -43,18 +43,12 @@ export interface Occupant {
   notes?: string | null;
 }
 
-// Represents a waypoint in a multi-stop trip
-export interface Waypoint {
-    address: string;
-}
-
 export interface LoggedTrip {
   id: string;
   name: string;
   timestamp: string; // ISO string for date
   startLocationDisplay: string; // The string input by the user for start
   endLocationDisplay: string; // The string input by the user for end
-  waypoints?: Waypoint[]; // For multi-stop trips
   fuelEfficiency: number;
   fuelPrice: number;
   routeDetails: RouteDetails;
@@ -82,3 +76,4 @@ export interface LoggedTrip {
 
 // Key for localStorage
 export const RECALLED_TRIP_DATA_KEY = 'kamperhub_recalled_trip_data';
+
