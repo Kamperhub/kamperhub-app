@@ -66,7 +66,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const now = new Date().toISOString();
     const newJourney: Journey = {
       id: newJourneyRef.id,
-      ...parsedData,
+      name: parsedData.name,
+      description: parsedData.description || null,
       tripIds: [],
       masterPolyline: null,
       createdAt: now,
