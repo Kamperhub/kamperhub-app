@@ -5,13 +5,13 @@ import { Hotel, PlaneTakeoff, Building2, Home, BedSingle, MapPin, Trees, Mountai
 export interface BookingEntry {
   id: string;
   siteName: string;
-  locationAddress?: string;
-  contactPhone?: string;
-  contactWebsite?: string;
-  confirmationNumber?: string;
+  locationAddress: string | null;
+  contactPhone: string | null;
+  contactWebsite: string | null;
+  confirmationNumber: string | null;
   checkInDate: string; // Store as ISO string
   checkOutDate: string; // Store as ISO string
-  notes?: string;
+  notes: string | null;
   timestamp: string; // ISO string for when the log was created/updated
   assignedTripId?: string | null;
   budgetedCost?: number | null;
