@@ -1,9 +1,11 @@
+
 // src/app/api/trips/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import type { Journey } from '@/types/journey';
 import { z, ZodError } from 'zod';
+import admin from 'firebase-admin';
 import type { firestore } from 'firebase-admin';
 import { decode, encode } from '@googlemaps/polyline-codec';
 
@@ -185,7 +187,7 @@ const updateTripSchema = createTripSchema.partial().extend({
 });
 
 
-const handleApiError = (error: any): NextResponse => {
+const handleApiError = (error: any) => {
   console.error('API Error in trips route:', error);
   if (error instanceof ZodError) {
     return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
@@ -221,20 +223,31 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const newTrip: LoggedTrip = {
       id: newTripRef.id,
       timestamp: new Date().toISOString(),
-      ...parsedData,
+      name: parsedData.name,
+      startLocationDisplay: parsedData.startLocationDisplay,
+      endLocationDisplay: parsedData.endLocationDisplay,
+      fuelEfficiency: parsedData.fuelEfficiency,
+      fuelPrice: parsedData.fuelPrice,
+      routeDetails: parsedData.routeDetails,
+      fuelEstimate: parsedData.fuelEstimate || null,
+      plannedStartDate: parsedData.plannedStartDate || null,
+      plannedEndDate: parsedData.plannedEndDate || null,
       notes: parsedData.notes || null,
+      isCompleted: parsedData.isCompleted || false,
       isVehicleOnly: parsedData.isVehicleOnly || false,
-      expenses: parsedData.expenses || [],
+      checklists: parsedData.checklists || [],
       budget: parsedData.budget || [],
+      expenses: parsedData.expenses || [],
       occupants: (parsedData.occupants || []).map(occ => ({
         ...occ,
         age: occ.age ?? null,
         notes: occ.notes ?? null,
       })),
+      activeCaravanIdAtTimeOfCreation: parsedData.activeCaravanIdAtTimeOfCreation || null,
+      activeCaravanNameAtTimeOfCreation: parsedData.activeCaravanNameAtTimeOfCreation || null,
       journeyId: parsedData.journeyId || null,
     };
     
-    // If a journeyId is provided, update the journey as well in a transaction
     if (newTrip.journeyId) {
         const journeyRef = firestore.collection('users').doc(uid).collection('journeys').doc(newTrip.journeyId);
         await firestore.runTransaction(async (transaction) => {
@@ -243,7 +256,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
                 throw new Error("Journey not found. Cannot associate trip.");
             }
             transaction.update(journeyRef, { 
-              tripIds: firestore.FieldValue.arrayUnion(newTrip.id) 
+              tripIds: admin.firestore.FieldValue.arrayUnion(newTrip.id) 
             });
             transaction.set(newTripRef, newTrip);
         });
@@ -285,14 +298,14 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
             if (oldJourneyId) {
                 const oldJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(oldJourneyId);
                 transaction.update(oldJourneyRef, {
-                    tripIds: firestore.FieldValue.arrayRemove(tripId)
+                    tripIds: admin.firestore.FieldValue.arrayRemove(tripId)
                 });
                 journeysToUpdate.push(oldJourneyId);
             }
             if (newJourneyId) {
                 const newJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(newJourneyId);
                 transaction.update(newJourneyRef, {
-                    tripIds: firestore.FieldValue.arrayUnion(tripId)
+                    tripIds: admin.firestore.FieldValue.arrayUnion(tripId)
                 });
                 journeysToUpdate.push(newJourneyId);
             }
@@ -309,7 +322,6 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
         }
     });
     
-    // After transaction, run recalculations
     if (journeyNeedsRecalculation) {
       for (const journeyId of [...new Set(journeysToUpdate)]) {
         if(journeyId) {
@@ -351,7 +363,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
         if (journeyToUpdate) {
             const journeyRef = firestore.collection('users').doc(uid).collection('journeys').doc(journeyToUpdate);
             transaction.update(journeyRef, {
-                tripIds: firestore.FieldValue.arrayRemove(tripId)
+                tripIds: admin.firestore.FieldValue.arrayRemove(tripId)
             });
         }
         

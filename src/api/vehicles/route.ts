@@ -1,4 +1,3 @@
-
 // src/app/api/vehicles/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -58,7 +57,7 @@ const createVehicleSchema = z.object({
   recommendedTyrePressureUnladenPsi: z.coerce.number().min(0).optional().nullable(),
   recommendedTyrePressureLadenPsi: z.coerce.number().min(0).optional().nullable(),
   storageLocations: z.array(z.any()).optional(), // Basic check, could be more detailed
-  brakeControllerNotes: z.string().optional().nullable(),
+  brakeControllerNotes: z.string().optional(),
 });
 
 // Zod schema for validating an existing vehicle update (must have an ID)
@@ -99,13 +98,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       id: newVehicleRef.id,
       ...parsedData,
       brakeControllerNotes: parsedData.brakeControllerNotes || null,
-      kerbWeight: parsedData.kerbWeight || null,
-      frontAxleLimit: parsedData.frontAxleLimit || null,
-      rearAxleLimit: parsedData.rearAxleLimit || null,
-      wheelbase: parsedData.wheelbase || null,
-      overallHeight: parsedData.overallHeight || null,
-      recommendedTyrePressureLadenPsi: parsedData.recommendedTyrePressureLadenPsi || null,
-      recommendedTyrePressureUnladenPsi: parsedData.recommendedTyrePressureUnladenPsi || null,
     };
     
     await newVehicleRef.set(newVehicle);

@@ -6,8 +6,6 @@ import type { StoredVehicle } from '@/types/vehicle';
 import type { StoredCaravan } from '@/types/caravan';
 import type { LoggedTrip } from '@/types/tripplanner';
 import type admin from 'firebase-admin';
-import { ZodError } from 'zod';
-
 
 const firestoreTimestampReplacer = (key: any, value: any) => {
     if (value && typeof value.toDate === 'function') {

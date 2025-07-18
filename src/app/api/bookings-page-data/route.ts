@@ -1,4 +1,3 @@
-
 // src/app/api/bookings-page-data/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -41,6 +40,18 @@ async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: strin
   }
 }
 
+const handleApiError = (error: any): NextResponse => {
+  console.error('API Error in bookings-page-data route:', error);
+  if (error.message.includes('Unauthorized')) {
+    return NextResponse.json({ error: 'Unauthorized', details: error.message }, { status: 401 });
+  }
+  if (error.message.includes('Server configuration error')) {
+    return NextResponse.json({ error: 'Server configuration error', details: error.message }, { status: 503 });
+  }
+  return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+};
+
+
 export async function GET(req: NextRequest): Promise<NextResponse> {
     try {
         const { uid, firestore } = await verifyUserAndGetInstances(req);
@@ -76,7 +87,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         return NextResponse.json(sanitizedData, { status: 200 });
         
     } catch (err: any) {
-        console.error('API Error in bookings-page-data:', err);
-        return NextResponse.json({ error: 'Failed to fetch booking page data', details: err.message }, { status: 500 });
+       return handleApiError(err);
     }
 }

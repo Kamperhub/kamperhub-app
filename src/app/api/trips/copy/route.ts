@@ -5,6 +5,7 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import type { ChecklistItem, ChecklistStage } from '@/types/checklist';
 import { z, ZodError } from 'zod';
+import admin from 'firebase-admin';
 import type { firestore } from 'firebase-admin';
 import { decode, encode } from '@googlemaps/polyline-codec';
 import type { Journey } from '@/types/journey';
@@ -139,7 +140,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             transaction.set(newTripRef, newTripData);
 
             transaction.update(destinationJourneyRef, {
-                tripIds: firestore.FieldValue.arrayUnion(newTripRef.id)
+                tripIds: admin.firestore.FieldValue.arrayUnion(newTripRef.id)
             });
 
             newTripDataForResponse = newTripData;
