@@ -30,14 +30,6 @@ export interface WaterTank {
   distanceFromAxleCenterMm?: number | null;
 }
 
-// This is no longer used and is removed from CaravanFormData
-export interface CaravanDiagram {
-  id: string;
-  name: string;
-  url: string;
-  notes?: string;
-}
-
 export interface CaravanFormData {
   make: string;
   model: string;

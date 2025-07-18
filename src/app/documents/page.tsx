@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchDocuments } from '@/lib/api-client';
@@ -9,22 +9,31 @@ import type { StoredDocument } from '@/types/document';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { PlusCircle, FileText, UploadCloud } from 'lucide-react';
+import { PlusCircle, FileText, UploadCloud, ChevronLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { DocumentList } from '@/components/features/documents/DocumentList';
 import { DocumentForm } from '@/components/features/documents/DocumentForm';
+import { NavigationContext } from '@/components/layout/AppShell';
+import Link from 'next/link';
 
 export default function DocumentsPage() {
   const { user } = useAuth();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<StoredDocument | null>(null);
+  const navContext = useContext(NavigationContext);
 
   const { data: documents = [], isLoading, error } = useQuery<StoredDocument[]>({
     queryKey: ['documents', user?.uid],
-    queryFn: () => fetchDocuments(user!.uid),
+    queryFn: () => fetchDocuments(),
     enabled: !!user,
   });
+  
+  const handleNavigation = () => {
+    if (navContext) {
+      navContext.setIsNavigating(true);
+    }
+  };
 
   const handleOpenFormForNew = () => {
     setEditingDocument(null);
@@ -56,6 +65,12 @@ export default function DocumentsPage() {
 
   return (
     <div className="space-y-8">
+      <Button asChild variant="link" className="p-0 h-auto font-body text-muted-foreground hover:text-primary -ml-1">
+        <Link href="/dashboard-details" onClick={handleNavigation}>
+          <ChevronLeft className="mr-1 h-4 w-4" />
+          Return to Dashboard Hub
+        </Link>
+      </Button>
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-headline mb-2 text-primary flex items-center">

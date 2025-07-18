@@ -48,9 +48,9 @@ export function DocumentForm({ initialData, onClose }: DocumentFormProps) {
   const mutation = useMutation({
     mutationFn: (data: DocumentFormData) => {
       if (initialData) {
-        return updateDocument(user!.uid, { ...initialData, ...data });
+        return updateDocument({ ...initialData, ...data });
       }
-      return createDocument(user!.uid, data);
+      return createDocument(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents', user?.uid] });

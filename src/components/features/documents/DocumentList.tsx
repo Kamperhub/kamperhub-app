@@ -24,7 +24,7 @@ export function DocumentList({ documents, onEdit }: DocumentListProps) {
   const { toast } = useToast();
 
   const deleteMutation = useMutation({
-    mutationFn: (docId: string) => deleteDocument(user!.uid, docId),
+    mutationFn: (docId: string) => deleteDocument(docId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents', user?.uid] });
       toast({ title: "Document Deleted" });

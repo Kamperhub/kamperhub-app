@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useMemo } from 'react';
-import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
+import { useForm, type SubmitHandler, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { CaravanFormData, StorageLocation, WaterTank, WDHFormData } from '@/types/caravan';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, XCircle, PlusCircle, Trash2, Droplet, Info, Flame, Weight, Ruler, Link2, Axe } from 'lucide-react';
+import { Save, XCircle, PlusCircle, Trash2, Droplet, Info, Flame, Weight, Ruler, Link2, Axe, Disc } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
@@ -174,8 +174,8 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
   
   useEffect(() => {
     const currentDefaultValues = initialData 
-    ? { ...defaultFormValues, ...initialData, hasWdh: !!initialData.wdh } 
-    : defaultFormValues;
+      ? { ...defaultFormValues, ...initialData, hasWdh: !!initialData.wdh } 
+      : defaultFormValues;
     reset(currentDefaultValues);
   }, [initialData, reset]);
 

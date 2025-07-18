@@ -64,10 +64,10 @@ export const updateBooking = (data: any) => apiFetch('/api/bookings', { method: 
 export const deleteBooking = (id: string) => apiFetch('/api/bookings', { method: 'DELETE', body: JSON.stringify({ id }) });
 
 // ---- Document API Functions ----
-export const fetchDocuments = (userId: string) => apiFetch('/api/documents');
-export const createDocument = (userId: string, data: any) => apiFetch('/api/documents', { method: 'POST', body: JSON.stringify(data) });
-export const updateDocument = (userId: string, data: any) => apiFetch('/api/documents', { method: 'PUT', body: JSON.stringify(data) });
-export const deleteDocument = (userId: string, id: string) => apiFetch('/api/documents', { method: 'DELETE', body: JSON.stringify({ id }) });
+export const fetchDocuments = () => apiFetch('/api/documents');
+export const createDocument = (data: any) => apiFetch('/api/documents', { method: 'POST', body: JSON.stringify(data) });
+export const updateDocument = (data: any) => apiFetch('/api/documents', { method: 'PUT', body: JSON.stringify(data) });
+export const deleteDocument = (id: string) => apiFetch('/api/documents', { method: 'DELETE', body: JSON.stringify({ id }) });
 
 
 // ---- User Preferences API ----

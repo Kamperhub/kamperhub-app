@@ -94,12 +94,12 @@ export const navItems: NavItem[] = [
     description: "Keep a detailed history of your fuel consumption and maintenance tasks for all your vehicles.",
     keywords: 'fuel maintenance service'
   },
-   {
-    href: '/documents',
-    label: 'Document Locker',
-    icon: DocumentIcon,
-    description: 'A central, secure place for all your important documents like insurance, registration, and manuals.',
-    keywords: 'documents files insurance registration',
+  {
+    href: '/dashboard-details',
+    label: 'Dashboard Hub',
+    icon: Home,
+    description: "Access your travel statistics, rewards program, and important document storage all in one place.",
+    keywords: 'stats rewards documents'
   },
   {
     href: '/bookings',
@@ -133,6 +133,13 @@ export const navItems: NavItem[] = [
 
 // Specific items for the /dashboard-details page
 export const dashboardDetailItems: NavItem[] = [
+    {
+    href: '/documents',
+    label: 'Document Locker',
+    icon: DocumentIcon,
+    description: 'A central, secure place for all your important documents like insurance, registration, and manuals.',
+    keywords: 'documents files insurance registration',
+  },
   {
     href: '/stats',
     label: 'Travel Statistics',
