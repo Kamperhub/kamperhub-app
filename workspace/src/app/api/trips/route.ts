@@ -5,6 +5,7 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import type { Journey } from '@/types/journey';
 import { z, ZodError } from 'zod';
+import admin from 'firebase-admin';
 import type { firestore } from 'firebase-admin';
 import { decode, encode } from '@googlemaps/polyline-codec';
 
@@ -121,7 +122,7 @@ const routeDetailsSchema = z.object({
   polyline: z.string().optional().nullable(),
   warnings: z.array(z.string()).optional().nullable(),
   tollInfo: z.object({ text: z.string(), value: z.number() }).nullable().optional(),
-  fuelStations: z.array(fuelStationSchema).optional(),
+  fuelStations: z.array(fuelStationSchema).optional().nullable(),
 });
 
 
@@ -219,19 +220,32 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const parsedData = createTripSchema.parse(body);
 
     const newTripRef = firestore.collection('users').doc(uid).collection('trips').doc();
+    
     const newTrip: LoggedTrip = {
       id: newTripRef.id,
       timestamp: new Date().toISOString(),
-      ...parsedData,
+      name: parsedData.name,
+      startLocationDisplay: parsedData.startLocationDisplay,
+      endLocationDisplay: parsedData.endLocationDisplay,
+      fuelEfficiency: parsedData.fuelEfficiency,
+      fuelPrice: parsedData.fuelPrice,
+      routeDetails: parsedData.routeDetails,
+      fuelEstimate: parsedData.fuelEstimate || null,
+      plannedStartDate: parsedData.plannedStartDate || null,
+      plannedEndDate: parsedData.plannedEndDate || null,
       notes: parsedData.notes || null,
+      isCompleted: parsedData.isCompleted || false,
       isVehicleOnly: parsedData.isVehicleOnly || false,
-      expenses: parsedData.expenses || [],
+      checklists: parsedData.checklists || [],
       budget: parsedData.budget || [],
+      expenses: parsedData.expenses || [],
       occupants: (parsedData.occupants || []).map(occ => ({
         ...occ,
         age: occ.age ?? null,
         notes: occ.notes ?? null,
       })),
+      activeCaravanIdAtTimeOfCreation: parsedData.activeCaravanIdAtTimeOfCreation || null,
+      activeCaravanNameAtTimeOfCreation: parsedData.activeCaravanNameAtTimeOfCreation || null,
       journeyId: parsedData.journeyId || null,
     };
     
@@ -243,7 +257,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
                 throw new Error("Journey not found. Cannot associate trip.");
             }
             transaction.update(journeyRef, { 
-              tripIds: firestore.FieldValue.arrayUnion(newTrip.id) 
+              tripIds: admin.firestore.FieldValue.arrayUnion(newTrip.id) 
             });
             transaction.set(newTripRef, newTrip);
         });
@@ -285,14 +299,14 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
             if (oldJourneyId) {
                 const oldJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(oldJourneyId);
                 transaction.update(oldJourneyRef, {
-                    tripIds: firestore.FieldValue.arrayRemove(tripId)
+                    tripIds: admin.firestore.FieldValue.arrayRemove(tripId)
                 });
                 journeysToUpdate.push(oldJourneyId);
             }
             if (newJourneyId) {
                 const newJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(newJourneyId);
                 transaction.update(newJourneyRef, {
-                    tripIds: firestore.FieldValue.arrayUnion(tripId)
+                    tripIds: admin.firestore.FieldValue.arrayUnion(tripId)
                 });
                 journeysToUpdate.push(newJourneyId);
             }
@@ -350,7 +364,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
         if (journeyToUpdate) {
             const journeyRef = firestore.collection('users').doc(uid).collection('journeys').doc(journeyToUpdate);
             transaction.update(journeyRef, {
-                tripIds: firestore.FieldValue.arrayRemove(tripId)
+                tripIds: admin.firestore.FieldValue.arrayRemove(tripId)
             });
         }
         
