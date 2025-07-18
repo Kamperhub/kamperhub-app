@@ -4,26 +4,27 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import type { Journey } from '@/types/journey';
 import { z, ZodError } from 'zod';
+import admin from 'firebase-admin';
 import type { firestore } from 'firebase-admin';
 import { decode, encode } from '@googlemaps/polyline-codec';
 
-async function verifyUserAndGetInstances(req: NextRequest) {
+async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string; firestore: firestore.Firestore; }> {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
-    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
+    throw new Error('Server configuration error.');
   }
 
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+    throw new Error('Unauthorized: Missing or invalid Authorization header.');
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
-    return { uid: decodedToken.uid, firestore, errorResponse: null };
+    return { uid: decodedToken.uid, firestore };
   } catch (error: any) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
+    throw new Error('Unauthorized: Invalid ID token.');
   }
 }
 
@@ -107,6 +108,11 @@ const latLngSchema = z.object({
   lng: z.number(),
 });
 
+const fuelStationSchema = z.object({
+    name: z.string(),
+    location: latLngSchema,
+});
+
 const routeDetailsSchema = z.object({
   distance: z.object({ text: z.string(), value: z.number() }),
   duration: z.object({ text: z.string(), value: z.number() }),
@@ -115,7 +121,7 @@ const routeDetailsSchema = z.object({
   polyline: z.string().optional().nullable(),
   warnings: z.array(z.string()).optional().nullable(),
   tollInfo: z.object({ text: z.string(), value: z.number() }).nullable().optional(),
-  fuelStations: z.array(z.any()).optional(),
+  fuelStations: z.array(fuelStationSchema).optional(),
 });
 
 
@@ -181,44 +187,17 @@ const updateTripSchema = createTripSchema.partial().extend({
 
 
 const handleApiError = (error: any) => {
-  console.error('API Error:', error);
-  let errorTitle = 'Internal Server Error';
-  let errorDetails = 'An unexpected error occurred.';
-  let statusCode = 500;
-
+  console.error('API Error in trips route:', error);
   if (error instanceof ZodError) {
     return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
   }
-  
-  if (error.code) {
-      switch(error.code) {
-          case 5: // NOT_FOUND
-              errorTitle = 'Database Not Found';
-              errorDetails = `The Firestore database 'kamperhubv2' could not be found. Please verify its creation in your Firebase project.`;
-              statusCode = 500;
-              break;
-          case 16: // UNAUTHENTICATED
-              errorTitle = 'Server Authentication Failed';
-              errorDetails = `The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or lack permission for Firestore. Please check your setup.`;
-              statusCode = 500;
-              break;
-          default:
-              errorDetails = error.message;
-              break;
-      }
-  } else {
-    errorDetails = error.message;
-  }
-
-  return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: statusCode });
+  return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
 };
 
 // GET all trips for the authenticated user
-export async function GET(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
-
+export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const tripsSnapshot = await firestore.collection('users').doc(uid).collection('trips').get();
     const trips: LoggedTrip[] = [];
     tripsSnapshot.forEach(doc => {
@@ -233,11 +212,9 @@ export async function GET(req: NextRequest) {
 }
 
 // POST a new trip for the authenticated user
-export async function POST(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
-
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
     const parsedData = createTripSchema.parse(body);
 
@@ -245,20 +222,31 @@ export async function POST(req: NextRequest) {
     const newTrip: LoggedTrip = {
       id: newTripRef.id,
       timestamp: new Date().toISOString(),
-      ...parsedData,
+      name: parsedData.name,
+      startLocationDisplay: parsedData.startLocationDisplay,
+      endLocationDisplay: parsedData.endLocationDisplay,
+      fuelEfficiency: parsedData.fuelEfficiency,
+      fuelPrice: parsedData.fuelPrice,
+      routeDetails: parsedData.routeDetails,
+      fuelEstimate: parsedData.fuelEstimate || null,
+      plannedStartDate: parsedData.plannedStartDate || null,
+      plannedEndDate: parsedData.plannedEndDate || null,
       notes: parsedData.notes || null,
+      isCompleted: parsedData.isCompleted || false,
       isVehicleOnly: parsedData.isVehicleOnly || false,
-      expenses: parsedData.expenses || [],
+      checklists: parsedData.checklists || [],
       budget: parsedData.budget || [],
+      expenses: parsedData.expenses || [],
       occupants: (parsedData.occupants || []).map(occ => ({
         ...occ,
         age: occ.age ?? null,
         notes: occ.notes ?? null,
       })),
+      activeCaravanIdAtTimeOfCreation: parsedData.activeCaravanIdAtTimeOfCreation || null,
+      activeCaravanNameAtTimeOfCreation: parsedData.activeCaravanNameAtTimeOfCreation || null,
       journeyId: parsedData.journeyId || null,
     };
     
-    // If a journeyId is provided, update the journey as well in a transaction
     if (newTrip.journeyId) {
         const journeyRef = firestore.collection('users').doc(uid).collection('journeys').doc(newTrip.journeyId);
         await firestore.runTransaction(async (transaction) => {
@@ -267,7 +255,7 @@ export async function POST(req: NextRequest) {
                 throw new Error("Journey not found. Cannot associate trip.");
             }
             transaction.update(journeyRef, { 
-              tripIds: firestore.FieldValue.arrayUnion(newTrip.id) 
+              tripIds: admin.firestore.FieldValue.arrayUnion(newTrip.id) 
             });
             transaction.set(newTripRef, newTrip);
         });
@@ -284,11 +272,9 @@ export async function POST(req: NextRequest) {
 }
 
 // PUT (update) an existing trip for the authenticated user
-export async function PUT(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
-  
+export async function PUT(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
     const parsedData = updateTripSchema.parse(body);
     const { id: tripId, ...updateData } = parsedData;
@@ -307,19 +293,18 @@ export async function PUT(req: NextRequest) {
         const oldJourneyId = oldTripData.journeyId;
         const newJourneyId = "journeyId" in updateData ? updateData.journeyId : oldJourneyId;
 
-        // If journey assignment has changed...
         if (oldJourneyId !== newJourneyId) {
             if (oldJourneyId) {
                 const oldJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(oldJourneyId);
                 transaction.update(oldJourneyRef, {
-                    tripIds: firestore.FieldValue.arrayRemove(tripId)
+                    tripIds: admin.firestore.FieldValue.arrayRemove(tripId)
                 });
                 journeysToUpdate.push(oldJourneyId);
             }
             if (newJourneyId) {
                 const newJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(newJourneyId);
                 transaction.update(newJourneyRef, {
-                    tripIds: firestore.FieldValue.arrayUnion(tripId)
+                    tripIds: admin.firestore.FieldValue.arrayUnion(tripId)
                 });
                 journeysToUpdate.push(newJourneyId);
             }
@@ -336,7 +321,6 @@ export async function PUT(req: NextRequest) {
         }
     });
     
-    // After transaction, run recalculations
     if (journeyNeedsRecalculation) {
       for (const journeyId of [...new Set(journeysToUpdate)]) {
         if(journeyId) {
@@ -355,11 +339,9 @@ export async function PUT(req: NextRequest) {
 }
 
 // DELETE a trip for the authenticated user
-export async function DELETE(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
-
+export async function DELETE(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const { id: tripId } = await req.json();
     
     if (!tripId || typeof tripId !== 'string') {
@@ -380,7 +362,7 @@ export async function DELETE(req: NextRequest) {
         if (journeyToUpdate) {
             const journeyRef = firestore.collection('users').doc(uid).collection('journeys').doc(journeyToUpdate);
             transaction.update(journeyRef, {
-                tripIds: firestore.FieldValue.arrayRemove(tripId)
+                tripIds: admin.firestore.FieldValue.arrayRemove(tripId)
             });
         }
         
