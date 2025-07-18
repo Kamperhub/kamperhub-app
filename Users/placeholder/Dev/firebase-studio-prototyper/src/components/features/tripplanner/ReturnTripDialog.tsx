@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, AlertCircle, Rocket, ChevronRight, CornerDownLeft, PlusCircle } from 'lucide-react';
-import type { LoggedTrip } from '@/types/tripplanner';
+import type { LoggedTrip, ChecklistStage } from '@/types/tripplanner';
 import { RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import { fullRigChecklist, vehicleOnlyChecklist } from '@/types/checklist';
 import { useToast } from '@/hooks/use-toast';
@@ -64,11 +64,11 @@ export function ReturnTripDialog({ children }: { children: React.ReactNode }) {
     
     const isVehicleOnlyReturn = trip.isVehicleOnly ?? false;
 
-    const sourceChecklistSet = isVehicleOnlyReturn
+    const sourceChecklistSet: readonly ChecklistStage[] = isVehicleOnlyReturn
       ? vehicleOnlyChecklist
       : fullRigChecklist;
 
-    const newTripChecklistSet = sourceChecklistSet.map(stage => ({
+    const newTripChecklistSet: ChecklistStage[] = sourceChecklistSet.map(stage => ({
         ...stage,
         items: stage.items.map(item => ({ ...item, completed: false })) // Ensure items are fresh copies and unchecked
     }));
