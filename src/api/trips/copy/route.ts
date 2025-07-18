@@ -1,4 +1,3 @@
-
 // src/app/api/trips/copy/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -79,6 +78,12 @@ const handleApiError = (error: any): NextResponse => {
   console.error('API Error in trips/copy route:', error);
   if (error instanceof ZodError) {
     return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
+  }
+  if (error.message.includes('Unauthorized')) {
+    return NextResponse.json({ error: 'Unauthorized', details: error.message }, { status: 401 });
+  }
+  if (error.message.includes('Server configuration error')) {
+    return NextResponse.json({ error: 'Server configuration error', details: error.message }, { status: 503 });
   }
   return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
 };

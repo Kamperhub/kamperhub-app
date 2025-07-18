@@ -1,4 +1,3 @@
-
 import type { DateRange } from 'react-day-picker';
 import type { ChecklistStage } from '@/types/checklist';
 import type { BudgetCategory, Expense } from '@/types/expense';
@@ -20,12 +19,12 @@ export interface FuelStation {
 export interface RouteDetails {
   distance: { text: string; value: number };
   duration: { text: string; value: number };
-  startLocation?: google.maps.LatLngLiteral;
-  endLocation?: google.maps.LatLngLiteral;
+  startLocation?: google.maps.LatLngLiteral | null;
+  endLocation?: google.maps.LatLngLiteral | null;
   polyline?: string;
   warnings?: string[];
   tollInfo?: { text: string; value: number } | null;
-  fuelStations?: FuelStation[];
+  fuelStations?: FuelStation[] | null;
 }
 
 export interface FuelEstimate {

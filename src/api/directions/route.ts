@@ -1,4 +1,3 @@
-
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -9,7 +8,9 @@ import type { FuelStation, RouteDetails } from '@/types/tripplanner';
 const directionsRequestSchema = z.object({
   origin: z.string(),
   destination: z.string(),
+  isTowing: z.boolean(),
   vehicleHeight: z.number().positive().optional(),
+  caravanHeight: z.number().positive().optional(),
   axleCount: z.number().int().positive().optional(),
   avoidTolls: z.boolean().optional(),
 });
@@ -36,26 +37,25 @@ async function findFuelStationsAlongRoute(polyline: string, apiKey: string): Pro
         const decodedPath = decode(polyline, 5);
         if (decodedPath.length < 2) return [];
 
-        const searchPoints: { latitude: number; longitude: number }[] = [];
-        let totalDistance = 0;
-        for (let i = 0; i < decodedPath.length - 1; i++) {
-            totalDistance += Math.sqrt(Math.pow(decodedPath[i+1][0] - decodedPath[i][0], 2) + Math.pow(decodedPath[i+1][1] - decodedPath[i][1], 2));
-        }
-        const interval = Math.min(100, totalDistance / 5);
+        const searchPoints: google.maps.LatLngLiteral[] = [];
+        const totalDistance = google.maps.geometry.spherical.computeLength(decodedPath.map(p => new google.maps.LatLng(p[0], p[1])));
+        const interval = Math.min(100000, totalDistance / 5); // Search roughly every 100km, up to 5 points
 
-        if (interval < 10) { 
-            searchPoints.push({ latitude: decodedPath[0][0], longitude: decodedPath[0][1] });
+        if (interval < 10000) { // For short trips, just check start and middle
+            searchPoints.push({ lat: decodedPath[0][0], lng: decodedPath[0][1] });
             if (decodedPath.length > 2) {
                  const midPoint = decodedPath[Math.floor(decodedPath.length / 2)];
-                 searchPoints.push({ latitude: midPoint[0], longitude: midPoint[1] });
+                 searchPoints.push({ lat: midPoint[0], lng: midPoint[1] });
             }
         } else {
             let distanceCovered = 0;
-            searchPoints.push({ latitude: decodedPath[0][0], longitude: decodedPath[0][1] });
+            searchPoints.push({ lat: decodedPath[0][0], lng: decodedPath[0][1] });
             for (let i = 0; i < decodedPath.length - 1; i++) {
-                distanceCovered += Math.sqrt(Math.pow(decodedPath[i+1][0] - decodedPath[i][0], 2) + Math.pow(decodedPath[i+1][1] - decodedPath[i][1], 2));
+                const start = new google.maps.LatLng(decodedPath[i][0], decodedPath[i][1]);
+                const end = new google.maps.LatLng(decodedPath[i+1][0], decodedPath[i+1][1]);
+                distanceCovered += google.maps.geometry.spherical.computeDistanceBetween(start, end);
                 if (distanceCovered >= interval) {
-                    searchPoints.push({ latitude: decodedPath[i+1][0], longitude: decodedPath[i+1][1] });
+                    searchPoints.push({ lat: end.lat(), lng: end.lng() });
                     distanceCovered = 0;
                 }
             }
@@ -69,11 +69,15 @@ async function findFuelStationsAlongRoute(polyline: string, apiKey: string): Pro
                 "maxResultCount": 10,
                 "locationRestriction": {
                     "circle": {
-                    "center": point,
+                    "center": {
+                        "latitude": point.lat,
+                        "longitude": point.lng
+                    },
                     "radius": 50000.0
                     }
                 }
             };
+
             return fetch(placesUrl.toString(), {
                 method: 'POST',
                 headers: {
@@ -105,7 +109,7 @@ async function findFuelStationsAlongRoute(polyline: string, apiKey: string): Pro
         return Array.from(uniqueFuelStations.values());
     } catch (e) {
         console.error("Error finding fuel stations:", e);
-        return [];
+        return []; // Return empty on error
     }
 }
 
@@ -126,7 +130,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body.', details: parsedBody.error.format() }, { status: 400 });
     }
 
-    const { origin, destination, vehicleHeight, axleCount, avoidTolls } = parsedBody.data;
+    const { origin, destination, isTowing, vehicleHeight, caravanHeight, axleCount, avoidTolls } = parsedBody.data;
+
+    const finalHeight = isTowing
+        ? Math.max(vehicleHeight || 0, caravanHeight || 0)
+        : vehicleHeight;
+    const finalHeightInMeters = finalHeight && finalHeight > 0 ? finalHeight / 1000 : undefined;
+
 
     const requestBody: any = {
       origin: { address: origin },
@@ -141,8 +151,8 @@ export async function POST(req: NextRequest) {
     };
     
     const vehicleInfo: any = {};
-    if (vehicleHeight && vehicleHeight > 0) {
-      vehicleInfo.dimensions = { height: vehicleHeight };
+    if (finalHeightInMeters) {
+      vehicleInfo.dimensions = { height: finalHeightInMeters };
     }
     if (axleCount && axleCount > 0) {
       vehicleInfo.axleCount = axleCount;
@@ -257,5 +267,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Error calculating route: ${error.message}` || 'An internal server error occurred.' }, { status: 500 });
   }
 }
-
-    
