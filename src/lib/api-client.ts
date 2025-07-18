@@ -1,3 +1,4 @@
+
 'use client';
 
 import { auth } from './firebase';
@@ -61,6 +62,13 @@ export const fetchBookings = () => apiFetch('/api/bookings');
 export const createBooking = (data: any) => apiFetch('/api/bookings', { method: 'POST', body: JSON.stringify(data) });
 export const updateBooking = (data: any) => apiFetch('/api/bookings', { method: 'PUT', body: JSON.stringify(data) });
 export const deleteBooking = (id: string) => apiFetch('/api/bookings', { method: 'DELETE', body: JSON.stringify({ id }) });
+
+// ---- Document API Functions ----
+export const fetchDocuments = (userId: string) => apiFetch('/api/documents');
+export const createDocument = (userId: string, data: any) => apiFetch('/api/documents', { method: 'POST', body: JSON.stringify(data) });
+export const updateDocument = (userId: string, data: any) => apiFetch('/api/documents', { method: 'PUT', body: JSON.stringify(data) });
+export const deleteDocument = (userId: string, id: string) => apiFetch('/api/documents', { method: 'DELETE', body: JSON.stringify({ id }) });
+
 
 // ---- User Preferences API ----
 export const fetchUserPreferences = () => apiFetch('/api/user-preferences');

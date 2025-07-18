@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, Globe, Fuel } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, Globe, Fuel, FileText as DocumentIcon } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -41,9 +41,16 @@ export const tripManagerItems: NavItem[] = [
     keywords: 'packing checklist luggage'
   },
   {
+    href: '/trip-manager/checklists',
+    label: 'Procedural Checklists',
+    icon: ListChecks,
+    description: 'Use pre-departure, setup, and pack-down checklists for your trips. Never miss a step!',
+    keywords: 'checklist safety setup',
+  },
+  {
     href: '/world-map',
     label: 'World Map',
-    icon: Globe, // Corrected from the non-existent WorldMap icon
+    icon: Globe,
     description: "View all your completed trips and journeys on an interactive global map. Explore your travel history at a glance.",
     keywords: 'world map history travel'
   },
@@ -87,12 +94,12 @@ export const navItems: NavItem[] = [
     description: "Keep a detailed history of your fuel consumption and maintenance tasks for all your vehicles.",
     keywords: 'fuel maintenance service'
   },
-  {
-    href: '/checklists',
-    label: 'Checklists',
-    icon: ListChecks,
-    description: "Create pre-departure, setup, and pack-down checklists for trips and caravan defaults. Never miss a step!",
-    keywords: 'travel list'
+   {
+    href: '/documents',
+    label: 'Document Locker',
+    icon: DocumentIcon,
+    description: 'A central, secure place for all your important documents like insurance, registration, and manuals.',
+    keywords: 'documents files insurance registration',
   },
   {
     href: '/bookings',
