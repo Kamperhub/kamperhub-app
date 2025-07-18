@@ -1,3 +1,4 @@
+
 // src/app/api/bookings/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -31,7 +32,7 @@ async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: strin
 
 // Zod schemas for validation
 
-// 1. Create the base ZodObject schema without refinement.
+// 1. Create the base ZodObject schema first.
 const baseBookingSchema = z.object({
   siteName: z.string().min(1, "Site name is required"),
   locationAddress: z.string().optional(),
@@ -45,13 +46,13 @@ const baseBookingSchema = z.object({
   budgetedCost: z.coerce.number().min(0, "Budgeted cost must be non-negative").optional().nullable(),
 });
 
-// 2. Create the schema for new bookings by applying the refinement.
+// 2. Create the schema for new bookings by applying the refinement to the base.
 const createBookingSchema = baseBookingSchema.refine(data => new Date(data.checkOutDate) >= new Date(data.checkInDate), {
     message: "Check-out date must be on or after check-in date",
     path: ["checkOutDate"],
 });
 
-// 3. Create the schema for updates by extending the base schema. This is now valid.
+// 3. Create the schema for updates by extending the base schema and then refining it.
 const updateBookingSchema = baseBookingSchema.extend({
   id: z.string().min(1, "Booking ID is required for updates"),
 }).refine(data => new Date(data.checkOutDate) >= new Date(data.checkInDate), {
@@ -110,14 +111,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       timestamp: new Date().toISOString(),
       assignedTripId: assignedTripId || null,
       budgetedCost: budgetedCost || null,
-      siteName: bookingDetails.siteName,
-      checkInDate: bookingDetails.checkInDate,
-      checkOutDate: bookingDetails.checkOutDate,
-      locationAddress: bookingDetails.locationAddress,
-      contactPhone: bookingDetails.contactPhone,
-      contactWebsite: bookingDetails.contactWebsite,
-      confirmationNumber: bookingDetails.confirmationNumber,
-      notes: bookingDetails.notes
+      ...bookingDetails,
     };
     
     if (assignedTripId && budgetedCost && budgetedCost > 0) {
@@ -166,6 +160,7 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
 
     const finalUpdatedBookingData: BookingEntry = {
         id: bookingId,
+        timestamp: new Date().toISOString(),
         siteName: restData.siteName,
         checkInDate: restData.checkInDate,
         checkOutDate: restData.checkOutDate,
@@ -176,7 +171,6 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
         notes: restData.notes,
         assignedTripId: newTripId || null,
         budgetedCost: newCost,
-        timestamp: new Date().toISOString(),
     };
     
     await firestore.runTransaction(async (transaction) => {
