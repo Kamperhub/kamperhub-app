@@ -7,7 +7,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { fetchDocuments } from '@/lib/api-client';
 import type { StoredDocument } from '@/types/document';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { PlusCircle, FileText, UploadCloud, ChevronLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
