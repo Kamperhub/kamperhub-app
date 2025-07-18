@@ -3,31 +3,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { Journey } from '@/types/journey';
 import { z, ZodError } from 'zod';
+import type admin from 'firebase-admin';
 
-// Note: The recalculateAndSaveMasterPolyline function has been moved to /api/trips/route.ts
-// to be centralized. It will need to be imported if used here in the future.
-
-async function verifyUserAndGetInstances(req: NextRequest) {
+async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string; firestore: admin.firestore.Firestore; }> {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
-    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
+    throw new Error('Server configuration error.');
   }
   const authHeader = req.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing Authorization header.' }, { status: 401 }) };
+    throw new Error('Unauthorized: Missing Authorization header.');
   }
   const idToken = authHeader.split('Bearer ')[1];
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
-    return { uid: decodedToken.uid, firestore, errorResponse: null };
+    return { uid: decodedToken.uid, firestore };
   } catch (error: any) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
+    throw new Error('Unauthorized: Invalid ID token.');
   }
 }
 
 const createJourneySchema = z.object({
   name: z.string().min(1, "Journey name is required"),
-  description: z.string().optional().nullable(),
+  description: z.string().optional(),
 });
 
 const updateJourneySchema = z.object({
@@ -37,26 +35,30 @@ const updateJourneySchema = z.object({
   tripIds: z.array(z.string()).optional(),
 });
 
-// GET all journeys for the user
-export async function GET(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
+const handleApiError = (error: any): NextResponse => {
+    console.error('API Error in journeys route:', error);
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: 'Invalid data', details: error.format() }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+};
 
+// GET all journeys for the user
+export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const journeysSnapshot = await firestore.collection('users').doc(uid).collection('journeys').orderBy('createdAt', 'desc').get();
     const journeys = journeysSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Journey[];
     return NextResponse.json(journeys, { status: 200 });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch journeys' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
 // POST a new journey
-export async function POST(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
-
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
     const parsedData = createJourneySchema.parse(body);
     
@@ -64,7 +66,8 @@ export async function POST(req: NextRequest) {
     const now = new Date().toISOString();
     const newJourney: Journey = {
       id: newJourneyRef.id,
-      ...parsedData,
+      name: parsedData.name,
+      description: parsedData.description || null,
       tripIds: [],
       masterPolyline: null,
       createdAt: now,
@@ -74,19 +77,14 @@ export async function POST(req: NextRequest) {
     await newJourneyRef.set(newJourney);
     return NextResponse.json(newJourney, { status: 201 });
   } catch (error: any) {
-    if (error instanceof ZodError) {
-      return NextResponse.json({ error: 'Invalid data', details: error.format() }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Failed to create journey', details: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
 // PUT (update) an existing journey
-export async function PUT(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
-
+export async function PUT(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
     const parsedData = updateJourneySchema.parse(body);
     const { id, ...updateData } = parsedData;
@@ -98,26 +96,18 @@ export async function PUT(req: NextRequest) {
         updatedAt: new Date().toISOString(),
     });
     
-    // Note: The logic to recalculate polyline is now handled in the trips API
-    // when a trip is added or removed from a journey. This keeps logic centralized.
-    
     const updatedDoc = await journeyRef.get();
     return NextResponse.json(updatedDoc.data(), { status: 200 });
 
   } catch (error: any) {
-    if (error instanceof ZodError) {
-      return NextResponse.json({ error: 'Invalid data', details: error.format() }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Failed to update journey', details: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
 // DELETE a journey
-export async function DELETE(req: NextRequest) {
-    const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-    if (errorResponse || !uid || !firestore) return errorResponse;
-
+export async function DELETE(req: NextRequest): Promise<NextResponse> {
     try {
+        const { uid, firestore } = await verifyUserAndGetInstances(req);
         const { id } = await req.json();
         if (!id || typeof id !== 'string') {
             return NextResponse.json({ error: 'Journey ID is required.' }, { status: 400 });
@@ -125,11 +115,8 @@ export async function DELETE(req: NextRequest) {
         
         await firestore.collection('users').doc(uid).collection('journeys').doc(id).delete();
         
-        // Note: This does not unlink trips from the journey. A more robust solution
-        // might involve a transaction to loop through trips and set journeyId to null.
-        
         return NextResponse.json({ message: 'Journey deleted successfully.' }, { status: 200 });
     } catch (err: any) {
-        return NextResponse.json({ error: 'Internal Server Error', details: err.message }, { status: 500 });
+        return handleApiError(err);
     }
 }
