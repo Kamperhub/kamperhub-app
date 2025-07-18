@@ -22,8 +22,8 @@ export interface RouteDetails {
   duration: { text: string; value: number };
   startLocation?: google.maps.LatLngLiteral | null;
   endLocation?: google.maps.LatLngLiteral | null;
-  polyline?: string;
-  warnings?: string[];
+  polyline?: string | null;
+  warnings?: string[] | null;
   tollInfo?: { text: string; value: number } | null;
   fuelStations?: FuelStation[] | null;
 }

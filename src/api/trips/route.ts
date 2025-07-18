@@ -1,3 +1,4 @@
+
 // src/app/api/trips/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -233,10 +234,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       endLocationDisplay: parsedData.endLocationDisplay,
       fuelEfficiency: parsedData.fuelEfficiency,
       fuelPrice: parsedData.fuelPrice,
-      routeDetails: {
-        ...parsedData.routeDetails,
-        fuelStations: parsedData.routeDetails.fuelStations || null,
-      },
+      routeDetails: parsedData.routeDetails,
       fuelEstimate: parsedData.fuelEstimate || null,
       plannedStartDate: parsedData.plannedStartDate || null,
       plannedEndDate: parsedData.plannedEndDate || null,
