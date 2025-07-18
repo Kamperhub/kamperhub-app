@@ -1,6 +1,5 @@
-
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, Globe, Fuel } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, Globe, Fuel, FileText as DocumentIcon } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -41,7 +40,7 @@ export const tripManagerItems: NavItem[] = [
     keywords: 'packing checklist luggage'
   },
   {
-    href: '/trip-manager/checklists',
+    href: '/checklists',
     label: 'Procedural Checklists',
     icon: ListChecks,
     description: 'Use pre-departure, setup, and pack-down checklists for your trips. Never miss a step!',
@@ -60,11 +59,11 @@ export const tripManagerItems: NavItem[] = [
 // Main navigation items for the dashboard grid. 
 export const navItems: NavItem[] = [
   {
-    href: '/dashboard',
-    label: 'Dashboard', 
-    icon: LayoutDashboard,
-    description: "Your main hub. Access all features, start trips, and see a customized view of your tools.",
-    keywords: 'home main start'
+    href: '/dashboard-details',
+    label: 'Dashboard Hub',
+    icon: Home,
+    description: "Access your travel statistics, rewards program, and important document storage all in one place.",
+    keywords: 'stats rewards documents'
   },
   {
     href: '/vehicles',
@@ -86,13 +85,6 @@ export const navItems: NavItem[] = [
     icon: Briefcase,
     description: 'A central hub to plan individual trips, journeys, packing lists, and review your travel history.',
     keywords: 'trip planner log packing journey map'
-  },
-  {
-    href: '/service-log',
-    label: 'Service & Fuel Log',
-    icon: Fuel,
-    description: "Keep a detailed history of your fuel consumption and maintenance tasks for all your vehicles.",
-    keywords: 'fuel maintenance service'
   },
   {
     href: '/bookings',
@@ -126,6 +118,13 @@ export const navItems: NavItem[] = [
 
 // Specific items for the /dashboard-details page
 export const dashboardDetailItems: NavItem[] = [
+    {
+    href: '/documents',
+    label: 'Document Locker',
+    icon: DocumentIcon,
+    description: 'A central, secure place for all your important documents like insurance, registration, and manuals.',
+    keywords: 'documents files insurance registration',
+  },
   {
     href: '/stats',
     label: 'Travel Statistics',
