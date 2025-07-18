@@ -20,12 +20,12 @@ export interface FuelStation {
 export interface RouteDetails {
   distance: { text: string; value: number };
   duration: { text: string; value: number };
-  startLocation?: google.maps.LatLngLiteral | null;
-  endLocation?: google.maps.LatLngLiteral | null;
-  polyline?: string;
-  warnings?: string[];
-  tollInfo?: { text: string; value: number } | null;
-  fuelStations?: FuelStation[] | null;
+  startLocation: google.maps.LatLngLiteral | null | undefined;
+  endLocation: google.maps.LatLngLiteral | null | undefined;
+  polyline: string | null | undefined;
+  warnings: string[] | null | undefined;
+  tollInfo: { text: string; value: number } | null | undefined;
+  fuelStations: FuelStation[] | null | undefined;
 }
 
 export interface FuelEstimate {
@@ -76,4 +76,3 @@ export interface LoggedTrip {
 
 // Key for localStorage
 export const RECALLED_TRIP_DATA_KEY = 'kamperhub_recalled_trip_data';
-
