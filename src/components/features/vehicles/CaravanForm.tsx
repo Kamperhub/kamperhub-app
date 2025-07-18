@@ -263,7 +263,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
             {errors.maxTowballDownload && <p className="text-sm text-destructive font-body mt-1">{errors.maxTowballDownload.message}</p>}
           </div>
         </div>
-        {potentialGrossPayload > 0 && (
+        {potentialGrossPayload !== null && (
           <Alert variant="default" className="mt-2 bg-primary/10 border-primary/30">
             <Info className="h-4 w-4 text-primary" />
             <AlertTitle className="font-body text-primary">Calculated Gross Payload</AlertTitle>

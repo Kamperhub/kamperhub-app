@@ -60,11 +60,11 @@ export const tripManagerItems: NavItem[] = [
 // Main navigation items for the dashboard grid. 
 export const navItems: NavItem[] = [
   {
-    href: '/dashboard',
-    label: 'Dashboard', 
-    icon: LayoutDashboard,
-    description: "Your main hub. Access all features, start trips, and see a customized view of your tools.",
-    keywords: 'home main start'
+    href: '/dashboard-details',
+    label: 'Dashboard Hub',
+    icon: Home,
+    description: "Access your travel statistics, rewards program, and important document storage all in one place.",
+    keywords: 'stats rewards documents'
   },
   {
     href: '/vehicles',
@@ -93,13 +93,6 @@ export const navItems: NavItem[] = [
     icon: Fuel,
     description: "Keep a detailed history of your fuel consumption and maintenance tasks for all your vehicles.",
     keywords: 'fuel maintenance service'
-  },
-  {
-    href: '/dashboard-details',
-    label: 'Dashboard Hub',
-    icon: Home,
-    description: "Access your travel statistics, rewards program, and important document storage all in one place.",
-    keywords: 'stats rewards documents'
   },
   {
     href: '/bookings',
