@@ -1,4 +1,5 @@
 
+
 export interface Journey {
   id: string;
   name: string;
@@ -8,3 +9,5 @@ export interface Journey {
   createdAt: string; // ISO string
   updatedAt: string; // ISO string
 }
+
+    
