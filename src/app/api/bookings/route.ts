@@ -111,7 +111,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       timestamp: new Date().toISOString(),
       assignedTripId: assignedTripId || null,
       budgetedCost: budgetedCost || null,
-      ...bookingDetails,
+      siteName: bookingDetails.siteName,
+      checkInDate: bookingDetails.checkInDate,
+      checkOutDate: bookingDetails.checkOutDate,
+      locationAddress: bookingDetails.locationAddress || undefined,
+      contactPhone: bookingDetails.contactPhone || undefined,
+      contactWebsite: bookingDetails.contactWebsite || undefined,
+      confirmationNumber: bookingDetails.confirmationNumber || undefined,
+      notes: bookingDetails.notes || undefined,
     };
     
     if (assignedTripId && budgetedCost && budgetedCost > 0) {
@@ -263,3 +270,5 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
     return handleApiError(err);
   }
 }
+
+    
