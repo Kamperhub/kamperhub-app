@@ -122,7 +122,7 @@ const routeDetailsSchema = z.object({
   polyline: z.string().optional().nullable(),
   warnings: z.array(z.string()).optional().nullable(),
   tollInfo: z.object({ text: z.string(), value: z.number() }).nullable().optional(),
-  fuelStations: z.array(fuelStationSchema).optional(),
+  fuelStations: z.array(fuelStationSchema).optional().nullable(),
 });
 
 
@@ -187,7 +187,7 @@ const updateTripSchema = createTripSchema.partial().extend({
 });
 
 
-const handleApiError = (error: any) => {
+const handleApiError = (error: any): NextResponse => {
   console.error('API Error in trips route:', error);
   if (error instanceof ZodError) {
     return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
@@ -220,6 +220,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const parsedData = createTripSchema.parse(body);
 
     const newTripRef = firestore.collection('users').doc(uid).collection('trips').doc();
+    
     const newTrip: LoggedTrip = {
       id: newTripRef.id,
       timestamp: new Date().toISOString(),
