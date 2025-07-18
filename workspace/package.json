@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "npm run clean && next dev",
     "genkit:dev": "genkit start --tsx --env-file .env.local src/ai/dev.ts",
     "genkit:watch": "genkit start --tsx --watch --env-file .env.local src/ai/dev.ts",
     "build": "next build",
@@ -80,5 +80,3 @@
     "typescript": "^5.5.3"
   }
 }
-
-    
