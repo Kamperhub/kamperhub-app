@@ -18,11 +18,12 @@ import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { DateRange } from 'react-day-picker';
 
-const bookingSchema = z.object({
+// Define schema outside the component to prevent re-creation on re-renders
+const bookingFormSchema = z.object({
   siteName: z.string().min(1, "Site name is required"),
   locationAddress: z.string().optional(),
   contactPhone: z.string().optional(),
-  contactWebsite: z.string().url("Must be a valid URL (e.g., https://example.com)").optional().or(z.literal('')),
+  contactWebsite: z.string().url("Must be a valid URL (e.g., https://example.com)").or(z.literal('')).optional().nullable(),
   confirmationNumber: z.string().optional(),
   dateRange: z.object({
       from: z.date({ required_error: "A check-in date is required." }),
@@ -41,7 +42,7 @@ const bookingSchema = z.object({
     path: ["dateRange"],
 });
 
-type BookingFormData = z.infer<typeof bookingSchema>;
+type BookingFormData = z.infer<typeof bookingFormSchema>;
 
 interface BookingFormProps {
   initialData?: BookingEntry;
@@ -54,7 +55,7 @@ interface BookingFormProps {
 export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }: BookingFormProps) {
 
   const { control, register, handleSubmit, formState: { errors } } = useForm<BookingFormData>({
-    resolver: zodResolver(bookingSchema),
+    resolver: zodResolver(bookingFormSchema),
     defaultValues: {
       siteName: initialData?.siteName || '',
       locationAddress: initialData?.locationAddress || '',
@@ -72,17 +73,20 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
   });
 
   const onSubmit: SubmitHandler<BookingFormData> = (data) => {
-    // The 'to' date can be the same as 'from', so ensure it exists.
     const checkOutDate = data.dateRange.to || data.dateRange.from;
-
+    
     const dataToSave = {
-        ...data,
-        checkInDate: data.dateRange.from.toISOString(),
-        checkOutDate: checkOutDate.toISOString(),
+      siteName: data.siteName,
+      locationAddress: data.locationAddress || null,
+      contactPhone: data.contactPhone || null,
+      contactWebsite: data.contactWebsite || null,
+      confirmationNumber: data.confirmationNumber || null,
+      checkInDate: data.dateRange.from.toISOString(),
+      checkOutDate: checkOutDate.toISOString(),
+      notes: data.notes || null,
+      budgetedCost: data.budgetedCost || null,
+      assignedTripId: data.assignedTripId || null,
     };
-    // We don't want to save the dateRange object itself.
-    delete (dataToSave as any).dateRange;
-
     onSave(dataToSave as Omit<BookingEntry, 'id' | 'timestamp'>);
   };
 
@@ -94,7 +98,7 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
         {errors.siteName && <p className="text-sm text-destructive font-body mt-1">{errors.siteName.message}</p>}
       </div>
 
-       <div>
+      <div>
         <Label htmlFor="dateRange" className="font-body">Booking Dates*</Label>
         <Controller name="dateRange" control={control} render={({ field }) => (
             <Popover>

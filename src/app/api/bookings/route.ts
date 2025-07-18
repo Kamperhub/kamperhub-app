@@ -1,4 +1,3 @@
-
 // src/app/api/bookings/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -30,18 +29,16 @@ async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: strin
   }
 }
 
-// Zod schemas for validation
-
-// 1. Create the base ZodObject schema first.
+// 1. Define the core object structure first. This is a pure ZodObject.
 const baseBookingSchema = z.object({
   siteName: z.string().min(1, "Site name is required"),
-  locationAddress: z.string().optional(),
-  contactPhone: z.string().optional(),
-  contactWebsite: z.string().url("Must be a valid URL (e.g., https://example.com)").optional().or(z.literal('')),
-  confirmationNumber: z.string().optional(),
+  locationAddress: z.string().optional().nullable(),
+  contactPhone: z.string().optional().nullable(),
+  contactWebsite: z.string().url("Must be a valid URL (e.g., https://example.com)").optional().nullable(),
+  confirmationNumber: z.string().optional().nullable(),
   checkInDate: z.string().datetime({ message: "Check-in date must be a valid ISO date string" }),
   checkOutDate: z.string().datetime({ message: "Check-out date must be a valid ISO date string" }),
-  notes: z.string().optional(),
+  notes: z.string().optional().nullable(),
   assignedTripId: z.string().nullable().optional(),
   budgetedCost: z.coerce.number().min(0, "Budgeted cost must be non-negative").optional().nullable(),
 });
@@ -103,26 +100,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
     const parsedData = createBookingSchema.parse(body);
-    const { assignedTripId, budgetedCost, ...bookingDetails } = parsedData;
 
     const newBookingRef = firestore.collection('users').doc(uid).collection('bookings').doc();
     const newBooking: BookingEntry = {
       id: newBookingRef.id,
       timestamp: new Date().toISOString(),
-      assignedTripId: assignedTripId || null,
-      budgetedCost: budgetedCost || null,
-      siteName: bookingDetails.siteName,
-      checkInDate: bookingDetails.checkInDate,
-      checkOutDate: bookingDetails.checkOutDate,
-      locationAddress: bookingDetails.locationAddress || undefined,
-      contactPhone: bookingDetails.contactPhone || undefined,
-      contactWebsite: bookingDetails.contactWebsite || undefined,
-      confirmationNumber: bookingDetails.confirmationNumber || undefined,
-      notes: bookingDetails.notes || undefined,
+      siteName: parsedData.siteName,
+      checkInDate: parsedData.checkInDate,
+      checkOutDate: parsedData.checkOutDate,
+      locationAddress: parsedData.locationAddress || null,
+      contactPhone: parsedData.contactPhone || null,
+      contactWebsite: parsedData.contactWebsite || null,
+      confirmationNumber: parsedData.confirmationNumber || null,
+      notes: parsedData.notes || null,
+      assignedTripId: parsedData.assignedTripId || null,
+      budgetedCost: parsedData.budgetedCost || null,
     };
     
-    if (assignedTripId && budgetedCost && budgetedCost > 0) {
-        const tripRef = firestore.collection('users').doc(uid).collection('trips').doc(assignedTripId);
+    if (newBooking.assignedTripId && newBooking.budgetedCost && newBooking.budgetedCost > 0) {
+        const tripRef = firestore.collection('users').doc(uid).collection('trips').doc(newBooking.assignedTripId);
         await firestore.runTransaction(async (transaction) => {
             const tripDoc = await transaction.get(tripRef);
             if (!tripDoc.exists) throw new Error("Assigned trip not found.");
@@ -132,12 +128,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             const accommodationCategoryIndex = budget.findIndex(cat => cat.name === ACCOMMODATION_CATEGORY_NAME);
 
             if (accommodationCategoryIndex > -1) {
-                budget[accommodationCategoryIndex].budgetedAmount += budgetedCost;
+                budget[accommodationCategoryIndex].budgetedAmount += newBooking.budgetedCost!;
             } else {
                 budget.push({
                     id: 'accommodation_budget_category',
                     name: ACCOMMODATION_CATEGORY_NAME,
-                    budgetedAmount: budgetedCost,
+                    budgetedAmount: newBooking.budgetedCost!,
                 });
             }
             transaction.update(tripRef, { budget });
@@ -160,8 +156,8 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
     const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
     const parsedBookingData = updateBookingSchema.parse(body);
-    const { id: bookingId, assignedTripId: newTripId, budgetedCost: newCostValue, ...restData } = parsedBookingData;
-    const newCost = newCostValue || 0;
+    const { id: bookingId, ...restData } = parsedBookingData;
+    const newCost = restData.budgetedCost || 0;
 
     const bookingRef = firestore.collection('users').doc(uid).collection('bookings').doc(bookingId);
 
@@ -171,12 +167,12 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
         siteName: restData.siteName,
         checkInDate: restData.checkInDate,
         checkOutDate: restData.checkOutDate,
-        locationAddress: restData.locationAddress,
-        contactPhone: restData.contactPhone,
-        contactWebsite: restData.contactWebsite,
-        confirmationNumber: restData.confirmationNumber,
-        notes: restData.notes,
-        assignedTripId: newTripId || null,
+        locationAddress: restData.locationAddress || null,
+        contactPhone: restData.contactPhone || null,
+        contactWebsite: restData.contactWebsite || null,
+        confirmationNumber: restData.confirmationNumber || null,
+        notes: restData.notes || null,
+        assignedTripId: restData.assignedTripId || null,
         budgetedCost: newCost,
     };
     
@@ -203,8 +199,8 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
         }
       }
       
-      if (newTripId && newCost > 0) {
-        const newTripRef = firestore.collection('users').doc(uid).collection('trips').doc(newTripId);
+      if (finalUpdatedBookingData.assignedTripId && newCost > 0) {
+        const newTripRef = firestore.collection('users').doc(uid).collection('trips').doc(finalUpdatedBookingData.assignedTripId);
         const newTripDoc = await transaction.get(newTripRef);
         if (!newTripDoc.exists) throw new Error("New assigned trip not found.");
         
@@ -270,5 +266,3 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
     return handleApiError(err);
   }
 }
-
-    
