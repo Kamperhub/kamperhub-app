@@ -1,4 +1,3 @@
-
 // src/app/api/bookings/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -31,25 +30,33 @@ async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: strin
 }
 
 // Zod schemas for validation
-const bookingSchema = z.object({
+
+// 1. Create the base ZodObject schema without refinement.
+const baseBookingSchema = z.object({
   siteName: z.string().min(1, "Site name is required"),
   locationAddress: z.string().optional(),
   contactPhone: z.string().optional(),
-  contactWebsite: z.string().url("Must be a valid URL").optional().or(z.literal('')),
+  contactWebsite: z.string().url("Must be a valid URL (e.g., https://example.com)").optional().or(z.literal('')),
   confirmationNumber: z.string().optional(),
   checkInDate: z.string().datetime({ message: "Check-in date must be a valid ISO date string" }),
   checkOutDate: z.string().datetime({ message: "Check-out date must be a valid ISO date string" }),
   notes: z.string().optional(),
   assignedTripId: z.string().nullable().optional(),
   budgetedCost: z.coerce.number().min(0, "Budgeted cost must be non-negative").optional().nullable(),
-}).refine(data => new Date(data.checkOutDate) >= new Date(data.checkInDate), {
+});
+
+// 2. Create the schema for new bookings by applying the refinement.
+const createBookingSchema = baseBookingSchema.refine(data => new Date(data.checkOutDate) >= new Date(data.checkInDate), {
     message: "Check-out date must be on or after check-in date",
     path: ["checkOutDate"],
 });
 
-// For updates, the base schema is the same, but we also expect an ID
-const updateBookingSchema = bookingSchema.extend({
+// 3. Create the schema for updates by extending the base schema. This is now valid.
+const updateBookingSchema = baseBookingSchema.extend({
   id: z.string().min(1, "Booking ID is required for updates"),
+}).refine(data => new Date(data.checkOutDate) >= new Date(data.checkInDate), {
+    message: "Check-out date must be on or after check-in date",
+    path: ["checkOutDate"],
 });
 
 
@@ -94,7 +101,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
-    const parsedData = bookingSchema.parse(body);
+    const parsedData = createBookingSchema.parse(body);
     const { assignedTripId, budgetedCost, ...bookingDetails } = parsedData;
 
     const newBookingRef = firestore.collection('users').doc(uid).collection('bookings').doc();
@@ -103,7 +110,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       timestamp: new Date().toISOString(),
       assignedTripId: assignedTripId || null,
       budgetedCost: budgetedCost || null,
-      ...bookingDetails,
+      siteName: bookingDetails.siteName,
+      checkInDate: bookingDetails.checkInDate,
+      checkOutDate: bookingDetails.checkOutDate,
+      locationAddress: bookingDetails.locationAddress,
+      contactPhone: bookingDetails.contactPhone,
+      contactWebsite: bookingDetails.contactWebsite,
+      confirmationNumber: bookingDetails.confirmationNumber,
+      notes: bookingDetails.notes
     };
     
     if (assignedTripId && budgetedCost && budgetedCost > 0) {
@@ -152,7 +166,14 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
 
     const finalUpdatedBookingData: BookingEntry = {
         id: bookingId,
-        ...restData,
+        siteName: restData.siteName,
+        checkInDate: restData.checkInDate,
+        checkOutDate: restData.checkOutDate,
+        locationAddress: restData.locationAddress,
+        contactPhone: restData.contactPhone,
+        contactWebsite: restData.contactWebsite,
+        confirmationNumber: restData.confirmationNumber,
+        notes: restData.notes,
         assignedTripId: newTripId || null,
         budgetedCost: newCost,
         timestamp: new Date().toISOString(),
