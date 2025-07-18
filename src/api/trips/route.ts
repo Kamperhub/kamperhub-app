@@ -5,6 +5,7 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import type { Journey } from '@/types/journey';
 import { z, ZodError } from 'zod';
+import admin from 'firebase-admin';
 import type { firestore } from 'firebase-admin';
 import { decode, encode } from '@googlemaps/polyline-codec';
 
@@ -255,7 +256,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
                 throw new Error("Journey not found. Cannot associate trip.");
             }
             transaction.update(journeyRef, { 
-              tripIds: firestore.FieldValue.arrayUnion(newTrip.id) 
+              tripIds: admin.firestore.FieldValue.arrayUnion(newTrip.id) 
             });
             transaction.set(newTripRef, newTrip);
         });
@@ -297,14 +298,14 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
             if (oldJourneyId) {
                 const oldJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(oldJourneyId);
                 transaction.update(oldJourneyRef, {
-                    tripIds: firestore.FieldValue.arrayRemove(tripId)
+                    tripIds: admin.firestore.FieldValue.arrayRemove(tripId)
                 });
                 journeysToUpdate.push(oldJourneyId);
             }
             if (newJourneyId) {
                 const newJourneyRef = firestore.collection('users').doc(uid).collection('journeys').doc(newJourneyId);
                 transaction.update(newJourneyRef, {
-                    tripIds: firestore.FieldValue.arrayUnion(tripId)
+                    tripIds: admin.firestore.FieldValue.arrayUnion(tripId)
                 });
                 journeysToUpdate.push(newJourneyId);
             }
@@ -362,7 +363,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
         if (journeyToUpdate) {
             const journeyRef = firestore.collection('users').doc(uid).collection('journeys').doc(journeyToUpdate);
             transaction.update(journeyRef, {
-                tripIds: firestore.FieldValue.arrayRemove(tripId)
+                tripIds: admin.firestore.FieldValue.arrayRemove(tripId)
             });
         }
         
