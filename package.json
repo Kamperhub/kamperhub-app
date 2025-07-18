@@ -67,6 +67,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@opentelemetry/exporter-jaeger": "^1.25.1",
     "@tanstack/react-query-devtools": "^5.66.0",
     "@types/google.maps": "^3.55.12",
     "@types/node": "^20",

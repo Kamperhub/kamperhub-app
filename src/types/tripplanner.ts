@@ -1,3 +1,4 @@
+
 import type { DateRange } from 'react-day-picker';
 import type { ChecklistStage } from '@/types/checklist';
 import type { BudgetCategory, Expense } from '@/types/expense';
