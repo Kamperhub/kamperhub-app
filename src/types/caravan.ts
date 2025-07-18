@@ -30,17 +30,6 @@ export interface WaterTank {
   distanceFromAxleCenterMm?: number | null;
 }
 
-// Represents diagrams or other files linked to a caravan. This is now obsolete
-// and replaced by the central Document Locker, but the type might be needed for
-// graceful data migration in the future.
-export interface CaravanDiagram {
-  id: string;
-  name: string;
-  url: string;
-  notes?: string;
-}
-
-
 export interface CaravanFormData {
   make: string;
   model: string;

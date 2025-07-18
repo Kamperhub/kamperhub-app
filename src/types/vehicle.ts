@@ -33,5 +33,3 @@ export interface VehicleFormData {
 export interface StoredVehicle extends VehicleFormData {
   id: string;
 }
-
-    
