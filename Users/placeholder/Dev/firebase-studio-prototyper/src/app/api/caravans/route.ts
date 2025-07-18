@@ -1,3 +1,4 @@
+
 // src/app/api/caravans/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -61,13 +62,6 @@ const waterTankSchema = z.object({
   distanceFromAxleCenterMm: z.coerce.number().optional().nullable(),
 });
 
-const caravanDiagramSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1, "Diagram name is required"),
-  url: z.string().url("Must be a valid URL"),
-  notes: z.string().optional().nullable(),
-});
-
 const wdhSchema = z.object({
   name: z.string().min(1, "WDH Name/Model is required"),
   type: z.string().min(1, "WDH Type is required"),
@@ -112,7 +106,6 @@ const createCaravanSchema = z.object({
   interAxleSpacing: z.coerce.number().optional().nullable(),
   storageLocations: z.array(storageLocationSchema).optional(),
   waterTanks: z.array(waterTankSchema).optional(),
-  diagrams: z.array(caravanDiagramSchema).optional(),
 });
 
 // Zod schema for updating an existing caravan (must include ID)
@@ -160,7 +153,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       ...parsedData,
       storageLocations: parsedData.storageLocations || [],
       waterTanks: parsedData.waterTanks || [],
-      diagrams: parsedData.diagrams || [],
       wdh: parsedData.wdh || null,
       numberOfGasBottles: parsedData.numberOfGasBottles || null,
       gasBottleCapacityKg: parsedData.gasBottleCapacityKg || null,

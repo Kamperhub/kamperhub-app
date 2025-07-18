@@ -5,6 +5,7 @@ import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import type { ChecklistItem, ChecklistStage } from '@/types/checklist';
 import { z, ZodError } from 'zod';
+import admin from 'firebase-admin';
 import type { firestore } from 'firebase-admin';
 import { decode, encode } from '@googlemaps/polyline-codec';
 import type { Journey } from '@/types/journey';
@@ -79,6 +80,12 @@ const handleApiError = (error: any): NextResponse => {
   if (error instanceof ZodError) {
     return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
   }
+  if (error.message.includes('Unauthorized')) {
+    return NextResponse.json({ error: 'Unauthorized', details: error.message }, { status: 401 });
+  }
+  if (error.message.includes('Server configuration error')) {
+    return NextResponse.json({ error: 'Server configuration error', details: error.message }, { status: 503 });
+  }
   return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
 };
 
@@ -139,7 +146,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             transaction.set(newTripRef, newTripData);
 
             transaction.update(destinationJourneyRef, {
-                tripIds: firestore.FieldValue.arrayUnion(newTripRef.id)
+                tripIds: admin.firestore.FieldValue.arrayUnion(newTripRef.id)
             });
 
             newTripDataForResponse = newTripData;

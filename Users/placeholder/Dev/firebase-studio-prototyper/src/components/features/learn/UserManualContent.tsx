@@ -8,9 +8,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { LayoutDashboard, Settings2, Backpack, ListChecks, Route as RouteIcon, History, BedDouble, BookOpen, ShieldAlert, UserCircle, DollarSign, Map, Briefcase, FileText } from 'lucide-react';
-import { cn } from "@/lib/utils";
+import { LayoutDashboard, Settings2, Backpack, ListChecks, Briefcase, BedDouble, BookOpen, UserCircle, FileText } from 'lucide-react';
 
 export function UserManualContent() {
   const manualSections = [
