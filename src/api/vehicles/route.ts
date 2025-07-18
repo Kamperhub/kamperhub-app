@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { VehicleFormData, StoredVehicle } from '@/types/vehicle';
 import { z, ZodError } from 'zod';
+import type admin from 'firebase-admin';
 
 // A robust replacer function for JSON.stringify to handle Firestore Timestamps.
 const firestoreTimestampReplacer = (key: any, value: any) => {
@@ -19,23 +20,23 @@ const sanitizeData = (data: any) => {
     return JSON.parse(jsonString);
 };
 
-async function verifyUserAndGetInstances(req: NextRequest) {
+async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string; firestore: admin.firestore.Firestore; }> {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
-    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
+    throw new Error('Server configuration error.');
   }
 
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
+    throw new Error('Unauthorized: Missing or invalid Authorization header.');
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
-    return { uid: decodedToken.uid, firestore, errorResponse: null };
+    return { uid: decodedToken.uid, firestore };
   } catch (error: any) {
-    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
+    throw new Error('Unauthorized: Invalid ID token.');
   }
 }
 
@@ -65,45 +66,18 @@ const updateVehicleSchema = createVehicleSchema.extend({
   id: z.string().min(1, "Vehicle ID is required for updates"),
 });
 
-const handleApiError = (error: any) => {
-  console.error('API Error:', error);
-  let errorTitle = 'Internal Server Error';
-  let errorDetails = 'An unexpected error occurred.';
-  let statusCode = 500;
-
+const handleApiError = (error: any): NextResponse => {
+  console.error('API Error in vehicles route:', error);
   if (error instanceof ZodError) {
     return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
   }
-  
-  if (error.code) {
-      switch(error.code) {
-          case 5: // NOT_FOUND
-              errorTitle = 'Database Not Found';
-              errorDetails = `The Firestore database 'kamperhubv2' could not be found. Please verify its creation in your Firebase project.`;
-              statusCode = 500;
-              break;
-          case 16: // UNAUTHENTICATED
-              errorTitle = 'Server Authentication Failed';
-              errorDetails = `The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or lack permission for Firestore. Please check your setup.`;
-              statusCode = 500;
-              break;
-          default:
-              errorDetails = error.message;
-              break;
-      }
-  } else {
-    errorDetails = error.message;
-  }
-
-  return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: statusCode });
+  return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
 };
 
 // GET all vehicles for the authenticated user
-export async function GET(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
-
+export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const vehiclesSnapshot = await firestore.collection('users').doc(uid).collection('vehicles').get();
     const vehicles = vehiclesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(Boolean);
     const sanitizedVehicles = sanitizeData(vehicles);
@@ -114,11 +88,9 @@ export async function GET(req: NextRequest) {
 }
 
 // POST a new vehicle for the authenticated user
-export async function POST(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
-
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body = await req.json();
     const parsedData = createVehicleSchema.parse(body);
 
@@ -126,6 +98,14 @@ export async function POST(req: NextRequest) {
     const newVehicle: StoredVehicle = {
       id: newVehicleRef.id,
       ...parsedData,
+      brakeControllerNotes: parsedData.brakeControllerNotes || null,
+      kerbWeight: parsedData.kerbWeight || null,
+      frontAxleLimit: parsedData.frontAxleLimit || null,
+      rearAxleLimit: parsedData.rearAxleLimit || null,
+      wheelbase: parsedData.wheelbase || null,
+      overallHeight: parsedData.overallHeight || null,
+      recommendedTyrePressureLadenPsi: parsedData.recommendedTyrePressureLadenPsi || null,
+      recommendedTyrePressureUnladenPsi: parsedData.recommendedTyrePressureUnladenPsi || null,
     };
     
     await newVehicleRef.set(newVehicle);
@@ -139,11 +119,9 @@ export async function POST(req: NextRequest) {
 }
 
 // PUT (update) an existing vehicle for the authenticated user
-export async function PUT(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
-  
+export async function PUT(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const body: StoredVehicle = await req.json();
     const parsedData = updateVehicleSchema.parse(body);
 
@@ -158,11 +136,9 @@ export async function PUT(req: NextRequest) {
 }
 
 // DELETE a vehicle for the authenticated user
-export async function DELETE(req: NextRequest) {
-  const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
-  if (errorResponse || !uid || !firestore) return errorResponse;
-
+export async function DELETE(req: NextRequest): Promise<NextResponse> {
   try {
+    const { uid, firestore } = await verifyUserAndGetInstances(req);
     const { id } = await req.json();
     if (!id || typeof id !== 'string') {
       return NextResponse.json({ error: 'Vehicle ID is required.' }, { status: 400 });

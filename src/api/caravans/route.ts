@@ -2,7 +2,7 @@
 // src/app/api/caravans/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
-import type { StoredCaravan, CaravanFormData } from '@/types/caravan';
+import type { StoredCaravan, CaravanFormData, CaravanDiagram } from '@/types/caravan';
 import { z, ZodError } from 'zod';
 import type admin from 'firebase-admin';
 
@@ -60,6 +60,13 @@ const waterTankSchema = z.object({
   longitudinalPosition: z.enum(['front-of-axles', 'over-axles', 'rear-of-axles']),
   lateralPosition: z.enum(['left', 'center', 'right']),
   distanceFromAxleCenterMm: z.coerce.number().optional().nullable(),
+});
+
+const caravanDiagramSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, "Diagram name is required"),
+  url: z.string().url("Must be a valid URL"),
+  notes: z.string().optional().nullable(),
 });
 
 const wdhSchema = z.object({
