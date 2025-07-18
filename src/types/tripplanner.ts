@@ -20,12 +20,12 @@ export interface FuelStation {
 export interface RouteDetails {
   distance: { text: string; value: number };
   duration: { text: string; value: number };
-  startLocation: google.maps.LatLngLiteral | null | undefined;
-  endLocation: google.maps.LatLngLiteral | null | undefined;
-  polyline: string | null | undefined;
-  warnings: string[] | null | undefined;
-  tollInfo: { text: string; value: number } | null | undefined;
-  fuelStations: FuelStation[] | null | undefined;
+  startLocation?: google.maps.LatLngLiteral | null;
+  endLocation?: google.maps.LatLngLiteral | null;
+  polyline?: string | null;
+  warnings?: string[] | null;
+  tollInfo?: { text: string; value: number } | null;
+  fuelStations?: FuelStation[] | null;
 }
 
 export interface FuelEstimate {
