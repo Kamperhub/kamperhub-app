@@ -1,6 +1,11 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  devIndicators: {
+    allowedDevOrigins: [
+      '*.cloudworkstations.dev', // Allow any subdomain from cloudworkstations.dev
+    ],
+  },
   env: {
     NEXT_PUBLIC_BUILD_TIMESTAMP: new Date().toISOString(),
   },
