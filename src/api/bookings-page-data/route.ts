@@ -52,6 +52,7 @@ const handleApiError = (error: any): NextResponse => {
   return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
 };
 
+
 export async function GET(req: NextRequest): Promise<NextResponse> {
     try {
         const { uid, firestore } = await verifyUserAndGetInstances(req);

@@ -11,40 +11,43 @@ const updateSubscriptionSchema = z.object({
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
-  const { auth, firestore, error: adminError } = getFirebaseAdmin();
-  if (adminError || !auth || !firestore) {
-    console.error('Error getting Firebase Admin instances:', adminError?.message);
-    return NextResponse.json({ error: 'Server configuration error.', details: adminError?.message }, { status: 503 });
+async function verifyAdmin(req: NextRequest) {
+  const { auth } = getFirebaseAdmin();
+  if (!auth) throw new Error("Server configuration error: Auth not initialized.");
+
+  const idToken = req.headers.get('Authorization')?.split('Bearer ')[1];
+  if (!idToken) throw new Error("Unauthorized: Missing token.");
+
+  const decodedToken = await auth.verifyIdToken(idToken);
+  if (decodedToken.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    throw new Error('Forbidden: You do not have permission to perform this action.');
   }
-  
+  return auth;
+}
+
+const handleApiError = (error: any): NextResponse => {
+  console.error('API Error in admin/update-subscription route:', error);
+  if (error instanceof ZodError) {
+    return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
+  }
+  if (error.message.includes('Unauthorized') || error.message.includes('Forbidden')) {
+    return NextResponse.json({ error: 'Forbidden', details: error.message }, { status: 403 });
+  }
+  if (error.message.includes('Server configuration error')) {
+    return NextResponse.json({ error: 'Server configuration error', details: error.message }, { status: 503 });
+  }
+  return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+};
+
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    const authorizationHeader = req.headers.get('Authorization');
-    if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 });
-    }
-    const idToken = authorizationHeader.split('Bearer ')[1];
-
-    let decodedToken;
-    try {
-      decodedToken = await auth.verifyIdToken(idToken);
-    } catch (error: any) {
-      console.error('Error verifying Firebase ID token:', error);
-      return NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message, errorCode: error.code }, { status: 401 });
-    }
-
-    if (decodedToken.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-      return NextResponse.json({ error: 'Forbidden: User does not have admin privileges.' }, { status: 403 });
-    }
-
+    const auth = await verifyAdmin(req);
+    const { firestore } = getFirebaseAdmin();
+    if (!firestore) throw new Error("Server configuration error: Firestore not initialized.");
+    
     const body = await req.json();
-    const parsedBody = updateSubscriptionSchema.safeParse(body);
-
-    if (!parsedBody.success) {
-      return NextResponse.json({ error: 'Invalid request body.', details: parsedBody.error.format() }, { status: 400 });
-    }
-
-    const { targetUserEmail, newTier } = parsedBody.data;
+    const parsedBody = updateSubscriptionSchema.parse(body);
+    const { targetUserEmail, newTier } = parsedBody;
 
     let targetUserRecord;
     try {
@@ -53,29 +56,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       if (error.code === 'auth/user-not-found') {
         return NextResponse.json({ error: `Target user with email ${targetUserEmail} not found.` }, { status: 404 });
       }
-      console.error(`Error fetching user by email ${targetUserEmail}:`, error);
-      return NextResponse.json({ error: 'Error fetching target user.', details: error.message }, { status: 500 });
+      throw error; // Re-throw other auth errors to be caught by the main handler
     }
     
-    const targetUserId = targetUserRecord.uid;
-
-    const targetUserDocRef = firestore.collection('users').doc(targetUserId);
-
+    const targetUserDocRef = firestore.collection('users').doc(targetUserRecord.uid);
     const updateData: Partial<Pick<UserProfile, 'subscriptionTier' | 'updatedAt'>> = {
-      subscriptionTier: newTier as SubscriptionTier,
+      subscriptionTier: newTier,
       updatedAt: new Date().toISOString(),
     };
 
     await targetUserDocRef.set(updateData, { merge: true });
 
-    return NextResponse.json({ message: `Subscription for user ${targetUserEmail} (UID: ${targetUserId}) updated successfully.` }, { status: 200 });
+    return NextResponse.json({ message: `Subscription for user ${targetUserEmail} updated successfully.` }, { status: 200 });
 
   } catch (error: any) {
-    console.error('Error in admin update-subscription endpoint:', error);
-    if (error instanceof ZodError) {
-      return NextResponse.json({ error: 'Invalid request body.', details: error.format() }, { status: 400 });
-    }
-    
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }
