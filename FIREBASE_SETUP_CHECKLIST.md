@@ -138,6 +138,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   **Maps JavaScript API**
     *   **Places API**
     *   **Identity Toolkit API** (Required for Firebase Authentication)
+    *   **Firebase App Check API** (Required for App Check debug tokens)
 
 4.  **Server-Side APIs** (Used by `GOOGLE_API_KEY`):
     *   **Routes API**
@@ -341,6 +342,7 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     }
     ```
 5.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
+
 
 
 
