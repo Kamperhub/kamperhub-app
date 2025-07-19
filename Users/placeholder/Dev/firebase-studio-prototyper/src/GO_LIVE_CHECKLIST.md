@@ -20,7 +20,11 @@
 1.  Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
 2.  **Create a Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Browser Key`.
-    *   Under **"Application restrictions"**, select **"Websites"**. Remove any `localhost` URLs and add your production domain (e.g., `https://kamperhub.com/*`).
+    *   Under **"Application restrictions"**, select **"Websites"**.
+    *   **CRITICAL:** Click **"+ ADD"** and add entries for your live production domain. For `kamperhub.com`, you should add both:
+        *   `kamperhub.com`
+        *   `*.kamperhub.com` (The wildcard is important to cover `www` and other subdomains).
+    *   You should also keep your development URL (e.g., `*.cloudworkstations.dev` or `localhost`) in this list so the same key can be used for testing.
     *   Under **"API restrictions"**, restrict the key to **Maps JavaScript API** and **Places API**.
     *   Copy this key. You will use it in Step 2.2.
 
