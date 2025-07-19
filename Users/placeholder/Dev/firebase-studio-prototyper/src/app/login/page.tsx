@@ -35,7 +35,7 @@ export default function LoginPage() {
   const [blockedReferer, setBlockedReferer] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
-  const { user, isAuthLoading } = useAuth();
+  const { user, authStatus } = useAuth(); // Changed from isAuthLoading
   const navContext = useContext(NavigationContext);
 
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
@@ -45,10 +45,11 @@ export default function LoginPage() {
   const currentReferer = typeof window !== 'undefined' ? window.location.origin : '';
 
   useEffect(() => {
-    if (!isAuthLoading && user) {
+    // This effect handles the redirection for already logged-in users.
+    if (authStatus === 'AUTHENTICATED' && user) {
       router.push('/dashboard');
     }
-  }, [user, isAuthLoading, router]);
+  }, [user, authStatus, router]);
 
   const handleNavigation = () => {
     navContext?.setIsNavigating(true);
@@ -73,7 +74,7 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, trimmedEmail, password);
-      router.push('/dashboard');
+      // Let the useEffect handle the redirect
     } catch (error: any) {
       const authError = error as AuthError;
       let errorMessage = 'An unexpected error occurred during login. Please try again.';
@@ -143,17 +144,19 @@ export default function LoginPage() {
     }
   };
 
-  if (isAuthLoading || user) {
+  // Only show the full-page loader if an authenticated user is found and we are redirecting.
+  if (authStatus === 'AUTHENTICATED') {
     return (
         <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
             <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
             <p className="font-body text-muted-foreground">
-              {user ? 'Redirecting to dashboard...' : 'Loading...'}
+              Session found. Redirecting to dashboard...
             </p>
         </div>
     );
   }
 
+  // For LOADING or UNAUTHENTICATED status, render the form immediately.
   return (
     <div className="flex justify-center items-start pt-10 min-h-screen">
       <Card className="w-full max-w-md shadow-xl">
@@ -185,7 +188,7 @@ export default function LoginPage() {
                       <ol className="list-decimal pl-5 space-y-1">
                           <li>Click the "Copy URL" button below.</li>
                           <li>Click the "Open Google Cloud" button to go to the credentials page.</li>
-                          <li>Click on the name of your API Key (the one you use for `NEXT_PUBLIC_FIREBASE_API_KEY`).</li>
+                          <li>Click on the name of your API Key (the one you use for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`).</li>
                           <li>Under "Website restrictions," click **ADD** and paste the URL you copied.</li>
                            <li>For best results, use a wildcard format. For example, if you copy `https://1234.cloudworkstations.dev`, you should add `*.cloudworkstations.dev` to the list.</li>
                           <li>Save the key and refresh this page.</li>
