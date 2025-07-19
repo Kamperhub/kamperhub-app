@@ -102,10 +102,16 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
         *   Paste this key into the `GOOGLE_API_KEY` variable.
     *   **Create Your Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Browser Key`.
-        *   Restrict this key to **Maps JavaScript API** and **Places API**.
+        *   **CRITICAL:** Under **"API restrictions"**, select **"Restrict key"** and ensure the following APIs are selected:
+            *   **Maps JavaScript API**
+            *   **Places API**
+            *   **Identity Toolkit API** (This is required for Firebase Authentication)
         *   Under **"Application restrictions"**, choose **"Websites"**.
         *   > [!WARNING]
-        >   **CRITICAL FIX:** In the "Website restrictions" section, click **"ADD"**. You must add your current development URL to allow Firebase Authentication to work. This is the URL shown in your IDE's preview window. It will look similar to `*.cloudworkstations.dev` or `*.google.com`. Add this full domain with a wildcard at the beginning (e.g., if your URL is `https://1234-567-890.cloudworkstations.dev`, you should add `*.cloudworkstations.dev` to the list).
+        >   **CRITICAL FIX: Adding Your Development URL**
+        >   You must add your development URL to the allowed list for your Browser Key to work.
+        >   1. **Find Your URL:** Look at the browser address bar in your IDE's **preview window**. This is **NOT** the `studio.firebase.google.com` URL. It will look similar to `https://1234-567-890.cloudworkstations.dev`.
+        >   2. **Add the Wildcard Version:** In the "Website restrictions" section, click **"ADD"**. The most robust value to add is `*.cloudworkstations.dev`. This single entry will work for all your development sessions.
         *   Paste this key into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable. **This key will also be used for Firebase authentication.**
 
 4.  **Google OAuth Keys (`GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`)**
@@ -128,7 +134,8 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 
 3.  **Client-Side APIs** (Used by `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):
     *   **Maps JavaScript API**
-    *   **Places API** 
+    *   **Places API**
+    *   **Identity Toolkit API** (Required for Firebase Authentication)
 
 4.  **Server-Side APIs** (Used by `GOOGLE_API_KEY`):
     *   **Routes API**
@@ -332,3 +339,4 @@ To prevent a security issue called "Cross-Site Request Forgery", the connection 
     }
     ```
 5.  **Click "Publish"** to save your new rules. After publishing, return to the app and try connecting your account again.
+
