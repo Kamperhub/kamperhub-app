@@ -29,7 +29,6 @@ export function getFirebaseAdmin() {
         jsonString = jsonString.substring(1, jsonString.length - 1);
     }
     
-    // The JSON string can now be parsed directly. Node's parser and the SDK handle the escaped newlines.
     let serviceAccount;
     try {
         serviceAccount = JSON.parse(jsonString);

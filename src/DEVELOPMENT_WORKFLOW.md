@@ -26,7 +26,7 @@ This is the most important concept for security and managing your application co
 
 *   ### **For Development, use `.env.local`**
     *   This file is **only** for your local development environment.
-    *   It should contain your **test keys** from Stripe and your unrestricted (or `localhost`-enabled) keys from Google.
+    *   It should contain your **test keys** from Stripe and your unrestricted (or `localhost` / `*.cloudworkstations.dev`-enabled) keys from Google.
     *   It is fast and easy to edit for local testing.
     *   It is **never** committed to your GitHub repository, so it stays on your machine.
 
