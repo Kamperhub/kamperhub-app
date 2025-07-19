@@ -189,7 +189,7 @@ export default function LoginPage() {
                           <li>Click the "Copy URL" button below.</li>
                           <li>Click the "Open Google Cloud" button to go to the credentials page.</li>
                           <li>Click on the name of your API Key (the one you use for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`).</li>
-                          <li>Under "Website restrictions," click **ADD** and paste the URL you copied.</li>
+                           <li>Under "Website restrictions," click **ADD** and paste the URL you copied.</li>
                            <li>For best results, use a wildcard format. For example, if you copy `https://1234.cloudworkstations.dev`, you should add `*.cloudworkstations.dev` to the list.</li>
                           <li>Save the key and refresh this page.</li>
                       </ol>
