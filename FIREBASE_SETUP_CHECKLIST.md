@@ -108,6 +108,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
             *   **Maps JavaScript API**
             *   **Places API**
             *   **Identity Toolkit API** (This is required for Firebase Authentication)
+            *   **Firebase App Check API**
         *   Under **"Application restrictions"**, choose **"Websites"**.
         *   > [!WARNING]
         >   **CRITICAL FIX: Adding Your Development URL**

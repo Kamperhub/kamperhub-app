@@ -155,6 +155,9 @@ This step is different from local development. You will *not* use the Stripe CLI
 
 5.  **OAuth API** (Does not use an API key):
     *   **Google Tasks API**
+> [!WARNING]
+> **Important Note on "Places API"**
+> You do **not** need the API named "Places API (New)". The one you must enable is named simply **"Places API"**.
 
 ### **Step 3.6: CRITICAL - Configure OAuth Consent Screen & Credentials (Est. 5 mins)**
 
