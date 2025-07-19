@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { auth } from '@/lib/firebase';
+import { auth, firebaseInitializationError } from '@/lib/firebase';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, type AuthError } from 'firebase/auth';
 import { LogInIcon, Mail, KeyRound, Loader2, Eye, EyeOff, AlertTriangle, Copy, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -45,11 +45,18 @@ export default function LoginPage() {
   const currentReferer = typeof window !== 'undefined' ? window.location.origin : '';
 
   useEffect(() => {
-    // This effect handles the redirection for already logged-in users.
+    // Handle redirection for already logged-in users.
     if (authStatus === 'AUTHENTICATED' && user) {
       router.push('/dashboard');
     }
   }, [user, authStatus, router]);
+  
+  useEffect(() => {
+    // Proactively check for global Firebase init error on mount.
+    if (firebaseInitializationError) {
+      setLoginError(firebaseInitializationError);
+    }
+  }, []);
 
   const handleNavigation = () => {
     navContext?.setIsNavigating(true);
@@ -97,7 +104,7 @@ export default function LoginPage() {
             break;
           case 'auth/invalid-api-key':
           case 'auth/api-key-not-valid':
-            setLoginError('Your Firebase API Key is invalid or not configured correctly. Please check your .env.local file and follow Step 3.1 of the FIREBASE_SETUP_CHECKLIST.md guide carefully.');
+            setLoginError('Your Firebase API Key is invalid or not configured correctly. Please check the NEXT_PUBLIC_GOOGLE_MAPS_API_KEY value in your .env.local file and follow Step 3 of the setup guide.');
             errorMessage = 'Invalid Firebase API Key configuration.';
             break;
           default:
@@ -189,7 +196,7 @@ export default function LoginPage() {
                       <ol className="list-decimal pl-5 space-y-1">
                           <li>Click the "Copy URL" button below.</li>
                           <li>Click the "Open Google Cloud" button to go to the credentials page.</li>
-                          <li>Click on the name of your API Key (the one you use for `NEXT_PUBLIC_FIREBASE_API_KEY`).</li>
+                          <li>Click on the name of your API Key (the one you use for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`).</li>
                            <li>Under "Website restrictions," click **ADD** and paste the URL you copied.</li>
                            <li>For best results, use a wildcard format. For example, if you copy `https://1234.cloudworkstations.dev`, you should add `*.cloudworkstations.dev` to the list.</li>
                           <li>Save the key and refresh this page.</li>
