@@ -34,7 +34,7 @@ Your local development started in "test mode". For production, you must switch t
     *   Click **"ADD"** and enter your production domain (e.g., `https://kamperhub.com/*`). This locks the key so it only works on your website.
     *   Under **"API restrictions"**, select **"Restrict key"** and choose only the APIs the browser needs:
         *   Maps JavaScript API
-        *   Places API
+        *   Places API (New)
         *   Identity Toolkit API
         *   Firebase App Check API
     *   Click **Save**.
@@ -47,7 +47,7 @@ Your local development started in "test mode". For production, you must switch t
     *   Under **"API restrictions"**, select **"Restrict key"** and choose only the APIs the server needs:
         *   Routes API
         *   Gemini API (also known as Generative Language API)
-        *   Places API
+        *   Places API (New)
     *   Click **Save**.
     *   Copy this key. You will use it for `GOOGLE_API_KEY` in your App Hosting configuration.
 
@@ -144,20 +144,20 @@ This step is different from local development. You will *not* use the Stripe CLI
 
 3.  **Client-Side APIs** (Used by `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):
     *   **Maps JavaScript API**
-    *   **Places API**
+    *   **Places API (New)**
     *   **Identity Toolkit API** (Required for Firebase Authentication)
     *   **Firebase App Check API** (Required for App Check debug tokens)
 
 4.  **Server-Side APIs** (Used by `GOOGLE_API_KEY`):
     *   **Routes API**
     *   **Gemini API** (may be listed as "Generative Language API")
-    *   **Places API** (The same "Places API" is required by the server).
+    *   **Places API (New)** (The same "Places API (New)" is required by the server).
 
 5.  **OAuth API** (Does not use an API key):
     *   **Google Tasks API**
 > [!WARNING]
-> **Important Note on "Places API"**
-> You do **not** need the API named "Places API (New)". The one you must enable is named simply **"Places API"**.
+> **Important Note on "Places API (New)"**
+> This project is configured to use the **Places API (New)**. You do **not** need to enable the older API named "Places API".
 
 ### **Step 3.6: CRITICAL - Configure OAuth Consent Screen & Credentials (Est. 5 mins)**
 

@@ -99,14 +99,14 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     >   **NEVER use your production-restricted keys in your local `.env.local` file, as this will cause referrer errors.** The keys created below are specifically for your local development environment.
     *   **Create Your Server Key (for `GOOGLE_API_KEY`):**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Server Key`.
-        *   Restrict this key to **Routes API**, **Gemini API**, and **Places API**.
+        *   Restrict this key to **Routes API**, **Gemini API**, and **Places API (New)**.
         *   Under "Application restrictions", choose **"None"**. This is a secret server key and must not have browser restrictions.
         *   Paste this key into the `GOOGLE_API_KEY` variable.
     *   **Create Your Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Browser Key`.
         *   **CRITICAL:** Under **"API restrictions"**, select **"Restrict key"** and ensure the following APIs are selected:
             *   **Maps JavaScript API**
-            *   **Places API**
+            *   **Places API (New)**
             *   **Identity Toolkit API** (This is required for Firebase Authentication)
             *   **Firebase App Check API**
         *   Under **"Application restrictions"**, choose **"Websites"**.
@@ -137,21 +137,21 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 
 3.  **Client-Side APIs** (Used by `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):
     *   **Maps JavaScript API**
-    *   **Places API**
+    *   **Places API (New)**
     *   **Identity Toolkit API** (Required for Firebase Authentication)
     *   **Firebase App Check API** (Required for App Check debug tokens)
 
 4.  **Server-Side APIs** (Used by `GOOGLE_API_KEY`):
     *   **Routes API**
     *   **Gemini API** (may be listed as "Generative Language API")
-    *   **Places API** (Required for fuel station search)
+    *   **Places API (New)** (Required for fuel station search)
 
 5.  **OAuth API** (Does not use an API key):
     *   **Google Tasks API**
 
 > [!WARNING]
-> **Important Note on "Places API"**
-> You do **not** need the API named "Places API (New)". The one you must enable is named simply **"Places API"**.
+> **Important Note on "Places API (New)"**
+> This project is configured to use the **Places API (New)**. You do **not** need to enable the older API named "Places API".
 
 ---
 
