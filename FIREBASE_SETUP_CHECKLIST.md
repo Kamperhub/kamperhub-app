@@ -93,15 +93,17 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 3.  **Google Cloud API Keys (`GOOGLE_API_KEY` & `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)**
     *   Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
     *   > [!CAUTION]
-    >   **IMPORTANT: Ignore Auto-Generated Keys**
-    >   Firebase may automatically create generic, unrestricted API keys. **DO NOT USE THESE KEYS.** For security, it is best practice to create and use dedicated, restricted keys as described below.
+    >   **CRITICAL BEST PRACTICE: Use Separate Keys for Development and Production**
+    >   Your live production website will use API keys with strict restrictions (e.g., only allowing `kamperhub.com`). Your local development environment needs keys with different restrictions (e.g., allowing `localhost` and `*.cloudworkstations.dev`).
+    >
+    >   **NEVER use your production-restricted keys in your local `.env.local` file, as this will cause referrer errors.** The keys created below are specifically for your local development environment.
     *   **Create Your Server Key (for `GOOGLE_API_KEY`):**
-        *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Server Key`.
+        *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Server Key`.
         *   Restrict this key to **Routes API**, **Gemini API**, and **Places API**.
         *   Under "Application restrictions", choose **"None"**. This is a secret server key and must not have browser restrictions.
         *   Paste this key into the `GOOGLE_API_KEY` variable.
     *   **Create Your Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
-        *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Browser Key`.
+        *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Browser Key`.
         *   **CRITICAL:** Under **"API restrictions"**, select **"Restrict key"** and ensure the following APIs are selected:
             *   **Maps JavaScript API**
             *   **Places API**
@@ -111,7 +113,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
         >   **CRITICAL FIX: Adding Your Development URL**
         >   You must add your development URL to the allowed list for your Browser Key to work.
         >   1. **Find Your URL:** Look at the browser address bar in your IDE's **preview window**. This is **NOT** the `studio.firebase.google.com` URL. It will look similar to `https://1234-567-890.cloudworkstations.dev`.
-        >   2. **Add the Wildcard Version:** In the "Website restrictions" section, click **"ADD"**. The most robust value to add is `*.cloudworkstations.dev`. This single entry will work for all your development sessions.
+        >   2. **Add the Wildcard Version:** In the "Website restrictions" section, click **"ADD"**. The most robust value to add is `*.cloudworkstations.dev`. You should also add `localhost` to this list.
         *   Paste this key into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable. **This key will also be used for Firebase authentication.**
 
 4.  **Google OAuth Keys (`GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`)**
@@ -321,7 +323,7 @@ The application needs permission to talk to Google Tasks. If this API is not ena
 
 To prevent a security issue called "Cross-Site Request Forgery", the connection process creates a temporary, single-use token in your Firestore database in a collection called `oauthStates`. If your security rules block this action, the connection will fail.
 
-1.  Go to the [Firebase Console Rules Editor for kamperhub-v2](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/firestore/databases/-kamperhubv2-/rules).
+1.  Go to the [Firebase Console Rules Editor for kamperhubv2](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/firestore/databases/-kamperhubv2-/rules).
 2.  Make sure you have selected the **`kamperhubv2`** database from the dropdown at the top.
 3.  Click on the **"Rules"** tab.
 4.  Your rules should allow an authenticated user to create documents in the `oauthStates` collection. Add the following `match` block inside your `match /databases/{database}/documents` block if it doesn't exist:
