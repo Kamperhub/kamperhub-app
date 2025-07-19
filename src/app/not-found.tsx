@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Compass, Home } from 'lucide-react';
 import { useContext } from 'react';
 import { NavigationContext } from '@/components/layout/AppShell';
+import '@/app/globals.css'; // Import global styles directly
 
 export default function NotFound() {
   const navContext = useContext(NavigationContext);
@@ -17,7 +18,7 @@ export default function NotFound() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] py-12">
+    <div className="flex flex-col items-center justify-center min-h-screen py-12 bg-background font-body">
       <Card className="w-full max-w-lg text-center shadow-xl border-accent">
         <CardHeader>
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent/10 mb-4">
@@ -35,12 +36,12 @@ export default function NotFound() {
             Oops! It seems you've taken a wrong turn. The page you're looking for doesn't exist or has been moved.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button asChild className="w-full sm:w-auto font-body bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleNavigation}>
-              <Link href="/">
+            <Link href="/" passHref>
+              <Button className="w-full sm:w-auto font-body bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleNavigation}>
                 <Home className="mr-2 h-5 w-5" />
                 Return to Dashboard
-              </Link>
-            </Button>
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>
