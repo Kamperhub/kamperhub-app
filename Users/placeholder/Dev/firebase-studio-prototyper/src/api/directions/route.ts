@@ -133,13 +133,10 @@ export async function POST(req: NextRequest) {
 
     const { origin, destination, isTowing, vehicleHeight, caravanHeight, axleCount, avoidTolls } = parsedBody.data;
 
-    let finalHeight: number | undefined;
-    if (isTowing) {
-        finalHeight = Math.max(vehicleHeight || 0, caravanHeight || 0);
-    } else {
-        finalHeight = vehicleHeight;
-    }
-    if (finalHeight === 0) finalHeight = undefined;
+    const finalHeight = isTowing
+      ? Math.max(vehicleHeight || 0, caravanHeight || 0)
+      : vehicleHeight;
+    const finalHeightInMeters = finalHeight && finalHeight > 0 ? finalHeight / 1000 : undefined;
 
 
     const requestBody: any = {
@@ -155,8 +152,8 @@ export async function POST(req: NextRequest) {
     };
     
     const vehicleInfo: any = {};
-    if (finalHeight) {
-      vehicleInfo.dimensions = { height: finalHeight };
+    if (finalHeightInMeters) {
+      vehicleInfo.dimensions = { height: finalHeightInMeters };
     }
     if (axleCount && axleCount > 0) {
       vehicleInfo.axleCount = axleCount;
@@ -195,7 +192,7 @@ export async function POST(req: NextRequest) {
           if (errorData.error?.message) {
             errorMessage = errorData.error.message;
             if (errorMessage.includes("API has not been used in project")) {
-                const apiName = errorMessage.includes("Routes API") ? "Routes API" : "Places API";
+                const apiName = errorMessage.includes("Routes API") ? "Routes API" : "Places API (New)";
                 errorMessage = `The Google ${apiName} is not enabled for this project. Please enable it in the Google Cloud Console (see Step 3.5 in the setup guide) and ensure your API key has permissions for it.`;
             } else if (errorMessage.toLowerCase().includes('api_key_not_valid')) {
                errorMessage = "The provided GOOGLE_API_KEY is invalid. Please check the key in your .env.local file.";
@@ -228,7 +225,6 @@ export async function POST(req: NextRequest) {
     const route = data.routes[0];
     const encodedPolyline = route?.polyline?.encodedPolyline;
 
-    // Asynchronously find fuel stations without blocking the main response
     const fuelStationsPromise = encodedPolyline ? findFuelStationsAlongRoute(encodedPolyline, apiKey) : Promise.resolve([]);
 
     const tollInfo = route.travelAdvisory?.tollInfo;
