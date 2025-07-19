@@ -41,7 +41,7 @@ export const tripManagerItems: NavItem[] = [
     keywords: 'packing checklist luggage'
   },
   {
-    href: '/trip-manager/checklists',
+    href: '/checklists',
     label: 'Procedural Checklists',
     icon: ListChecks,
     description: 'Use pre-departure, setup, and pack-down checklists for your trips. Never miss a step!',
@@ -59,6 +59,13 @@ export const tripManagerItems: NavItem[] = [
 
 // Main navigation items for the dashboard grid. 
 export const navItems: NavItem[] = [
+  {
+    href: '/dashboard',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    description: 'The main hub of your application. Access all features from here.',
+    keywords: 'home main overview',
+  },
   {
     href: '/dashboard-details',
     label: 'Dashboard Hub',
@@ -86,13 +93,6 @@ export const navItems: NavItem[] = [
     icon: Briefcase,
     description: 'A central hub to plan individual trips, journeys, packing lists, and review your travel history.',
     keywords: 'trip planner log packing journey map'
-  },
-  {
-    href: '/service-log',
-    label: 'Service & Fuel Log',
-    icon: Fuel,
-    description: "Keep a detailed history of your fuel consumption and maintenance tasks for all your vehicles.",
-    keywords: 'fuel maintenance service'
   },
   {
     href: '/bookings',
