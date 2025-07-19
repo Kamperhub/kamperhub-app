@@ -106,9 +106,9 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
         *   Under **"Application restrictions"**, choose **"Websites"**.
         *   > [!WARNING]
         >   **CRITICAL FIX: Adding Your Development URL**
-        >   In the "Website restrictions" section, click **"ADD"**. You must add your development URL to allow Firebase Authentication to work.
-        >   1. **Find Your URL:** Look at the browser address bar in your IDE's preview window. It will be similar to `https://1234-567-890.cloudworkstations.dev`.
-        >   2. **Add the Wildcard Version:** The most robust and recommended value to add is `*.cloudworkstations.dev`. This single entry will work for all your development sessions.
+        >   You must add your development URL to the allowed list for your Browser Key to work.
+        >   1. **Find Your URL:** Look at the browser address bar in your IDE's **preview window**. This is **NOT** the `studio.firebase.google.com` URL. It will look similar to `https://1234-567-890.cloudworkstations.dev`.
+        >   2. **Add the Wildcard Version:** In the "Website restrictions" section, click **"ADD"**. The most robust value to add is `*.cloudworkstations.dev`. This single entry will work for all your development sessions.
         *   Paste this key into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable. **This key will also be used for Firebase authentication.**
 
 4.  **Google OAuth Keys (`GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`)**
