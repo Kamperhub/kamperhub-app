@@ -35,6 +35,8 @@ Your local development started in "test mode". For production, you must switch t
     *   Under **"API restrictions"**, select **"Restrict key"** and choose only the APIs the browser needs:
         *   Maps JavaScript API
         *   Places API
+        *   Identity Toolkit API
+        *   Firebase App Check API
     *   Click **Save**.
     *   Copy this key. You will use it for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in your App Hosting configuration.
 
@@ -263,3 +265,4 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
 6.  Test the trip planner to ensure all Google Maps APIs are working correctly with the restricted keys.
 
 **Congratulations! Your KamperHub application is now live.**
+
