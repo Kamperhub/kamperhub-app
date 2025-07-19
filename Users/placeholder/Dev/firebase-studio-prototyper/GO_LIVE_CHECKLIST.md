@@ -8,9 +8,9 @@
 
 ## **Phase 1: Firebase Project Configuration for Production**
 
-Your Firebase project (`kamperhub-s4hc2`) needs to be configured for live traffic. This involves securing your database and creating production-ready API keys.
+Your Firebase project (`kamperhub-s4hc2`) needs to be configured for live traffic. This involves securing your database, creating production-ready API keys, and setting up App Check.
 
-### **Step 1.1: Secure Your Firestore Database**
+### **Step 1.1: Secure Your Firestore Database (Est. 2 mins)**
 
 Your local development started in "test mode". For production, you must switch to secure rules.
 
@@ -19,17 +19,18 @@ Your local development started in "test mode". For production, you must switch t
 3.  Replace any existing rules with the contents of the `firestore.rules` file from your project. This ensures only authenticated users can access their own data.
 4.  Click **Publish**.
 
-### **Step 1.2: CRITICAL - Create Production API Keys**
+### **Step 1.2: CRITICAL - Create Production API Keys (Est. 10 mins)**
 
 > [!CAUTION]
 > **Do not reuse your unrestricted local development API key in production.** Your public (browser) key is visible in your website's code. If it's unrestricted, anyone could steal it and use it, potentially running up a large bill on your account. Creating new, restricted keys is a critical security step.
 
 1.  Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
 
-2.  **Create a Browser Key (for the client-side):**
+2.  **Create a Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**.
-    *   Name it `KamperHub Browser Key`.
+    *   Name it `Kamperhub Browser Key`.
     *   Under **"Application restrictions"**, select **"Websites"**.
+    *   **CRITICAL:** Remove any existing `localhost` or development environment URLs.
     *   Click **"ADD"** and enter your production domain (e.g., `https://kamperhub.com/*`). This locks the key so it only works on your website.
     *   Under **"API restrictions"**, select **"Restrict key"** and choose only the APIs the browser needs:
         *   Maps JavaScript API
@@ -37,23 +38,49 @@ Your local development started in "test mode". For production, you must switch t
     *   Click **Save**.
     *   Copy this key. You will use it for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in your App Hosting configuration.
 
-3.  **Create a Server Key (for the backend):**
+3.  **Create a Server Key (for `GOOGLE_API_KEY`):**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**.
-    *   Name it `KamperHub Server Key (No Referrer Restrictions)`.
+    *   Name it `Kamperhub Server Key`.
     *   Under **"Application restrictions"**, select **"None"**. **Do NOT add website or IP restrictions to this key.** Server-to-server calls do not have an HTTP referrer and will be blocked if you add one. Its security comes from being kept secret on the server.
     *   Under **"API restrictions"**, select **"Restrict key"** and choose only the APIs the server needs:
         *   Routes API
-        *   Generative Language API
-        *   Google Tasks API
+        *   Gemini API (also known as Generative Language API)
+        *   Places API
     *   Click **Save**.
     *   Copy this key. You will use it for `GOOGLE_API_KEY` in your App Hosting configuration.
+
+### **Step 1.3: CRITICAL - Configure App Check for Production (Est. 5 mins)**
+
+1.  **Enforce App Check for Services:**
+    *   Go to the [Firebase App Check page for kamperhub-s4hc2](https://console.firebase.google.com/project/kamperhub-s4hc2/appcheck).
+    *   Select the **APIs** tab. You will see a list of services that can be protected.
+    *   Find **Cloud Firestore API** in the list and click **"Enforce"**.
+    *   Find **Cloud Storage** in the list and click **"Enforce"**.
+    *   Find **Authentication (Identity Platform)** in the list and click **"Enforce"**. This is a critical security step to protect your user login/signup from abuse.
+    > [!NOTE]
+    > You do **not** need to enforce App Check on other services like "Data Connect", "Cloud Functions", or "Custom Backend" for this application to function correctly and securely.
+
+2.  **Create and Configure the reCAPTCHA Key:**
+    *   **CRITICAL:** Go to the **reCAPTCHA Enterprise** page in the Google Cloud Console. This is different from the older "reCAPTCHA" service. A direct link is [here](https://console.cloud.google.com/security/recaptcha?project=kamperhub-s4hc2).
+    *   Click **"+ CREATE KEY"** at the top.
+    *   **Label:** Give it a name like `KamperHub Production Key`.
+    *   **Choose integration type:** Select **Website**.
+    *   **Domains:**
+        *   **CRITICAL:** Add your live production domain (e.g., `kamperhub.com`).
+        *   **CRITICAL:** Remove `localhost` if it exists. Production keys should not work on local development.
+    *   **Use tickbox challenge:** **Leave this box UNCHECKED.** Our app uses an invisible, score-based check.
+    *   **Click "CREATE KEY"**.
+
+3.  **Get and Set the Site Key:**
+    *   After creation, copy the **site key ID**.
+    *   You will use this key for the `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY` variable in your **App Hosting backend configuration**.
 
 > [!NOTE]
 > The `GOOGLE_APPLICATION_CREDENTIALS_JSON` service account key that you used for local development **does not need to change**. It is already secure and should be copied directly from your `.env.local` file to your App Hosting secret configuration.
 
 ---
 
-## **Phase 2: Stripe Account Configuration for Production**
+## **Phase 2: Stripe Account Configuration for Production (Est. 10 mins)**
 
 Now, you'll switch Stripe from "Test mode" to "Live mode" and configure your real product and webhooks.
 
@@ -102,23 +129,74 @@ This step is different from local development. You will *not* use the Stripe CLI
 
 ---
 
-## **Phase 3: Deployment to Firebase App Hosting**
+## **Phase 3: Firebase & Google Cloud Final Configuration**
 
-### **Step 3.1: Connect Your GitHub Repository**
+### **Step 3.5: CRITICAL - Verify Google Cloud APIs Are Enabled (Est. 5 mins)**
+
+> [!IMPORTANT]
+> **Understanding Costs:** Simply **enabling** these APIs does **not** incur any costs. Billing is based on **usage**. Google provides a generous monthly free tier for most services (e.g., a $200 recurring credit for Maps Platform). For a new application, your usage will very likely fall within this free tier. However, you must still have a billing account enabled on your project to use them.
+
+1.  **Go to the [Google Cloud APIs & Services Dashboard for kamperhub-s4hc2](https://console.cloud.google.com/apis/dashboard?project=kamperhub-s4hc2).**
+
+2.  Click **"Enable APIs and Services"** at the top. You must search for and enable the following APIs if they are not already enabled.
+
+3.  **Client-Side APIs** (Used by `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):
+    *   **Maps JavaScript API**
+    *   **Places API** (Note: Ensure you enable the one named exactly "Places API", not "Places API (New)").
+
+4.  **Server-Side APIs** (Used by `GOOGLE_API_KEY`):
+    *   **Routes API**
+    *   **Gemini API** (may be listed as "Generative Language API")
+    *   **Places API** (The same "Places API" is required by the server).
+
+5.  **OAuth API** (Does not use an API key):
+    *   **Google Tasks API**
+
+### **Step 3.6: CRITICAL - Configure OAuth Consent Screen & Credentials (Est. 5 mins)**
+
+> [!WARNING]
+> **If you see a `403 That's an error... you do not have access` or `redirect_uri_mismatch` page from Google when trying to connect your account, it means this step was missed or done incorrectly.**
+
+This step is mandatory for allowing users to connect their Google Accounts (for features like Google Tasks).
+
+1.  **Go to the [OAuth Consent Screen page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials/consent?project=kamperhub-s4hc2).**
+2.  **Set User Type:** If prompted, select **"External"** and click **Create**.
+3.  **Fill in App Information:**
+    *   **App name:** KamperHub
+    *   **User support email:** Select your email address.
+    *   **Developer contact information:** Enter your email address again.
+    *   Click **"SAVE AND CONTINUE"** through the "Scopes" and "Optional Info" pages. You do not need to add scopes here.
+4.  **Publishing Status - VERY IMPORTANT**:
+    *   On the OAuth Consent Screen summary page, check the "Publishing status".
+    *   If it says **"Testing"**, you can ONLY log in with Google accounts you have explicitly added as "Test users".
+    *   If it says **"In production"**, any Google user can connect to the app. You should click the **"Publish App"** button to move it to production.
+5.  **Verify Redirect URI:**
+    *   Go to the [Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
+    *   Click on the name of your **OAuth 2.0 Client ID** (the one you used for `GOOGLE_CLIENT_ID`).
+    *   Under **"Authorized redirect URIs"**, click **"+ ADD URI"**.
+    *   Enter the production URL: `https://kamperhub.com/api/auth/google/callback`
+    *   Click **Save**.
+
+---
+
+## **Phase 4: Deployment to Firebase App Hosting**
+
+### **Step 4.1: Connect Your GitHub Repository**
 
 1.  Go to the [Firebase App Hosting console for kamperhub-s4hc2](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/hosting/backends).
 2.  Follow the prompts to connect to GitHub and select the repository for your KamperHub application.
 
-### **Step 3.2: Configure the Production Backend**
+### **Step 4.2: Configure the Production Backend**
 
 1.  Once connected, a backend will be created. Click on it to manage its configuration.
-2.  Navigate to the **"Settings"** tab for your backend.
-3.  This is where you will add all the environment variables from your `.env.local` file, but with your **production keys**.
+2.  Go to the **"Settings"** tab for your backend. This is the **"App Hosting secret config"** where your live environment variables are stored.
+3.  Add all the variables from your `.env.local` file, but use your **production keys**:
     *   **CRITICAL: Set `NEXT_PUBLIC_APP_ENV` to `"production"`.** This tells the app it's in live mode.
     *   `NEXT_PUBLIC_FIREBASE_*`: Use the values from your Firebase Console project settings.
     *   `GOOGLE_APPLICATION_CREDENTIALS_JSON`: **Use the same one-line JSON string** for your service account key that you used in local development.
-    *   `GOOGLE_API_KEY`: Use the **KamperHub Server Key** you created in Step 1.2.
-    *   `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`: Use the **KamperHub Browser Key** you created in Step 1.2.
+    *   `GOOGLE_API_KEY`: Use the **Kamperhub Server Key** you created in Step 1.2.
+    *   `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`: Use the **Kamperhub Browser Key** you created in Step 1.2.
+    *   `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY`: Use the **production** site key from Step 1.3.
     *   `NEXT_PUBLIC_APP_URL`: Set this to `https://kamperhub.com`
     *   `STRIPE_SECRET_KEY`: Use the **live** secret key (`sk_live_...`) from Step 2.4.
     *   `NEXT_PUBLIC_STRIPE_PAYMENT_LINK`: Use the **live** payment link URL from Step 2.3.
@@ -129,29 +207,53 @@ This step is different from local development. You will *not* use the Stripe CLI
 
 ---
 
-## **Phase 4: Connect Custom Domain & Go Live**
+## **Phase 5: Connect Custom Domain & Go Live**
 
-### **Step 4.1: Add Your Custom Domain**
+> [!CAUTION]
+> **If you are seeing a `DNS_PROBE_FINISHED_NXDOMAIN` error, it means this step was done incorrectly or the DNS records were deleted.** Follow these instructions carefully to fix it.
+
+### **Step 5.1: Find Your DNS Records in Firebase**
 
 1.  Go to the [Firebase App Hosting Backends page for kamperhub-s4hc2](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/hosting/backends).
 2.  Click on your backend's name to open its dashboard.
 3.  Navigate to the **"Domains"** tab.
-4.  Click **"Add custom domain"**.
+4.  Click **"Add custom domain"** (or view the existing domain if already added).
 5.  Enter `kamperhub.com` as your domain. App Hosting will also provision `www.kamperhub.com`.
-6.  Firebase will provide you with DNS records (usually two `A` records) that you need to add to your domain registrar (GoDaddy).
+6.  Firebase will provide you with DNS records. You are looking for two **`A` records**. They will be two different IP addresses (e.g., `199.36.158.100` and `199.36.158.101`). **Copy these two IP addresses.**
 
-### **Step 4.2: Configure DNS at GoDaddy**
+### **Step 5.2: Configure DNS at GoDaddy**
 
 1.  Log in to your GoDaddy account.
 2.  Navigate to your DNS Management page for `kamperhub.com`.
-3.  Add or update the `A` records for both `kamperhub.com` and `www.kamperhub.com` to point to the IP addresses provided by Firebase App Hosting.
-4.  Save your changes. DNS propagation can take anywhere from a few minutes to 48 hours.
+3.  You need to create **two `A` records** to point your domain to Firebase. Delete any old `A` records for `kamperhub.com` first.
+4.  **First `A` Record:**
+    *   **Type:** `A`
+    *   **Name:** `@` (This symbol represents your root domain, `kamperhub.com`)
+    *   **Value:** Paste the **first IP address** you copied from Firebase.
+    *   **TTL:** Leave as default (usually 1 hour).
+    *   Click **Save**.
+5.  **Second `A` Record:**
+    *   **Type:** `A`
+    *   **Name:** `@`
+    *   **Value:** Paste the **second IP address** you copied from Firebase.
+    *   **TTL:** Leave as default.
+    *   Click **Save**.
+6.  **`www` Record (Optional but Recommended):**
+    *   Create a `CNAME` record to redirect `www.kamperhub.com` to `kamperhub.com`.
+    *   **Type:** `CNAME`
+    *   **Name:** `www`
+    *   **Value:** `@`
+    *   **TTL:** Leave as default.
+    *   Click **Save**.
 
-### **Step 4.3: Verify Domain and SSL**
+7.  **Wait for DNS Propagation.** DNS changes can take anywhere from a few minutes to 48 hours to take effect globally, but it is often much faster.
 
-1.  Back in the Firebase App Hosting console, wait for the domain status to change to "Connected". Firebase will automatically provision and manage an SSL certificate for your domain, which may take some time.
+### **Step 5.3: Verify Domain and SSL in Firebase**
 
-### **Step 4.4: Final Production Check**
+1.  Back in the Firebase App Hosting console ("Domains" tab), wait for the domain status to change to "Connected".
+2.  Firebase will automatically provision and manage an SSL certificate for your domain, which may take some time.
+
+### **Step 5.4: Final Production Check**
 
 1.  Once your domain is connected and SSL is active, navigate to `https://kamperhub.com`.
 2.  The application should now display a "Production Mode" banner at the top.
