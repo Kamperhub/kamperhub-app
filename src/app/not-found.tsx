@@ -35,12 +35,12 @@ export default function NotFound() {
             Oops! It seems you've taken a wrong turn. The page you're looking for doesn't exist or has been moved.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/" passHref>
-              <Button className="w-full sm:w-auto font-body bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleNavigation}>
+            <Button asChild className="w-full sm:w-auto font-body bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleNavigation}>
+              <Link href="/">
                 <Home className="mr-2 h-5 w-5" />
                 Return to Dashboard
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         </CardContent>
       </Card>
