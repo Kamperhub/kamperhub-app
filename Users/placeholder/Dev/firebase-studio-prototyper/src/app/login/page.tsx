@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useContext } from 'react';
@@ -9,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { auth } from '@/lib/firebase';
+import { auth, firebaseInitializationError } from '@/lib/firebase';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, type AuthError } from 'firebase/auth';
 import { LogInIcon, Mail, KeyRound, Loader2, Eye, EyeOff, AlertTriangle, Copy, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -50,6 +49,13 @@ export default function LoginPage() {
       router.push('/dashboard');
     }
   }, [user, authStatus, router]);
+  
+  useEffect(() => {
+    // Proactively check for global Firebase init error on mount.
+    if (firebaseInitializationError) {
+      setLoginError(firebaseInitializationError);
+    }
+  }, []);
 
   const handleNavigation = () => {
     navContext?.setIsNavigating(true);
@@ -81,6 +87,7 @@ export default function LoginPage() {
 
       if (authError.code === 'auth/requests-from-referer-are-blocked') {
         setBlockedReferer(currentReferer);
+        // We don't need a toast here because a permanent alert will be shown.
         errorMessage = `The current application URL (${currentReferer}) is not authorized to use the API key.`;
       } else if (authError.code) {
         switch (authError.code) {
@@ -108,6 +115,7 @@ export default function LoginPage() {
         errorMessage = authError.message;
       }
       
+      // Only show a generic toast if it's not one of the specific configuration errors we are handling with an Alert.
       if(!blockedReferer && !loginError) {
         toast({ title: 'Login Failed', description: errorMessage, variant: 'destructive' });
       }

@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useMemo, useContext } from 'react';
@@ -24,7 +23,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { user, userProfile: userPrefs, isAuthLoading } = useAuth();
+  const { user, userProfile: userPrefs, isAuthLoading } from useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navContext = useContext(NavigationContext);
@@ -36,7 +35,8 @@ export default function DashboardPage() {
   });
 
   const orderedNavItems = useMemo(() => {
-    const mainPageNavItems = defaultNavItems;
+    // Exclude the main dashboard link itself from the grid
+    const mainPageNavItems = defaultNavItems.filter(item => item.href !== '/dashboard');
     const storedLayoutHrefs = userPrefs?.dashboardLayout;
 
     if (storedLayoutHrefs && Array.isArray(storedLayoutHrefs) && storedLayoutHrefs.length > 0) {
