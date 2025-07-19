@@ -45,7 +45,7 @@ export default function LoginPage() {
   const currentReferer = typeof window !== 'undefined' ? window.location.origin : '';
 
   useEffect(() => {
-    // Handle redirection for already logged-in users.
+    // This effect handles the redirection for already logged-in users.
     if (authStatus === 'AUTHENTICATED' && user) {
       router.push('/dashboard');
     }
@@ -88,6 +88,7 @@ export default function LoginPage() {
 
       if (authError.code === 'auth/requests-from-referer-are-blocked') {
         setBlockedReferer(currentReferer);
+        // We don't need a toast here because a permanent alert will be shown.
         errorMessage = `The current application URL (${currentReferer}) is not authorized to use the API key.`;
       } else if (authError.code) {
         switch (authError.code) {
@@ -115,6 +116,7 @@ export default function LoginPage() {
         errorMessage = authError.message;
       }
       
+      // Only show a generic toast if it's not one of the specific configuration errors we are handling with an Alert.
       if(!blockedReferer && !loginError) {
         toast({ title: 'Login Failed', description: errorMessage, variant: 'destructive' });
       }
