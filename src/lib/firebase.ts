@@ -1,6 +1,6 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
+import { getAuth, type Auth, browserSessionPersistence, setPersistence } from 'firebase/auth';
 import { getFirestore, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from '@firebase/app-check';
 
@@ -38,6 +38,9 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig as FirebaseOptions);
     auth = getAuth(app);
     db = getFirestore(app, 'kamperhubv2');
+    
+    // Set session persistence to avoid unexpected Passkey/WebAuthn prompts
+    setPersistence(auth, browserSessionPersistence);
 
     console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}, connecting to database 'kamperhubv2'.`);
 
