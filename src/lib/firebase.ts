@@ -97,5 +97,3 @@ export function initializeFirebaseAppCheck() {
 }
 
 export { app, auth, db };
-
-    
