@@ -144,7 +144,9 @@ This step is different from local development. You will *not* use the Stripe CLI
 
 3.  **Client-Side APIs** (Used by `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):
     *   **Maps JavaScript API**
-    *   **Places API** (Note: Ensure you enable the one named exactly "Places API", not "Places API (New)").
+    *   **Places API**
+    *   **Identity Toolkit API** (Required for Firebase Authentication)
+    *   **Firebase App Check API** (Required for App Check debug tokens)
 
 4.  **Server-Side APIs** (Used by `GOOGLE_API_KEY`):
     *   **Routes API**
@@ -266,3 +268,4 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
 
 **Congratulations! Your KamperHub application is now live.**
 
+    
