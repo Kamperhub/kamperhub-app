@@ -143,20 +143,13 @@ export default function LoginPage() {
     }
   };
 
-  if (isAuthLoading && !user) {
+  if (isAuthLoading || user) {
     return (
         <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
             <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
-            <p className="font-body text-muted-foreground">Loading...</p>
-        </div>
-    );
-  }
-
-  if (user) {
-     return (
-        <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
-            <p className="font-body text-muted-foreground">Redirecting to dashboard...</p>
+            <p className="font-body text-muted-foreground">
+              {user ? 'Redirecting to dashboard...' : 'Loading...'}
+            </p>
         </div>
     );
   }
@@ -192,7 +185,7 @@ export default function LoginPage() {
                       <ol className="list-decimal pl-5 space-y-1">
                           <li>Click the "Copy URL" button below.</li>
                           <li>Click the "Open Google Cloud" button to go to the credentials page.</li>
-                          <li>Click on the name of your API Key (the one you use for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`).</li>
+                          <li>Click on the name of your API Key (the one you use for `NEXT_PUBLIC_FIREBASE_API_KEY`).</li>
                           <li>Under "Website restrictions," click **ADD** and paste the URL you copied.</li>
                            <li>For best results, use a wildcard format. For example, if you copy `https://1234.cloudworkstations.dev`, you should add `*.cloudworkstations.dev` to the list.</li>
                           <li>Save the key and refresh this page.</li>
