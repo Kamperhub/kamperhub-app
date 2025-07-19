@@ -35,7 +35,7 @@ export default function LoginPage() {
   const [blockedReferer, setBlockedReferer] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
-  const { user, authStatus } = useAuth(); // Changed from isAuthLoading
+  const { user, authStatus } = useAuth();
   const navContext = useContext(NavigationContext);
 
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
