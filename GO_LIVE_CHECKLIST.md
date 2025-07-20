@@ -42,7 +42,7 @@ Your local development started in "test mode". For production, you must switch t
 
 3.  **Create a Server Key (for `GOOGLE_API_KEY`):**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**.
-    *   Name it `Kamperhub Server Key`.
+    *   Name it `Kamperhub Production Server Key`.
     *   Under **"Application restrictions"**, select **"None"**. **Do NOT add website or IP restrictions to this key.** Server-to-server calls do not have an HTTP referrer and will be blocked if you add one. Its security comes from being kept secret on the server.
     *   Under **"API restrictions"**, select **"Restrict key"** and choose only the APIs the server needs:
         *   Routes API
@@ -201,7 +201,7 @@ This step is mandatory for allowing users to connect their Google Accounts (for 
     *   **CRITICAL: Set `NEXT_PUBLIC_APP_ENV` to `"production"`.** This tells the app it's in live mode.
     *   `NEXT_PUBLIC_FIREBASE_*`: Use the values from your Firebase Console project settings, ensuring you use the **Kamperhub Production Browser Key** for `NEXT_PUBLIC_FIREBASE_API_KEY`.
     *   `GOOGLE_APPLICATION_CREDENTIALS_JSON`: **Use the same one-line JSON string** for your service account key that you used in local development.
-    *   `GOOGLE_API_KEY`: Use the **Kamperhub Server Key** you created in Step 1.2.
+    *   `GOOGLE_API_KEY`: Use the **Kamperhub Production Server Key** you created in Step 1.2.
     *   `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`: Use the **Kamperhub Production Browser Key** you created in Step 1.2. (It should be the same as the Firebase key).
     *   `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY`: Use the **production** site key from Step 1.3.
     *   `NEXT_PUBLIC_APP_URL`: Set this to `https://kamperhub.com`

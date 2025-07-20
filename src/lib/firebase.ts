@@ -1,13 +1,14 @@
+
 import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
 import { getAuth, type Auth, browserSessionPersistence, setPersistence } from 'firebase/auth';
 import { getFirestore, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from '@firebase/app-check';
 
 // UNIFIED KEY STRATEGY:
-// The Firebase client will use the same API key as Google Maps for maximum simplicity and reliability.
-// Both NEXT_PUBLIC_FIREBASE_API_KEY and NEXT_PUBLIC_GOOGLE_MAPS_API_KEY must be set to the same value.
+// The Firebase client will use the specific key provided by the Firebase Console.
+// This key MUST be configured in the Google Cloud Console with the correct API and website restrictions.
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY, // This key must be configured for both Firebase Auth and Google Maps APIs.
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
