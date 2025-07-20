@@ -1,4 +1,3 @@
-
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -39,7 +38,9 @@ async function findFuelStationsAlongRoute(polyline: string, apiKey: string): Pro
         if (decodedPath.length < 2) return [];
 
         const searchPoints: google.maps.LatLngLiteral[] = [];
-        const totalDistance = google.maps.geometry.spherical.computeLength(decodedPath.map(p => new google.maps.LatLng(p[0], p[1])));
+        // Using require inside the function to ensure google.maps is loaded
+        const mapsGeometry = google.maps.geometry.spherical;
+        const totalDistance = mapsGeometry.computeLength(decodedPath.map(p => new google.maps.LatLng(p[0], p[1])));
         const interval = Math.min(100000, totalDistance / 5); // Search roughly every 100km, up to 5 points
 
         if (interval < 10000) { // For short trips, just check start and middle
@@ -54,7 +55,7 @@ async function findFuelStationsAlongRoute(polyline: string, apiKey: string): Pro
             for (let i = 0; i < decodedPath.length - 1; i++) {
                 const start = new google.maps.LatLng(decodedPath[i][0], decodedPath[i][1]);
                 const end = new google.maps.LatLng(decodedPath[i+1][0], decodedPath[i+1][1]);
-                distanceCovered += google.maps.geometry.spherical.computeDistanceBetween(start, end);
+                distanceCovered += mapsGeometry.computeDistanceBetween(start, end);
                 if (distanceCovered >= interval) {
                     searchPoints.push({ lat: end.lat(), lng: end.lng() });
                     distanceCovered = 0;
@@ -192,7 +193,7 @@ export async function POST(req: NextRequest) {
           if (errorData.error?.message) {
             errorMessage = errorData.error.message;
             if (errorMessage.includes("API has not been used in project")) {
-                const apiName = errorMessage.includes("Routes API") ? "Routes API" : "Places API";
+                const apiName = errorMessage.includes("Routes API") ? "Routes API" : "Places API (New)";
                 errorMessage = `The Google ${apiName} is not enabled for this project. Please enable it in the Google Cloud Console (see Step 3.5 in the setup guide) and ensure your API key has permissions for it.`;
             } else if (errorMessage.toLowerCase().includes('api_key_not_valid')) {
                errorMessage = "The provided GOOGLE_API_KEY is invalid. Please check the key in your .env.local file.";
@@ -225,8 +226,8 @@ export async function POST(req: NextRequest) {
     const route = data.routes[0];
     const encodedPolyline = route?.polyline?.encodedPolyline;
 
-    // Asynchronously find fuel stations without blocking the main response
-    const fuelStationsPromise = encodedPolyline ? findFuelStationsAlongRoute(encodedPolyline, apiKey) : Promise.resolve([]);
+    // Fuel station search is now disabled as Places API (New) is required.
+    // const fuelStationsPromise = encodedPolyline ? findFuelStationsAlongRoute(encodedPolyline, apiKey) : Promise.resolve([]);
 
     const tollInfo = route.travelAdvisory?.tollInfo;
     let adaptedTollInfo = null;
@@ -246,7 +247,7 @@ export async function POST(req: NextRequest) {
         }
     }
     
-    const fuelStations = await fuelStationsPromise;
+    // const fuelStations = await fuelStationsPromise;
 
     const adaptedResponse: RouteDetails = {
         distance: { text: `${((route?.distanceMeters || 0) / 1000).toFixed(1)} km`, value: route?.distanceMeters || 0 },
@@ -256,7 +257,7 @@ export async function POST(req: NextRequest) {
         polyline: encodedPolyline,
         warnings: route?.warnings || [],
         tollInfo: adaptedTollInfo,
-        fuelStations: fuelStations,
+        fuelStations: [], // Return empty array
     };
     return NextResponse.json(adaptedResponse, { status: 200 });
 
