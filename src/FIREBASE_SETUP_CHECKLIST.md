@@ -30,9 +30,9 @@ All your secret keys will live in a special file that is **NEVER** committed to 
     NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="your-measurement-id"
     
     # --- Client-Side Google API Keys (for the browser) ---
-    # This key is ONLY for Google Maps Platform APIs (Maps, Places).
-    # It must have HTTP referrer restrictions.
-    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="YOUR_GOOGLE_MAPS_API_KEY_HERE"
+    # CRITICAL: For simplicity and reliability, this app uses the SAME key for Google Maps and Firebase Auth.
+    # Therefore, NEXT_PUBLIC_GOOGLE_MAPS_API_KEY should be set to the SAME value as NEXT_PUBLIC_FIREBASE_API_KEY.
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="paste-your-firebase-api-key-here-again"
 
     # --- Server-Side Google API Keys (for the backend) ---
     # This key handles Routes API and Gemini AI. It must NOT have HTTP referrer restrictions.
@@ -83,6 +83,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   Look for the "Firebase SDK snippet" section and select the **Config** option.
     *   **CRITICAL:** Carefully copy every value from this Config object (`apiKey`, `authDomain`, `projectId`, etc.) and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file.
     *   **CRITICAL:** Verify that the `projectId` from the config matches `kamperhub-s4hc2`.
+    *   **CRITICAL (SINGLE KEY STRATEGY):** After you have pasted the `apiKey` into `NEXT_PUBLIC_FIREBASE_API_KEY`, copy that **same key** and paste it into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable as well. This ensures both Firebase and Google Maps use the same, correctly configured key.
 
 2.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
     *   Go to the [Firebase Service Accounts page](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/settings/serviceaccounts/adminsdk).
@@ -90,14 +91,14 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   Open the downloaded file, copy the **entire JSON content**, and paste it inside the single quotes for `GOOGLE_APPLICATION_CREDENTIALS_JSON`. **It must all be on one line.**
     *   **CRITICAL: The `project_id` field inside this JSON file must also be `kamperhub-s4hc2`.**
 
-3.  **Google Cloud API Keys (`GOOGLE_API_KEY` & `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)**
+3.  **Google Cloud API Keys (`GOOGLE_API_KEY` & Modifying the Browser Key)**
     *   Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
     *   **Create Your Server Key (for `GOOGLE_API_KEY`):**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Server Key`.
         *   Restrict this key to **Routes API**, **Gemini API**, and **Places API (New)**.
         *   Under "Application restrictions", choose **"None"**. This is a secret server key and must not have browser restrictions.
         *   Paste this key into the `GOOGLE_API_KEY` variable.
-    *   **CRITICAL - Configure Your Browser Key (`NEXT_PUBLIC_FIREBASE_API_KEY`):**
+    *   **CRITICAL - Configure Your Browser Key (the `NEXT_PUBLIC_FIREBASE_API_KEY`):**
         *   In the API key list, find the key that matches the value you put in `NEXT_PUBLIC_FIREBASE_API_KEY`. It might be named something like "Browser key (auto-created by Firebase)". Click its name to edit it.
         *   **CRITICAL (API RESTRICTIONS):** Under **"API restrictions"**, select **"Restrict key"** and ensure the following APIs are selected:
             *   **Maps JavaScript API**
@@ -111,12 +112,6 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
         >   1. **Find Your URL:** Look at the browser address bar in your IDE's **preview window**. This is **NOT** the `studio.firebase.google.com` URL. It will look similar to `https://1234-567-890.cloudworkstations.dev`.
         >   2. **Add the Wildcard Version:** In the "Website restrictions" section, click **"ADD"**. The most robust value to add is `*.cloudworkstations.dev`. You should also add `localhost` to this list.
         *   Click **Save**.
-    *   **Create a Separate Maps Key (`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
-        *   For maximum clarity and separation, it's best to create a dedicated key for Google Maps.
-        *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Maps Key`.
-        *   Restrict this key to **Maps JavaScript API** and **Places API (New)**.
-        *   Apply the same **"Website restrictions"** as you did for your Firebase Browser Key (`*.cloudworkstations.dev` and `localhost`).
-        *   Paste this new, dedicated key into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable.
 
 4.  **Google OAuth Keys (`GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`)**
     *   Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
@@ -136,7 +131,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 
 2.  Click **"Enable APIs and Services"**. You must search for and enable the following APIs if they are not already enabled.
 
-3.  **Client-Side APIs** (Used by your Browser Keys):
+3.  **Client-Side APIs** (Used by your Browser Key):
     *   **Maps JavaScript API**
     *   **Places API (New)**
     *   **Identity Toolkit API** (Required for Firebase Authentication)
