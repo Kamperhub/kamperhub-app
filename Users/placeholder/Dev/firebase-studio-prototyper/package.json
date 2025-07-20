@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "npm run clean && next dev",
-    "genkit:dev": "genkit start --env-file .env.local src/ai/dev.ts",
-    "genkit:watch": "genkit start --watch --env-file .env.local src/ai/dev.ts",
+    "genkit:dev": "genkit start --env-file .env.local -- tsx src/ai/dev.ts",
+    "genkit:watch": "genkit start --env-file .env.local --watch -- tsx src/ai/dev.ts",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -76,6 +76,7 @@
     "genkit-cli": "^1.0.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.16.2",
     "typescript": "^5.5.3"
   }
 }
