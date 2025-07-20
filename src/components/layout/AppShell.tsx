@@ -33,7 +33,7 @@ const MainLayout = ({ children, apiKeyMissing }: { children: React.ReactNode, ap
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle className="font-headline">Google Maps API Key Missing</AlertTitle>
               <AlertDescription className="font-body">
-                The `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is not set in your `.env.local` file. Map-related features will not work. Please see the setup guide to fix this.
+                The `NEXT_PUBLIC_FIREBASE_API_KEY` is not set in your `.env.local` file. Map-related features will not work. Please see the setup guide to fix this.
               </AlertDescription>
             </Alert>
         )}
@@ -46,7 +46,7 @@ const MainLayout = ({ children, apiKeyMissing }: { children: React.ReactNode, ap
 
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY; // Use the Firebase key for Maps
   const [isNavigating, setIsNavigating] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
