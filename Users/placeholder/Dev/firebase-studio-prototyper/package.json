@@ -1,11 +1,12 @@
+
 {
   "name": "nextn",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "npm run clean && next dev",
-    "genkit:dev": "genkit start --env-file .env.local -- tsx src/ai/dev.ts",
-    "genkit:watch": "genkit start --env-file .env.local --watch -- tsx src/ai/dev.ts",
+    "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
+    "genkit:watch": "genkit start --watch -- tsx src/ai/dev.ts",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
