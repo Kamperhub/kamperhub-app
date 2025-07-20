@@ -21,7 +21,7 @@ All your secret keys will live in a special file that is **NEVER** committed to 
     ```env
     # --- Firebase Client-Side Configuration (for the browser) ---
     # These values come from your Firebase project settings (see Step 3.1)
-    NEXT_PUBLIC_FIREBASE_API_KEY="your-firebase-web-api-key"
+    # NOTE: NEXT_PUBLIC_FIREBASE_API_KEY is now DEPRECATED. The app will use NEXT_PUBLIC_GOOGLE_MAPS_API_KEY for auth.
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com"
     NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
     NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-project.appspot.com"
@@ -30,9 +30,9 @@ All your secret keys will live in a special file that is **NEVER** committed to 
     NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="your-measurement-id"
     
     # --- Client-Side Google API Keys (for the browser) ---
-    # CRITICAL: For simplicity and reliability, this app uses the SAME key for Google Maps and Firebase Auth.
-    # Therefore, NEXT_PUBLIC_GOOGLE_MAPS_API_KEY should be set to the SAME value as NEXT_PUBLIC_FIREBASE_API_KEY.
-    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="paste-your-firebase-api-key-here-again"
+    # CRITICAL: This is now the SINGLE key for all client-side Google services, including Firebase Auth and Google Maps.
+    # It should have "HTTP referrer" restrictions.
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="YOUR_BROWSER_API_KEY_HERE"
 
     # --- Server-Side Google API Keys (for the backend) ---
     # This key handles Routes API and Gemini AI. It must NOT have HTTP referrer restrictions.
@@ -81,9 +81,9 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   In your [Firebase Project Settings](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/settings/general), under the "General" tab, scroll down to the "Your apps" section.
     *   Find your web app (it's likely named something like `kamperhub-s4hc2`).
     *   Look for the "Firebase SDK snippet" section and select the **Config** option.
-    *   **CRITICAL:** Carefully copy every value from this Config object (`apiKey`, `authDomain`, `projectId`, etc.) and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file.
+    *   **CRITICAL:** Carefully copy every value from this Config object (`authDomain`, `projectId`, etc.) and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file.
+    *   **CRITICAL (SINGLE KEY STRATEGY):** Copy the `apiKey` value from this config and paste it into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable. This will be your single key for all browser operations.
     *   **CRITICAL:** Verify that the `projectId` from the config matches `kamperhub-s4hc2`.
-    *   **CRITICAL (SINGLE KEY STRATEGY):** After you have pasted the `apiKey` into `NEXT_PUBLIC_FIREBASE_API_KEY`, copy that **same key** and paste it into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable as well. This ensures both Firebase and Google Maps use the same, correctly configured key.
 
 2.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
     *   Go to the [Firebase Service Accounts page](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/settings/serviceaccounts/adminsdk).
@@ -98,8 +98,8 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
         *   Restrict this key to **Routes API**, **Gemini API**, and **Places API (New)**.
         *   Under "Application restrictions", choose **"None"**. This is a secret server key and must not have browser restrictions.
         *   Paste this key into the `GOOGLE_API_KEY` variable.
-    *   **CRITICAL - Configure Your Browser Key (the `NEXT_PUBLIC_FIREBASE_API_KEY`):**
-        *   In the API key list, find the key that matches the value you put in `NEXT_PUBLIC_FIREBASE_API_KEY`. It might be named something like "Browser key (auto-created by Firebase)". Click its name to edit it.
+    *   **CRITICAL - Configure Your Browser Key (the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
+        *   In the API key list, find the key that matches the value you put in `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`. It might be named something like "Browser key (auto-created by Firebase)". Click its name to edit it.
         *   **CRITICAL (API RESTRICTIONS):** Under **"API restrictions"**, select **"Restrict key"** and ensure the following APIs are selected:
             *   **Maps JavaScript API**
             *   **Places API (New)**
