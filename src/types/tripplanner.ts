@@ -1,4 +1,3 @@
-
 import type { DateRange } from 'react-day-picker';
 import type { ChecklistStage } from '@/types/checklist';
 import type { BudgetCategory, Expense } from '@/types/expense';
@@ -25,7 +24,6 @@ export interface RouteDetails {
   polyline?: string | null;
   warnings?: string[] | null;
   tollInfo?: { text: string; value: number } | null;
-  fuelStations?: FuelStation[] | null;
 }
 
 export interface FuelEstimate {
