@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useContext } from 'react';
@@ -8,6 +7,7 @@ import { navItems } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import { NavigationContext } from './AppShell';
 import { ClientBuildTimestamp } from '@/components/shared/ClientBuildTimestamp';
+import * as icons from 'lucide-react';
 
 export function BottomNavigation() {
   const pathname = usePathname();
@@ -31,7 +31,7 @@ export function BottomNavigation() {
 
 
   // New logic: Define which paths belong to the Trip Manager group
-  const tripManagerPaths = ['/trip-manager', '/trip-expense-planner', '/triplog', '/trip-packing', '/journeys', '/world-map'];
+  const tripManagerPaths = ['/trip-manager', '/trip-expense-planner', '/triplog', '/trip-packing', '/journeys', '/world-map', '/trip-manager/checklists'];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-top md:hidden z-50">
@@ -53,7 +53,7 @@ export function BottomNavigation() {
               isActive = pathname.startsWith(item.href);
             }
               
-            const IconComponent = item.icon;
+            const IconComponent = icons[item.iconName as keyof typeof icons] || null;
 
             return (
               <li key={item.label} className="flex-1 text-center">
@@ -67,10 +67,10 @@ export function BottomNavigation() {
                   aria-current={isActive ? "page" : undefined}
                   title={item.label}
                 >
-                  <IconComponent 
+                  {IconComponent && <IconComponent 
                     className={cn("w-7 h-7", isActive ? "text-accent" : "text-accent opacity-50")} 
                     strokeWidth={2.5}
-                  />
+                  />}
                   <span className="sr-only">{item.label}</span>
                 </Link>
               </li>
