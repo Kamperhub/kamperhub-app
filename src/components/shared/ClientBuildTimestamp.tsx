@@ -18,6 +18,7 @@ export function ClientBuildTimestamp({ className }: ClientBuildTimestampProps) {
 
   if (!timestamp) {
     // Render nothing on the server and during the initial client render
+    // to ensure the server and client HTML match perfectly.
     return null;
   }
 

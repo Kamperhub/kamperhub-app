@@ -6,8 +6,6 @@ import { getSession } from '@/lib/server-session';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { parseISO, differenceInCalendarDays, isValid } from 'date-fns';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 
 interface TripStats {
   totalTrips: number;
@@ -151,11 +149,9 @@ export default async function StatsPage() {
             <p className="text-sm text-muted-foreground font-body mb-4">
               It looks like you haven't logged any trips. <br/>Start planning your adventures to see your stats here!
             </p>
-            <Button asChild className="font-body bg-accent text-accent-foreground hover:bg-accent/90">
-              <Link href="/trip-expense-planner">
+            <a href="/trip-expense-planner" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 font-body bg-accent text-accent-foreground hover:bg-accent/90">
                 <RouteIcon className="mr-2 h-4 w-4" /> Plan Your First Trip
-              </Link>
-            </Button>
+            </a>
           </CardContent>
         </Card>
       </div>
