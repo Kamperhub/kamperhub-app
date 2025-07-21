@@ -18,28 +18,17 @@ interface NavigationContextType {
 
 export const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
 
-export function AppShell({ children }: { children: React.ReactNode }) {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  const [isNavigating, setIsNavigating] = useState(false);
+// A new internal component to hold the main layout structure.
+// This allows AuthGuard to wrap the entire visible app.
+const MainLayout = ({ children, apiKeyMissing }: { children: React.ReactNode, apiKeyMissing: boolean }) => {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/';
 
-  useEffect(() => {
-    setIsNavigating(false);
-  }, [pathname, searchParams]);
-  
-  useEffect(() => {
-    initializeFirebaseAppCheck();
-  }, []);
-
-  const isPublicPage = pathname === '/' || pathname === '/login' || pathname === '/signup';
-  const apiKeyMissing = !apiKey;
-
-  const AppContent = (
+  return (
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8 pb-24 sm:pb-8">
-        {apiKeyMissing && !isPublicPage && (
+        {apiKeyMissing && !isAuthPage && (
            <Alert variant="destructive" className="mb-6">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle className="font-headline">Google Maps API Key Missing</AlertTitle>
@@ -50,9 +39,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
         {children}
       </main>
-      {!isPublicPage && <BottomNavigation />}
+      {!isAuthPage && <BottomNavigation />}
     </div>
   );
+};
+
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const [isNavigating, setIsNavigating] = useState(false);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    // Hide loader whenever the path changes, which signifies navigation is complete
+    setIsNavigating(false);
+  }, [pathname, searchParams]);
+  
+  // Initialize Firebase App Check once the component has mounted on the client.
+  useEffect(() => {
+    initializeFirebaseAppCheck();
+  }, []);
+
+  const isPublicPage = pathname === '/' || pathname === '/login' || pathname === '/signup';
+  const apiKeyMissing = !apiKey;
+  
+  const AppContent = () => {
+    return isPublicPage ? (
+      <MainLayout apiKeyMissing={apiKeyMissing}>{children}</MainLayout>
+    ) : (
+      <AuthGuard>
+        <MainLayout apiKeyMissing={apiKeyMissing}>{children}</MainLayout>
+      </AuthGuard>
+    );
+  }
 
   return (
     <NavigationContext.Provider value={{ setIsNavigating }}>
@@ -62,7 +82,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <p className="text-lg font-semibold text-primary">Loading...</p>
         </div>
       )}
-      {isPublicPage ? AppContent : <AuthGuard>{AppContent}</AuthGuard>}
+       <APIProvider 
+          apiKey={apiKey || "MISSING_API_KEY"} 
+          solutionChannel="GMP_visgl_rgm_reactfirebase_v1"
+          libraries={['places', 'routes', 'geometry']}
+        >
+          <AppContent/>
+        </APIProvider>
     </NavigationContext.Provider>
   );
 }
