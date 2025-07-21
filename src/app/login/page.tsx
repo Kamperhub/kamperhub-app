@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useContext } from 'react';
@@ -34,7 +35,7 @@ export default function LoginPage() {
   const [blockedReferer, setBlockedReferer] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
-  const { user, authStatus } = useAuth();
+  const { user, authStatus } from useAuth();
   const navContext = useContext(NavigationContext);
 
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);

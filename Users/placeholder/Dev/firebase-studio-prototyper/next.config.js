@@ -6,6 +6,16 @@ const nextConfig = {
   },
   experimental: {
     instrumentationHook: false, // This disables Next.js's default OpenTelemetry instrumentation
+    serverActions: {
+      bodySizeLimit: '2mb', // Increase body size limit for potential large payloads
+    },
+    // This is the critical addition to trust proxy headers in the dev environment.
+    trustedProxies: [
+      '127.0.0.1',
+      '::1',
+      'localhost', // Standard loopback
+      '::ffff:127.0.0.1', // For IPv6-mapped IPv4
+    ],
   },
   webpack: (config, { dev, isServer }) => {
     // Enable WebAssembly experiments to support all package features.
@@ -91,5 +101,3 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
-
-    
