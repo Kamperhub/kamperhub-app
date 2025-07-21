@@ -1,12 +1,12 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
+import { getAuth, type Auth, browserSessionPersistence, setPersistence } from 'firebase/auth';
 import { getFirestore, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from '@firebase/app-check';
 
-// SIMPLIFIED CONFIGURATION:
-// The Firebase client will use the same API key as Google Maps.
-// This is a valid configuration that reduces the number of keys to manage.
+// UNIFIED KEY STRATEGY:
+// The Firebase client will now use the SAME API key as Google Maps.
+// This is a valid configuration that simplifies setup and resolves grantToken errors.
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY, // Use the Maps API key here
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -38,6 +38,9 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig as FirebaseOptions);
     auth = getAuth(app);
     db = getFirestore(app, 'kamperhubv2');
+    
+    // Set session persistence to avoid unexpected Passkey/WebAuthn prompts
+    setPersistence(auth, browserSessionPersistence);
 
     console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}, connecting to database 'kamperhubv2'.`);
 
