@@ -1,3 +1,4 @@
+
 "use client";
 
 import { QueryProvider } from '@/components/layout/QueryProvider';
@@ -14,11 +15,11 @@ export function Providers({ children }: { children: ReactNode }) {
         libraries={['places', 'routes', 'geometry']}
     >
       <QueryProvider>
-        <AuthProvider>
-          <SubscriptionProvider>
+        <SubscriptionProvider>
+          <AuthProvider>
             {children}
-          </SubscriptionProvider>
-        </AuthProvider>
+          </AuthProvider>
+        </SubscriptionProvider>
       </QueryProvider>
     </APIProvider>
   );
