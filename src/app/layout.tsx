@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AppShell } from '@/components/layout/AppShell';
 import { Toaster } from "@/components/ui/toaster";
-import { Providers } from '@/Providers';
+import { Providers } from '@/components/layout/Providers';
 
 export const metadata: Metadata = {
   title: 'KamperHub',

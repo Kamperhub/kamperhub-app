@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, createContext } from 'react';
@@ -6,7 +5,6 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { Header } from './Header';
 import { BottomNavigation } from './BottomNavigation';
 import { AuthGuard } from './AuthGuard';
-import { APIProvider } from '@vis.gl/react-google-maps';
 import { Loader2 } from 'lucide-react';
 import { initializeFirebaseAppCheck } from '@/lib/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -82,13 +80,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <p className="text-lg font-semibold text-primary">Loading...</p>
         </div>
       )}
-       <APIProvider 
-          apiKey={apiKey || "MISSING_API_KEY"} 
-          solutionChannel="GMP_visgl_rgm_reactfirebase_v1"
-          libraries={['places', 'routes', 'geometry']}
-        >
-          <AppContent/>
-        </APIProvider>
+      <AppContent/>
     </NavigationContext.Provider>
   );
 }
