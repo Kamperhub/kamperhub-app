@@ -1,19 +1,13 @@
-
-"use client";
-
-import React, { useMemo, useContext } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import type { LoggedTrip } from '@/types/tripplanner';
+// This page is now a Server Component and does not use client-side hooks.
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Home, Route as RouteIcon, CalendarDays, CheckCircle, Trophy, TrendingUp, AlertCircle, BarChart3, Loader2, Wallet, Fuel as FuelIcon, Banknote, Crown } from 'lucide-react';
+import { BarChart3, Trophy, Route as RouteIcon, CalendarDays, CheckCircle, TrendingUp, Wallet, Fuel as FuelIcon, Banknote, Crown } from 'lucide-react';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getSession } from '@/lib/server-session';
+import type { LoggedTrip } from '@/types/tripplanner';
 import { parseISO, differenceInCalendarDays, isValid } from 'date-fns';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { fetchTrips } from '@/lib/api-client';
-import { useAuth } from '@/hooks/useAuth';
-import { NavigationContext } from '@/components/layout/AppShell';
 
 interface TripStats {
   totalTrips: number;
@@ -21,10 +15,9 @@ interface TripStats {
   totalDaysOnRoad: number;
   completedTrips: number;
   averageDistancePerTrip: number;
-  averageDurationPerTrip: number; // in days
+  averageDurationPerTrip: number;
   longestTripByDistance: LoggedTrip | null;
   longestTripByDuration: LoggedTrip | null;
-  // New financial and fuel stats
   totalExpenditure: number;
   totalBudgeted: number;
   totalFuelCost: number;
@@ -32,113 +25,105 @@ interface TripStats {
   tripWithHighestSpend: { name: string; totalSpend: number } | null;
 }
 
-export default function StatsPage() {
-  const { user, isAuthLoading } = useAuth();
-  const navContext = useContext(NavigationContext);
+async function getStats(): Promise<TripStats> {
+  const session = await getSession();
+  if (!session) {
+    return {
+      totalTrips: 0, totalKilometers: 0, totalDaysOnRoad: 0, completedTrips: 0,
+      averageDistancePerTrip: 0, averageDurationPerTrip: 0,
+      longestTripByDistance: null, longestTripByDuration: null,
+      totalExpenditure: 0, totalBudgeted: 0, totalFuelCost: 0, averageCostPerKm: 0, tripWithHighestSpend: null,
+    };
+  }
 
-  const { data: loggedTrips = [], isLoading: isLoadingTrips, error } = useQuery<LoggedTrip[]>({
-    queryKey: ['trips', user?.uid],
-    queryFn: fetchTrips,
-    enabled: !!user,
-  });
-
-  const isLoading = isAuthLoading || isLoadingTrips;
+  const { firestore } = getFirebaseAdmin();
+  if (!firestore) {
+    throw new Error("Server configuration error: Firestore not available.");
+  }
   
-  const handleNavigation = () => {
-    navContext?.setIsNavigating(true);
-  };
-
-  const stats: TripStats | null = useMemo(() => {
-    if (!loggedTrips || loggedTrips.length === 0) {
+  const tripsSnapshot = await firestore.collection('users').doc(session.uid).collection('trips').get();
+  const loggedTrips = tripsSnapshot.docs.map(doc => doc.data() as LoggedTrip);
+  
+  if (loggedTrips.length === 0) {
       return {
         totalTrips: 0, totalKilometers: 0, totalDaysOnRoad: 0, completedTrips: 0,
         averageDistancePerTrip: 0, averageDurationPerTrip: 0,
         longestTripByDistance: null, longestTripByDuration: null,
         totalExpenditure: 0, totalBudgeted: 0, totalFuelCost: 0, averageCostPerKm: 0, tripWithHighestSpend: null,
       };
-    }
+  }
 
-    let totalKilometers = 0;
-    let totalDaysOnRoad = 0;
-    let completedTrips = 0;
-    let longestDist = 0;
-    let longestTripByDist: LoggedTrip | null = null;
-    let longestDur = 0;
-    let longestTripByDur: LoggedTrip | null = null;
-    let totalExpenditure = 0;
-    let totalBudgeted = 0;
-    let totalFuelCost = 0;
-    let highestSpend = -1;
-    let tripWithHighestSpend: { name: string; totalSpend: number } | null = null;
+  let totalKilometers = 0;
+  let totalDaysOnRoad = 0;
+  let completedTrips = 0;
+  let longestDist = 0;
+  let longestTripByDist: LoggedTrip | null = null;
+  let longestDur = 0;
+  let longestTripByDur: LoggedTrip | null = null;
+  let totalExpenditure = 0;
+  let totalBudgeted = 0;
+  let totalFuelCost = 0;
+  let highestSpend = -1;
+  let tripWithHighestSpend: { name: string; totalSpend: number } | null = null;
 
-    loggedTrips.forEach(trip => {
-      const tripDistanceKm = (trip.routeDetails?.distance?.value || 0) / 1000;
-      totalKilometers += tripDistanceKm;
-
-      if (trip.isCompleted) {
-        completedTrips++;
-      }
-
-      let durationDays = 0;
-      if (trip.plannedStartDate && trip.plannedEndDate) {
-        const startDate = parseISO(trip.plannedStartDate);
-        const endDate = parseISO(trip.plannedEndDate);
-        if (isValid(startDate) && isValid(endDate) && endDate >= startDate) {
-          durationDays = differenceInCalendarDays(endDate, startDate) + 1;
-          totalDaysOnRoad += durationDays;
-        }
-      } else if (trip.plannedStartDate) {
-        durationDays = 1;
+  loggedTrips.forEach(trip => {
+    const tripDistanceKm = (trip.routeDetails?.distance?.value || 0) / 1000;
+    totalKilometers += tripDistanceKm;
+    if (trip.isCompleted) completedTrips++;
+    
+    let durationDays = 0;
+    if (trip.plannedStartDate && trip.plannedEndDate) {
+      const startDate = parseISO(trip.plannedStartDate);
+      const endDate = parseISO(trip.plannedEndDate);
+      if (isValid(startDate) && isValid(endDate) && endDate >= startDate) {
+        durationDays = differenceInCalendarDays(endDate, startDate) + 1;
         totalDaysOnRoad += durationDays;
       }
+    } else if (trip.plannedStartDate) {
+      durationDays = 1;
+      totalDaysOnRoad += durationDays;
+    }
 
-      if (tripDistanceKm > longestDist) {
-        longestDist = tripDistanceKm;
-        longestTripByDist = trip;
-      }
-      if (durationDays > longestDur) {
-        longestDur = durationDays;
-        longestTripByDur = trip;
-      }
-      
-      const tripTotalSpend = trip.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
-      totalExpenditure += tripTotalSpend;
-
-      if (tripTotalSpend > highestSpend) {
-        highestSpend = tripTotalSpend;
-        tripWithHighestSpend = { name: trip.name, totalSpend: tripTotalSpend };
-      }
-
-      totalBudgeted += trip.budget?.reduce((sum, cat) => sum + cat.budgetedAmount, 0) || 0;
-      
-      const fuelCategoryId = trip.budget?.find(cat => cat.name.toLowerCase() === 'fuel')?.id;
-      if (fuelCategoryId) {
-        const tripFuelSpend = trip.expenses?.filter(e => e.categoryId === fuelCategoryId).reduce((sum, exp) => sum + exp.amount, 0) || 0;
-        totalFuelCost += tripFuelSpend;
-      }
-    });
+    if (tripDistanceKm > longestDist) {
+      longestDist = tripDistanceKm;
+      longestTripByDist = trip;
+    }
+    if (durationDays > longestDur) {
+      longestDur = durationDays;
+      longestTripByDur = trip;
+    }
     
-    const averageCostPerKm = totalKilometers > 0 ? totalExpenditure / totalKilometers : 0;
+    const tripTotalSpend = trip.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
+    totalExpenditure += tripTotalSpend;
 
-    return {
-      totalTrips: loggedTrips.length,
-      totalKilometers,
-      totalDaysOnRoad,
-      completedTrips,
-      averageDistancePerTrip: loggedTrips.length > 0 ? totalKilometers / loggedTrips.length : 0,
-      averageDurationPerTrip: loggedTrips.length > 0 ? totalDaysOnRoad / loggedTrips.length : 0,
-      longestTripByDistance: longestTripByDist,
-      longestTripByDuration: longestTripByDur,
-      totalExpenditure,
-      totalBudgeted,
-      totalFuelCost,
-      averageCostPerKm,
-      tripWithHighestSpend,
-    };
-  }, [loggedTrips]);
+    if (tripTotalSpend > highestSpend) {
+      highestSpend = tripTotalSpend;
+      tripWithHighestSpend = { name: trip.name, totalSpend: tripTotalSpend };
+    }
 
-  const StatCard = ({ title, value, icon: Icon, unit = '', description }: { title: string, value: string | number, icon: React.ElementType, unit?: string, description?: string }) => (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+    totalBudgeted += trip.budget?.reduce((sum, cat) => sum + cat.budgetedAmount, 0) || 0;
+    const fuelCategoryId = trip.budget?.find(cat => cat.name.toLowerCase() === 'fuel')?.id;
+    if (fuelCategoryId) {
+      const tripFuelSpend = trip.expenses?.filter(e => e.categoryId === fuelCategoryId).reduce((sum, exp) => sum + exp.amount, 0) || 0;
+      totalFuelCost += tripFuelSpend;
+    }
+  });
+
+  const averageCostPerKm = totalKilometers > 0 ? totalExpenditure / totalKilometers : 0;
+
+  return {
+    totalTrips: loggedTrips.length,
+    totalKilometers, totalDaysOnRoad, completedTrips,
+    averageDistancePerTrip: loggedTrips.length > 0 ? totalKilometers / loggedTrips.length : 0,
+    averageDurationPerTrip: loggedTrips.length > 0 ? totalDaysOnRoad / loggedTrips.length : 0,
+    longestTripByDistance: longestTripByDist,
+    longestTripByDuration: longestTripByDur,
+    totalExpenditure, totalBudgeted, totalFuelCost, averageCostPerKm, tripWithHighestSpend,
+  };
+}
+
+const StatCard = ({ title, value, icon: Icon, unit = '', description }: { title: string, value: string | number, icon: React.ElementType, unit?: string, description?: string }) => (
+    <Card className="shadow-lg">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium font-body">{title}</CardTitle>
         <Icon className="h-5 w-5 text-primary" />
@@ -150,57 +135,28 @@ export default function StatsPage() {
     </Card>
   );
 
-  if (isLoading) {
-    return (
-      <div className="space-y-8">
-        <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
-          <BarChart3 className="mr-3 h-8 w-8" /> Travel Statistics
-        </h1>
-        <div className="flex justify-center items-center py-10">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="ml-3 font-body text-lg">Loading trip stats from server...</p>
-        </div>
-        <Skeleton className="h-[120px]" />
-        <Skeleton className="h-[120px]" />
-        <Skeleton className="h-[200px] mt-6" />
-      </div>
-    );
-  }
+export default async function StatsPage() {
+  const stats = await getStats();
 
-  if (error) {
-    return (
-      <div className="space-y-8">
-        <h1 className="text-3xl font-headline mb-6 text-primary flex items-center">
-           <BarChart3 className="mr-3 h-8 w-8" /> Travel Statistics
-        </h1>
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error Loading Stats</AlertTitle>
-          <AlertDescription>{error.message}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  if (!stats || stats.totalTrips === 0) {
+  if (stats.totalTrips === 0) {
     return (
       <div className="space-y-8 text-center">
         <h1 className="text-3xl font-headline mb-6 text-primary flex items-center justify-center">
           <BarChart3 className="mr-3 h-8 w-8" /> Travel Statistics
         </h1>
         <Card className="py-10">
-            <CardContent className="flex flex-col items-center justify-center">
-                <TrendingUp className="h-16 w-16 text-muted-foreground mb-4" />
-                <p className="text-xl font-semibold font-body text-muted-foreground mb-2">No Trip Data Yet</p>
-                <p className="text-sm text-muted-foreground font-body mb-4">
-                    It looks like you haven't logged any trips. <br/>Start planning your adventures to see your stats here!
-                </p>
-                <Link href="/trip-expense-planner" passHref>
-                    <Button className="font-body bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleNavigation}>
-                        <RouteIcon className="mr-2 h-4 w-4" /> Plan Your First Trip
-                    </Button>
-                </Link>
-            </CardContent>
+          <CardContent className="flex flex-col items-center justify-center">
+            <TrendingUp className="h-16 w-16 text-muted-foreground mb-4" />
+            <p className="text-xl font-semibold font-body text-muted-foreground mb-2">No Trip Data Yet</p>
+            <p className="text-sm text-muted-foreground font-body mb-4">
+              It looks like you haven't logged any trips. <br/>Start planning your adventures to see your stats here!
+            </p>
+            <Button asChild className="font-body bg-accent text-accent-foreground hover:bg-accent/90">
+              <Link href="/trip-expense-planner">
+                <RouteIcon className="mr-2 h-4 w-4" /> Plan Your First Trip
+              </Link>
+            </Button>
+          </CardContent>
         </Card>
       </div>
     );
@@ -226,7 +182,7 @@ export default function StatsPage() {
         <StatCard title="Avg. Duration / Trip" value={stats.averageDurationPerTrip.toFixed(1)} unit="days" icon={CalendarDays} />
       </div>
 
-      <div className="pt-6">
+       <div className="pt-6">
         <h2 className="text-2xl font-headline text-primary mb-4">Financial & Fuel Overview</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard title="Total Expenditure" value={`$${stats.totalExpenditure.toFixed(2)}`} icon={Wallet} description="Sum of all logged expenses" />
