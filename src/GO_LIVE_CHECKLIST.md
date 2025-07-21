@@ -1,4 +1,3 @@
-
 # KamperHub Go-Live Production Checklist
 
 > [!WARNING]
