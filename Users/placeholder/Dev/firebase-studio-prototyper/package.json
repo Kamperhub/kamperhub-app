@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm run clean && next dev",
+    "dev": "npx dotenv-cli -e .env.local -- npm run clean && next dev",
     "genkit:dev": "npx dotenv -e .env.local -- genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "npx dotenv -e .env.local -- genkit start --watch -- tsx src/ai/dev.ts",
     "build": "next build",
