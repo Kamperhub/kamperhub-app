@@ -1,4 +1,3 @@
-
 // src/app/api/vehicles/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -107,6 +106,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const newVehicle: StoredVehicle = {
       id: newVehicleRef.id,
       ...parsedData,
+      brakeControllerNotes: parsedData.brakeControllerNotes || null,
     };
     
     await newVehicleRef.set(newVehicle);
