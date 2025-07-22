@@ -103,8 +103,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
         *   **CRITICAL (API RESTRICTIONS):** Under **"API restrictions"**, select **"Restrict key"** and ensure the following APIs are selected:
             *   **Maps JavaScript API**
             *   **Places API (New)**
-            *   **Identity Toolkit API** (This is required for Firebase Authentication)
-            *   **Firebase Authentication API** (CRITICAL: Also required for authentication sign-in and token refresh)
+            *   **Identity Toolkit API** (This is **CRITICAL** for Firebase Authentication. If this is not enabled for your key, you will see the `grantToken` error.)
             *   **Firebase App Check API**
         *   **CRITICAL (WEBSITE RESTRICTIONS):** Under **"Application restrictions"**, choose **"Websites"**.
         *   > [!WARNING]
@@ -145,7 +144,6 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   **Maps JavaScript API**
     *   **Places API (New)**
     *   **Identity Toolkit API** (Required for Firebase Authentication)
-    *   **Firebase Authentication API** (Also required for Firebase Authentication)
     *   **Firebase App Check API** (Required for App Check)
 
 4.  **Server-Side APIs** (Used by `GOOGLE_API_KEY`):
