@@ -119,6 +119,15 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   **CRITICAL: If creating a new one, select "Web application" as the application type.**
     *   On the details page for your Client ID, you will find the **Client ID** and **Client Secret**.
     *   Copy and paste these into the `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` variables in your `.env.local` file.
+    *   > [!WARNING]
+    >   **CRITICAL FIX: Add Your OAuth Redirect URI**
+    >   1. On the same details page for your OAuth Client ID, find the section named **"Authorized redirect URIs"**.
+    >   2. Click **"+ ADD URI"**.
+    >   3. Find your unique development URL from the IDE's preview browser window (e.g., `https://1234-567-890.cloudworkstations.dev`).
+    >   4. **Combine** that URL with `/api/auth/google/callback`.
+    >   5. Paste the complete, combined URL into the input field. For example: `https://1234-567-890.cloudworkstations.dev/api/auth/google/callback`.
+    >   6. Click **Save**. This is a mandatory step.
+
 
 ---
 
