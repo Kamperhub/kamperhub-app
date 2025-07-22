@@ -44,6 +44,20 @@ async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: strin
   }
 }
 
+const handleApiError = (error: any): NextResponse => {
+  console.error('API Error in all-vehicle-data route:', error);
+  if (error.message.includes('Unauthorized')) {
+    return NextResponse.json({ error: 'Unauthorized', details: error.message }, { status: 401 });
+  }
+  if (error.message.includes('Server configuration error')) {
+    return NextResponse.json({ error: 'Server configuration error', details: error.message }, { status: 503 });
+  }
+  if (error.code === 16) { // UNAUTHENTICATED from Firebase Admin
+     return NextResponse.json({ error: 'Server Authentication Failed', details: `16 UNAUTHENTICATED: ${error.message}. This is a server configuration issue. Check your GOOGLE_APPLICATION_CREDENTIALS_JSON.` }, { status: 500 });
+  }
+  return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+};
+
 export async function GET(req: NextRequest): Promise<NextResponse> {
     try {
         const { uid, firestore } = await verifyUserAndGetInstances(req);
@@ -71,7 +85,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
         return NextResponse.json(sanitizedData, { status: 200 });
     } catch (err: any) {
-        console.error('API Error in all-vehicle-data:', err);
-        return NextResponse.json({ error: 'Failed to fetch consolidated data', details: err.message }, { status: 500 });
+        return handleApiError(err);
     }
 }
