@@ -1,3 +1,4 @@
+
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 
@@ -29,9 +30,15 @@ export function getFirebaseAdmin() {
         jsonString = jsonString.substring(1, jsonString.length - 1);
     }
     
+    // The JSON string can now be parsed directly. Node's parser and the SDK handle the escaped newlines.
     let serviceAccount;
     try {
-        serviceAccount = JSON.parse(jsonString);
+        // Explicitly replace escaped newlines for environments that don't handle it automatically.
+        const parsedJson = JSON.parse(jsonString);
+        if (parsedJson.private_key) {
+            parsedJson.private_key = parsedJson.private_key.replace(/\\n/g, '\n');
+        }
+        serviceAccount = parsedJson;
     } catch (e: any) {
         throw new Error(`FATAL: The GOOGLE_APPLICATION_CREDENTIALS_JSON string in your .env.local file is not valid JSON. Please copy it again carefully. The JSON parser failed with: ${e.message}`);
     }
@@ -44,6 +51,7 @@ export function getFirebaseAdmin() {
       throw new Error("FATAL: The 'private_key' field is missing from your service account JSON. Please ensure you have copied the entire JSON file correctly.");
     }
     
+    // The SDK handles the private key format, no manual replacement needed.
     const newApp = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
