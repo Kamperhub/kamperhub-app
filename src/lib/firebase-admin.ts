@@ -3,9 +3,9 @@ import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 
 export function getFirebaseAdmin() {
-  const app = admin.apps.length > 0 && admin.apps[0] ? admin.apps[0] : undefined;
-
-  if (app) {
+  // If the app is already initialized, return the existing instances.
+  if (admin.apps.length > 0 && admin.apps[0]) {
+    const app = admin.apps[0];
     return {
       auth: admin.auth(app),
       firestore: getFirestore(app, 'kamperhubv2'),
@@ -13,6 +13,7 @@ export function getFirebaseAdmin() {
     };
   }
 
+  // If not initialized, proceed with the setup.
   try {
     const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
     const clientProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
@@ -25,16 +26,18 @@ export function getFirebaseAdmin() {
         throw new Error("FATAL: NEXT_PUBLIC_FIREBASE_PROJECT_ID environment variable is not set. Cannot verify server-side configuration.");
     }
 
+    // Clean the JSON string by removing potential leading/trailing single quotes.
     let jsonString = serviceAccountJsonString.trim();
-    if ((jsonString.startsWith("'") && jsonString.endsWith("'")) || (jsonString.startsWith('"') && jsonString.endsWith('"'))) {
+    if (jsonString.startsWith("'") && jsonString.endsWith("'")) {
         jsonString = jsonString.substring(1, jsonString.length - 1);
     }
     
-    // The JSON string can now be parsed directly.
     let serviceAccount;
     try {
-        // Explicitly replace escaped newlines for environments that don't handle it automatically.
+        // Parse the string into a JavaScript object.
         const parsedJson = JSON.parse(jsonString);
+        // Explicitly replace escaped newlines in the private key with actual newlines.
+        // This is a critical step for environments that don't handle this automatically.
         if (parsedJson.private_key) {
             parsedJson.private_key = parsedJson.private_key.replace(/\\n/g, '\n');
         }
@@ -64,7 +67,8 @@ export function getFirebaseAdmin() {
     };
 
   } catch (error: any) {
-    console.error("CRITICAL: Firebase Admin SDK initialization failed.", error.message);
+    console.error("CRITICAL: Firebase Admin SDK initialization failed.", error);
+    // Return the error object so the caller knows initialization failed.
     return { auth: null, firestore: null, error };
   }
 }
