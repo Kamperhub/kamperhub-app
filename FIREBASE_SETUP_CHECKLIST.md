@@ -21,7 +21,6 @@ All your secret keys will live in a special file that is **NEVER** committed to 
     ```env
     # --- Firebase Client-Side Configuration (for the browser) ---
     # These values come from your Firebase project settings (see Step 3.1)
-    # NOTE: NEXT_PUBLIC_FIREBASE_API_KEY is now DEPRECATED. The app will use NEXT_PUBLIC_GOOGLE_MAPS_API_KEY for auth.
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com"
     NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
     NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-project.appspot.com"
@@ -31,7 +30,7 @@ All your secret keys will live in a special file that is **NEVER** committed to 
     
     # --- Client-Side Google API Keys (for the browser) ---
     # CRITICAL: This is now the SINGLE key for all client-side Google services, including Firebase Auth and Google Maps.
-    # It should have "HTTP referrer" restrictions.
+    # It should have "HTTP referrer" restrictions for PRODUCTION, but NOT for local development.
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="YOUR_BROWSER_API_KEY_HERE"
 
     # --- Server-Side Google API Keys (for the backend) ---
@@ -103,14 +102,9 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
         *   **CRITICAL (API RESTRICTIONS):** Under **"API restrictions"**, select **"Restrict key"** and ensure the following APIs are selected:
             *   **Maps JavaScript API**
             *   **Places API (New)**
-            *   **Identity Toolkit API** (This is **CRITICAL** for Firebase Authentication. If this is not enabled for your key, you will see the `grantToken` error.)
+            *   **Identity Toolkit API** (This is **CRITICAL** for Firebase Authentication)
             *   **Firebase App Check API**
-        *   **CRITICAL (WEBSITE RESTRICTIONS):** Under **"Application restrictions"**, choose **"Websites"**.
-        *   > [!WARNING]
-        >   **CRITICAL FIX: Adding Your Development URL**
-        >   You must add your development URL to the allowed list for your Browser Key to work.
-        >   1. **Find Your URL:** Look at the browser address bar in your IDE's **preview window**. This is **NOT** the `studio.firebase.google.com` URL. It will look similar to `https://1234-567-890.cloudworkstations.dev`.
-        >   2. **Add the Wildcard Version:** In the "Website restrictions" section, click **"ADD"**. The most robust value to add is `*.cloudworkstations.dev`. You should also add `localhost` to this list.
+        *   **CRITICAL (WEBSITE RESTRICTIONS - FINAL FIX):** Under **"Application restrictions"**, you must select **"None"**. While "Website" restrictions are best practice for production, they are the cause of the `grantToken` error in this cloud development environment. Removing this restriction for your development key will fix the login issue.
         *   Click **Save**.
 
 4.  **Google OAuth Keys (`GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`)**
