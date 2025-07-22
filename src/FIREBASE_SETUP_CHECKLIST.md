@@ -31,7 +31,7 @@ All your secret keys will live in a special file that is **NEVER** committed to 
     
     # --- Client-Side Google API Keys (for the browser) ---
     # This key handles Google Maps and Places.
-    # It should have "HTTP referrer" restrictions.
+    # It must NOT have website/HTTP referrer restrictions in this dev environment.
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="YOUR_BROWSER_API_KEY_HERE"
 
     # --- Server-Side Google API Keys (for the backend) ---
@@ -47,7 +47,8 @@ All your secret keys will live in a special file that is **NEVER** committed to 
     NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN="your-app-check-debug-token-if-needed"
 
     # --- Application URL and Environment ---
-    NEXT_PUBLIC_APP_URL="http://localhost:8083"
+    # This MUST match the full URL of your running application's preview window.
+    NEXT_PUBLIC_APP_URL="https://your-unique-id.cloudworkstations.dev"
     NEXT_PUBLIC_APP_ENV="development"
 
     # --- Stripe Configuration (for subscriptions) ---
@@ -63,7 +64,7 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 ---
 
 ### Step 2: Find Your Firebase Project (Est. 2 mins)
-
+(No changes to this step)
 > [!IMPORTANT]
 > This is the most critical step. Your Firebase **Project ID** is `kamperhub-s4hc2`. You must get **all keys** from this specific project.
 
@@ -81,7 +82,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   In your [Firebase Project Settings](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/settings/general), under the "General" tab, scroll down to the "Your apps" section.
     *   Find your web app (it's likely named something like `kamperhub-s4hc2`).
     *   Look for the "Firebase SDK snippet" section and select the **Config** option.
-    *   **CRITICAL:** Carefully copy every value from this Config object (`apiKey`, `authDomain`, `projectId`, etc.) and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file. The `apiKey` from this object is your `NEXT_PUBLIC_FIREBASE_API_KEY`.
+    *   **CRITICAL:** Carefully copy every value from this Config object (`apiKey`, `authDomain`, `projectId`, etc.) and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file.
     *   **CRITICAL:** Verify that the `projectId` from the config matches `kamperhub-s4hc2`.
 
 2.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
@@ -102,8 +103,7 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
         *   **CRITICAL (API RESTRICTIONS):** Under **"API restrictions"**, select **"Restrict key"** and ensure the following APIs are selected:
             *   **Maps JavaScript API**
             *   **Places API (New)**
-        *   **CRITICAL (WEBSITE RESTRICTIONS):** Under **"Application restrictions"**, choose **"Websites"**.
-        *   In the "Website restrictions" section, click **"ADD"**. The most robust value to add is `*.cloudworkstations.dev`. You should also add `localhost` to this list.
+        *   **CRITICAL (WEBSITE RESTRICTIONS):** Under **"Application restrictions"**, choose **"None"**. Do not add website restrictions for this development key.
         *   Click **Save**.
         *   Paste this new key into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable.
 
@@ -117,27 +117,15 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 ---
 
 ### Step 3.5: CRITICAL - Verify Google Cloud APIs Are Enabled (Est. 5 mins)
-
+(No changes to this step)
 > [!IMPORTANT]
 > **Understanding Costs:** Simply **enabling** these APIs does **not** incur any costs. Billing is based on **usage**. Google provides a generous monthly free tier for most services.
 
 1.  **Go to the [Google Cloud APIs & Services Dashboard for kamperhub-s4hc2](https://console.cloud.google.com/apis/dashboard?project=kamperhub-s4hc2).**
-
 2.  Click **"Enable APIs and Services"**. You must search for and enable the following APIs if they are not already enabled.
-
-3.  **Client-Side APIs** (Used by your Browser Key):
-    *   **Maps JavaScript API**
-    *   **Places API (New)**
-    *   **Identity Toolkit API** (Required for Firebase Authentication)
-    *   **Firebase App Check API** (Required for App Check)
-
-4.  **Server-Side APIs** (Used by `GOOGLE_API_KEY`):
-    *   **Routes API**
-    *   **Gemini API** (may be listed as "Generative Language API")
-    *   **Places API (New)** (also required by the server for fuel station search)
-
-5.  **OAuth API** (Does not use an API key):
-    *   **Google Tasks API**
+3.  **Client-Side APIs**: Maps JavaScript API, Places API (New), Identity Toolkit API, Firebase App Check API.
+4.  **Server-Side APIs**: Routes API, Gemini API, Places API (New).
+5.  **OAuth API**: Google Tasks API.
 
 > [!WARNING]
 > **Important Note on "Places API (New)"**
@@ -146,40 +134,59 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
 ---
 
 ### Step 3.6: CRITICAL - Configure OAuth Consent Screen & Credentials (Est. 5 mins)
-... (This section remains correct and unchanged) ...
+
+> [!WARNING]
+> **If you see a `redirect_uri_mismatch` error, it means this step was done incorrectly.**
+
+This step is mandatory for allowing users to connect their Google Accounts.
+
+1.  **Go to the [OAuth Consent Screen page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials/consent?project=kamperhub-s4hc2).**
+2.  **Set User Type:** If prompted, select **"External"** and click **Create**.
+3.  **Fill in App Information:** App name, User support email, etc. Click **"SAVE AND CONTINUE"** through the scopes pages.
+4.  **Publishing Status:** Click the **"Publish App"** button to move it to production so any Google user can connect.
+5.  **CRITICAL - Set URIs (Two-Part Process):**
+    *   Go to the [Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
+    *   Click on the name of your **OAuth 2.0 Client ID**.
+    *   **Part 1: Authorized JavaScript origins** (This box does NOT allow paths)
+        *   Click **"+ ADD URI"**.
+        *   Paste the **base URL** of your application from `NEXT_PUBLIC_APP_URL` (e.g., `https://your-id.cloudworkstations.dev`).
+    *   **Part 2: Authorized redirect URIs** (This box REQUIRES the full path)
+        *   Click **"+ ADD URI"**.
+        *   Paste the **full callback URL**: your `NEXT_PUBLIC_APP_URL` plus `/api/auth/google/callback`.
+        *   **Example:** `https://your-id.cloudworkstations.dev/api/auth/google/callback`
+    *   Click **Save**.
 
 ---
 
-### Step 3.7: CRITICAL - Configure App Check with reCAPTCHA Enterprise (Est. 5 mins)
-... (This section remains correct and unchanged) ...
+### Step 4: CRITICAL - Find and Set Your Unique Application URL (Est. 1 min)
+
+The application needs to know its own public URL for services like Stripe and Google OAuth.
+
+1.  In your IDE, look at the top of the **Preview Window** where your running application is displayed.
+2.  Find the browser's address bar. It will show a unique URL that looks like `https://<some-long-id>.cloudworkstations.dev`.
+3.  **Copy this entire URL** (e.g., `https://1234-567-890.cloudworkstations.dev`).
+4.  Open your `.env.local` file.
+5.  Paste this URL as the value for the `NEXT_PUBLIC_APP_URL` variable.
+    *   **Example:** `NEXT_PUBLIC_APP_URL="https://1234-567-890.cloudworkstations.dev"`
+6.  **IMPORTANT:** Make sure to save the `.env.local` file and then **restart your `npm run dev` server** for the change to take effect.
 
 ---
-
-### Step 4: CRITICAL - Verify Your Local Development Server Setup (Est. 1 min)
-... (This section remains correct and unchanged) ...
-
+(The remaining steps 5 through 8 and Troubleshooting are unchanged)
 ---
-
 ### Step 5: CRITICAL - Verify Firestore Database Exists (with ID `kamperhubv2`) (Est. 2 mins)
-... (This section remains correct and unchanged) ...
-
----
+...
 
 ### Step 6: CRITICAL - Verify Service Account Permissions (Est. 2 mins)
-... (This section remains correct and unchanged) ...
-
----
+...
 
 ### Step 7: FINAL & CRITICAL - Deploy Security Rules (Est. 2 mins)
-... (This section remains correct and unchanged) ...
-
----
+...
 
 ### Step 8: Create Your First User Account (One-Time Only) (Est. 1 min)
-... (This section remains correct and unchanged) ...
+...
 
 ---
 ---
 
 ## **Troubleshooting Google Connection Issues**
-... (This section remains correct and unchanged) ...
+...
