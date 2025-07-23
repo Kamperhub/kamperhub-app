@@ -81,7 +81,7 @@ All your secret keys will live in a special file that is **NEVER** committed to 
         *   Restrict this key to **Routes API**, **Gemini API**, and **Places API (New)**.
         *   Under "Application restrictions", choose **"None"**. This is a secret server key and must not have browser restrictions.
         *   Paste this key into the `GOOGLE_API_KEY` variable.
-    *   **Configure Your Browser Key (the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
+    *   **Configure Your Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
         *   Find the key that matches the value you put in `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
         *   **API RESTRICTIONS:** Restrict the key to: **Maps JavaScript API**, **Places API (New)**, **Identity Toolkit API** (for Auth), and **Firebase App Check API**.
         *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", choose **"Websites"**.
