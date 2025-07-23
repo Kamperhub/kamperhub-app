@@ -105,8 +105,8 @@ export default function LoginPage() {
             break;
           case 'auth/invalid-api-key':
           case 'auth/api-key-not-valid':
-            setLoginError('Your Firebase API Key is invalid or not configured correctly. Please check the NEXT_PUBLIC_GOOGLE_MAPS_API_KEY value in your .env.local file and follow Step 3 of the setup guide.');
-            errorMessage = 'Invalid Firebase API Key configuration.';
+            setLoginError('Your Browser API Key is invalid or not configured correctly. Please check the NEXT_PUBLIC_GOOGLE_MAPS_API_KEY value in your .env.local file and follow Step 3 of the setup guide.');
+            errorMessage = 'Invalid API Key configuration.';
             break;
           default:
             errorMessage = authError.message || 'An unknown login error occurred.';
@@ -290,5 +290,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
