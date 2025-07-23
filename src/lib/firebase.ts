@@ -37,11 +37,12 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   try {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig as FirebaseOptions);
     auth = getAuth(app);
-    db = getFirestore(app, 'kamperhubv2');
     
-    // Set session persistence to avoid unexpected Passkey/WebAuthn prompts
+    // Set session persistence to avoid unexpected Passkey/WebAuthn prompts and fix redirect loops
     setPersistence(auth, browserSessionPersistence);
 
+    db = getFirestore(app, 'kamperhubv2');
+    
     console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}, connecting to database 'kamperhubv2'.`);
 
     if (typeof window !== 'undefined') {
