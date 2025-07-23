@@ -1,4 +1,3 @@
-
 // src/app/api/bookings-page-data/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -51,6 +50,7 @@ const handleApiError = (error: any): NextResponse => {
   }
   return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
 };
+
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
     try {
