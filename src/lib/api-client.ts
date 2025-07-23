@@ -1,4 +1,3 @@
-
 'use client';
 
 import { auth } from './firebase';
@@ -9,7 +8,8 @@ async function apiFetch(url: string, options: RequestInit = {}) {
       throw new Error('User not authenticated. Cannot make API call.');
     }
     const headers = new Headers(options.headers || {});
-    const authToken = await user.getIdToken(true);
+    // Force token refresh before every API call to ensure validity.
+    const authToken = await user.getIdToken(true); 
     headers.set('Authorization', `Bearer ${authToken}`);
     if (options.body) {
       headers.set('Content-Type', 'application/json');
