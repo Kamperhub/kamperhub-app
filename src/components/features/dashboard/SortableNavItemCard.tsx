@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useContext } from 'react';
@@ -9,7 +10,6 @@ import Link from 'next/link';
 import { NavigationContext } from '@/components/layout/AppShell';
 import { GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import * as icons from 'lucide-react';
 
 interface SortableNavItemCardProps {
   item: NavItem;
@@ -38,8 +38,6 @@ export function SortableNavItemCard({ item, id }: SortableNavItemCardProps) {
     }
   };
 
-  const IconComponent = icons[item.iconName as keyof typeof icons] || null;
-
   return (
     <div ref={setNodeRef} style={style} {...attributes} className="touch-none h-full">
       <Card
@@ -55,7 +53,7 @@ export function SortableNavItemCard({ item, id }: SortableNavItemCardProps) {
         <Link href={item.href} className="flex flex-col h-full no-underline group" draggable="false" onClick={handleNavigation}>
           <CardHeader className="pb-3 pl-10">
             <CardTitle className="font-headline text-xl text-primary flex items-center">
-              {IconComponent && <IconComponent className="w-6 h-6 mr-3 text-primary" />}
+              <item.icon className="w-6 h-6 mr-3 text-primary" />
               {item.label}
             </CardTitle>
             <CardDescription className="font-body text-xl text-muted-foreground line-clamp-3">
@@ -67,7 +65,7 @@ export function SortableNavItemCard({ item, id }: SortableNavItemCardProps) {
               className="h-32 w-full bg-muted/30 rounded-md flex items-center justify-center my-2 overflow-hidden"
               data-ai-hint={item.keywords}
             >
-              {IconComponent && <IconComponent className="w-16 h-16 text-accent opacity-50" />}
+              <item.icon className="w-16 h-16 text-accent opacity-50" />
             </div>
           </CardContent>
         </Link>
