@@ -6,9 +6,16 @@ export function getFirebaseAdmin() {
   // If the app is already initialized, return the existing instances.
   if (admin.apps.length > 0 && admin.apps[0]) {
     const app = admin.apps[0];
+    const firestore = getFirestore(app, 'kamperhubv2');
+    if (!firestore) {
+      // This case can happen if the database with the specified ID doesn't exist.
+      const error = new Error("FATAL: Failed to get Firestore instance for database 'kamperhubv2'. Please ensure a Firestore database with this exact ID exists in your Firebase project.");
+      console.error("CRITICAL: Firebase Admin SDK initialization failed.", error);
+      return { auth: null, firestore: null, error };
+    }
     return {
       auth: admin.auth(app),
-      firestore: getFirestore(app, 'kamperhubv2'),
+      firestore: firestore,
       error: null
     };
   }
@@ -37,7 +44,6 @@ export function getFirebaseAdmin() {
         // Parse the string into a JavaScript object.
         const parsedJson = JSON.parse(jsonString);
         // Explicitly replace escaped newlines in the private key with actual newlines.
-        // This is a critical step for environments that don't handle this automatically.
         if (parsedJson.private_key) {
             parsedJson.private_key = parsedJson.private_key.replace(/\\n/g, '\n');
         }
@@ -59,10 +65,15 @@ export function getFirebaseAdmin() {
     });
 
     console.log(`[Firebase Admin] SDK initialized successfully for project: ${serviceAccount.project_id}`);
+    
+    const firestore = getFirestore(newApp, 'kamperhubv2');
+    if (!firestore) {
+      throw new Error("FATAL: Failed to get Firestore instance for database 'kamperhubv2' after initializing a new app. Please ensure a Firestore database with this exact ID exists.");
+    }
 
     return {
       auth: admin.auth(newApp),
-      firestore: getFirestore(newApp, 'kamperhubv2'),
+      firestore: firestore,
       error: null
     };
 
