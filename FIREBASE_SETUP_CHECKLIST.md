@@ -85,7 +85,12 @@ All your secret keys will live in a special file that is **NEVER** committed to 
         *   Find the key that matches the value you put in `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
         *   **API RESTRICTIONS:** Restrict the key to: **Maps JavaScript API**, **Places API (New)**, **Identity Toolkit API** (for Auth), and **Firebase App Check API**.
         *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", choose **"Websites"**.
-        *   **CRITICAL FIX:** Add your development URL to the allowed list. The most robust value to add is `*.cloudworkstations.dev`. You should also add `localhost`.
+        *   > [!WARNING]
+        >   **CRITICAL FIX: Adding Your Development URL**
+        >   The `grantToken` error occurs because this API key does not have the correct "Website restriction".
+        >   1.  In the "Website restrictions" section, click **"ADD"**.
+        >   2.  The most robust value to add is `*.cloudworkstations.dev`. You should also add `localhost` to this list for flexibility.
+        >   3.  Click **Save**. This explicitly allows your development environment to use the key.
 
 4.  **Google OAuth Keys (`GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`)**
     * (Unchanged)
