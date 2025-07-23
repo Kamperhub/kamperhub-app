@@ -11,6 +11,16 @@ const nextConfig = {
   },
   experimental: {
     instrumentationHook: false, // This disables Next.js's default OpenTelemetry instrumentation
+    serverActions: {
+      bodySizeLimit: '2mb', // Increase body size limit for potential large payloads
+    },
+    // This is the critical addition to trust proxy headers in the dev environment.
+    trustedProxies: [
+      '127.0.0.1',
+      '::1',
+      'localhost', // Standard loopback
+      '::ffff:127.0.0.1', // For IPv6-mapped IPv4
+    ],
   },
   webpack: (config, { dev, isServer }) => {
     // Enable WebAssembly experiments to support all package features.
@@ -40,7 +50,7 @@ const nextConfig = {
       // Fonts
       "font-src 'self' https://fonts.gstatic.com",
       // Connections - Allow self, Google APIs, local dev server, Stripe, and Cloud IDE resources, including websockets
-      "connect-src 'self' https://*.googleapis.com wss://*.cloudworkstations.dev https://*.cloudworkstations.dev https://*.stripe.com https://m.stripe.network https://*.cloudworkstations.googleusercontent.com wss://*.cloudworkstations.googleusercontent.com https://vscode-resource.vscode-cdn.net",
+      "connect-src 'self' https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com wss://*.cloudworkstations.dev https://*.cloudworkstations.dev https://*.stripe.com https://m.stripe.network https://*.cloudworkstations.googleusercontent.com wss://*.cloudworkstations.googleusercontent.com https://vscode-resource.vscode-cdn.net",
       // Workers - Allow self, blobs, and Cloud IDE resources
       "worker-src 'self' blob: https://*.cloudworkstations.googleusercontent.com https://vscode-resource.vscode-cdn.net",
       // Frames - Allow self, Google (for Recaptcha/maps), and Stripe (for portal and payment forms)
