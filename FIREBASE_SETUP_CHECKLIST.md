@@ -63,7 +63,6 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 ---
 
 ### Step 3: Populate Your Environment File (Est. 15-20 mins)
-(Unchanged, but with clearer instructions)
 
 1.  **Firebase Client Config (`NEXT_PUBLIC_FIREBASE_*`)**
     *   In your [Firebase Project Settings](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/settings/general), find your web app config.
@@ -78,8 +77,8 @@ All your secret keys will live in a special file that is **NEVER** committed to 
     *   Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
     *   **Create Your Server Key (for `GOOGLE_API_KEY`):**
         *   Create a new API Key. Name it `Kamperhub Dev Server Key`.
-        *   Restrict this key to **Routes API**, **Gemini API**, and **Places API (New)**.
-        *   Under "Application restrictions", choose **"None"**. This is a secret server key and must not have browser restrictions.
+        *   Under **"API restrictions"**, select "Restrict key" and enable: **Routes API**, **Generative Language API (Gemini)**, and **Places API (New)**.
+        *   Under **"Application restrictions"**, choose **"None"**. This is a secret server key and must not have browser restrictions.
         *   Paste this key into the `GOOGLE_API_KEY` variable.
     *   **Configure Your Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
         *   Find the key that matches the value you put in `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
