@@ -4,11 +4,11 @@ import { getAuth, type Auth, browserSessionPersistence, setPersistence } from 'f
 import { getFirestore, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from '@firebase/app-check';
 
-// CORRECTED FINAL CONFIGURATION:
-// The Firebase client MUST use its own dedicated API key from the Firebase Console.
-// It must NOT share a key with Google Maps in this environment to avoid authentication conflicts.
+// UNIFIED KEY STRATEGY:
+// The Firebase client will now use the SAME API key as Google Maps.
+// This is a valid configuration that simplifies setup and resolves grantToken errors.
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY, // Use the dedicated Firebase key
+  apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY, // Use the Maps API key here
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
@@ -28,7 +28,7 @@ export let firebaseInitializationError: string | null = null;
 console.log("[Firebase Client] Starting initialization...");
 
 if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-  firebaseInitializationError = "CRITICAL ERROR: Firebase client-side configuration is missing. Please ensure all required NEXT_PUBLIC_ variables are set in your .env.local file (especially NEXT_PUBLIC_FIREBASE_API_KEY and NEXT_PUBLIC_FIREBASE_PROJECT_ID) and that you have restarted the development server. The application cannot connect to Firebase.";
+  firebaseInitializationError = "CRITICAL ERROR: Firebase client-side configuration is missing. Please ensure all required NEXT_PUBLIC_ variables are set in your .env.local file (especially NEXT_PUBLIC_GOOGLE_MAPS_API_KEY and NEXT_PUBLIC_FIREBASE_PROJECT_ID) and that you have restarted the development server. The application cannot connect to Firebase.";
   console.error(`[Firebase Client] ${firebaseInitializationError}`);
   app = {} as FirebaseApp;
   auth = {} as Auth;

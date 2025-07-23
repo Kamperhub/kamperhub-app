@@ -21,7 +21,7 @@ All your secret keys will live in a special file that is **NEVER** committed to 
     ```env
     # --- Firebase Client-Side Configuration (for the browser) ---
     # These values come from your Firebase project settings (see Step 3.1)
-    NEXT_PUBLIC_FIREBASE_API_KEY="YOUR_FIREBASE_WEB_APP_API_KEY_HERE"
+    # NOTE: NEXT_PUBLIC_FIREBASE_API_KEY is now DEPRECATED. The app will use NEXT_PUBLIC_GOOGLE_MAPS_API_KEY for auth.
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com"
     NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
     NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-project.appspot.com"
@@ -30,7 +30,7 @@ All your secret keys will live in a special file that is **NEVER** committed to 
     NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="your-measurement-id"
     
     # --- Client-Side Google API Keys (for the browser) ---
-    # This key handles Google Maps and Places.
+    # CRITICAL: This is now the SINGLE key for all client-side Google services, including Firebase Auth and Google Maps.
     # It should have "HTTP referrer" restrictions.
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="YOUR_BROWSER_API_KEY_HERE"
 
@@ -81,7 +81,8 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   In your [Firebase Project Settings](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/settings/general), under the "General" tab, scroll down to the "Your apps" section.
     *   Find your web app (it's likely named something like `kamperhub-s4hc2`).
     *   Look for the "Firebase SDK snippet" section and select the **Config** option.
-    *   **CRITICAL:** Carefully copy every value from this Config object (`apiKey`, `authDomain`, `projectId`, etc.) and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file. The `apiKey` from this object is your `NEXT_PUBLIC_FIREBASE_API_KEY`.
+    *   **CRITICAL:** Carefully copy every value from this Config object (`authDomain`, `projectId`, etc.) and paste it into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable in your `.env.local` file.
+    *   **CRITICAL (SINGLE KEY STRATEGY):** Copy the `apiKey` value from this config and paste it into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable. This will be your single key for all browser operations.
     *   **CRITICAL:** Verify that the `projectId` from the config matches `kamperhub-s4hc2`.
 
 2.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
@@ -90,22 +91,27 @@ Now, using the correct **`kamperhub-s4hc2` project** from Step 2, find your keys
     *   Open the downloaded file, copy the **entire JSON content**, and paste it inside the single quotes for `GOOGLE_APPLICATION_CREDENTIALS_JSON`. **It must all be on one line.**
     *   **CRITICAL: The `project_id` field inside this JSON file must also be `kamperhub-s4hc2`.**
 
-3.  **Google Cloud API Keys (`GOOGLE_API_KEY` & `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)**
+3.  **Google Cloud API Keys (`GOOGLE_API_KEY` & Modifying the Browser Key)**
     *   Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
     *   **Create Your Server Key (for `GOOGLE_API_KEY`):**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Server Key`.
         *   Restrict this key to **Routes API**, **Gemini API**, and **Places API (New)**.
         *   Under "Application restrictions", choose **"None"**. This is a secret server key and must not have browser restrictions.
         *   Paste this key into the `GOOGLE_API_KEY` variable.
-    *   **Create Your Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
-        *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Browser Key`.
-        *   **CRITICAL (API RESTRICTIONS):** Under **"API restrictions"**, select **"Restrict key"** and ensure only the following APIs are selected:
+    *   **CRITICAL - Configure Your Browser Key (the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
+        *   In the API key list, find the key that matches the value you put in `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`. It might be named something like "Browser key (auto-created by Firebase)". Click its name to edit it.
+        *   **CRITICAL (API RESTRICTIONS):** Under **"API restrictions"**, select **"Restrict key"** and ensure the following APIs are selected:
             *   **Maps JavaScript API**
             *   **Places API (New)**
+            *   **Identity Toolkit API** (This is required for Firebase Authentication)
+            *   **Firebase App Check API**
         *   **CRITICAL (WEBSITE RESTRICTIONS):** Under **"Application restrictions"**, choose **"Websites"**.
-        *   In the "Website restrictions" section, click **"ADD"**. You must add your unique development URL (e.g., `https://*.cloudworkstations.dev`) and `localhost`.
+        *   > [!WARNING]
+        >   **CRITICAL FIX: Adding Your Development URL**
+        >   You must add your development URL to the allowed list for your Browser Key to work.
+        >   1. **Find Your URL:** Look at the browser address bar in your IDE's **preview window**. This is **NOT** the `studio.firebase.google.com` URL. It will look similar to `https://1234-567-890.cloudworkstations.dev`.
+        >   2. **Add the Wildcard Version:** In the "Website restrictions" section, click **"ADD"**. The most robust value to add is `*.cloudworkstations.dev`. You should also add `localhost` to this list.
         *   Click **Save**.
-        *   Paste this new key into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable.
 
 4.  **Google OAuth Keys (`GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`)**
     *   Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
