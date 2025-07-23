@@ -21,7 +21,7 @@ const nextConfig = {
     '127.0.0.1',
     '::1',
     'localhost', // Standard loopback
-    '::ffff:127.0.0.1', // For IPv6-mapped IPv4
+    '::ffff:127.0.0.1', // For IPv6-mapped IPv4 - THIS IS THE CRITICAL FIX
   ],
   webpack: (config, { dev, isServer }) => {
     // Enable WebAssembly experiments to support all package features.
