@@ -67,7 +67,7 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 1.  **Firebase Client Config (`NEXT_PUBLIC_FIREBASE_*`)**
     *   In your [Firebase Project Settings](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/settings/general), find your web app config.
     *   **CRITICAL:** Carefully copy every value (`authDomain`, `projectId`, etc.) into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable.
-    *   **CRITICAL (UNIFIED KEY):** Copy the `apiKey` value from this config and paste it into the `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` variable. This will be your single key for all browser operations.
+    *   **CRITICAL (UNIFIED KEY):** Copy the `apiKey` value from this config and paste it into the **`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`** variable. This will be your single key for all browser operations.
 
 2.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
     *   Go to the [Firebase Service Accounts page](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/settings/serviceaccounts/adminsdk).
@@ -79,9 +79,9 @@ All your secret keys will live in a special file that is **NEVER** committed to 
         *   Create a new API Key. Name it `Kamperhub Dev Server Key`.
         *   Under **"API restrictions"**, select "Restrict key" and enable: **Routes API**, **Generative Language API (Gemini)**, and **Places API (New)**.
         *   Under **"Application restrictions"**, choose **"None"**. This is a secret server key and must not have browser restrictions.
-        *   Paste this key into the `GOOGLE_API_KEY` variable.
+        *   Paste this key's value into the **`GOOGLE_API_KEY`** variable in your `.env.local` file.
     *   **Configure Your Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
-        *   Find the key that matches the value you put in `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
+        *   Find the key that matches the value you put in **`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`**.
         *   **API RESTRICTIONS:** Restrict the key to: **Maps JavaScript API**, **Places API (New)**, **Identity Toolkit API** (for Auth), and **Firebase App Check API**.
         *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", choose **"Websites"**.
         *   > [!WARNING]
@@ -150,3 +150,4 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 
 ### Step 8: Create Your First User Account (One-Time Only) (Est. 1 min)
 ...
+
