@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { UserProfile, SubscriptionTier } from '@/types/auth';
 import { z, ZodError } from 'zod';
+import type admin from 'firebase-admin';
 
 const updateSubscriptionSchema = z.object({
   targetUserEmail: z.string().email("Target User Email is required and must be a valid email."),
@@ -11,9 +12,11 @@ const updateSubscriptionSchema = z.object({
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
-async function verifyAdmin(req: NextRequest) {
-  const { auth } = getFirebaseAdmin();
-  if (!auth) throw new Error("Server configuration error: Auth not initialized.");
+async function verifyAdminAndGetInstances(req: NextRequest): Promise<{ auth: admin.auth.Auth; firestore: admin.firestore.Firestore; }> {
+  const { auth, firestore, error } = getFirebaseAdmin();
+  if (error || !auth || !firestore) {
+    throw new Error("Server configuration error: Auth or Firestore not initialized.");
+  }
 
   const idToken = req.headers.get('Authorization')?.split('Bearer ')[1];
   if (!idToken) throw new Error("Unauthorized: Missing token.");
@@ -22,7 +25,7 @@ async function verifyAdmin(req: NextRequest) {
   if (decodedToken.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
     throw new Error('Forbidden: You do not have permission to perform this action.');
   }
-  return auth;
+  return { auth, firestore };
 }
 
 const handleApiError = (error: any): NextResponse => {
@@ -41,9 +44,7 @@ const handleApiError = (error: any): NextResponse => {
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    const auth = await verifyAdmin(req);
-    const { firestore } = getFirebaseAdmin();
-    if (!firestore) throw new Error("Server configuration error: Firestore not initialized.");
+    const { auth, firestore } = await verifyAdminAndGetInstances(req);
     
     const body = await req.json();
     const parsedBody = updateSubscriptionSchema.parse(body);

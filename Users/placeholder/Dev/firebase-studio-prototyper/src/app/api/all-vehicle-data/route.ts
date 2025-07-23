@@ -1,3 +1,4 @@
+
 // src/app/api/all-vehicle-data/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';

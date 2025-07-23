@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';

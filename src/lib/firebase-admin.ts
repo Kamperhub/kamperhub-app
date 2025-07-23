@@ -1,3 +1,4 @@
+
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 
@@ -27,7 +28,7 @@ export function getFirebaseAdmin() {
 
     // Clean the JSON string by removing potential leading/trailing single quotes.
     let jsonString = serviceAccountJsonString.trim();
-    if (jsonString.startsWith("'") && jsonString.endsWith("'")) {
+    if ((jsonString.startsWith("'") && jsonString.endsWith("'")) || (jsonString.startsWith('"') && jsonString.endsWith('"'))) {
         jsonString = jsonString.substring(1, jsonString.length - 1);
     }
     

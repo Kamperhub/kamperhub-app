@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import { z, ZodError } from 'zod';
 import Stripe from 'stripe';
+import type admin from 'firebase-admin';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 let stripe: Stripe;
@@ -21,14 +22,14 @@ const deleteUserSchema = z.object({
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
-async function verifyUserAndGetInstances(req: NextRequest) {
+async function verifyAdminAndGetInstances(req: NextRequest): Promise<{ auth: admin.auth.Auth; firestore: admin.firestore.Firestore; }> {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
     throw new Error('Server configuration error.');
   }
   const idToken = req.headers.get('Authorization')?.split('Bearer ')[1];
   if (!idToken) throw new Error('Unauthorized: Missing token.');
-
+  
   const decodedToken = await auth.verifyIdToken(idToken);
   if (decodedToken.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
     throw new Error('Forbidden: You do not have permission to perform this action.');
@@ -50,10 +51,9 @@ const handleApiError = (error: any): NextResponse => {
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
 };
 
-
 export async function POST(req: NextRequest) {
   try {
-    const { auth, firestore } = await verifyUserAndGetInstances(req);
+    const { auth, firestore } = await verifyAdminAndGetInstances(req);
 
     const body = await req.json();
     const parsedBody = deleteUserSchema.safeParse(body);

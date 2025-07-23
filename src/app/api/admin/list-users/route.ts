@@ -1,12 +1,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import type admin from 'firebase-admin';
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
-async function verifyAdmin(req: NextRequest) {
-  const { auth } = getFirebaseAdmin();
-  if (!auth) throw new Error("Server configuration error: Auth not initialized.");
+async function verifyAdminAndGetInstances(req: NextRequest): Promise<{ auth: admin.auth.Auth; firestore: admin.firestore.Firestore; }> {
+  const { auth, firestore, error } = getFirebaseAdmin();
+  if (error || !auth || !firestore) {
+    throw new Error("Server configuration error: Auth or Firestore not initialized.");
+  }
 
   const idToken = req.headers.get('Authorization')?.split('Bearer ')[1];
   if (!idToken) throw new Error("Unauthorized: Missing token.");
@@ -15,7 +18,7 @@ async function verifyAdmin(req: NextRequest) {
   if (decodedToken.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
     throw new Error('Forbidden: You do not have permission to perform this action.');
   }
-  return auth;
+  return { auth, firestore };
 }
 
 const handleApiError = (error: any): NextResponse => {
@@ -31,10 +34,8 @@ const handleApiError = (error: any): NextResponse => {
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
-    const auth = await verifyAdmin(req);
-    const { firestore } = getFirebaseAdmin();
-    if (!firestore) throw new Error("Server configuration error: Firestore not initialized.");
-
+    const { auth, firestore } = await verifyAdminAndGetInstances(req);
+    
     const listUsersResult = await auth.listUsers(1000);
     const nonAdminUsers = listUsersResult.users.filter(userRecord => userRecord.email && userRecord.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase());
 
