@@ -43,7 +43,6 @@ All your secret keys will live in a special file that is **NEVER** committed to 
     NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN="your-app-check-debug-token-if-needed"
 
     # --- Application URL and Environment ---
-    NEXT_PUBLIC_APP_URL="http://localhost:8083"
     NEXT_PUBLIC_APP_ENV="development"
 
     # --- Stripe Configuration (for subscriptions) ---
