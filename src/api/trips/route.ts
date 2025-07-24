@@ -221,7 +221,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const newTripRef = firestore.collection('users').doc(uid).collection('trips').doc();
     
-    // Explicitly construct the object to handle optional fields correctly
     const newTrip: LoggedTrip = {
       id: newTripRef.id,
       timestamp: new Date().toISOString(),
@@ -318,7 +317,7 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
         const finalUpdateData = { ...updateData, updatedAt: new Date().toISOString() };
         transaction.set(tripRef, finalUpdateData, { merge: true });
 
-        // Check if route has changed
+        // Check if route or dates have changed, as this affects the master polyline's order
         if (updateData.routeDetails?.polyline !== oldTripData.routeDetails?.polyline || updateData.plannedStartDate !== oldTripData.plannedStartDate) {
             journeyNeedsRecalculation = true;
         }
