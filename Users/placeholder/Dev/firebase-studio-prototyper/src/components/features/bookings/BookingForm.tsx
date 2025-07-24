@@ -18,7 +18,6 @@ import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { DateRange } from 'react-day-picker';
 
-// Define schema outside the component to prevent re-creation on re-renders
 const bookingFormSchema = z.object({
   siteName: z.string().min(1, "Site name is required"),
   locationAddress: z.string().optional(),
