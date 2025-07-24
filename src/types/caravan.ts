@@ -51,8 +51,8 @@ export interface CaravanFormData {
   overallHeight?: number | null;
   hitchToAxleCenterDistance?: number | null;
   interAxleSpacing?: number | null;
-  storageLocations?: StorageLocation[];
-  waterTanks?: WaterTank[];
+  storageLocations: StorageLocation[];
+  waterTanks: WaterTank[];
   wdh?: WDHFormData | null;
 }
 

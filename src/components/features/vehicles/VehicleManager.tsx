@@ -45,13 +45,11 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
   });
 
   const activeVehicleId = initialUserPrefs?.activeVehicleId;
-
+  
   const invalidateAndRefetch = () => {
-    // Instead of refetching, we can update the client cache for a faster UI response.
-    // For simplicity and robustness, invalidation is fine here.
     queryClient.invalidateQueries({ queryKey: ['allVehicleData', user?.uid] });
   };
-  
+
   const saveVehicleMutation = useMutation({
     mutationFn: (vehicleData: VehicleFormData | StoredVehicle) => {
       const dataToSend = editingVehicle ? { ...editingVehicle, ...vehicleData } : vehicleData;
@@ -190,7 +188,7 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
           {initialVehicles.map(vehicle => {
             const vehiclePayload = (typeof vehicle.gvm === 'number' && typeof vehicle.kerbWeight === 'number' && vehicle.gvm > 0 && vehicle.kerbWeight > 0 && vehicle.gvm >= vehicle.kerbWeight) ? vehicle.gvm - vehicle.kerbWeight : null;
             return (
-              <Card key={vehicle.id} className={`p-4 ${activeVehicleId === vehicle.id ? 'border-primary shadow-md' : ''}`}>
+              <Card key={vehicle.id} className={`p-4 ${activeVehicleId === vehicle.id ? 'border-primary shadow-lg' : 'shadow-sm'}`}>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
                   <div className="flex-grow">
                     <h3 className="font-semibold font-body text-lg">{vehicle.year} {vehicle.make} {vehicle.model}</h3>
@@ -205,7 +203,7 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
                       <span className="flex items-center"><Axe className="w-3 h-3 mr-1 text-primary/70 -rotate-90"/> R Axle: {formatDimension(vehicle.rearAxleLimit)}</span>
                       <span className="flex items-center"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Wheelbase: {formatDimension(vehicle.wheelbase, 'mm')}</span>
                       <span className="flex items-center"><Ruler className="w-3 h-3 mr-1 text-primary/70"/> Height: {formatDimension(vehicle.overallHeight, 'mm')}</span>
-                      <span className="flex items-center"><Fuel className="w-3 h-3 mr-1 text-primary/70"/> {vehicle.fuelEfficiency} Litres/100km</span>
+                      <span className="flex items-center"><Fuel className="w-3 h-3 mr-1 text-primary/70"/> {vehicle.fuelEfficiency} L/100km</span>
                       <span className="flex items-center col-span-full sm:col-span-2"><Disc className="w-3 h-3 mr-1 text-primary/70"/> Tyre PSI: {vehicle.recommendedTyrePressureUnladenPsi ?? 'N/A'} (Unladen) / {vehicle.recommendedTyrePressureLadenPsi ?? 'N/A'} (Laden)</span>
                     </div>
                   </div>
@@ -269,9 +267,7 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
 
       <Dialog open={deleteDialogState.isOpen} onOpenChange={(isOpen) => setDeleteDialogState(prev => ({ ...prev, isOpen }))}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-headline text-destructive">Confirm Deletion</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle className="font-headline text-destructive">Confirm Deletion</DialogTitle></DialogHeader>
           <div className="py-4">
             <p className="font-body">
               Are you sure you want to delete the vehicle: <strong>{deleteDialogState.vehicleName}</strong>?
