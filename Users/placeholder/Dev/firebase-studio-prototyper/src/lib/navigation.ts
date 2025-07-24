@@ -40,7 +40,7 @@ export const tripManagerItems: NavItem[] = [
     keywords: 'packing checklist luggage'
   },
   {
-    href: '/trip-manager/checklists',
+    href: '/checklists',
     label: 'Procedural Checklists',
     icon: ListChecks,
     description: 'Use pre-departure, setup, and pack-down checklists for your trips. Never miss a step!',
