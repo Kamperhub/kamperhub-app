@@ -51,23 +51,21 @@ function migrateLegacyChecklist(legacyChecklist: any): ChecklistStage[] {
   }));
 }
 
-export function ChecklistsPageClient({ serverTrips }: { serverTrips: LoggedTrip[] }) {
+export function ChecklistsPageClient() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isAuthLoading } = useAuth();
 
 
   const { data: loggedTrips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery<LoggedTrip[]>({
       queryKey: ['trips', user?.uid],
       queryFn: () => fetchTrips(),
-      initialData: serverTrips,
       enabled: !!user,
   });
 
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [checklist, setChecklist] = useState<ChecklistStage[]>([]);
-  const [editingItem, setEditingItem] = useState<{ stageIndex: number; itemIndex: number } | null>(null);
   const [newItemText, setNewItemText] = useState<{ [stageIndex: number]: string }>({});
 
   const selectedTrip = useMemo(() => loggedTrips.find(trip => trip.id === selectedTripId), [loggedTrips, selectedTripId]);
@@ -90,7 +88,6 @@ export function ChecklistsPageClient({ serverTrips }: { serverTrips: LoggedTrip[
   const updateTripMutation = useMutation({
     mutationFn: (updatedTrip: Partial<LoggedTrip> & { id: string }) => updateTrip(updatedTrip as LoggedTrip),
     onSuccess: (data) => {
-      // Invalidate the query to refetch from the server, ensuring data consistency
       queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
       toast({ title: "Checklist Saved" });
     },
@@ -157,22 +154,18 @@ export function ChecklistsPageClient({ serverTrips }: { serverTrips: LoggedTrip[
   };
 
   const handleStartNavigation = useCallback(() => {
-    if (!selectedTrip) return;
-    
-    const baseUrl = 'https://www.google.com/maps/dir/?api=1';
-    const origin = `origin=${encodeURIComponent(selectedTrip.startLocationDisplay)}`;
-    const destination = `destination=${encodeURIComponent(selectedTrip.endLocationDisplay)}`;
-    
-    const googleMapsUrl = `${baseUrl}&${origin}&${destination}`;
-    
+    if (!selectedTrip) {
+        toast({ title: "Navigation Error", description: "Trip details are missing.", variant: "destructive" });
+        return;
+    }
+    const origin = encodeURIComponent(selectedTrip.startLocationDisplay);
+    const destination = encodeURIComponent(selectedTrip.endLocationDisplay);
+    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
     window.open(googleMapsUrl, '_blank');
-    toast({
-        title: "Opening Google Maps",
-        description: "Your route is opening in a new tab.",
-    });
   }, [selectedTrip, toast]);
 
-  if (isLoadingTrips) {
+
+  if (isLoadingTrips || isAuthLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-1/3 mb-4" />
