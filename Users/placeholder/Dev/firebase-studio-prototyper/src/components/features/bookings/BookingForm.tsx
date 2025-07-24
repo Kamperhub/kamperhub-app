@@ -23,7 +23,7 @@ const bookingFormSchema = z.object({
   siteName: z.string().min(1, "Site name is required"),
   locationAddress: z.string().optional(),
   contactPhone: z.string().optional(),
-  contactWebsite: z.string().url("Must be a valid URL (e.g., https://example.com)").or(z.literal('')).optional().nullable(),
+  contactWebsite: z.string().url("Must be a valid URL (e.g., https://example.com)").or(z.literal('')).optional().nullable().transform(val => val === '' ? null : val),
   confirmationNumber: z.string().optional(),
   dateRange: z.object({
       from: z.date({ required_error: "A check-in date is required." }),
