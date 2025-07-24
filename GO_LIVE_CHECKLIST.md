@@ -28,7 +28,7 @@ Your local development started in "test mode". For production, you must switch t
 
 2.  **A) Create the Firebase Browser Key (for `NEXT_PUBLIC_FIREBASE_API_KEY`):**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `KamperHub Production Firebase Key`.
-    *   **API RESTRICTIONS:** Select **"Restrict key"**. To ensure all Firebase services work, it's safest to allow all APIs that are enabled in your project. You can refine this list later if you have a deep understanding of every API the Firebase Web SDK uses.
+    *   **API RESTRICTIONS:** Select **"Restrict key"**. To ensure all Firebase services work, it's safest to allow all APIs that are enabled in your project. You can refine this list later if you have a deep understanding of every API the Firebase Web SDK uses, but for now, **do not remove the default list**.
     *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", select **"Websites"**. Add every domain where your app will run (add `/*` at the end):
         *   `kamperhub.com/*`
         *   `*.kamperhub.com/*`
