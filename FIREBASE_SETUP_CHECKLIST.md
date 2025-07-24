@@ -77,9 +77,9 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 3.  **Google Cloud API Keys (CRITICAL - Three Distinct Keys)**
     *   Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
 
-    *   **A) Configure Your Firebase Browser Key (for `NEXT_PUBLIC_FIREBASE_API_KEY`)**
-        *   In the API key list, find the key that matches the value you just put in `NEXT_PUBLIC_FIREBASE_API_KEY`. It might be named "Browser key (auto-created by Firebase)". Click its name to edit it.
-        *   **API RESTRICTIONS (IMPORTANT):** Select **"Restrict key"**. Verify that there is a long list of APIs already enabled by Firebase (there may be ~24 of them). **DO NOT REMOVE THIS LIST.** These are required for the various Firebase client SDKs (Auth, Firestore, etc.) to function correctly. Restricting this key to only one or two APIs will break the application.
+    *   **A) Configure Your Firebase Browser Key (the one auto-created by Firebase)**
+        *   In the API key list, find the key that matches the value you just put in `NEXT_PUBLIC_FIREBASE_API_KEY`. It might be named "Browser key (auto-created by Firebase)". This is the special key we've discussed. Click its name to edit it.
+        *   **API RESTRICTIONS (IMPORTANT):** Select **"Restrict key"**. Verify that there is a long list of APIs already enabled by Firebase (there may be ~24 of them). **DO NOT REMOVE THIS LIST.** This is correct. The security for this key comes from website restrictions, not API restrictions.
         *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", choose **"Websites"**. Add the following two entries exactly:
             *   `*.cloudworkstations.dev/*`
             *   `localhost:*/*`
