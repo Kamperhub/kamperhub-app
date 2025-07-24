@@ -22,6 +22,7 @@ export function getFirebaseAdmin() {
 
   // If not initialized, proceed with the setup.
   try {
+    console.log("[Firebase Admin] No initialized app found. Starting new initialization...");
     const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
     const clientProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 

@@ -1,17 +1,18 @@
+
 # KamperHub Testing Strategy
 
 This document outlines the recommended testing strategy to ensure the stability, reliability, and quality of the KamperHub application, with a strong focus on the critical authentication and user data flows.
 
 ---
 
-## **1. Unit Testing**
+## 1. Unit Testing
 
 **Objective:** Verify that individual components and hooks behave correctly in isolation.
 
 *   **Framework:** Jest with React Testing Library.
 *   **Location:** Tests should be co-located with the components they are testing (e.g., `useAuth.test.tsx` alongside `useAuth.tsx`).
 
-### **Key Areas for Unit Tests:**
+### Key Areas for Unit Tests:
 
 *   #### **`useAuth` Hook (`src/hooks/useAuth.tsx`)**
     *   **Test Initial State:** Verify that the hook initializes with `authStatus: 'LOADING'` and `user: null`.
@@ -26,14 +27,14 @@ This document outlines the recommended testing strategy to ensure the stability,
 
 ---
 
-## **2. Integration Testing**
+## 2. Integration Testing
 
 **Objective:** Verify that different parts of the application work together correctly, simulating real user flows.
 
 *   **Framework:** Cypress or Playwright.
 *   **Focus:** End-to-end user journeys.
 
-### **Key Integration Test Scenarios:**
+### Key Integration Test Scenarios:
 
 *   #### **Login & Redirect Flow**
     *   **Scenario:** Unauthenticated user navigates to a protected route (e.g., `/dashboard`).
@@ -53,13 +54,13 @@ This document outlines the recommended testing strategy to ensure the stability,
 
 ---
 
-## **3. End-to-End (E2E) Testing**
+## 3. End-to-End (E2E) Testing
 
 **Objective:** Validate complete workflows from the user's perspective, including interactions with external services where possible.
 
 *   **Framework:** Cypress or Playwright.
 
-### **Key E2E Test Scenarios:**
+### Key E2E Test Scenarios:
 
 *   #### **Full Trip Creation Workflow**
     *   **Steps:**

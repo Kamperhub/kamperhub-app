@@ -1,10 +1,11 @@
+
 # KamperHub Development & Deployment Workflow
 
 This document outlines the safe and standard process for developing new features, fixing bugs, and deploying changes to your live production application hosted on Firebase App Hosting.
 
 ---
 
-## **1. Understanding Your Environments**
+## 1. Understanding Your Environments
 
 You have two distinct and separate environments:
 
@@ -20,7 +21,7 @@ You have two distinct and separate environments:
 
 ---
 
-## **2. CRITICAL: How to Manage Your Keys (Secrets)**
+## 2. CRITICAL: How to Manage Your Keys (Secrets)
 
 This is the most important concept for security and managing your application correctly.
 
@@ -38,23 +39,23 @@ This is the most important concept for security and managing your application co
 
 ---
 
-## **3. The Development-to-Live Workflow**
+## 3. The Development-to-Live Workflow
 
 The process of getting a code change from your development workspace to your live website is simple and safe.
 
-### **Step 3.1: Develop and Test in Your Workspace**
+### Step 3.1: Develop and Test in Your Workspace
 
 *   Work with your AI partner or on your own to make code changes, add features, or fix bugs in this development environment.
 *   Use the "Preview" window to thoroughly test your changes and ensure they work exactly as you expect.
 *   This is the creative phase. Feel free to make as many changes as you need.
 
-### **Step 3.2: Commit Your Changes**
+### Step 3.2: Commit Your Changes
 
 *   Once you are satisfied that a feature or fix is complete and working correctly, you need to "commit" your changes using Git.
 *   A commit is like a permanent, named snapshot of your work. It's a record of what you changed.
 *   **Example command:** `git commit -am "feat: Add new Journeys feature to the trip manager"`
 
-### **Step 3.3: Push to GitHub to Deploy**
+### Step 3.3: Push to GitHub to Deploy
 
 *   This is the **only step that triggers a live deployment.**
 *   Push your committed changes to your connected GitHub repository.
@@ -63,7 +64,7 @@ The process of getting a code change from your development workspace to your liv
 
 ---
 
-## **4. Troubleshooting**
+## 4. Troubleshooting
 
 *   **"I see an error on my live site, but not in development."**
     *   This almost always points to a configuration difference. Double-check that all necessary environment variables from your `.env.local` file have a corresponding secret in **Google Secret Manager** and that the values are the correct **production keys**.
