@@ -25,6 +25,7 @@ export interface RouteDetails {
   polyline?: string | null;
   warnings?: string[] | null;
   tollInfo?: { text: string; value: number } | null;
+  fuelStations?: FuelStation[] | null;
 }
 
 export interface FuelEstimate {

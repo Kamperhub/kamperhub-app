@@ -81,8 +81,7 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, trimmedEmail, password);
-      // Explicitly redirect on success to prevent login loops.
-      router.push('/dashboard');
+      // Let the useEffect handle the redirect
     } catch (error: any) {
       const authError = error as AuthError;
       let errorMessage = 'An unexpected error occurred during login. Please try again.';

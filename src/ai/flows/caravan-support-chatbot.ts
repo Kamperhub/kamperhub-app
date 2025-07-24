@@ -15,6 +15,9 @@ import { staticCaravanningArticles, type AiGeneratedArticle } from '@/types/lear
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import type { Expense } from '@/types/expense';
+import type { StoredVehicle } from '@/types/vehicle';
+import type { StoredCaravan } from '@/types/caravan';
+import type { BookingEntry } from '@/types/booking';
 
 
 const CaravanSupportChatbotInputSchema = z.object({
@@ -161,6 +164,38 @@ const listUserTripsTool = ai.defineTool(
       return tripNames.length > 0 ? tripNames : null;
     } catch (e: any) {
         console.error('Critical error in listUserTripsTool:', e);
+        return null;
+    }
+  }
+);
+
+const listUserVehiclesTool = ai.defineTool(
+  {
+    name: 'listUserVehicles',
+    description: "Lists all of the user's saved vehicles.",
+    inputSchema: z.object({
+      userId: z.string().describe("The user's unique ID."),
+    }),
+    outputSchema: z.array(z.string()).describe("A list of vehicle names (e.g., '2022 Ford Ranger').").nullable(),
+  },
+  async ({ userId }) => {
+    const { firestore, error } = getFirebaseAdmin();
+    if (error || !firestore) return null;
+    try {
+      const vehiclesRef = firestore.collection('users').doc(userId).collection('vehicles');
+      const snapshot = await vehiclesRef.get();
+      if (snapshot.empty) return null;
+
+      const vehicleNames = snapshot.docs
+        .map(doc => {
+            const data = doc.data() as StoredVehicle;
+            return data.year && data.make && data.model ? `${data.year} ${data.make} ${data.model}` : null;
+        })
+        .filter((name): name is string => name !== null);
+      
+      return vehicleNames.length > 0 ? vehicleNames : null;
+    } catch (e: any) {
+        console.error('Critical error in listUserVehiclesTool:', e);
         return null;
     }
   }
@@ -387,6 +422,106 @@ const addAmountToBudgetCategoryTool = ai.defineTool(
   }
 );
 
+const getVehicleDetailsTool = ai.defineTool(
+  {
+    name: 'getVehicleDetails',
+    description: 'Retrieves all specifications for a specific vehicle.',
+    inputSchema: z.object({
+      userId: z.string().describe("The user's unique ID."),
+      vehicleName: z.string().describe("The name of the vehicle to search for (e.g., 'Ford Ranger')."),
+    }),
+    outputSchema: z.any().nullable().describe("An object containing the vehicle's details or null if not found."),
+  },
+  async ({ userId, vehicleName }) => {
+    const { firestore, error } = getFirebaseAdmin();
+    if (error || !firestore) return null;
+    try {
+      const vehiclesRef = firestore.collection('users').doc(userId).collection('vehicles');
+      const snapshot = await vehiclesRef.get();
+      if (snapshot.empty) return null;
+
+      const foundVehicle = snapshot.docs
+        .map(doc => doc.data() as StoredVehicle)
+        .find(vehicle => `${vehicle.year} ${vehicle.make} ${vehicle.model}`.toLowerCase().includes(vehicleName.toLowerCase()));
+
+      return foundVehicle || null;
+    } catch (e: any) {
+        console.error('Critical error in getVehicleDetailsTool:', e);
+        return null;
+    }
+  }
+);
+
+const getCaravanDetailsTool = ai.defineTool(
+  {
+    name: 'getCaravanDetails',
+    description: "Retrieves all specifications for a specific caravan.",
+    inputSchema: z.object({
+      userId: z.string().describe("The user's unique ID."),
+      caravanName: z.string().describe("The name of the caravan to search for (e.g., 'Jayco Starcraft')."),
+    }),
+    outputSchema: z.any().nullable().describe("An object containing the caravan's details or null if not found."),
+  },
+  async ({ userId, caravanName }) => {
+    const { firestore, error } = getFirebaseAdmin();
+    if (error || !firestore) return null;
+    try {
+      const caravansRef = firestore.collection('users').doc(userId).collection('caravans');
+      const snapshot = await caravansRef.get();
+      if (snapshot.empty) return null;
+
+      const foundCaravan = snapshot.docs
+        .map(doc => doc.data() as StoredCaravan)
+        .find(caravan => `${caravan.year} ${caravan.make} ${caravan.model}`.toLowerCase().includes(caravanName.toLowerCase()));
+      
+      return foundCaravan || null;
+    } catch (e: any) {
+        console.error('Critical error in getCaravanDetailsTool:', e);
+        return null;
+    }
+  }
+);
+
+const listUserBookingsTool = ai.defineTool(
+  {
+    name: 'listUserBookings',
+    description: "Lists all of the user's saved accommodation bookings.",
+    inputSchema: z.object({
+      userId: z.string().describe("The user's unique ID."),
+    }),
+    outputSchema: z.array(z.object({
+        siteName: z.string(),
+        checkInDate: z.string(),
+        checkOutDate: z.string(),
+        confirmationNumber: z.string().optional().nullable(),
+    })).nullable().describe("A list of booking details or null if none exist."),
+  },
+  async ({ userId }) => {
+    const { firestore, error } = getFirebaseAdmin();
+    if (error || !firestore) return null;
+    try {
+      const bookingsRef = firestore.collection('users').doc(userId).collection('bookings');
+      const snapshot = await bookingsRef.get();
+      if (snapshot.empty) return null;
+
+      const bookings = snapshot.docs
+        .map(doc => {
+            const data = doc.data() as BookingEntry;
+            return {
+                siteName: data.siteName,
+                checkInDate: data.checkInDate,
+                checkOutDate: data.checkOutDate,
+                confirmationNumber: data.confirmationNumber
+            };
+        });
+      
+      return bookings.length > 0 ? bookings : null;
+    } catch (e: any) {
+        console.error('Critical error in listUserBookingsTool:', e);
+        return null;
+    }
+  }
+);
 
 export async function caravanSupportChatbot(
   input: CaravanSupportChatbotInput,
@@ -399,51 +534,6 @@ const CaravanSupportChatbotFlowInputSchema = CaravanSupportChatbotInputSchema.ex
   userId: z.string(),
 });
 
-const prompt = ai.definePrompt({
-  name: 'caravanSupportChatbotPrompt',
-  input: {schema: CaravanSupportChatbotFlowInputSchema },
-  output: {schema: CaravanSupportChatbotOutputSchema},
-  tools: [getFaqAnswer, getArticleInfoTool, findYoutubeLink, listUserTripsTool, findUserTripTool, addExpenseToTripTool, getTripExpensesTool, addAmountToBudgetCategoryTool],
-  prompt: `You are a friendly and helpful caravan support chatbot for KamperHub. Your goal is to provide useful answers and perform actions for the user.
-
-USER ID: {{{userId}}}
-
-**Response Hierarchy:**
-1.  **Action or Query Intent:** First, check if the user wants to perform an action (e.g., "add expense", "increase budget") or query their data (e.g., "how much did I spend?"). If so, proceed to the "Data Interaction" section below.
-2.  **Trip Listing Intent:** If the user asks a general question like "what trips do I have?", use the 'listUserTripsTool'. If it returns a list of names, present them clearly to the user. If it returns null, inform the user they have no trips logged.
-3.  **FAQ Check:** If it's a general question, use 'getFaqAnswer' first.
-4.  **Article Check:** If no FAQ is found, use 'getArticleInfoTool'.
-5.  **General Knowledge:** If no internal tools provide an answer, use your general caravanning knowledge.
-6.  **YouTube Link:** As a final step, if a video would be helpful, use 'findYoutubeLink'.
-
-**Data Interaction (Budget & Expenses):**
-- **Identify Intent:** Recognize if the user wants to *add/modify budget*, *add* an expense, or *get* expense information.
-- **Find Trip:** For any budget or expense-related action, you MUST find the trip first. If the user mentions a trip name (e.g., "Fraser Island trip"), use the 'findUserTripTool' with the user's ID and the trip name.
-    - If the tool returns null, it means no matching trip was found. You MUST inform the user that you couldn't find that trip and ask them to try a different name or check their trip log. Do not proceed.
-    - If the user doesn't mention a trip name, you must ask them for it.
-
-**If Adding/Modifying Budget:**
-1.  **Gather Details:** You need the trip ID, the amount, and the category name. If any of these are missing from the user's request, you MUST ask for them. For example, if they say "add $50 to the budget for my trip", you must ask "For which category?".
-2.  **Add to Budget:** Once all details are gathered, use the 'addAmountToBudgetCategory' tool with all the details (userId, tripId, categoryName, amountToAdd).
-3.  **Confirm:** Relay the success or error message from the tool back to the user.
-
-**If Adding an Expense:**
-1.  **Gather Details:** Once you have the trip ID, you need the expense details: amount, description, and category. If any of these are missing from the user's request, ask for them. When asking for a category, you can suggest the available categories returned by 'findUserTripTool'.
-2.  **Get Date:** Always assume today's date for the expense unless the user specifies otherwise. Format it as an ISO 8601 string.
-3.  **Add Expense:** Use the 'addExpenseToTripTool' with all the gathered details (userId, tripId, amount, categoryName, description, expenseDate).
-4.  **Confirm:** Relay the success or error message from the tool back to the user in a conversational way.
-
-**If Retrieving Expenses:**
-1.  **Identify Category (Optional):** Check if the user mentioned a specific category (e.g., "how much for fuel?").
-2.  **Get Expenses:** Use the 'getTripExpenses' tool with the userId, tripId, and the optional category name.
-3.  **Summarize:** If the tool returns data, summarize it for the user (e.g., "For your 'Fraser Island' trip, you've spent a total of $X. Here are the expenses..."). If the total spend is zero, inform them no expenses were found for that trip/category.
-
-Strictly follow these hierarchies. For action-based requests, focus only on completing the action and do not suggest YouTube links or related articles.
-
-User's Question: {{{question}}}
-`,
-});
-
 const caravanSupportChatbotFlow = ai.defineFlow(
   {
     name: 'caravanSupportChatbotFlow',
@@ -452,6 +542,44 @@ const caravanSupportChatbotFlow = ai.defineFlow(
   },
   async (input): Promise<CaravanSupportChatbotOutput> => {
     try {
+      const prompt = ai.definePrompt({
+        name: 'caravanSupportChatbotPrompt',
+        input: {schema: CaravanSupportChatbotFlowInputSchema },
+        output: {schema: CaravanSupportChatbotOutputSchema},
+        tools: [getFaqAnswer, getArticleInfoTool, findYoutubeLink, listUserTripsTool, findUserTripTool, addExpenseToTripTool, getTripExpensesTool, addAmountToBudgetCategoryTool, listUserVehiclesTool, getVehicleDetailsTool, getCaravanDetailsTool, listUserBookingsTool],
+        prompt: `You are a friendly and helpful caravan support chatbot for KamperHub. Your goal is to provide useful answers and perform actions for the user based on their data.
+
+      USER ID: {{{userId}}}
+
+      **Response Hierarchy & Logic:**
+      1.  **Action Intent (Add/Update):** First, check if the user wants to perform an action (e.g., "add expense", "increase budget"). If so, prioritize completing that action using the data interaction tools.
+      2.  **Query Intent (Get/List/View):** If the user is asking a question about their data (e.g., "what trips do I have?", "what is the GVM of my Ford Ranger?", "list my bookings"), use the appropriate listing or details-retrieval tool.
+          - If a specific item (like "Ford Ranger") is mentioned, use the corresponding 'get...Details' tool.
+          - If the request is general (like "list my vehicles"), use the 'list...' tool.
+          - After providing the data, do not suggest articles or YouTube videos unless the user asks a follow-up question.
+      3.  **General Question (Non-User Data):** If the question is not about the user's data (e.g., "how to fix a flat tyre?"), follow this order:
+          a.  Use 'getFaqAnswer'.
+          b.  If no FAQ, use 'getArticleInfoTool'.
+          c.  If still no answer, use your general knowledge.
+          d.  Optionally, use 'findYoutubeLink' if a video would be helpful.
+
+      **Data Interaction Instructions:**
+
+      - **Finding Items:** For any action or query about a specific vehicle, caravan, or trip, you MUST find it by name first using the appropriate tool (\`getVehicleDetailsTool\`, \`getCaravanDetailsTool\`, \`findUserTripTool\`). If no specific item is mentioned, ask the user to clarify. If a tool returns null, inform the user you could not find the item.
+
+      - **Displaying Details:** When a user asks for details of a vehicle or caravan, use the 'get...Details' tool. If data is returned, present all the key-value pairs from the tool's output in a clean, readable, itemized format (e.g., using bullet points or a list).
+
+      - **Budget & Expenses:**
+          - To **add/modify budget**, you need the trip ID, amount, and category name. If any are missing, ask for them. Use 'addAmountToBudgetCategoryTool'.
+          - To **add an expense**, you need trip ID, amount, description, and category. Suggest available categories. Assume today's date unless specified. Use 'addExpenseToTripTool'.
+          - To **get expenses**, use 'getTripExpenses' with the trip ID and optional category. Summarize the results.
+
+      Strictly follow these hierarchies. Your primary role is now a personal data assistant for the user's KamperHub data.
+
+      User's Question: {{{question}}}
+      `,
+      });
+
       const {output} = await prompt(input);
       if (!output) {
         throw new Error('The AI returned an empty or invalid response.');
