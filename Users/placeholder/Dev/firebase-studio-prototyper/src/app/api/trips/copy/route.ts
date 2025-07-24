@@ -1,4 +1,3 @@
-
 // src/app/api/trips/copy/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -10,9 +9,8 @@ import type { firestore } from 'firebase-admin';
 import { decode, encode } from '@googlemaps/polyline-codec';
 import type { Journey } from '@/types/journey';
 
-// This function should be imported from the centralized location if needed.
-// For now, we are placing it here temporarily for simplicity, assuming it's used
-// in more than one trips-related endpoint. Ideally this would live in a shared lib.
+// This function should be imported from a centralized location if needed.
+// For now, we are placing it here temporarily for simplicity.
 async function recalculateAndSaveMasterPolyline(journeyId: string, userId: string, db: firestore.Firestore) {
     const journeyRef = db.collection('users').doc(userId).collection('journeys').doc(journeyId);
     const journeyDoc = await journeyRef.get();

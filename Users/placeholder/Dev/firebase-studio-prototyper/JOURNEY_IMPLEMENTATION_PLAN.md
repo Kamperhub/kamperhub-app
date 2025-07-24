@@ -27,8 +27,8 @@ This document outlines the phased, step-by-step implementation of the new "Journ
     -   [x] Update the `LoggedTrip` type in `src/types/tripplanner.ts` to include an optional `journeyId` string field.
 -   [x] **Backend API & Logic (`/api/journeys`):**
     -   [x] Create API endpoints for CRUD (Create, Read, Update, Delete) operations on Journey documents.
-    -   [x] **Polyline Calculation:** Implement the "Set and Forget" logic. When a Journey's `tripIds` array is updated, the server will fetch the corresponding trips and stitch their polylines together into a single `masterPolyline`.
-        -   **Note on Performance:** For this prototype, the stitching will happen within the API route. In a production environment, this would be offloaded to a Cloud Function to keep the API response fast and handle potential external API calls asynchronously.
+    -   [x] **Polyline Calculation:** Implement the "Set and Forget" logic. When a Journey's `tripIds` array is updated (via the `/api/trips` route), the server will fetch the corresponding trips and stitch their polylines together into a single `masterPolyline`.
+        -   **Note on Performance:** For this prototype, the stitching will happen within the API route. In a production environment, this would be offloaded to a Cloud Function to keep the API response fast.
         -   **Note on Firestore Limits:** Be mindful of the 1MB Firestore document size limit for very long, complex `masterPolyline` strings.
 -   [x] **Data Consistency:**
     -   [x] When a trip is deleted, its ID must be removed from its parent Journey's `tripIds` array. This will be handled within the `/api/trips` DELETE endpoint.

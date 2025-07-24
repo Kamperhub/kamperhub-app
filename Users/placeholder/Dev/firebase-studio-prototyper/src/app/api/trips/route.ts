@@ -29,17 +29,11 @@ async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: strin
 }
 
 // Centralized function to calculate and save the master polyline for a journey
-async function recalculateAndSaveMasterPolyline(journeyId: string, userId: string, db: firestore.Firestore, transaction?: firestore.Transaction) {
+async function recalculateAndSaveMasterPolyline(journeyId: string, userId: string, db: firestore.Firestore) {
     console.log(`[Polyline] Recalculating for Journey ID: ${journeyId}`);
     const journeyRef = db.collection('users').doc(userId).collection('journeys').doc(journeyId);
     
-    let journeyDoc;
-    if (transaction) {
-        journeyDoc = await transaction.get(journeyRef);
-    } else {
-        journeyDoc = await journeyRef.get();
-    }
-    
+    const journeyDoc = await journeyRef.get();
 
     if (!journeyDoc.exists) {
         console.warn(`[Polyline] Journey ${journeyId} not found for recalculation.`);
@@ -51,14 +45,13 @@ async function recalculateAndSaveMasterPolyline(journeyId: string, userId: strin
 
     if (tripIds.length === 0) {
         console.log(`[Polyline] Journey ${journeyId} has no trips. Clearing master polyline.`);
-        if(transaction) transaction.update(journeyRef, { masterPolyline: null });
-        else await journeyRef.update({ masterPolyline: null });
+        await journeyRef.update({ masterPolyline: null });
         return;
     }
 
     const tripRefs = tripIds.map(id => db.collection('users').doc(userId).collection('trips').doc(id));
     
-    const tripDocs = await (transaction ? Promise.all(tripRefs.map(ref => transaction.get(ref))) : db.getAll(...tripRefs));
+    const tripDocs = await db.getAll(...tripRefs);
 
     const validTrips = tripDocs.map(doc => doc.data() as LoggedTrip).filter(trip => trip && trip.routeDetails?.polyline);
 
@@ -83,8 +76,7 @@ async function recalculateAndSaveMasterPolyline(journeyId: string, userId: strin
     const masterPolyline = allCoordinates.length > 0 ? encode(allCoordinates, 5) : null;
     console.log(`[Polyline] Saving new master polyline for Journey ${journeyId}. Length: ${masterPolyline?.length || 0}`);
     
-    if(transaction) transaction.update(journeyRef, { masterPolyline });
-    else await journeyRef.update({ masterPolyline });
+    await journeyRef.update({ masterPolyline });
 }
 
 // Zod schemas for validation
@@ -316,7 +308,7 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
         const finalUpdateData = { ...updateData, updatedAt: new Date().toISOString() };
         transaction.set(tripRef, finalUpdateData, { merge: true });
 
-        // Check if route has changed
+        // Check if route or dates have changed, as this affects the master polyline's order
         if (updateData.routeDetails?.polyline !== oldTripData.routeDetails?.polyline || updateData.plannedStartDate !== oldTripData.plannedStartDate) {
             journeyNeedsRecalculation = true;
         }
