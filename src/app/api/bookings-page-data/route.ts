@@ -48,9 +48,11 @@ const handleApiError = (error: any): NextResponse => {
   if (error.message.includes('Server configuration error')) {
     return NextResponse.json({ error: 'Server configuration error', details: error.message }, { status: 503 });
   }
+  if (error.code === 16) { // UNAUTHENTICATED from Firebase Admin
+     return NextResponse.json({ error: 'Server Authentication Failed', details: `16 UNAUTHENTICATED: ${error.message}. This is a server configuration issue. Check your GOOGLE_APPLICATION_CREDENTIALS_JSON.` }, { status: 500 });
+  }
   return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
 };
-
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
     try {

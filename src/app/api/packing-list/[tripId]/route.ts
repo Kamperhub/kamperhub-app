@@ -1,4 +1,4 @@
-
+// src/app/api/packing-list/[tripId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import { packingListCategorySchema } from '@/types/packing';
@@ -27,14 +27,22 @@ async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: strin
 }
 
 // Zod schema for validating the incoming array of categories
-const updatePackingListSchema = z.object({
-  list: z.array(packingListCategorySchema),
-});
+const updatePackingListSchema = z.array(packingListCategorySchema);
+
 
 const handleApiError = (error: any): NextResponse => {
   console.error('API Error in packing-list route:', error);
   if (error instanceof ZodError) {
     return NextResponse.json({ error: 'Invalid data provided.', details: error.format() }, { status: 400 });
+  }
+  if (error.message.includes('Unauthorized')) {
+    return NextResponse.json({ error: 'Unauthorized', details: error.message }, { status: 401 });
+  }
+  if (error.message.includes('Server configuration error')) {
+    return NextResponse.json({ error: 'Server configuration error', details: error.message }, { status: 503 });
+  }
+   if (error.code === 16) { // UNAUTHENTICATED from Firebase Admin
+     return NextResponse.json({ error: 'Server Authentication Failed', details: `16 UNAUTHENTICATED: ${error.message}. This is a server configuration issue. Check your GOOGLE_APPLICATION_CREDENTIALS_JSON.` }, { status: 500 });
   }
   return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
 };
@@ -74,13 +82,13 @@ export async function PUT(req: NextRequest, { params }: { params: { tripId: stri
     }
 
     const body = await req.json();
-    const parsedData = updatePackingListSchema.parse({ list: body });
+    const parsedData = updatePackingListSchema.parse(body);
 
     const packingListDocRef = firestore.collection('users').doc(uid).collection('packingLists').doc(tripId);
     
-    await packingListDocRef.set({ list: parsedData.list });
+    await packingListDocRef.set({ list: parsedData });
     
-    return NextResponse.json({ message: 'Packing list updated successfully.', list: parsedData.list }, { status: 200 });
+    return NextResponse.json({ message: 'Packing list updated successfully.', list: parsedData }, { status: 200 });
 
   } catch (err: any) {
     return handleApiError(err);
