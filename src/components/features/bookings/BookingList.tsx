@@ -1,13 +1,14 @@
 
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import type { BookingEntry } from '@/types/booking';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit3, Trash2, Phone, Globe, CalendarDays, MapPin,Hash, StickyNote, DollarSign, Route } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { Edit3, Trash2, Phone, Globe, CalendarDays, MapPin, Hash, StickyNote, DollarSign, Route, CalendarPlus } from 'lucide-react';
+import { format, parseISO, addDays } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 interface BookingListProps {
   bookings: BookingEntry[];
@@ -17,9 +18,30 @@ interface BookingListProps {
 }
 
 export function BookingList({ bookings, trips, onEdit, onDelete }: BookingListProps) {
-  
+  const { toast } = useToast();
   const tripMap = useMemo(() => new Map(trips.map(trip => [trip.id, trip.name])), [trips]);
-  
+
+  const handleAddToCalendar = useCallback((booking: BookingEntry) => {
+    const title = encodeURIComponent(`Booking: ${booking.siteName}`);
+    const details = encodeURIComponent(
+      `Confirmation: ${booking.confirmationNumber || 'N/A'}\n` +
+      `Address: ${booking.locationAddress || 'See website'}\n` +
+      `Notes: ${booking.notes || 'None'}`
+    );
+    const location = encodeURIComponent(booking.locationAddress || booking.siteName);
+    
+    // Google Calendar expects YYYYMMDD format for all-day events.
+    const startDateFormatted = format(parseISO(booking.checkInDate), "yyyyMMdd");
+    // The 'end' date for all-day events is exclusive, so we add one day to the check-out date.
+    const endDateFormatted = format(addDays(parseISO(booking.checkOutDate), 1), "yyyyMMdd");
+    const dates = `${startDateFormatted}/${endDateFormatted}`;
+    
+    const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}`;
+    
+    window.open(calendarUrl, '_blank');
+    toast({ title: "Opening Google Calendar", description: "Check the new tab to add the event." });
+  }, [toast]);
+
   if (bookings.length === 0) {
     return (
       <p className="text-center text-muted-foreground font-body py-10">
@@ -31,7 +53,6 @@ export function BookingList({ bookings, trips, onEdit, onDelete }: BookingListPr
   const sortedBookings = [...bookings].sort((a, b) => {
     const dateA = parseISO(a.checkInDate);
     const dateB = parseISO(b.checkInDate);
-    // Sort by check-in date (most recent first), then by timestamp (most recent first) for tie-breaking
     if (dateA > dateB) return -1;
     if (dateA < dateB) return 1;
     return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
@@ -52,7 +73,11 @@ export function BookingList({ bookings, trips, onEdit, onDelete }: BookingListPr
                     Logged: {format(parseISO(booking.timestamp), "PPp")}
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
+                   <Button variant="ghost" size="sm" className="font-body" onClick={() => handleAddToCalendar(booking)}>
+                    <CalendarPlus className="h-4 w-4 mr-2" />
+                    Add to Calendar
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => onEdit(booking)} aria-label="Edit booking">
                     <Edit3 className="h-5 w-5 text-blue-600" />
                   </Button>
@@ -95,8 +120,18 @@ export function BookingList({ bookings, trips, onEdit, onDelete }: BookingListPr
                   <div><span className="font-semibold">Confirmation:</span> {booking.confirmationNumber}</div>
                 </div>
               )}
-              {(booking.contactPhone || booking.contactWebsite) && (
-                <CardFooter className="p-0 pt-3 mt-3 border-t">
+              {booking.notes && (
+                <div className="flex items-start font-body pt-3 mt-3 border-t">
+                  <StickyNote className="mr-3 h-5 w-5 text-muted-foreground flex-shrink-0 mt-1" />
+                  <div>
+                      <span className="font-semibold text-muted-foreground">Notes:</span>
+                      <p className="whitespace-pre-wrap text-sm">{booking.notes}</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+             {(booking.contactPhone || booking.contactWebsite) && (
+                <CardFooter className="pt-3 mt-3 border-t">
                   <div className="space-y-2 w-full">
                     {booking.contactPhone && (
                       <div className="flex items-center font-body">
@@ -115,16 +150,6 @@ export function BookingList({ bookings, trips, onEdit, onDelete }: BookingListPr
                   </div>
                 </CardFooter>
               )}
-               {booking.notes && (
-                <div className="flex items-start font-body pt-3 mt-3 border-t">
-                  <StickyNote className="mr-3 h-5 w-5 text-muted-foreground flex-shrink-0 mt-1" />
-                  <div>
-                      <span className="font-semibold text-muted-foreground">Notes:</span>
-                      <p className="whitespace-pre-wrap text-sm">{booking.notes}</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
           </Card>
         )
       })}
