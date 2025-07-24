@@ -68,7 +68,7 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 1.  **Firebase Client Config (`NEXT_PUBLIC_FIREBASE_*`)**
     *   In your [Firebase Project Settings](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/settings/general), find your web app config.
     *   Copy every value (`authDomain`, `projectId`, etc.) into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable.
-    *   **CRITICAL:** Copy the `apiKey` value from this config and paste it into the **`NEXT_PUBLIC_FIREBASE_API_KEY`** variable. This key will be configured for Firebase services in the next step.
+    *   **CRITICAL:** The `apiKey` value from this config object is what you will use for **`NEXT_PUBLIC_FIREBASE_API_KEY`**. Copy it into your `.env.local` file now.
 
 2.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
     *   Go to the [Firebase Service Accounts page](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/settings/serviceaccounts/adminsdk).
@@ -83,13 +83,13 @@ All your secret keys will live in a special file that is **NEVER** committed to 
         *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", choose **"Websites"**. Add `*.cloudworkstations.dev` and `localhost` to the list. This is the fix for the `grantToken` error.
         *   Click **Save**.
 
-    *   **B) Create Your Google Maps Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)**
+    *   **B) Create & Configure Your Google Maps Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Maps Key`.
         *   **API RESTRICTIONS:** Restrict this key to these two APIs: **Maps JavaScript API** and **Places API (New)**.
         *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", choose **"Websites"**. Add `*.cloudworkstations.dev` and `localhost`.
         *   Click **Save**. Paste the new key value into `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
 
-    *   **C) Create Your Server Key (for `GOOGLE_API_KEY`)**
+    *   **C) Create & Configure Your Server Key (for `GOOGLE_API_KEY`)**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Server Key`.
         *   **API RESTRICTIONS:** Restrict this key to these APIs: **Routes API**, **Generative Language API (Gemini)**, and **Places API (New)**.
         *   **APPLICATION RESTRICTIONS:** Choose **"None"**. This is critical. Do not add website restrictions.
@@ -101,5 +101,3 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 ---
 
 (The remaining steps 3.5 through 8 remain correct and unchanged.)
-
----

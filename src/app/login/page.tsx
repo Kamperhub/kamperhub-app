@@ -105,8 +105,8 @@ export default function LoginPage() {
             break;
           case 'auth/invalid-api-key':
           case 'auth/api-key-not-valid':
-            setLoginError('Your Browser API Key is invalid or not configured correctly. Please check the NEXT_PUBLIC_GOOGLE_MAPS_API_KEY value in your .env.local file and follow Step 3 of the setup guide.');
-            errorMessage = 'Invalid API Key configuration.';
+            setLoginError('Your Firebase API Key is invalid or not configured correctly. Please check the NEXT_PUBLIC_FIREBASE_API_KEY value in your .env.local file and follow Step 3 of the setup guide.');
+            errorMessage = 'Invalid Firebase API Key configuration.';
             break;
           default:
             errorMessage = authError.message || 'An unknown login error occurred.';
@@ -198,7 +198,7 @@ export default function LoginPage() {
                       <ol className="list-decimal pl-5 space-y-1">
                           <li>Click the "Copy URL" button below.</li>
                           <li>Click the "Open Google Cloud" button to go to the credentials page.</li>
-                          <li>Click on the name of your API Key (the one you use for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`).</li>
+                          <li>Click on the name of your API Key (the one you use for `NEXT_PUBLIC_FIREBASE_API_KEY`).</li>
                            <li>Under "Website restrictions," click **ADD** and paste the URL you copied.</li>
                            <li>For best results, use a wildcard format. For example, if you copy `https://1234.cloudworkstations.dev`, you should add `*.cloudworkstations.dev` to the list.</li>
                           <li>Save the key and refresh this page.</li>

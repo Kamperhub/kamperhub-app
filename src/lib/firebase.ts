@@ -26,7 +26,7 @@ export let firebaseInitializationError: string | null = null;
 console.log("[Firebase Client] Starting initialization...");
 
 if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-  firebaseInitializationError = "CRITICAL ERROR: Firebase client-side configuration is missing. Please ensure all required NEXT_PUBLIC_FIREBASE_ variables are set in your .env.local file and that you have restarted the development server. The application cannot connect to Firebase.";
+  firebaseInitializationError = "CRITICAL ERROR: Firebase client-side configuration is missing. Please ensure all required NEXT_PUBLIC_FIREBASE_ variables are set in your .env.local file (especially NEXT_PUBLIC_FIREBASE_API_KEY) and that you have restarted the development server. The application cannot connect to Firebase.";
   console.error(`[Firebase Client] ${firebaseInitializationError}`);
   app = {} as FirebaseApp;
   auth = {} as Auth;
