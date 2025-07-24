@@ -77,23 +77,30 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 3.  **Google Cloud API Keys (CRITICAL - Three Distinct Keys)**
     *   Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
 
-    *   **A) Configure Your Firebase Browser Key (for `NEXT_PUBLIC_FIREBASE_API_KEY`)**
-        *   In the API key list, find the key that matches the value you just put in `NEXT_PUBLIC_FIREBASE_API_KEY`. It might be named "Browser key (auto-created by Firebase)". Click its name to edit it.
+    *   **A) Create & Configure Your Firebase Browser Key (for `NEXT_PUBLIC_FIREBASE_API_KEY`)**
+        *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Firebase Browser Key`.
+        *   Copy the key value and paste it into your `.env.local` file for `NEXT_PUBLIC_FIREBASE_API_KEY`.
         *   **API RESTRICTIONS:** Restrict the key to these two APIs: **Identity Toolkit API** and **Firebase App Check API**.
-        *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", choose **"Websites"**. Add `*.cloudworkstations.dev` and `localhost` to the list. This is the fix for the `grantToken` error.
+        *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", choose **"Websites"**. Add these two entries to cover all development scenarios:
+            *   `*.cloudworkstations.dev`
+            *   `localhost`
         *   Click **Save**.
 
     *   **B) Create & Configure Your Google Maps Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Maps Key`.
+        *   Copy the new key value and paste it into your `.env.local` file for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
         *   **API RESTRICTIONS:** Restrict this key to these two APIs: **Maps JavaScript API** and **Places API (New)**.
-        *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", choose **"Websites"**. Add `*.cloudworkstations.dev` and `localhost`.
-        *   Click **Save**. Paste the new key value into `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
+        *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", choose **"Websites"**. Add these two entries:
+            *   `*.cloudworkstations.dev`
+            *   `localhost`
+        *   Click **Save**.
 
     *   **C) Create & Configure Your Server Key (for `GOOGLE_API_KEY`)**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Server Key`.
+        *   Copy this key's value and paste it into the `GOOGLE_API_KEY` variable.
         *   **API RESTRICTIONS:** Restrict this key to these APIs: **Routes API**, **Generative Language API (Gemini)**, and **Places API (New)**.
         *   **APPLICATION RESTRICTIONS:** Choose **"None"**. This is critical. Do not add website restrictions.
-        *   Click **Save**. Paste this key's value into the `GOOGLE_API_KEY` variable.
+        *   Click **Save**.
 
 4.  **Google OAuth Keys (`GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`)**
     * (Instructions Unchanged and Correct)

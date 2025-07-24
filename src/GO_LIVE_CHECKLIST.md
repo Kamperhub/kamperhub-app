@@ -22,7 +22,11 @@ Your Firebase project (`kamperhub-s4hc2`) needs to be configured for live traffi
 
 2.  **A) Create the Firebase Browser Key (for `NEXT_PUBLIC_FIREBASE_API_KEY`):**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `KamperHub Production Firebase Key`.
-    *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", select **"Websites"**. Add your production domain (e.g., `https://kamperhub.com/*`).
+    *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", select **"Websites"**. Add every single domain where your web app will run (add `/*` at the end of each):
+        *   `kamperhub.com/*` (your primary custom domain)
+        *   `*.kamperhub.com/*` (to cover subdomains like `www`)
+        *   `kamperhub-s4hc2.firebaseapp.com/*` (Firebase Hosting default domain)
+        *   `kamperhub-s4hc2.web.app/*` (Firebase Hosting default domain)
     *   **API RESTRICTIONS:** Select **"Restrict key"** and choose only these two APIs:
         *   **Identity Toolkit API**
         *   **Firebase App Check API**
@@ -30,7 +34,7 @@ Your Firebase project (`kamperhub-s4hc2`) needs to be configured for live traffi
 
 3.  **B) Create the Google Maps Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `KamperHub Production Maps Key`.
-    *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", select **"Websites"**. Add your production domain (e.g., `https://kamperhub.com/*`).
+    *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", select **"Websites"**. Add the same list of production domains as in the previous step.
     *   **API RESTRICTIONS:** Select **"Restrict key"** and choose only these two APIs:
         *   **Maps JavaScript API**
         *   **Places API (New)**
