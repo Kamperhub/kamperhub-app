@@ -2,7 +2,7 @@
 # Firebase & Backend Setup Checklist
 
 > [!CAUTION]
-> **This guide has been completely overhauled to provide a clear, robust, two-key setup for your local environment.** This is the most secure and flexible way to manage your app's secret keys and avoid the `grantToken` error.
+> **This guide has been completely overhauled to provide a clear, robust, three-key setup for your local environment.** This is the most secure and flexible way to manage your app's secret keys and avoid the `grantToken` error.
 
 ---
 
@@ -13,7 +13,7 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 1.  In the main folder of your project, create a new file named **exactly**:
     `.env.local`
 
-2.  Copy and paste the following block of text into your `.env.local` file. You will fill in the placeholder values in the next steps.
+2.  Copy and paste the following block of text into your newly created `.env.local` file. You will fill in the placeholder values in the next steps.
 
     ```env
     # --- Firebase Client-Side Configuration (for the browser) ---
