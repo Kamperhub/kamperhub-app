@@ -80,13 +80,18 @@ All your secret keys will live in a special file that is **NEVER** committed to 
     *   **A) Configure Your Firebase Browser Key (for `NEXT_PUBLIC_FIREBASE_API_KEY`)**
         *   In the API key list, find the key that matches the value you just put in `NEXT_PUBLIC_FIREBASE_API_KEY`. It might be named "Browser key (auto-created by Firebase)". Click its name to edit it.
         *   **API RESTRICTIONS:** Restrict the key to these two APIs: **Identity Toolkit API** and **Firebase App Check API**.
-        *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", choose **"Websites"**. Add `*.cloudworkstations.dev` and `localhost` to the list. This is the fix for the `grantToken` error.
+        *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", choose **"Websites"**. Remove any existing entries and add the following two, exactly as written:
+            *   `*.cloudworkstations.dev/*`
+            *   `localhost:*/*`
+        *   This is the final fix for the `grantToken` error in development.
         *   Click **Save**.
 
     *   **B) Create Your Google Maps Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Maps Key`.
         *   **API RESTRICTIONS:** Restrict this key to these two APIs: **Maps JavaScript API** and **Places API (New)**.
-        *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", choose **"Websites"**. Add `*.cloudworkstations.dev` and `localhost`.
+        *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", choose **"Websites"**. Add the same two entries as the Firebase key:
+            *   `*.cloudworkstations.dev/*`
+            *   `localhost:*/*`
         *   Click **Save**. Paste the new key value into `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
 
     *   **C) Create Your Server Key (for `GOOGLE_API_KEY`)**
