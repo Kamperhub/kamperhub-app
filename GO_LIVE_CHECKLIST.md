@@ -28,18 +28,21 @@ Your local development started in "test mode". For production, you must switch t
 
 2.  **A) Create the Firebase Browser Key (for `NEXT_PUBLIC_FIREBASE_API_KEY`):**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `KamperHub Production Firebase Key`.
-    *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", select **"Websites"**. Add your production domain (e.g., `https://kamperhub.com/*`).
-    *   **API RESTRICTIONS:** Select **"Restrict key"** and choose only these two APIs:
-        *   **Identity Toolkit API**
-        *   **Firebase App Check API**
+    *   **API RESTRICTIONS:** Select **"Restrict key"**. To ensure all Firebase services work, it's safest to allow all APIs that are enabled in your project. You can refine this list later if you have a deep understanding of every API the Firebase Web SDK uses.
+    *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", select **"Websites"**. Add every domain where your app will run (add `/*` at the end):
+        *   `kamperhub.com/*`
+        *   `*.kamperhub.com/*`
+        *   `kamperhub-s4hc2.firebaseapp.com/*`
+        *   `kamperhub-s4hc2.web.app/*`
+        *   (Add any other custom domains or App Hosting URLs here)
     *   Click **Save**. Copy this new key. You will use it in your App Hosting configuration.
 
 3.  **B) Create the Google Maps Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `KamperHub Production Maps Key`.
-    *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", select **"Websites"**. Add your production domain (e.g., `https://kamperhub.com/*`).
     *   **API RESTRICTIONS:** Select **"Restrict key"** and choose only these two APIs:
         *   **Maps JavaScript API**
         *   **Places API (New)**
+    *   **WEBSITE RESTRICTIONS:** Add the same list of production domains as in the previous step.
     *   Click **Save**. Copy this new key. You will use it in your App Hosting configuration.
 
 4.  **C) Create the Server Key (for `GOOGLE_API_KEY`):**
