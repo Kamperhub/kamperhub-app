@@ -89,7 +89,7 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
   const preferencesMutation = useMutation({
     mutationFn: (prefs: Partial<UserProfile>) => updateUserPreferences(prefs),
     onSuccess: () => {
-       queryClient.invalidateQueries({ queryKey: ['vehiclePageData', user?.uid] });
+       queryClient.invalidateQueries({ queryKey: ['allVehicleData', user?.uid] });
     },
     onError: (error: Error) => {
       toast({ title: "Error Saving Preferences", description: error.message, variant: "destructive" });
@@ -122,13 +122,11 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
 
     const newLevel = Math.max(0, Math.min(100, level));
 
-    // Update local state immediately for responsive UI
     setLocalWaterLevels(prevLevels => ({
       ...prevLevels,
       [tankId]: newLevel
     }));
 
-    // Prepare the full data structure for debounced saving
     const currentGlobalLevels = userPreferences.caravanWaterLevels || {};
     const updatedGlobalLevels = {
       ...currentGlobalLevels,
@@ -170,7 +168,7 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
       return `(${longText} / ${latText})`;
     };
     const caravanLocs = (activeCaravan?.storageLocations || []).map(loc => ({ id: `cv-${loc.id}`, name: `CV: ${loc.name}`, details: formatPosition(loc), maxWeightCapacityKg: loc.maxWeightCapacityKg, distanceFromAxleCenterMm: loc.distanceFromAxleCenterMm, type: 'caravan' as 'caravan' | 'vehicle' }));
-    const vehicleLocs = (activeVehicle?.storageLocations || []).map(loc => ({ id: `veh-${loc.id}`, name: `VEH: ${loc.name}`, details: formatPosition(loc), maxWeightCapacityKg: loc.maxWeightCapacityKg, distanceFromAxleCenterMm: loc.distanceFromRearAxleMm, type: 'vehicle' as 'caravan' | 'vehicle' }));
+    const vehicleLocs = (activeVehicle?.storageLocations || []).map(loc => ({ id: `veh-${loc.id}`, name: `VEH: ${loc.name}`, details: formatPosition(loc), maxWeightCapacityKg: loc.maxWeightCapacityKg, distanceFromRearAxleMm: loc.distanceFromRearAxleMm, type: 'vehicle' as 'caravan' | 'vehicle' }));
     return [...caravanLocs, ...vehicleLocs];
   }, [activeCaravan?.storageLocations, activeVehicle?.storageLocations]);
   
@@ -561,3 +559,5 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
     </Card>
   );
 }
+
+    
