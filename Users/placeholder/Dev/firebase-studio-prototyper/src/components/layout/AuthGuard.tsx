@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -104,6 +105,8 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
   const router = useRouter();
 
   useEffect(() => {
+    // Only redirect when the auth status is definitively unauthenticated.
+    // This prevents redirects while the initial check is still loading.
     if (authStatus === 'UNAUTHENTICATED') {
       router.push('/login');
     }
@@ -127,6 +130,7 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     return <>{children}</>;
   }
   
-  // Fallback loading screen for any other state (e.g., initial render before effects)
-  return <LoadingScreen message="Initializing..." />;
+  // This will catch the UNAUTHENTICATED state while the useEffect redirect is firing,
+  // preventing the children from rendering for a split second.
+  return <LoadingScreen message="Redirecting..." />;
 };
