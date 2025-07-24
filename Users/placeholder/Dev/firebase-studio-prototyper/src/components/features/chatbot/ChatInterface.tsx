@@ -23,14 +23,15 @@ export function ChatInterface() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const scrollViewportRef = useRef<HTMLDivElement>(null); // Correct ref for the viewport
   const { user } = useAuth();
   const { toast } = useToast();
   const navContext = useContext(NavigationContext);
 
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
+    // This effect now correctly targets the viewport for scrolling
+    if (scrollViewportRef.current) {
+      scrollViewportRef.current.scrollTo({ top: scrollViewportRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [messages]);
 
@@ -108,7 +109,7 @@ export function ChatInterface() {
           Try asking: "What trips do I have?" or "Add an expense of $50 for fuel to my Fraser Island trip".
         </AlertDescription>
       </Alert>
-      <ScrollArea className="flex-grow p-4" viewportRef={scrollAreaRef}>
+      <ScrollArea className="flex-grow p-4" viewportRef={scrollViewportRef}>
         <div className="space-y-4">
             {messages.map(msg => (
             <div key={msg.id} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
