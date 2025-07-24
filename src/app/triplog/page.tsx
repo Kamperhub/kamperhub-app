@@ -26,7 +26,9 @@ export default function TripLogPage() {
   const navContext = useContext(NavigationContext);
 
   const handleNavigation = () => {
-    navContext?.setIsNavigating(true);
+    if (navContext) {
+      navContext.setIsNavigating(true);
+    }
   };
 
   const { data: loggedTrips = [], isLoading, error } = useQuery<LoggedTrip[]>({
@@ -70,16 +72,17 @@ export default function TripLogPage() {
   });
 
   const handleDeleteTrip = useCallback((id: string) => {
-    // Confirmation is now handled in the UI, so we just call the mutation.
     deleteTripMutation.mutate(id);
   }, [deleteTripMutation]);
 
   const handleRecallTrip = useCallback((trip: LoggedTrip) => {
     try {
+      navContext?.setIsNavigating(true);
       localStorage.setItem(RECALLED_TRIP_DATA_KEY, JSON.stringify(trip));
       toast({ title: "Trip Recalled", description: `"${trip.name}" is ready in the Trip & Expense Planner.` });
       router.push('/trip-expense-planner');
     } catch (error: any) {
+      navContext?.setIsNavigating(false);
       console.error("Error recalling trip to localStorage:", error);
       toast({
         title: "Error Recalling Trip",
@@ -87,7 +90,7 @@ export default function TripLogPage() {
         variant: "destructive",
       });
     }
-  }, [router, toast]);
+  }, [router, toast, navContext]);
 
   const handleAddToCalendar = useCallback((trip: LoggedTrip) => {
     if (!trip.plannedStartDate) {
@@ -104,7 +107,7 @@ export default function TripLogPage() {
     const title = encodeURIComponent(trip.name);
     const details = encodeURIComponent(
       `Trip from ${trip.startLocationDisplay} to ${trip.endLocationDisplay}.\n` +
-      `Distance: ${trip.routeDetails.distance}, Duration: ${trip.routeDetails.duration}.\n\n` +
+      `Distance: ${trip.routeDetails.distance.text}, Duration: ${trip.routeDetails.duration.text}.\n\n` +
       `Reminder: Pack for this trip 3 days before departure!\n` +
       `View Packing List: ${packingListUrl}`
     );
@@ -127,9 +130,10 @@ export default function TripLogPage() {
   }, [toast]);
 
   const handleStartTrip = useCallback((tripId: string) => {
-    router.push(`/checklists?tripId=${tripId}`);
+    navContext?.setIsNavigating(true);
+    router.push(`/trip-manager/checklists?tripId=${tripId}`);
     toast({ title: "Opening Trip Checklists", description: "Navigating to checklists..." });
-  }, [router, toast]);
+  }, [router, toast, navContext]);
 
   const handleToggleCompleteTrip = useCallback((tripId: string) => {
     const tripToUpdate = loggedTrips.find(t => t.id === tripId);
@@ -168,7 +172,7 @@ export default function TripLogPage() {
         <Alert variant="destructive">
             <Info className="h-4 w-4" />
             <AlertTitle>Error Loading Trips</AlertTitle>
-            <AlertDescription>{error.message}</AlertDescription>
+            <AlertDescription>{(error as Error).message}</AlertDescription>
         </Alert>
       )}
 

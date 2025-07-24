@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import type { TripPlannerFormValues, RouteDetails, FuelEstimate, LoggedTrip, Occupant, FuelStation } from '@/types/tripplanner';
 import { RECALLED_TRIP_DATA_KEY } from '@/types/tripplanner';
 import type { Journey } from '@/types/journey';
@@ -212,7 +212,6 @@ export function TripPlannerClient() {
     if (options.isCurrentlyTowing && activeCaravan?.numberOfAxles) {
       axleCount += activeCaravan.numberOfAxles;
     }
-    const vehicleHeight = options.isCurrentlyTowing ? activeCaravan?.overallHeight : activeVehicle?.overallHeight;
 
     try {
         const response = await fetch('/api/directions/route', {
@@ -221,15 +220,17 @@ export function TripPlannerClient() {
             body: JSON.stringify({
                 origin: options.origin,
                 destination: options.destination,
-                vehicleHeight: vehicleHeight ? vehicleHeight / 1000 : undefined,
+                isTowing: options.isCurrentlyTowing,
+                vehicleHeight: activeVehicle?.overallHeight,
+                caravanHeight: activeCaravan?.overallHeight,
                 axleCount: axleCount,
                 avoidTolls: options.shouldAvoidTolls
             }),
         });
 
-        const result: RouteDetails = await response.json();
+        const result = await response.json();
         if (!response.ok) {
-            throw new Error((result as any).error || 'Failed to calculate route.');
+            throw new Error(result.error || 'Failed to calculate route.');
         }
         
         setRouteDetails(result);
