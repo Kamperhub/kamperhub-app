@@ -68,7 +68,7 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 1.  **Firebase Client Config (`NEXT_PUBLIC_FIREBASE_*`)**
     *   In your [Firebase Project Settings](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/settings/general), find your web app config.
     *   Copy every value (`authDomain`, `projectId`, etc.) into the corresponding `NEXT_PUBLIC_FIREBASE_*` variable.
-    *   **CRITICAL:** The `apiKey` value from this config object is what you will use for **`NEXT_PUBLIC_FIREBASE_API_KEY`**. Copy it into your `.env.local` file now.
+    *   **CRITICAL:** You must now create a **new, dedicated API key** for Firebase services. Follow the instructions in **Step 3A** below, and then paste the new key's value into the **`NEXT_PUBLIC_FIREBASE_API_KEY`** variable.
 
 2.  **Firebase Server-Side Key (`GOOGLE_APPLICATION_CREDENTIALS_JSON`)**
     *   Go to the [Firebase Service Accounts page](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/settings/serviceaccounts/adminsdk).
@@ -77,17 +77,17 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 3.  **Google Cloud API Keys (CRITICAL - Three Distinct Keys)**
     *   Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
 
-    *   **A) Configure Your Firebase Browser Key (the one auto-created by Firebase)**
-        *   In the API key list, find the key that matches the value you just put in `NEXT_PUBLIC_FIREBASE_API_KEY`. It might be named "Browser key (auto-created by Firebase)". This is the special key we've discussed. Click its name to edit it.
-        *   **API RESTRICTIONS (IMPORTANT):** Select **"Restrict key"**. Verify that there is a long list of APIs already enabled by Firebase (there may be ~24 of them). **DO NOT REMOVE THIS LIST.** This is correct. The security for this key comes from website restrictions, not API restrictions.
-        *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", choose **"Websites"**. Add the following two entries exactly:
+    *   **A) Create & Configure Your Firebase Browser Key (for `NEXT_PUBLIC_FIREBASE_API_KEY`)**
+        *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Firebase Key`.
+        *   **API RESTRICTIONS:** Restrict this key to these **two** APIs: **Identity Toolkit API** and **Firebase App Check API**.
+        *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", choose **"Websites"**. Add these two entries exactly:
             *   `*.cloudworkstations.dev/*`
             *   `localhost:*/*`
-        *   Click **Save**.
+        *   Click **Save**. Paste this new key's value into the `NEXT_PUBLIC_FIREBASE_API_KEY` variable.
 
     *   **B) Create & Configure Your Google Maps Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Maps Key`.
-        *   **API RESTRICTIONS:** Restrict this key to these two APIs: **Maps JavaScript API** and **Places API (New)**.
+        *   **API RESTRICTIONS:** Restrict this key to these **two** APIs: **Maps JavaScript API** and **Places API (New)**.
         *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", choose **"Websites"**. Add the same two entries as the Firebase key:
             *   `*.cloudworkstations.dev/*`
             *   `localhost:*/*`
@@ -95,7 +95,7 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 
     *   **C) Create & Configure Your Server Key (for `GOOGLE_API_KEY`)**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Server Key`.
-        *   **API RESTRICTIONS:** Restrict this key to these APIs: **Routes API**, **Generative Language API (Gemini)**, and **Places API (New)**.
+        *   **API RESTRICTIONS:** Restrict this key to these **three** APIs: **Routes API**, **Generative Language API (Gemini)**, and **Places API (New)**.
         *   **APPLICATION RESTRICTIONS:** Choose **"None"**. This is critical. Do not add website restrictions.
         *   Click **Save**. Paste this key's value into the `GOOGLE_API_KEY` variable.
 
@@ -104,4 +104,20 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 
 ---
 
-(The remaining steps 3.5 through 8 remain correct and unchanged.)
+### Step 3.5: CRITICAL - Why Google Tasks API Isn't on a Key List (API Keys vs. OAuth 2.0)
+
+> [!IMPORTANT]
+> This is a crucial concept. The application uses two different methods to talk to Google, and understanding the difference is key to a correct setup.
+
+*   **API Keys (The 3 Keys You Just Made):** These are for when the **application itself** needs to ask for data. Think of it like a library card for your app. Services like Maps, Routes, AI, and Firebase Authentication use this method. The key proves that a valid application is making the request.
+
+*   **OAuth 2.0 (Client ID & Secret):** This is used when the application needs to access a **user's private data** on their behalf. This is what the **Google Tasks API** uses. Think of it as a signed permission slip from the user.
+    1.  The app uses the `GOOGLE_CLIENT_ID` to ask for your permission.
+    2.  You grant consent via the Google login pop-up.
+    3.  Google gives the app special tokens (not an API key) to access *your specific tasks*.
+
+**Conclusion:** The `Google Tasks API` is **correctly omitted** from the API Key restriction lists because it is accessed via OAuth 2.0, not an API key.
+
+---
+
+(The remaining steps 3.6 through 8 remain correct and unchanged.)
