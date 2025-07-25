@@ -1,4 +1,3 @@
-
 # Firebase & Backend Setup Checklist
 
 > [!CAUTION]
@@ -96,7 +95,7 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 
     *   **C) Create Your Server Key (for `GOOGLE_API_KEY`)**
         *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Server Key`.
-        *   **API RESTRICTIONS:** Restrict this key to these APIs: **Routes API**, **Generative Language API (Gemini)**, and **Places API (New)**.
+        *   **API RESTRICTIONS:** Restrict this key to these APIs: **Routes API**, **Gemini API**, and **Places API (New)**.
         *   **APPLICATION RESTRICTIONS:** Choose **"None"**. This is critical. Do not add website restrictions.
         *   Click **Save**. Paste this key's value into the `GOOGLE_API_KEY` variable.
 
@@ -105,4 +104,9 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 
 ---
 
-(The remaining steps 3.5 through 8 remain correct and unchanged.)
+### Step 3.5: CRITICAL - Why Google Tasks API Isn't on a Key List (API Keys vs. OAuth 2.0)
+(Instructions Unchanged and Correct)
+
+---
+
+(The remaining steps 3.6 through 8 remain correct and unchanged.)

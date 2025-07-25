@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -52,7 +51,8 @@ const LoadingScreen = ({ message }: { message: string }) => {
 
 const ErrorScreen = ({ error }: { error: string | null }) => {
   const errorMessage = error || "An unknown error occurred.";
-  const isPermissionError = errorMessage.toLowerCase().includes('permission_denied') || errorMessage.toLowerCase().includes('unauthenticated');
+  const isPermissionError = errorMessage.toLowerCase().includes('permission_denied');
+  const isUnauthenticatedError = errorMessage.toLowerCase().includes('unauthenticated');
   const isTimeoutError = errorMessage.toLowerCase().includes('timed out');
   
   return (
@@ -65,6 +65,19 @@ const ErrorScreen = ({ error }: { error: string | null }) => {
             <pre className="text-xs bg-background/20 p-3 rounded-md font-mono whitespace-pre-wrap text-left">
               {errorMessage}
             </pre>
+            {isUnauthenticatedError && (
+              <div className="mt-4 border-t border-destructive/30 pt-3 text-left font-body space-y-4">
+                <p className="font-bold">This is a server authentication error. It means the application's backend could not securely connect to Google services.</p>
+                <p>This is a critical setup issue. Please follow these steps exactly:</p>
+                <ul className="list-decimal pl-5 space-y-2">
+                  <li>Open the file <code className="bg-background/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code>.</li>
+                  <li>Carefully re-do the instructions in <strong>Step 3.2: Firebase Server-Side Key</strong> to generate a fresh service account JSON file.</li>
+                  <li>Ensure you copy the entire one-line JSON content into the `GOOGLE_APPLICATION_CREDENTIALS_JSON` variable in your `.env.local` file.</li>
+                  <li>Verify the `project_id` inside the new JSON matches your `NEXT_PUBLIC_FIREBASE_PROJECT_ID`.</li>
+                  <li>Finally, follow <strong>Step 6: Verify Service Account Permissions</strong> to ensure the account has the "Editor" role.</li>
+                </ul>
+              </div>
+            )}
             {isTimeoutError && (
                <div className="mt-4 border-t border-destructive/30 pt-3 text-left font-body space-y-4">
                 <p className="font-bold">This is a timeout error. It almost always means the app cannot connect to the Firestore database named `kamperhubv2`.</p>
@@ -76,7 +89,7 @@ const ErrorScreen = ({ error }: { error: string | null }) => {
                 </ul>
               </div>
             )}
-            {isPermissionError && !isTimeoutError && (
+            {isPermissionError && !isUnauthenticatedError && (
               <div className="mt-4 border-t border-destructive/30 pt-3 text-left font-body space-y-4">
                 <p className="font-bold">This is a permissions issue. It means your app is being blocked by Firestore's Security Rules. Please follow these steps:</p>
                 <div>
@@ -105,6 +118,8 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
   const router = useRouter();
 
   useEffect(() => {
+    // Only redirect when the auth status is definitively unauthenticated.
+    // This prevents redirects while the initial check is still loading.
     if (authStatus === 'UNAUTHENTICATED') {
       router.push('/login');
     }
@@ -128,6 +143,7 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     return <>{children}</>;
   }
   
-  // Fallback loading screen for any other state (e.g., initial render before effects)
-  return <LoadingScreen message="Initializing..." />;
+  // This will catch the UNAUTHENTICATED state while the useEffect redirect is firing,
+  // preventing the children from rendering for a split second.
+  return <LoadingScreen message="Redirecting..." />;
 };
