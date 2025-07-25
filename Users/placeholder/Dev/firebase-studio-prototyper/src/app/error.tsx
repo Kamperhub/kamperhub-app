@@ -1,7 +1,9 @@
+
 'use client' // Error components must be Client Components
 
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertTriangle, RotateCw } from 'lucide-react'
 
@@ -32,9 +34,13 @@ export default function Error({
             <p className="font-body text-muted-foreground">
                 An unexpected error occurred while trying to load this part of the application.
             </p>
-            <pre className="mt-2 text-xs bg-destructive/10 p-3 rounded-md font-mono whitespace-pre-wrap text-left border border-destructive/20">
-                Error: {error.message || 'An unknown error occurred.'}
-            </pre>
+            <Alert variant="destructive" className="text-left">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle className="font-headline">Error Details</AlertTitle>
+                <AlertDescription className="font-mono text-xs whitespace-pre-wrap">
+                    {error.message || 'An unknown error occurred.'}
+                </AlertDescription>
+            </Alert>
             <p className="text-sm font-body text-muted-foreground">
                 You can attempt to recover by clicking the button below.
             </p>
