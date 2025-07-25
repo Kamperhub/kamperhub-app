@@ -1,3 +1,4 @@
+
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 
@@ -5,59 +6,43 @@ export function getFirebaseAdmin() {
   // If the app is already initialized, return the existing instances.
   if (admin.apps.length > 0 && admin.apps[0]) {
     const app = admin.apps[0];
-    const firestore = getFirestore(app, 'kamperhubv2');
-    if (!firestore) {
-      // This case can happen if the database with the specified ID doesn't exist.
-      const error = new Error("FATAL: Failed to get Firestore instance for database 'kamperhubv2'. Please ensure a Firestore database with this exact ID exists in your Firebase project.");
-      console.error("CRITICAL: Firebase Admin SDK initialization failed.", error);
-      return { auth: null, firestore: null, error };
-    }
     return {
       auth: admin.auth(app),
-      firestore: firestore,
+      firestore: getFirestore(app, 'kamperhubv2'),
       error: null
     };
   }
 
-  // If not initialized, proceed with the setup.
+  // If not initialized, proceed with the new, robust Base64 decoding setup.
   try {
-    console.log("[Firebase Admin] No initialized app found. Starting new initialization...");
-    const serviceAccountJsonString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+    console.log("[Firebase Admin] No initialized app found. Starting new initialization with Base64 credentials...");
+    const serviceAccountBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
     const clientProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
-    if (!serviceAccountJsonString) {
-      throw new Error("FATAL: GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is not set. The server cannot connect to Firebase services.");
+    if (!serviceAccountBase64) {
+      throw new Error("FATAL: GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is not set. The server cannot connect to Firebase services. Please follow the setup guide to provide the Base64 encoded service account key.");
     }
     
     if (!clientProjectId) {
         throw new Error("FATAL: NEXT_PUBLIC_FIREBASE_PROJECT_ID environment variable is not set. Cannot verify server-side configuration.");
     }
-
-    // Clean the JSON string by removing potential leading/trailing single quotes.
-    let jsonString = serviceAccountJsonString.trim();
-    if ((jsonString.startsWith("'") && jsonString.endsWith("'")) || (jsonString.startsWith('"') && jsonString.endsWith('"'))) {
-        jsonString = jsonString.substring(1, jsonString.length - 1);
-    }
     
     let serviceAccount;
     try {
-        // Parse the string into a JavaScript object.
-        const parsedJson = JSON.parse(jsonString);
-        // Explicitly replace escaped newlines in the private key with actual newlines.
-        if (parsedJson.private_key) {
-            parsedJson.private_key = parsedJson.private_key.replace(/\\n/g, '\n');
-        }
-        serviceAccount = parsedJson;
+        // Decode the Base64 string to get the original JSON string.
+        const decodedJsonString = Buffer.from(serviceAccountBase64, 'base64').toString('utf-8');
+        // Parse the decoded JSON string.
+        serviceAccount = JSON.parse(decodedJsonString);
     } catch (e: any) {
-        throw new Error(`FATAL: The GOOGLE_APPLICATION_CREDENTIALS_JSON string in your .env.local file is not valid JSON. Please copy it again carefully. The JSON parser failed with: ${e.message}`);
+        throw new Error(`FATAL: The GOOGLE_APPLICATION_CREDENTIALS_JSON string in your .env.local file could not be decoded from Base64 or parsed as JSON. Please ensure it is a valid, single-line Base64 string. Error: ${e.message}`);
     }
 
     if (serviceAccount.project_id !== clientProjectId) {
-        throw new Error(`FATAL: Project ID Mismatch. Server key is for project '${serviceAccount.project_id}', but client keys are for project '${clientProjectId}'. All keys in your .env.local file MUST come from the same Firebase project. Please review the 'FIREBASE_SETUP_CHECKLIST.md' guide carefully.`);
+        throw new Error(`FATAL: Project ID Mismatch. Server key is for project '${serviceAccount.project_id}', but client keys are for project '${clientProjectId}'. All keys in your .env.local file MUST come from the same Firebase project.`);
     }
 
     if (!serviceAccount.private_key) {
-      throw new Error("FATAL: The 'private_key' field is missing from your service account JSON. Please ensure you have copied the entire JSON file correctly.");
+      throw new Error("FATAL: The 'private_key' field is missing from your decoded service account JSON. The Base64 string may be corrupted or from an invalid file.");
     }
     
     const newApp = admin.initializeApp({
@@ -79,7 +64,6 @@ export function getFirebaseAdmin() {
 
   } catch (error: any) {
     console.error("CRITICAL: Firebase Admin SDK initialization failed.", error);
-    // Return the error object so the caller knows initialization failed.
     return { auth: null, firestore: null, error };
   }
 }
