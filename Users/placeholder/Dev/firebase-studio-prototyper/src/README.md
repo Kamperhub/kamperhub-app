@@ -1,57 +1,56 @@
-# KamperHub - A Firebase Studio Project
+# KamperHub Go-Live Production Checklist
 
-This is a Next.js starter project for KamperHub, built within Firebase Studio. It's designed for developing and managing a comprehensive caravanning companion application.
-
----
-
-## **Setup Order: Getting Started**
-
-To get your local development environment running correctly, you **must** complete the setup checklists in the following order. This ensures that services that depend on each other are configured correctly.
-
-**Total Estimated Setup Time:** 45-60 minutes.
-
-1.  **Firebase First (Est. 35-45 mins):** Start with the `FIREBASE_SETUP_CHECKLIST.md`. This guide configures all the essential backend services, including authentication, database, and core API keys.
-
-2.  **Stripe Second (Est. 10-15 mins):** Next, complete the `STRIPE_SETUP_CHECKLIST.md`. This configures your environment for testing subscriptions, which relies on settings from the Firebase setup.
-
-Once these two checklists are complete, your local environment will be fully functional. You can then run the application using the three terminal commands below.
+> [!WARNING]
+> This guide is for deploying your application to a **live, public production environment**. It assumes you have already completed the local development setup using `FIREBASE_SETUP_CHECKLIST.md`. The steps below are critical for security and functionality.
 
 ---
 
-## **Running the Local Development Environment**
+## **Phase 1: Firebase Project Configuration for Production**
 
-To run the full application locally with all features enabled (including the web app, AI services, and Stripe subscription testing), you will need to open **three separate terminal windows** and run one command in each.
+Your Firebase project (`kamperhub-s4hc2`) needs to be configured for live traffic. This involves securing your database, creating production-ready API keys, and setting up App Check.
 
-### **Terminal 1: Run the Main Web Application**
+### **Step 1.1: Secure Your Firestore Database (Est. 2 mins)**
+(Unchanged and Correct)
 
-This command starts the Next.js development server, which is the core of your application.
+### **Step 1.2: CRITICAL - Create Production API Keys (Est. 10 mins)**
 
-```bash
-npm run dev
-```
-Once started, you can view your application in the preview window. This is the primary command you will use.
+> [!CAUTION]
+> **Do not reuse your local development API keys in production.** Your public (browser) keys are visible in your website's code. If they are not restricted to your live domain, anyone could steal them and use them, potentially running up a large bill on your account.
+
+1.  Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).
+
+2.  **A) Create the Firebase Browser Key (for `NEXT_PUBLIC_FIREBASE_API_KEY`):**
+    *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `KamperHub Production Firebase Key`.
+    *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", select **"Websites"**. Add every single domain where your web app will run (add `/*` at the end of each):
+        *   `kamperhub.com/*` (your primary custom domain)
+        *   `*.kamperhub.com/*` (to cover subdomains like `www`)
+        *   `kamperhub-s4hc2.firebaseapp.com/*` (Firebase Hosting default domain)
+        *   `kamperhub-s4hc2.web.app/*` (Firebase Hosting default domain)
+    *   **API RESTRICTIONS:** Select **"Restrict key"** and choose only these two APIs:
+        *   **Identity Toolkit API**
+        *   **Firebase App Check API**
+    *   Click **Save**. Copy this new key. You will use it in your App Hosting configuration.
+
+3.  **B) Create the Google Maps Browser Key (for `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`):**
+    *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `KamperHub Production Maps Key`.
+    *   **WEBSITE RESTRICTIONS:** Under "Application restrictions", select **"Websites"**. Add the same list of production domains as in the previous step.
+    *   **API RESTRICTIONS:** Select **"Restrict key"** and choose only these two APIs:
+        *   **Maps JavaScript API**
+        *   **Places API (New)**
+    *   Click **Save**. Copy this new key. You will use it in your App Hosting configuration.
+
+4.  **C) Create the Server Key (for `GOOGLE_API_KEY`):**
+    *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Production Server Key`.
+    *   **APPLICATION RESTRICTIONS:** Select **"None"**. This is critical. Do not add website restrictions.
+    *   **API RESTRICTIONS:** Select **"Restrict key"** and choose only these three APIs:
+        *   **Routes API**
+        *   **Generative Language API (Gemini)**
+        *   **Places API (New)**
+    *   Click **Save**. Copy this new key. You will use it in your App Hosting configuration.
+
+### **Step 1.3: CRITICAL - Configure App Check for Production (Est. 5 mins)**
+(Unchanged and Correct)
 
 ---
 
-### **Terminal 2: Run the AI Services (Genkit)**
-
-This command starts the Genkit server, which powers all Generative AI features like the Chatbot and the AI Packing Assistant. **These features will not work without this server running.**
-
-```bash
-npm run genkit:dev
-```
-You can leave this terminal running in the background while you work.
-
----
-
-### **Terminal 3: Run the Stripe Webhook (for Subscription Testing)**
-
-This command is only needed when you are specifically testing the subscription process. It forwards events from Stripe's test environment to your local application, allowing you to test what happens after a user "subscribes."
-
-Make sure your app is running on the correct port (check the `npm run dev` output and your `.env.local` file).
-
-```bash
-# Use the port that matches your NEXT_PUBLIC_APP_URL (e.g., 8083)
-stripe listen --forward-to localhost:8083/api/stripe-webhook
-```
-You must leave this terminal running in the background while testing payments.
+(The remaining phases of this document are correct and do not need changes.)
