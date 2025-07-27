@@ -45,15 +45,12 @@ export default function LoginPage() {
   const currentReferer = typeof window !== 'undefined' ? window.location.origin : '';
 
   useEffect(() => {
-    // This effect handles the redirection for already logged-in users.
-    // It now waits for the profile to be successfully loaded as well.
     if (authStatus === 'AUTHENTICATED' && profileStatus === 'SUCCESS') {
       router.push('/dashboard');
     }
   }, [authStatus, profileStatus, router]);
   
   useEffect(() => {
-    // Proactively check for global Firebase init error on mount.
     if (firebaseInitializationError) {
       setLoginError(firebaseInitializationError);
     }
@@ -82,14 +79,12 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, trimmedEmail, password);
-      // Let the useEffect handle the redirect
     } catch (error: any) {
       const authError = error as AuthError;
       let errorMessage = 'An unexpected error occurred during login. Please try again.';
 
       if (authError.code === 'auth/requests-from-referer-are-blocked') {
         setBlockedReferer(currentReferer);
-        // We don't need a toast here because a permanent alert will be shown.
         errorMessage = `The current application URL (${currentReferer}) is not authorized to use the API key.`;
       } else if (authError.code) {
         switch (authError.code) {
@@ -117,7 +112,6 @@ export default function LoginPage() {
         errorMessage = authError.message;
       }
       
-      // Only show a generic toast if it's not one of the specific configuration errors we are handling with an Alert.
       if(!blockedReferer && !loginError) {
         toast({ title: 'Login Failed', description: errorMessage, variant: 'destructive' });
       }
@@ -155,7 +149,6 @@ export default function LoginPage() {
     }
   };
 
-  // Show the loading screen if the user is authenticated but we're waiting for the profile to load before redirecting.
   if (authStatus === 'AUTHENTICATED' && profileStatus !== 'SUCCESS') {
     return (
         <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
@@ -167,7 +160,6 @@ export default function LoginPage() {
     );
   }
 
-  // For LOADING or UNAUTHENTICATED status, render the form immediately.
   return (
     <div className="flex justify-center items-start pt-10 min-h-screen">
       <Card className="w-full max-w-md shadow-xl">

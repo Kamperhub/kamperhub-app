@@ -15,7 +15,7 @@ interface AuthContextType {
   user: FirebaseUser | null;
   userProfile: UserProfile | null;
   authStatus: AuthStatus;
-  profileStatus: ProfileStatus;
+  profileStatus: ProfileStatus; 
   profileError: string | null;
   isAuthLoading: boolean;
 }
