@@ -59,18 +59,20 @@ export default function LandingPage() {
               {featuresToDisplay.map((feature) => {
                 const Icon = feature.icon;
                 return (
-                  <Card key={feature.label} className="text-center shadow-lg hover:shadow-xl transition-shadow">
-                    <CardHeader>
-                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
-                        <Icon className="h-6 w-6" />
-                      </div>
-                      <CardTitle className="font-headline text-xl">{feature.label}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground">{feature.description}</p>
-                    </CardContent>
-                  </Card>
-                );
+                <Card key={feature.label} className="text-center shadow-lg hover:shadow-xl transition-shadow">
+                  <CardHeader>
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <CardTitle className="font-headline text-xl flex items-center justify-center">
+                      {feature.label}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">{feature.description}</p>
+                  </CardContent>
+                </Card>
+              );
               })}
             </div>
           </div>
