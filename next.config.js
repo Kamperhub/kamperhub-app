@@ -1,9 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ===>>> allowedDevOrigins now uses the precise URL <<<===
-  allowedDevOrigins: [
-    'https://3000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev', // Use the exact URL from your terminal output
-  ],
+  // allowedDevOrigins moved from here (root level)
+
+  devIndicators: {
+    allowedDevOrigins: [
+      'https://3000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev', // The exact URL
+    ],
+  },
 
   env: {
     NEXT_PUBLIC_BUILD_TIMESTAMP: new Date().toISOString(),

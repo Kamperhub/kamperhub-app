@@ -47,6 +47,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     const redirectedFrom = searchParams.get('redirectedFrom');
+    // Only redirect when both authentication is complete AND the user profile is loaded.
     if (authStatus === 'AUTHENTICATED' && profileStatus === 'SUCCESS') {
       const targetUrl = redirectedFrom ? decodeURIComponent(redirectedFrom) : '/dashboard';
       router.push(targetUrl);
@@ -78,7 +79,7 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, trimmedEmail, password);
-      // The useEffect hook will now handle the redirect once profile is loaded.
+      // The useEffect hook will now handle the redirect once the profile is loaded.
     } catch (error: any) {
       const authError = error as AuthError;
       let errorMessage = 'An unexpected error occurred during login. Please try again.';
