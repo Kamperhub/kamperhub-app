@@ -14,6 +14,9 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb', // Increase body size limit for potential large payloads
     },
+    allowedDevOrigins: [
+      '*.cloudworkstations.dev', // Add this to resolve the cross-origin request warning
+    ],
   },
   webpack: (config, { dev, isServer }) => {
     // Enable WebAssembly experiments to support all package features.
