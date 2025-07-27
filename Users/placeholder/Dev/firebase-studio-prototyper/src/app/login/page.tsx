@@ -35,7 +35,7 @@ export default function LoginPage() {
   const [blockedReferer, setBlockedReferer] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
-  const { user, authStatus } = useAuth();
+  const { user, authStatus, profileStatus } = useAuth();
   const navContext = useContext(NavigationContext);
 
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
@@ -46,10 +46,11 @@ export default function LoginPage() {
 
   useEffect(() => {
     // This effect handles the redirection for already logged-in users.
-    if (authStatus === 'AUTHENTICATED' && user) {
+    // It now waits for the profile to be successfully loaded as well.
+    if (authStatus === 'AUTHENTICATED' && profileStatus === 'SUCCESS') {
       router.push('/dashboard');
     }
-  }, [user, authStatus, router]);
+  }, [authStatus, profileStatus, router]);
   
   useEffect(() => {
     // Proactively check for global Firebase init error on mount.
@@ -154,13 +155,13 @@ export default function LoginPage() {
     }
   };
 
-  // Only show the full-page loader if an authenticated user is found and we are redirecting.
-  if (authStatus === 'AUTHENTICATED') {
+  // Show the loading screen if the user is authenticated but we're waiting for the profile to load before redirecting.
+  if (authStatus === 'AUTHENTICATED' && profileStatus !== 'SUCCESS') {
     return (
         <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
             <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
             <p className="font-body text-muted-foreground">
-              Session found. Redirecting to dashboard...
+              Session found. Verifying profile and redirecting...
             </p>
         </div>
     );

@@ -105,25 +105,18 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
   const router = useRouter();
 
   useEffect(() => {
-    // Only redirect when the auth status is definitively unauthenticated.
-    // This prevents redirects while the initial check is still loading.
     if (authStatus === 'UNAUTHENTICATED') {
       router.push('/login');
     }
   }, [authStatus, router]);
 
-  if (authStatus === 'LOADING') {
-    return <LoadingScreen message="Initializing Session..." />;
+  // Combined loading check: show loading screen if auth is loading OR if user is authed but profile isn't ready.
+  if (authStatus === 'LOADING' || (authStatus === 'AUTHENTICATED' && profileStatus === 'LOADING')) {
+    return <LoadingScreen message={authStatus === 'LOADING' ? 'Initializing Session...' : 'Loading Your Profile...'} />;
   }
   
   if (profileStatus === 'ERROR') {
     return <ErrorScreen error={profileError} />;
-  }
-
-  // Show a loading screen while the profile is being fetched in the background,
-  // even though the user is authenticated. This prevents flashing of incomplete data.
-  if (authStatus === 'AUTHENTICATED' && profileStatus === 'LOADING') {
-    return <LoadingScreen message="Loading Your Profile..." />;
   }
   
   if (authStatus === 'AUTHENTICATED' && profileStatus === 'SUCCESS') {
