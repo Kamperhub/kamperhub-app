@@ -4,14 +4,16 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_BUILD_TIMESTAMP: new Date().toISOString(),
   },
+  devIndicators: {
+    allowedDevOrigins: [
+      '*.cloudworkstations.dev', // Add this to resolve the cross-origin request warning
+    ],
+  },
   experimental: {
     instrumentationHook: false, // This disables Next.js's default OpenTelemetry instrumentation
     serverActions: {
       bodySizeLimit: '2mb', // Increase body size limit for potential large payloads
     },
-    allowedDevOrigins: [
-      '*.cloudworkstations.dev', // Add this to resolve the cross-origin request warning
-    ],
   },
   webpack: (config, { dev, isServer }) => {
     // Enable WebAssembly experiments to support all package features.
