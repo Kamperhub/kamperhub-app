@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
@@ -14,7 +15,7 @@ interface AuthContextType {
   user: FirebaseUser | null;
   userProfile: UserProfile | null;
   authStatus: AuthStatus;
-  profileStatus: ProfileStatus; // New state for profile fetching
+  profileStatus: ProfileStatus;
   profileError: string | null;
   isAuthLoading: boolean;
 }
@@ -25,7 +26,7 @@ function getDocWithTimeout(docRef: DocumentReference, timeout: number): Promise<
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`Firestore request timed out after ${timeout}ms. This usually means a problem connecting to the database. Please check your internet connection and ensure the database name in your configuration ('kamperhubv2') is correct in the Firebase Console.`));
-    }, timeout);
+    }, 7000);
 
     getDoc(docRef).then(
       (snapshot) => {
@@ -44,7 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [authStatus, setAuthStatus] = useState<AuthStatus>('LOADING');
-  const [profileStatus, setProfileStatus] = useState<ProfileStatus>('LOADING'); // New state
+  const [profileStatus, setProfileStatus] = useState<ProfileStatus>('LOADING');
   const [profileError, setProfileError] = useState<string | null>(null);
   const { setSubscriptionDetails } = useSubscription();
   
@@ -59,10 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(currentUser);
       
       if (currentUser) {
-        // AUTHENTICATION is successful immediately.
         setAuthStatus('AUTHENTICATED');
-        
-        // Now, fetch profile data in the background.
         setProfileStatus('LOADING');
         setProfileError(null);
         try {
@@ -79,6 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               );
               setProfileStatus('SUCCESS');
           } else {
+             console.warn(`User document for ${currentUser.uid} not found. This might be a new user. A default profile will be used.`);
              const minimalProfile: UserProfile = {
                 uid: currentUser.uid, email: currentUser.email, displayName: currentUser.displayName,
                 firstName: null, lastName: null, city: null, state: null, country: null,
@@ -86,8 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
              };
              setUserProfile(minimalProfile);
              setSubscriptionDetails('free', null, null);
-             setProfileStatus('SUCCESS'); // Still a success, just with a default profile.
-             console.warn(`User document for ${currentUser.uid} not found. Using a minimal profile.`);
+             setProfileStatus('SUCCESS');
           }
         } catch (error: any) {
           let errorMsg = `Failed to load user profile. Error: ${error.message}`;
@@ -97,11 +95,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUserProfile(null);
           setSubscriptionDetails('free');
           setProfileError(errorMsg);
-          setProfileStatus('ERROR'); // Set profile status to ERROR
-          // Do not change authStatus here, user is still authenticated.
+          setProfileStatus('ERROR');
         }
       } else {
-        // No user, so reset everything.
         setUserProfile(null);
         setSubscriptionDetails('free');
         setAuthStatus('UNAUTHENTICATED');
@@ -116,8 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribeAuth();
   }, [setSubscriptionDetails]);
   
-  // The main auth loading state is now simpler.
-  const isAuthLoading = authStatus === 'LOADING';
+  const isAuthLoading = authStatus === 'LOADING' || (authStatus === 'AUTHENTICATED' && profileStatus === 'LOADING');
 
   const value = { user, userProfile, authStatus, profileStatus, profileError, isAuthLoading };
 

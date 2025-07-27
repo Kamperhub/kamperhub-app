@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useContext } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,8 +34,9 @@ export default function LoginPage() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [blockedReferer, setBlockedReferer] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { user, authStatus, profileStatus } = useAuth();
+  const { authStatus, profileStatus } = useAuth();
   const navContext = useContext(NavigationContext);
 
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
@@ -45,15 +46,14 @@ export default function LoginPage() {
   const currentReferer = typeof window !== 'undefined' ? window.location.origin : '';
 
   useEffect(() => {
-    // This effect handles the redirection for already logged-in users.
-    // It now waits for the profile to be successfully loaded as well.
+    const redirectedFrom = searchParams.get('redirectedFrom');
     if (authStatus === 'AUTHENTICATED' && profileStatus === 'SUCCESS') {
-      router.push('/dashboard');
+      const targetUrl = redirectedFrom ? decodeURIComponent(redirectedFrom) : '/dashboard';
+      router.push(targetUrl);
     }
-  }, [authStatus, profileStatus, router]);
+  }, [authStatus, profileStatus, router, searchParams]);
   
   useEffect(() => {
-    // Proactively check for global Firebase init error on mount.
     if (firebaseInitializationError) {
       setLoginError(firebaseInitializationError);
     }
@@ -69,12 +69,8 @@ export default function LoginPage() {
     setBlockedReferer(null);
     const trimmedEmail = email.trim();
 
-    if (!trimmedEmail) {
-      toast({ title: 'Validation Error', description: 'Email cannot be empty.', variant: 'destructive' });
-      return;
-    }
-    if (!password) {
-      toast({ title: 'Validation Error', description: 'Password cannot be empty.', variant: 'destructive' });
+    if (!trimmedEmail || !password) {
+      toast({ title: 'Validation Error', description: 'Email and password cannot be empty.', variant: 'destructive' });
       return;
     }
 
@@ -82,15 +78,14 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, trimmedEmail, password);
-      // Let the useEffect handle the redirect
+      // The useEffect hook will now handle the redirect once profile is loaded.
     } catch (error: any) {
       const authError = error as AuthError;
       let errorMessage = 'An unexpected error occurred during login. Please try again.';
 
       if (authError.code === 'auth/requests-from-referer-are-blocked') {
         setBlockedReferer(currentReferer);
-        // We don't need a toast here because a permanent alert will be shown.
-        errorMessage = `The current application URL (${currentReferer}) is not authorized to use the API key.`;
+        errorMessage = `The current application URL (${currentReferer}) is not authorized.`;
       } else if (authError.code) {
         switch (authError.code) {
           case 'auth/invalid-email':
@@ -117,7 +112,6 @@ export default function LoginPage() {
         errorMessage = authError.message;
       }
       
-      // Only show a generic toast if it's not one of the specific configuration errors we are handling with an Alert.
       if(!blockedReferer && !loginError) {
         toast({ title: 'Login Failed', description: errorMessage, variant: 'destructive' });
       }
@@ -149,13 +143,11 @@ export default function LoginPage() {
         toastMessage = 'The email address is not valid.';
       }
       toast({ title: 'Password Reset Error', description: toastMessage, variant: 'destructive' });
-      console.error("Firebase Password Reset Error:", error);
     } finally {
       setIsResettingPassword(false);
     }
   };
 
-  // Show the loading screen if the user is authenticated but we're waiting for the profile to load before redirecting.
   if (authStatus === 'AUTHENTICATED' && profileStatus !== 'SUCCESS') {
     return (
         <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
@@ -167,7 +159,6 @@ export default function LoginPage() {
     );
   }
 
-  // For LOADING or UNAUTHENTICATED status, render the form immediately.
   return (
     <div className="flex justify-center items-start pt-10 min-h-screen">
       <Card className="w-full max-w-md shadow-xl">
@@ -201,7 +192,7 @@ export default function LoginPage() {
                           <li>Click the "Open Google Cloud" button to go to the credentials page.</li>
                           <li>Click on the name of your API Key (the one you use for `NEXT_PUBLIC_FIREBASE_API_KEY`).</li>
                            <li>Under "Website restrictions," click **ADD** and paste the URL you copied.</li>
-                           <li>For best results, use a wildcard format. For example, if you copy `https://1234.cloudworkstations.dev`, you should add `*.cloudworkstations.dev` to the list.</li>
+                           <li>For best results, use a wildcard format. For example, if you copy `https://1234.cloudworkstations.dev`, you should add `*.cloudworkstations.dev/*` to the list.</li>
                           <li>Save the key and refresh this page.</li>
                       </ol>
                        <div className="flex items-center gap-2 mt-2">
