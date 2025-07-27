@@ -15,14 +15,6 @@ const nextConfig = {
       bodySizeLimit: '2mb', // Increase body size limit for potential large payloads
     },
   },
-  // This is the critical addition to trust proxy headers in the dev environment.
-  // It has been moved to the correct top-level location.
-  trustedProxies: [
-    '127.0.0.1',
-    '::1',
-    'localhost', // Standard loopback
-    '::ffff:127.0.0.1', // For IPv6-mapped IPv4 - THIS IS THE CRITICAL FIX
-  ],
   webpack: (config, { dev, isServer }) => {
     // Enable WebAssembly experiments to support all package features.
     config.experiments = { ...config.experiments, asyncWebAssembly: true };
