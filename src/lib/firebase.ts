@@ -4,8 +4,9 @@ import { getAuth, type Auth, browserSessionPersistence, setPersistence } from 'f
 import { getFirestore, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from '@firebase/app-check';
 
+// This configuration now correctly uses its own dedicated API key for Firebase services.
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY, // CORRECT: Use the dedicated Firebase API key
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
@@ -14,6 +15,8 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
+
+// Initialize Firebase
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
@@ -33,6 +36,7 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig as FirebaseOptions);
     auth = getAuth(app);
     
+    // Set session persistence to avoid unexpected Passkey/WebAuthn prompts and fix redirect loops
     setPersistence(auth, browserSessionPersistence);
 
     db = getFirestore(app, 'kamperhubv2');
@@ -62,13 +66,23 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   }
 }
 
+/**
+ * Initializes Firebase App Check on the client side.
+ * This function is designed to be called from a useEffect hook in a top-level component
+ * to ensure the DOM is ready, preventing reCAPTCHA placeholder errors.
+ * It prioritizes the debug token for local development.
+ */
 export function initializeFirebaseAppCheck() {
   if (typeof window !== 'undefined' && app?.name && !appCheck) {
+    // For local development, prioritize the debug token if it exists.
     if (process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN) {
       console.log('[Firebase Client] App Check: Using debug token for local development.');
+      // Make the debug token available globally for Firebase to pick up.
       (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN;
     }
 
+    // Initialize with reCAPTCHA Enterprise provider if the key is available.
+    // The SDK will automatically use the debug token if window.FIREBASE_APPCHECK_DEBUG_TOKEN is set.
     if (process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY) {
       try {
         appCheck = initializeAppCheck(app, {

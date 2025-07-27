@@ -26,7 +26,7 @@ function getDocWithTimeout(docRef: DocumentReference, timeout: number): Promise<
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`Firestore request timed out after ${timeout}ms. This usually means a problem connecting to the database. Please check your internet connection and ensure the database name in your configuration ('kamperhubv2') is correct in the Firebase Console.`));
-    }, 7000);
+    }, timeout);
 
     getDoc(docRef).then(
       (snapshot) => {
@@ -77,14 +77,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               );
               setProfileStatus('SUCCESS');
           } else {
-             console.warn(`User document for ${currentUser.uid} not found. This might be a new user. A default profile will be used.`);
+             // Handle new user: Profile doesn't exist, so create it.
+             console.warn(`User document for ${currentUser.uid} not found. Creating a new default profile.`);
+             const trialEndDate = new Date();
+             trialEndDate.setDate(trialEndDate.getDate() + 7);
+
              const minimalProfile: UserProfile = {
                 uid: currentUser.uid, email: currentUser.email, displayName: currentUser.displayName,
                 firstName: null, lastName: null, city: null, state: null, country: null,
-                subscriptionTier: 'free', stripeCustomerId: null, createdAt: new Date().toISOString(),
+                subscriptionTier: 'trialing', stripeCustomerId: null, createdAt: new Date().toISOString(),
+                trialEndsAt: trialEndDate.toISOString(),
              };
+             // Attempt to create the document
+             await setDoc(profileDocRef, minimalProfile);
              setUserProfile(minimalProfile);
-             setSubscriptionDetails('free', null, null);
+             setSubscriptionDetails('trialing', null, trialEndDate.toISOString());
              setProfileStatus('SUCCESS');
           }
         } catch (error: any) {

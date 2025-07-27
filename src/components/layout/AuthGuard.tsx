@@ -109,7 +109,12 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
   useEffect(() => {
     if (authStatus === 'UNAUTHENTICATED') {
       const currentPath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-      router.push(`/login?redirectedFrom=${encodeURIComponent(currentPath)}`);
+      // Prevent redirecting to login from the login page itself or base path if it's public
+      if (pathname !== '/login' && pathname !== '/') {
+        router.push(`/login?redirectedFrom=${encodeURIComponent(currentPath)}`);
+      } else {
+        router.push('/login');
+      }
     }
   }, [authStatus, router, pathname, searchParams]);
 
@@ -125,5 +130,6 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     return <>{children}</>;
   }
   
+  // This will catch the UNAUTHENTICATED state while the useEffect redirect is firing
   return <LoadingScreen message="Redirecting..." />;
 };
