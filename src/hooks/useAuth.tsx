@@ -117,8 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribeAuth();
   }, [setSubscriptionDetails]);
   
-  // The main auth loading state is now simpler.
-  const isAuthLoading = authStatus === 'LOADING';
+  const isAuthLoading = authStatus === 'LOADING' || (authStatus === 'AUTHENTICATED' && profileStatus === 'LOADING');
 
   const value = { user, userProfile, authStatus, profileStatus, profileError, isAuthLoading };
 

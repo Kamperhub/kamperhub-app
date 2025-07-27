@@ -155,7 +155,7 @@ export default function LoginPage() {
     }
   };
 
-  // Show the loading screen if the user is authenticated but we're waiting for the profile to load before redirecting.
+  // Show a loading screen if the user is authenticated but we're waiting for the profile to load before redirecting.
   if (authStatus === 'AUTHENTICATED' && profileStatus !== 'SUCCESS') {
     return (
         <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
