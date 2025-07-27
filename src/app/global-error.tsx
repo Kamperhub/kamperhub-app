@@ -2,6 +2,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { AlertTriangle, RotateCw } from 'lucide-react'
 
 export default function GlobalError({
   error,
@@ -26,6 +27,8 @@ export default function GlobalError({
           body { font-family: 'Alegreya', serif; background-color: #FAF8F1; color: #0a0a0a; margin: 0; }
           .container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 1rem; }
           .card { max-width: 42rem; width: 100%; background-color: #FAF8F1; border: 1px solid #BC4749; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+          .header { display: flex; flex-direction: column; align-items: center; }
+          .icon-container { display: flex; align-items: center; justify-content: center; height: 4rem; width: 4rem; border-radius: 9999px; background-color: rgba(188, 71, 73, 0.1); margin-bottom: 1rem; }
           h1 { font-family: 'Belleza', sans-serif; font-size: 1.5rem; line-height: 2rem; color: #BC4749; }
           .content { margin-top: 1rem; }
           p { color: #525252; }
@@ -37,7 +40,12 @@ export default function GlobalError({
       <body>
         <div className="container">
           <div className="card">
-            <h1>Application Error</h1>
+            <header className="header">
+              <div className="icon-container">
+                <AlertTriangle style={{ height: '2.5rem', width: '2.5rem', color: '#BC4749' }} />
+              </div>
+              <h1>Application Error</h1>
+            </header>
             <div className="content">
               <p>An unrecoverable error occurred, and the application could not be loaded. This is often caused by a configuration issue or a problem connecting to essential services.</p>
               <pre>Error: {error.message || 'An unknown error occurred.'}</pre>
@@ -45,6 +53,7 @@ export default function GlobalError({
                 Please try again. If the issue persists, you may need to check the application logs or contact support.
               </p>
               <button onClick={() => reset()}>
+                <RotateCw style={{ marginRight: '0.5rem', height: '1rem', width: '1rem' }} />
                 Try to Reload
               </button>
             </div>

@@ -2,38 +2,49 @@
 'use client';
 
 import Link from 'next/link';
+import { Compass, Home } from 'lucide-react';
 
 export default function NotFound() {
   return (
-    <html lang="en">
+    <div style={{ fontFamily: "'Alegreya', serif", backgroundColor: '#FAF8F1', color: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 200px)', textAlign: 'center', padding: '1rem' }}>
       <head>
-        <title>404 - Page Not Found</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Belleza&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
-        <style>{`
-          body { font-family: 'Alegreya', serif; background-color: #FAF8F1; color: #0a0a0a; margin: 0; }
-          .container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 1rem; }
-          h1 { font-family: 'Belleza', sans-serif; font-size: 1.875rem; line-height: 2.25rem; color: #386641; margin-bottom: 1rem; }
-          p { color: #525252; margin-bottom: 2rem; }
-          a { display: inline-block; padding: 0.75rem 1.5rem; background-color: #386641; color: white; text-decoration: none; border-radius: 0.375rem; }
-          a:hover { background-color: #2c5133; }
-        `}</style>
       </head>
-      <body>
-        <div className="container">
-          <div>
-            <h1 className="font-headline text-3xl text-primary">404 - Page Not Found</h1>
-            <p className="font-body text-lg text-muted-foreground">
-              Oops! The page you are looking for does not exist. It might have been moved or deleted.
-            </p>
-            <Link href="/" className="font-body">
-              Go back to Dashboard
+      <div style={{ maxWidth: '42rem', width: '100%' }}>
+        <Compass style={{ height: '5rem', width: '5rem', color: '#BC4749', margin: '0 auto 1rem' }} />
+        <h1 style={{ fontFamily: "'Belleza', sans-serif", fontSize: '3.75rem', lineHeight: 1, color: '#BC4749' }}>
+          404
+        </h1>
+        <h2 style={{ fontFamily: "'Belleza', sans-serif", fontSize: '1.5rem', lineHeight: '2rem', color: '#386641', marginTop: '0.5rem' }}>
+          Page Not Found
+        </h2>
+        <p style={{ color: '#525252', marginTop: '1.5rem' }}>
+          Oops! It seems you've taken a wrong turn. The page you're looking for doesn't exist or has been moved.
+        </p>
+        <div style={{ marginTop: '2rem' }}>
+            <Link href="/" passHref style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                whiteSpace: 'nowrap',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+                lineHeight: '1.25rem',
+                fontWeight: '500',
+                padding: '0.5rem 1rem',
+                backgroundColor: '#386641',
+                color: '#F7F8F8',
+                textDecoration: 'none',
+                transition: 'background-color 0.2s',
+            }}>
+                <Home style={{ marginRight: '0.5rem', height: '1.25rem', width: '1.25rem' }} />
+                Return to Dashboard
             </Link>
-          </div>
         </div>
-      </body>
-    </html>
-  );
+      </div>
+    </div>
+  )
 }

@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ===>>> allowedDevOrigins is now here, at the top level <<<===
+  // ===>>> allowedDevOrigins now uses the precise URL <<<===
   allowedDevOrigins: [
-    '*.cloudworkstations.dev', // Allow any subdomain from cloudworkstations.dev
+    'https://3000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev', // Use the exact URL from your terminal output
   ],
 
   env: {
@@ -13,7 +13,7 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb', // Increase body size limit for potential large payloads
     },
-    // ===>>> allowedDevOrigins has been REMOVED from this block <<<===
+    // allowedDevOrigins remains REMOVED from this block
   },
   webpack: (config, { dev, isServer }) => {
     // Enable WebAssembly experiments to support all package features.
