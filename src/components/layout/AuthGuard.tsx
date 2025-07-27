@@ -110,6 +110,7 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     }
   }, [authStatus, router]);
 
+  // Combined loading check: show loading screen if auth is loading OR if user is authed but profile isn't ready.
   if (authStatus === 'LOADING' || (authStatus === 'AUTHENTICATED' && profileStatus === 'LOADING')) {
     return <LoadingScreen message={authStatus === 'LOADING' ? 'Initializing Session...' : 'Loading Your Profile...'} />;
   }

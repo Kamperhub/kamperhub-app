@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, type DocumentReference, type DocumentSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, type DocumentReference, type DocumentSnapshot } from 'firebase/firestore';
 import { auth, db, firebaseInitializationError } from '@/lib/firebase';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from './useSubscription';
@@ -77,15 +77,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               );
               setProfileStatus('SUCCESS');
           } else {
+             // Gracefully handle new sign-ups: Profile doesn't exist, so create it.
+             console.warn(`User document for ${currentUser.uid} not found. Creating a minimal profile.`);
              const minimalProfile: UserProfile = {
                 uid: currentUser.uid, email: currentUser.email, displayName: currentUser.displayName,
                 firstName: null, lastName: null, city: null, state: null, country: null,
                 subscriptionTier: 'free', stripeCustomerId: null, createdAt: new Date().toISOString(),
              };
+             // Attempt to write the new profile to Firestore.
+             await setDoc(profileDocRef, minimalProfile);
              setUserProfile(minimalProfile);
              setSubscriptionDetails('free', null, null);
-             setProfileStatus('SUCCESS'); // Still a success, just with a default profile.
-             console.warn(`User document for ${currentUser.uid} not found. Using a minimal profile.`);
+             setProfileStatus('SUCCESS');
           }
         } catch (error: any) {
           let errorMsg = `Failed to load user profile. Error: ${error.message}`;
@@ -98,6 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfileStatus('ERROR');
         }
       } else {
+        // No user, so reset everything.
         setUserProfile(null);
         setSubscriptionDetails('free');
         setAuthStatus('UNAUTHENTICATED');
