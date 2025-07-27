@@ -2,7 +2,6 @@
 'use client'
 
 import { useEffect } from 'react'
-import { AlertTriangle, RotateCw } from 'lucide-react'
 
 export default function GlobalError({
   error,
@@ -23,31 +22,29 @@ export default function GlobalError({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Belleza&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet" />
+        <style>{`
+          body { font-family: 'Alegreya', serif; background-color: #FAF8F1; color: #0a0a0a; margin: 0; }
+          .container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 1rem; }
+          .card { max-width: 42rem; width: 100%; background-color: #FAF8F1; border: 1px solid #BC4749; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+          h1 { font-family: 'Belleza', sans-serif; font-size: 1.5rem; line-height: 2rem; color: #BC4749; }
+          .content { margin-top: 1rem; }
+          p { color: #525252; }
+          pre { margin-top: 0.5rem; font-size: 0.75rem; line-height: 1rem; background-color: rgba(188, 71, 73, 0.1); padding: 0.75rem; border-radius: 0.375rem; font-family: monospace; white-space: pre-wrap; text-align: left; border: 1px solid rgba(188, 71, 73, 0.2); color: #BC4749; }
+          button { display: inline-flex; align-items: center; justify-content: center; border-radius: 0.375rem; font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; padding: 0.5rem 1rem; margin-top: 1rem; cursor: pointer; border: 1px solid #BC4749; background-color: #BC4749; color: white; }
+          button:hover { background-color: rgba(188, 71, 73, 0.9); }
+        `}</style>
       </head>
-      <body className="font-body antialiased">
-        <div className="flex flex-col items-center justify-center min-h-screen text-center p-4 bg-background text-foreground">
-          <div className="w-full max-w-lg shadow-xl border border-destructive rounded-lg bg-card p-6">
-            <header className="flex flex-col items-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10 mb-4">
-                <AlertTriangle className="h-10 w-10 text-destructive" />
-              </div>
-              <h1 className="font-headline text-2xl text-destructive">
-                Application Error
-              </h1>
-            </header>
-            <div className="mt-4 space-y-4">
-              <p className="font-body text-muted-foreground">
-                An unrecoverable error occurred, and the application could not be loaded. This is often caused by a configuration issue or a problem connecting to essential services.
-              </p>
-              <pre className="mt-2 text-xs bg-destructive/10 p-3 rounded-md font-mono whitespace-pre-wrap text-left border border-destructive/20 text-destructive-foreground">
-                Error: {error.message || 'An unknown error occurred.'}
-              </pre>
-              <p className="text-sm font-body text-muted-foreground">
+      <body>
+        <div className="container">
+          <div className="card">
+            <h1>Application Error</h1>
+            <div className="content">
+              <p>An unrecoverable error occurred, and the application could not be loaded. This is often caused by a configuration issue or a problem connecting to essential services.</p>
+              <pre>Error: {error.message || 'An unknown error occurred.'}</pre>
+              <p style={{ fontSize: '0.875rem', lineHeight: '1.25rem', marginTop: '1rem' }}>
                 Please try again. If the issue persists, you may need to check the application logs or contact support.
               </p>
-              <button onClick={() => reset()} className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 w-full sm:w-auto font-body bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                <RotateCw className="mr-2 h-4 w-4" />
+              <button onClick={() => reset()}>
                 Try to Reload
               </button>
             </div>

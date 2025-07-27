@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // ===>>> allowedDevOrigins is now here, at the top level <<<===
+  allowedDevOrigins: [
+    '*.cloudworkstations.dev', // Allow any subdomain from cloudworkstations.dev
+  ],
+
   env: {
     NEXT_PUBLIC_BUILD_TIMESTAMP: new Date().toISOString(),
   },
@@ -8,9 +13,7 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb', // Increase body size limit for potential large payloads
     },
-    allowedDevOrigins: [
-      '*.cloudworkstations.dev', // Add this to resolve the cross-origin request warning
-    ],
+    // ===>>> allowedDevOrigins has been REMOVED from this block <<<===
   },
   webpack: (config, { dev, isServer }) => {
     // Enable WebAssembly experiments to support all package features.

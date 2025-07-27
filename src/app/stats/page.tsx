@@ -1,5 +1,7 @@
 // This page is now a Server Component and does not use client-side hooks.
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import { BarChart3, Trophy, Route as RouteIcon, CalendarDays, CheckCircle, TrendingUp, Wallet, Fuel as FuelIcon, Banknote, Crown } from 'lucide-react';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import { getSession } from '@/lib/server-session';
@@ -23,23 +25,20 @@ interface TripStats {
   tripWithHighestSpend: { name: string; totalSpend: number } | null;
 }
 
-async function getStats(): Promise<TripStats> {
+async function getStats(): Promise<TripStats | { error: string }> {
   const session = await getSession();
   if (!session) {
-    return {
-      totalTrips: 0, totalKilometers: 0, totalDaysOnRoad: 0, completedTrips: 0,
-      averageDistancePerTrip: 0, averageDurationPerTrip: 0,
-      longestTripByDistance: null, longestTripByDuration: null,
-      totalExpenditure: 0, totalBudgeted: 0, totalFuelCost: 0, averageCostPerKm: 0, tripWithHighestSpend: null,
-    };
+    // Return a specific object to indicate an unauthenticated state gracefully.
+    return { error: "You must be logged in to view your statistics." };
   }
 
+  const uid = session.uid;
   const { firestore } = getFirebaseAdmin();
   if (!firestore) {
     throw new Error("Server configuration error: Firestore not available.");
   }
   
-  const tripsSnapshot = await firestore.collection('users').doc(session.uid).collection('trips').get();
+  const tripsSnapshot = await firestore.collection('users').doc(uid).collection('trips').get();
   const loggedTrips = tripsSnapshot.docs.map(doc => doc.data() as LoggedTrip);
   
   if (loggedTrips.length === 0) {
@@ -136,6 +135,20 @@ const StatCard = ({ title, value, icon: Icon, unit = '', description }: { title:
 export default async function StatsPage() {
   const stats = await getStats();
 
+  if ('error' in stats) {
+    return (
+        <div className="space-y-8 text-center">
+            <h1 className="text-3xl font-headline mb-6 text-primary flex items-center justify-center">
+                <BarChart3 className="mr-3 h-8 w-8" /> Travel Statistics
+            </h1>
+            <Alert variant="destructive">
+                <AlertTitle>Access Denied</AlertTitle>
+                <AlertDescription>{stats.error}</AlertDescription>
+            </Alert>
+        </div>
+    );
+  }
+
   if (stats.totalTrips === 0) {
     return (
       <div className="space-y-8 text-center">
@@ -149,9 +162,11 @@ export default async function StatsPage() {
             <p className="text-sm text-muted-foreground font-body mb-4">
               It looks like you haven't logged any trips. <br/>Start planning your adventures to see your stats here!
             </p>
-            <a href="/trip-expense-planner" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 font-body bg-accent text-accent-foreground hover:bg-accent/90">
-                <RouteIcon className="mr-2 h-4 w-4" /> Plan Your First Trip
-            </a>
+            <Button asChild>
+                <Link href="/trip-expense-planner">
+                    <RouteIcon className="mr-2 h-4 w-4" /> Plan Your First Trip
+                </Link>
+            </Button>
           </CardContent>
         </Card>
       </div>

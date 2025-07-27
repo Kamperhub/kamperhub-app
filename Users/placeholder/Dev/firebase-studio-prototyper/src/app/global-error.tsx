@@ -1,10 +1,8 @@
+
 'use client'
 
 import { useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertTriangle, RotateCw } from 'lucide-react'
-import './globals.css'
 
 export default function GlobalError({
   error,
@@ -25,35 +23,41 @@ export default function GlobalError({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Belleza&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet" />
+        <style>{`
+          body { font-family: 'Alegreya', serif; background-color: #FAF8F1; color: #0a0a0a; margin: 0; }
+          .container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 1rem; }
+          .card { max-width: 42rem; width: 100%; background-color: #FAF8F1; border: 1px solid #BC4749; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+          .header { display: flex; flex-direction: column; align-items: center; }
+          .icon-container { display: flex; align-items: center; justify-content: center; height: 4rem; width: 4rem; border-radius: 9999px; background-color: rgba(188, 71, 73, 0.1); margin-bottom: 1rem; }
+          h1 { font-family: 'Belleza', sans-serif; font-size: 1.5rem; line-height: 2rem; color: #BC4749; }
+          .content { margin-top: 1rem; }
+          p { color: #525252; }
+          pre { margin-top: 0.5rem; font-size: 0.75rem; line-height: 1rem; background-color: rgba(188, 71, 73, 0.1); padding: 0.75rem; border-radius: 0.375rem; font-family: monospace; white-space: pre-wrap; text-align: left; border: 1px solid rgba(188, 71, 73, 0.2); color: #BC4749; }
+          button { display: inline-flex; align-items: center; justify-content: center; border-radius: 0.375rem; font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; padding: 0.5rem 1rem; margin-top: 1rem; cursor: pointer; border: 1px solid #BC4749; background-color: #BC4749; color: white; }
+          button:hover { background-color: rgba(188, 71, 73, 0.9); }
+        `}</style>
       </head>
-      <body className="font-body antialiased">
-        <div className="flex flex-col items-center justify-center min-h-screen text-center p-4 bg-background">
-          <Card className="w-full max-w-lg shadow-xl border-destructive">
-            <CardHeader>
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10 mb-4">
-                <AlertTriangle className="h-10 w-10 text-destructive" />
+      <body>
+        <div className="container">
+          <div className="card">
+            <header className="header">
+              <div className="icon-container">
+                <AlertTriangle style={{ height: '2.5rem', width: '2.5rem', color: '#BC4749' }} />
               </div>
-              <CardTitle className="font-headline text-2xl text-destructive">
-                Application Error
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="font-body text-muted-foreground">
-                An unrecoverable error occurred, and the application could not be loaded. This is often caused by a configuration issue or a problem connecting to essential services.
-              </p>
-              <pre className="mt-2 text-xs bg-destructive/10 p-3 rounded-md font-mono whitespace-pre-wrap text-left border border-destructive/20">
-                Error: {error.message || 'An unknown error occurred.'}
-              </pre>
-              <p className="text-sm font-body text-muted-foreground">
+              <h1>Application Error</h1>
+            </header>
+            <div className="content">
+              <p>An unrecoverable error occurred, and the application could not be loaded. This is often caused by a configuration issue or a problem connecting to essential services.</p>
+              <pre>Error: {error.message || 'An unknown error occurred.'}</pre>
+              <p style={{ fontSize: '0.875rem', lineHeight: '1.25rem', marginTop: '1rem' }}>
                 Please try again. If the issue persists, you may need to check the application logs or contact support.
               </p>
-              <Button onClick={() => reset()} variant="destructive" className="w-full sm:w-auto font-body">
-                <RotateCw className="mr-2 h-4 w-4" />
+              <button onClick={() => reset()}>
+                <RotateCw style={{ marginRight: '0.5rem', height: '1rem', width: '1rem' }} />
                 Try to Reload
-              </Button>
-            </CardContent>
-          </Card>
+              </button>
+            </div>
+          </div>
         </div>
       </body>
     </html>
