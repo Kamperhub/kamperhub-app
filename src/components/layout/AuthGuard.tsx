@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -103,14 +103,16 @@ const ErrorScreen = ({ error }: { error: string | null }) => {
 export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { authStatus, profileStatus, profileError } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (authStatus === 'UNAUTHENTICATED') {
-      router.push('/login');
+      const currentPath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+      router.push(`/login?redirectedFrom=${encodeURIComponent(currentPath)}`);
     }
-  }, [authStatus, router]);
+  }, [authStatus, router, pathname, searchParams]);
 
-  // Combined loading check: show loading screen if auth is loading OR if user is authed but profile isn't ready.
   if (authStatus === 'LOADING' || (authStatus === 'AUTHENTICATED' && profileStatus === 'LOADING')) {
     return <LoadingScreen message={authStatus === 'LOADING' ? 'Initializing Session...' : 'Loading Your Profile...'} />;
   }
@@ -123,7 +125,5 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     return <>{children}</>;
   }
   
-  // This will catch the UNAUTHENTICATED state while the useEffect redirect is firing,
-  // preventing the children from rendering for a split second.
   return <LoadingScreen message="Redirecting..." />;
 };

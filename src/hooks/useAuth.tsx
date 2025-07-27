@@ -26,7 +26,7 @@ function getDocWithTimeout(docRef: DocumentReference, timeout: number): Promise<
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`Firestore request timed out after ${timeout}ms. This usually means a problem connecting to the database. Please check your internet connection and ensure the database name in your configuration ('kamperhubv2') is correct in the Firebase Console.`));
-    }, timeout);
+    }, 7000);
 
     getDoc(docRef).then(
       (snapshot) => {
@@ -77,15 +77,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               );
               setProfileStatus('SUCCESS');
           } else {
-             // Gracefully handle new sign-ups: Profile doesn't exist, so create it.
-             console.warn(`User document for ${currentUser.uid} not found. Creating a minimal profile.`);
+             console.warn(`User document for ${currentUser.uid} not found. This might be a new user. A default profile will be used.`);
              const minimalProfile: UserProfile = {
                 uid: currentUser.uid, email: currentUser.email, displayName: currentUser.displayName,
                 firstName: null, lastName: null, city: null, state: null, country: null,
                 subscriptionTier: 'free', stripeCustomerId: null, createdAt: new Date().toISOString(),
              };
-             // Attempt to write the new profile to Firestore.
-             await setDoc(profileDocRef, minimalProfile);
              setUserProfile(minimalProfile);
              setSubscriptionDetails('free', null, null);
              setProfileStatus('SUCCESS');
@@ -101,11 +98,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfileStatus('ERROR');
         }
       } else {
-        // No user, so reset everything.
         setUserProfile(null);
         setSubscriptionDetails('free');
         setAuthStatus('UNAUTHENTICATED');
-        setProfileStatus('LOADING'); // No profile to load, but reset state
+        setProfileStatus('LOADING');
         setProfileError(null);
       }
     }, (error) => {
