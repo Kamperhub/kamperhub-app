@@ -50,7 +50,7 @@ export default function LoginPage() {
     if (authStatus === 'AUTHENTICATED' && profileStatus === 'SUCCESS') {
       router.push('/dashboard');
     }
-  }, [user, authStatus, profileStatus, router]);
+  }, [authStatus, profileStatus, router]);
   
   useEffect(() => {
     // Proactively check for global Firebase init error on mount.
