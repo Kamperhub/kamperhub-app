@@ -122,5 +122,7 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     return <>{children}</>;
   }
   
+  // This will catch the UNAUTHENTICATED state while the useEffect redirect is firing,
+  // preventing the children from rendering for a split second.
   return <LoadingScreen message="Redirecting..." />;
 };

@@ -15,7 +15,7 @@ interface AuthContextType {
   user: FirebaseUser | null;
   userProfile: UserProfile | null;
   authStatus: AuthStatus;
-  profileStatus: ProfileStatus; 
+  profileStatus: ProfileStatus;
   profileError: string | null;
   isAuthLoading: boolean;
 }
@@ -84,7 +84,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
              };
              setUserProfile(minimalProfile);
              setSubscriptionDetails('free', null, null);
-             setProfileStatus('SUCCESS');
+             setProfileStatus('SUCCESS'); // Still a success, just with a default profile.
              console.warn(`User document for ${currentUser.uid} not found. Using a minimal profile.`);
           }
         } catch (error: any) {
@@ -101,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUserProfile(null);
         setSubscriptionDetails('free');
         setAuthStatus('UNAUTHENTICATED');
-        setProfileStatus('LOADING');
+        setProfileStatus('LOADING'); // No profile to load, but reset state
         setProfileError(null);
       }
     }, (error) => {
