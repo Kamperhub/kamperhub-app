@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useForm, type SubmitHandler, Controller, useFieldArray } from 'react-hook-form';
+import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSearchParams } from 'next/navigation';
@@ -17,9 +17,6 @@ import type { BudgetCategory, Expense } from '@/types/expense';
 import { BudgetTab } from '@/components/features/tripplanner/BudgetTab';
 import { ExpenseTab } from '@/components/features/tripplanner/ExpenseTab';
 import { OccupantManager } from '@/components/features/tripplanner/OccupantManager';
-import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +28,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Map, AdvancedMarker, Pin, InfoWindow, useMap } from '@vis.gl/react-google-maps';
-import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Users, AlertTriangle, XCircle, Edit3, Car, Settings, TowerControl, Home, Info, Map as MapIcon, GripVertical, PlusCircle } from 'lucide-react';
+import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Users, AlertTriangle, XCircle, Edit3, Car, Settings, TowerControl, Home, Info, Map as MapIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from "date-fns";
@@ -53,7 +50,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const tripPlannerSchema = z.object({
   startLocation: z.string().min(3, "Start location is required (min 3 chars)"),
   endLocation: z.string().min(3, "End location is required (min 3 chars)"),
-  waypoints: z.array(z.object({ location: z.string().min(3, "Waypoint location is required") })),
   fuelEfficiency: z.coerce.number().positive("Fuel efficiency must be a positive number (Litres/100km)"),
   fuelPrice: z.coerce.number().positive("Fuel price must be a positive number (per litre)"),
   dateRange: z.object({
@@ -107,36 +103,17 @@ const RouteRenderer = ({ routeDetails }: { routeDetails: RouteDetails | null }) 
   return null;
 };
 
-const SortableWaypoint = ({ id, index, remove, control, errors, setValue, isApiReady }: any) => {
-    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
-    const style = { transform: CSS.Transform.toString(transform), transition };
-
-    return (
-        <div ref={setNodeRef} style={style} className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing"><GripVertical className="h-5 w-5 text-muted-foreground" /></Button>
-            <div className="flex-grow">
-                <GooglePlacesAutocompleteInput control={control} name={`waypoints.${index}.location`} label="" placeholder={`Waypoint ${index + 1}`} errors={errors} setValue={setValue} isApiReady={isApiReady} />
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-        </div>
-    );
-};
-
-
 export function TripPlannerClient() {
   const { control, handleSubmit, formState: { errors }, setValue, getValues, reset } = useForm<TripPlannerFormValues>({
     resolver: zodResolver(tripPlannerSchema),
     defaultValues: {
       startLocation: '',
       endLocation: '',
-      waypoints: [],
       fuelEfficiency: 10,
       fuelPrice: 1.80,
       dateRange: { from: undefined, to: undefined }
     }
   });
-  
-  const { fields, append, remove, move } = useFieldArray({ control, name: "waypoints" });
 
   const [isLoading, setIsLoading] = useState(false);
   const [isTowing, setIsTowing] = useState(true);
@@ -190,7 +167,7 @@ export function TripPlannerClient() {
                            !!window.google.maps?.places?.Autocomplete;
 
   const clearPlanner = useCallback((resetForm = true) => {
-    if(resetForm) reset({ startLocation: '', endLocation: '', waypoints: [], fuelEfficiency: 10, fuelPrice: 1.80, dateRange: { from: undefined, to: undefined } });
+    if(resetForm) reset({ startLocation: '', endLocation: '', fuelEfficiency: 10, fuelPrice: 1.80, dateRange: { from: undefined, to: undefined } });
     setIsTowing(true);
     setRouteDetails(null);
     setFuelEstimate(null);
@@ -215,7 +192,7 @@ export function TripPlannerClient() {
     }
   }, [searchParams, toast]);
   
-  const calculateRoute = useCallback(async (data: TripPlannerFormValues) => {
+  const calculateRoute = useCallback(async (data: Omit<TripPlannerFormValues, 'waypoints'>) => {
     setIsLoading(true);
     setError(null);
 
@@ -234,7 +211,6 @@ export function TripPlannerClient() {
             body: JSON.stringify({
                 origin: data.startLocation,
                 destination: data.endLocation,
-                waypoints: data.waypoints,
                 isTowing: isTowing,
                 vehicleHeight: activeVehicle?.overallHeight,
                 caravanHeight: activeCaravan?.overallHeight,
@@ -273,36 +249,15 @@ export function TripPlannerClient() {
     }
   }, [userPrefs, allVehicles, allCaravans, toast, user, getValues, activeTrip, tripOccupants, isTowing, avoidTolls]);
 
-  const onSubmit: SubmitHandler<TripPlannerFormValues> = (data) => {
+  const onSubmit: SubmitHandler<Omit<TripPlannerFormValues, 'waypoints'>> = (data) => {
     calculateRoute(data);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-        const oldIndex = fields.findIndex((field) => field.id === active.id);
-        const newIndex = fields.findIndex((field) => field.id === over.id);
-        move(oldIndex, newIndex);
-    }
   };
 
   useEffect(() => {
     if (routeDetails) { 
       handleSubmit(onSubmit)();
     }
-  }, [avoidTolls, isTowing]); 
-  
-  useEffect(() => {
-    const waypoints = getValues('waypoints');
-    const debouncedRecalculate = setTimeout(() => {
-        if (routeDetails) {
-            handleSubmit(onSubmit)();
-        }
-    }, 1000);
-
-    return () => clearTimeout(debouncedRecalculate);
-  }, [getValues('waypoints'), handleSubmit, onSubmit, routeDetails]);
-
+  }, [avoidTolls, isTowing, handleSubmit, onSubmit, routeDetails]); 
 
   useEffect(() => {
     let recalledTripLoaded = false;
@@ -330,7 +285,6 @@ export function TripPlannerClient() {
           reset({
             startLocation: sanitizedTrip.startLocationDisplay,
             endLocation: sanitizedTrip.endLocationDisplay,
-            waypoints: sanitizedTrip.waypoints || [],
             fuelEfficiency: sanitizedTrip.fuelEfficiency,
             fuelPrice: sanitizedTrip.fuelPrice,
             dateRange: {
@@ -447,7 +401,6 @@ export function TripPlannerClient() {
       name: pendingTripName.trim(),
       startLocationDisplay: currentFormData.startLocation,
       endLocationDisplay: currentFormData.endLocation,
-      waypoints: currentFormData.waypoints,
       fuelEfficiency: currentFormData.fuelEfficiency,
       fuelPrice: currentFormData.fuelPrice,
       routeDetails: routeDetails,
@@ -542,16 +495,6 @@ export function TripPlannerClient() {
                 <CardContent>
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <GooglePlacesAutocompleteInput control={control} name="startLocation" label="Start Location" placeholder="e.g., Sydney, NSW" errors={errors} setValue={setValue} isApiReady={isGoogleApiReady} />
-                    
-                    <DndContext onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
-                        <SortableContext items={fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
-                            {fields.map((field, index) => (
-                                <SortableWaypoint key={field.id} id={field.id} index={index} remove={remove} control={control} errors={errors} setValue={setValue} isApiReady={isGoogleApiReady} />
-                            ))}
-                        </SortableContext>
-                    </DndContext>
-                    
-                    <Button type="button" variant="outline" size="sm" onClick={() => append({ location: '' })} className="w-full"><PlusCircle className="mr-2 h-4 w-4"/>Add Stop</Button>
                     
                     <GooglePlacesAutocompleteInput control={control} name="endLocation" label="End Location" placeholder="e.g., Melbourne, VIC" errors={errors} setValue={setValue} isApiReady={isGoogleApiReady} />
                     

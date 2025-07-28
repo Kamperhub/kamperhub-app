@@ -9,7 +9,6 @@ import type { FuelStation, RouteDetails } from '@/types/tripplanner';
 const directionsRequestSchema = z.object({
   origin: z.string(),
   destination: z.string(),
-  waypoints: z.array(z.object({ location: z.string() })).optional(),
   isTowing: z.boolean(),
   vehicleHeight: z.number().positive().optional(),
   caravanHeight: z.number().positive().optional(),
@@ -40,13 +39,7 @@ async function findFuelStationsAlongRoute(polyline: string, apiKey: string): Pro
         if (decodedPath.length < 2) return [];
 
         const searchPoints: google.maps.LatLngLiteral[] = [];
-        let totalDistance = 0;
-        for (let i = 0; i < decodedPath.length - 1; i++) {
-            const p1 = new google.maps.LatLng(decodedPath[i][0], decodedPath[i][1]);
-            const p2 = new google.maps.LatLng(decodedPath[i+1][0], decodedPath[i+1][1]);
-            totalDistance += google.maps.geometry.spherical.computeDistanceBetween(p1, p2);
-        }
-
+        const totalDistance = google.maps.geometry.spherical.computeLength(decodedPath.map(p => new google.maps.LatLng(p[0], p[1])));
         const interval = Math.min(100000, totalDistance / 5); // Search roughly every 100km, up to 5 points
 
         if (interval < 10000) { // For short trips, just check start and middle
@@ -138,11 +131,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body.', details: parsedBody.error.format() }, { status: 400 });
     }
 
-    const { origin, destination, waypoints, isTowing, vehicleHeight, caravanHeight, axleCount, avoidTolls } = parsedBody.data;
+    const { origin, destination, isTowing, vehicleHeight, caravanHeight, axleCount, avoidTolls } = parsedBody.data;
 
     const finalHeight = isTowing
       ? Math.max(vehicleHeight || 0, caravanHeight || 0)
       : vehicleHeight;
+    const finalHeightInMeters = finalHeight && finalHeight > 0 ? finalHeight / 1000 : undefined;
+
 
     const requestBody: any = {
       origin: { address: origin },
@@ -155,17 +150,10 @@ export async function POST(req: NextRequest) {
       units: 'METRIC',
       polylineEncoding: 'ENCODED_POLYLINE',
     };
-
-    if (waypoints && waypoints.length > 0) {
-        requestBody.intermediateWaypoints = waypoints.map(wp => ({
-            location: { address: wp.location },
-            via: false
-        }));
-    }
     
     const vehicleInfo: any = {};
-    if (finalHeight && finalHeight > 0) {
-      vehicleInfo.dimensions = { height: finalHeight };
+    if (finalHeightInMeters) {
+      vehicleInfo.dimensions = { height: finalHeightInMeters };
     }
     if (axleCount && axleCount > 0) {
       vehicleInfo.axleCount = axleCount;

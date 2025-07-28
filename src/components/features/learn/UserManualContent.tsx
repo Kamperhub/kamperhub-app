@@ -90,7 +90,7 @@ export function UserManualContent() {
                 <strong>Journeys:</strong> Group multiple individual trips into a single adventure (e.g., "The Big Lap 2025"). Each Journey has a master map showing the combined route of all its trips, an aggregated financial summary, and a strategic AI packing planner.
             </li>
             <li>
-                <strong>Trip Planner:</strong> Plan individual trip legs with Google Maps, factoring in vehicle height. You can now add multiple stops (waypoints) to create complex routes. Get estimates for distance, duration, and fuel, and track budgets and expenses for each trip.
+                <strong>Trip Planner:</strong> Plan individual trip legs with Google Maps, factoring in vehicle height. Get estimates for distance, duration, and fuel, and track budgets and expenses for each trip.
             </li>
             <li><strong>Trip Log:</strong> Review your past adventures, recall saved trips for re-planning, and mark trips as complete.</li>
             <li><strong>Trip Packing Assistant:</strong> Use our AI assistant to generate smart packing lists.</li>
