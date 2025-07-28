@@ -137,8 +137,8 @@ For the AI to provide truly personalized recommendations (like AI-Curated Smart 
     *   Interests: Hobbies (hiking, fishing, photography, history, culinary), preferences (quiet campsites, bustling towns, off-grid), travel style (fast-paced, leisurely).
     *   Travel Companions: Solo, couple, family with kids (ages), pets (size, needs).
 *   **What They Travel With:**
-    *   Vehicle Details: Make, model, year, fuel type, specialized equipment (solar, extra water tanks, towing capacity), last service dates, tire types.
-    *   Caravan/RV Details: Type (caravan, campervan, motorhome), length, height, weight, specific appliances, battery capacity, storage volume.
+    *   **Vehicle Details:** Make, model, year, fuel type, specialized equipment (solar, extra water tanks, towing capacity), last service dates, tire types.
+    *   **Caravan/RV Details:** **Type (tent trailer, pop-top, full caravan, fifth-wheeler, campervan, motorhome, etc.)**, length, height, weight, specific appliances, battery capacity, storage volume. Knowing the *type* provides crucial contextual intelligence about the vehicle's inherent characteristics, typical use, and vulnerabilities beyond raw numbers. For example, a "tent trailer" and a "full caravan" of similar lengths have vastly different insulation, setup times, and suitability for certain weather, which allows the AI to make much more relevant suggestions.
 *   **Past Behavior/Preferences (Learned implicitly by AI from app usage):**
     *   Previous trips (duration, destination types).
     *   Items frequently packed/forgotten.
@@ -250,3 +250,6 @@ For your KamperHub web app, definitely add the text to the app, but do it dynami
 
       
 
+
+
+      
