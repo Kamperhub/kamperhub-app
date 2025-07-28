@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Compass, Home } from 'lucide-react';
 
 export default function NotFound() {
   return (
@@ -31,34 +32,40 @@ export default function NotFound() {
         <h1 style={{ fontFamily: "'Belleza', sans-serif", fontSize: '3.75rem', lineHeight: 1, color: '#BC4749' }}>
           404
         </h1>
-        <h2 style={{ fontFamily: "'Belleza', sans-serif", fontSize: '1.5rem', lineHeight: '2rem', color: '#386641', marginTop: '0.5rem', marginBottom: '1.5rem' }}>
+        <h2 style={{ fontFamily: "'Belleza', sans-serif", fontSize: '1.5rem', lineHeight: '2rem', color: '#386641', marginTop: '0.5rem' }}>
           Page Not Found
         </h2>
-        <p style={{ color: '#333', marginTop: '1.5rem' }}>
+        <p style={{ color: '#525252', marginTop: '1.5rem' }}>
           Oops! It seems you've taken a wrong turn. The page you're looking for doesn't exist or has been moved.
         </p>
         <div style={{ marginTop: '2rem' }}>
-          <a href="/" style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            padding: '0.75rem 1.5rem',
-            backgroundColor: '#386641',
-            color: '#F8F8F8',
-            textDecoration: 'none',
-            borderRadius: '0.5rem',
-            fontFamily: "'Alegreya', serif",
-            fontWeight: 'normal',
-            transition: 'background-color 0.2s ease',
-          }} onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#2a4d31')}
-             onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#386641')}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '0.5rem' }}>
-              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
-            Return to Dashboard
-          </a>
+            <Link href="/" passHref>
+              <button style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                whiteSpace: 'nowrap',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+                lineHeight: '1.25rem',
+                fontWeight: '500',
+                padding: '0.5rem 1rem',
+                backgroundColor: '#386641',
+                color: '#F7F8F8',
+                textDecoration: 'none',
+                transition: 'background-color 0.2s',
+                border: 'none',
+                cursor: 'pointer',
+              }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '0.5rem' }}>
+                  <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                  <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+                Return to Dashboard
+              </button>
+            </Link>
         </div>
       </div>
     </div>
-  );
+  )
 }

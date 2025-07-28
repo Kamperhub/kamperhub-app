@@ -3,12 +3,11 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogIn } from 'lucide-react';
 import Image from 'next/image';
 import { navItems } from '@/lib/navigation';
 import { ClientBuildTimestamp } from '@/components/shared/ClientBuildTimestamp';
-import * as icons from 'lucide-react';
 
 export default function LandingPage() {
 
@@ -57,13 +56,11 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {featuresToDisplay.map((feature) => {
-                const IconComponent = icons[feature.iconName as keyof typeof icons] || null;
-                return (
+              {featuresToDisplay.map((feature) => (
                 <Card key={feature.label} className="text-center shadow-lg hover:shadow-xl transition-shadow">
                   <CardHeader>
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
-                      {IconComponent && <IconComponent className="h-6 w-6" />}
+                      <feature.icon className="h-6 w-6" />
                     </div>
                     <CardTitle className="font-headline text-xl">{feature.label}</CardTitle>
                   </CardHeader>
@@ -71,8 +68,7 @@ export default function LandingPage() {
                     <p className="text-muted-foreground">{feature.description}</p>
                   </CardContent>
                 </Card>
-              );
-              })}
+              ))}
             </div>
           </div>
         </section>
