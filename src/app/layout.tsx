@@ -1,16 +1,11 @@
 
 import type { Metadata } from 'next';
-import { Alegreya, Belleza, Source_Code_Pro } from 'next/font/google';
 import './globals.css';
 import { AppShell } from '@/components/layout/AppShell';
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from '@/components/layout/Providers';
 import { ThemeProvider } from '@/components/layout/ThemeProvider';
-
-export const metadata: Metadata = {
-  title: 'KamperHub',
-  description: 'Your ultimate caravanning companion.',
-};
+import { Alegreya, Belleza, Source_Code_Pro } from 'next/font/google';
 
 const belleza = Belleza({
   subsets: ['latin'],
@@ -32,6 +27,12 @@ const sourceCodePro = Source_Code_Pro({
   variable: '--font-code',
   display: 'swap',
 });
+
+
+export const metadata: Metadata = {
+  title: 'KamperHub',
+  description: 'Your ultimate caravanning companion.',
+};
 
 export default function RootLayout({
   children,
