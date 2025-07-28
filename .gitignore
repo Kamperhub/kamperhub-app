@@ -48,3 +48,4 @@ ehthumbs_vista.db
 .eslintcache
 *.tgz
 *.log
+.genkit/
