@@ -43,8 +43,7 @@ import type { DateRange } from 'react-day-picker';
 import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesAutocompleteInput';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { createTrip, updateTrip, fetchUserPreferences, fetchVehicles, fetchCaravans, updateUserPreferences, fetchJourneys } from '@/lib/api-client';
-import type { UserProfile } from '@/types/auth';
+import { createTrip, updateTrip, fetchAllVehicleData, updateUserPreferences, fetchJourneys } from '@/lib/api-client';
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -89,14 +88,19 @@ const RouteRenderer = ({ routeDetails }: { routeDetails: RouteDetails | null }) 
 
         const bounds = new window.google.maps.LatLngBounds();
         decodedPath.forEach(point => bounds.extend(point));
-        map.fitBounds(bounds);
+        map.fitBounds(bounds, 100); // 100px padding
       } catch (e) {
         console.error("Error decoding or drawing polyline:", e);
       }
     }
+     return () => {
+        if (polylineRef.current) {
+            polylineRef.current.setMap(null);
+        }
+    };
   }, [routeDetails, map]);
 
-  return null; // This component does not render anything itself
+  return null;
 };
 
 export function TripPlannerClient() {
@@ -130,24 +134,16 @@ export function TripPlannerClient() {
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
   const [showFuelStations, setShowFuelStations] = useState(false);
   const [activeFuelStation, setActiveFuelStation] = useState<FuelStation | null>(null);
-
-  const { data: userPrefs } = useQuery<Partial<UserProfile>>({
-    queryKey: ['userPreferences', user?.uid],
-    queryFn: fetchUserPreferences,
-    enabled: !!user,
+  
+  const { data: pageData, isLoading: isLoadingPageData } = useQuery({
+      queryKey: ['allVehicleData', user?.uid],
+      queryFn: fetchAllVehicleData,
+      enabled: !!user,
   });
   
-  const { data: allVehicles = [], isLoading: isLoadingVehicles } = useQuery<StoredVehicle[]>({
-    queryKey: ['vehicles', user?.uid],
-    queryFn: fetchVehicles,
-    enabled: !!user,
-  });
-
-  const { data: allCaravans = [] } = useQuery<StoredCaravan[]>({
-    queryKey: ['caravans', user?.uid],
-    queryFn: fetchCaravans,
-    enabled: !!user,
-  });
+  const userPrefs = pageData?.userProfile;
+  const allVehicles = pageData?.vehicles || [];
+  const allCaravans = pageData?.caravans || [];
 
   const { data: allJourneys = [] } = useQuery<Journey[]>({
     queryKey: ['journeys', user?.uid],
@@ -276,7 +272,7 @@ export function TripPlannerClient() {
 
   useEffect(() => {
     let recalledTripLoaded = false;
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && pageData) {
       try {
         const recalledTripJson = localStorage.getItem(RECALLED_TRIP_DATA_KEY);
         if (recalledTripJson) {
@@ -329,7 +325,7 @@ export function TripPlannerClient() {
         }
       }
     }
-  }, [reset, setValue, toast, userPrefs, allVehicles, getValues]); 
+  }, [reset, setValue, toast, userPrefs, allVehicles, getValues, pageData]); 
 
   const createTripMutation = useMutation({
     mutationFn: (data: Omit<LoggedTrip, 'id' | 'timestamp'>) => createTrip(data),
@@ -448,19 +444,19 @@ export function TripPlannerClient() {
 
   const mapHeight = "400px"; 
 
-  if (isLoadingVehicles) {
+  if (isLoadingPageData) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
-          <p className="font-body text-lg">Checking vehicle setup...</p>
+          <p className="font-body text-lg">Loading vehicle setup...</p>
         </div>
         <Skeleton className="h-48 w-full" />
       </div>
     );
   }
 
-  if (!isLoadingVehicles && allVehicles.length === 0) {
+  if (!isLoadingPageData && allVehicles.length === 0) {
     return (
       <Card className="max-w-xl mx-auto">
         <CardHeader>

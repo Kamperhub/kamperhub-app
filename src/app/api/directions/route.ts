@@ -39,7 +39,13 @@ async function findFuelStationsAlongRoute(polyline: string, apiKey: string): Pro
         if (decodedPath.length < 2) return [];
 
         const searchPoints: google.maps.LatLngLiteral[] = [];
-        const totalDistance = google.maps.geometry.spherical.computeLength(decodedPath.map(p => new google.maps.LatLng(p[0], p[1])));
+        let totalDistance = 0;
+        for (let i = 0; i < decodedPath.length - 1; i++) {
+            const p1 = new google.maps.LatLng(decodedPath[i][0], decodedPath[i][1]);
+            const p2 = new google.maps.LatLng(decodedPath[i+1][0], decodedPath[i+1][1]);
+            totalDistance += google.maps.geometry.spherical.computeDistanceBetween(p1, p2);
+        }
+
         const interval = Math.min(100000, totalDistance / 5); // Search roughly every 100km, up to 5 points
 
         if (interval < 10000) { // For short trips, just check start and middle
@@ -136,9 +142,7 @@ export async function POST(req: NextRequest) {
     const finalHeight = isTowing
       ? Math.max(vehicleHeight || 0, caravanHeight || 0)
       : vehicleHeight;
-    const finalHeightInMeters = finalHeight && finalHeight > 0 ? finalHeight / 1000 : undefined;
-
-
+    
     const requestBody: any = {
       origin: { address: origin },
       destination: { address: destination },
@@ -152,8 +156,8 @@ export async function POST(req: NextRequest) {
     };
     
     const vehicleInfo: any = {};
-    if (finalHeightInMeters) {
-      vehicleInfo.dimensions = { height: finalHeightInMeters };
+    if (finalHeight && finalHeight > 0) {
+      vehicleInfo.dimensions = { height: finalHeight };
     }
     if (axleCount && axleCount > 0) {
       vehicleInfo.axleCount = axleCount;
