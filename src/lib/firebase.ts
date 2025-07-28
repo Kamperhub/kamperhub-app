@@ -4,6 +4,7 @@ import { getAuth, type Auth, browserSessionPersistence, setPersistence } from 'f
 import { getFirestore, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from '@firebase/app-check';
 import { getAnalytics, type Analytics } from "firebase/analytics";
+import { getRemoteConfig, type RemoteConfig } from "firebase/remote-config";
 
 // SIMPLIFIED CONFIGURATION:
 // The Firebase client now uses NEXT_PUBLIC_FIREBASE_API_KEY as intended.
@@ -25,6 +26,7 @@ let auth: Auth;
 let db: Firestore;
 let analytics: Analytics | undefined;
 let appCheck: AppCheck | undefined;
+let remoteConfig: RemoteConfig | undefined;
 export let firebaseInitializationError: string | null = null;
 
 console.log("[Firebase Client] Starting initialization...");
@@ -51,6 +53,16 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
       analytics = getAnalytics(app);
       console.log('[Firebase Client] Firebase Analytics initialized.');
       
+      remoteConfig = getRemoteConfig(app);
+      // Set development-friendly settings
+      remoteConfig.settings.minimumFetchIntervalMillis = process.env.NEXT_PUBLIC_APP_ENV === 'development' ? 10000 : 3600000;
+      // Set default values
+      remoteConfig.defaultConfig = {
+        "packing_list_template_id": "general_camping_list_v1",
+        "map_default_poi_filter": "all_campgrounds",
+      };
+      console.log('[Firebase Client] Firebase Remote Config initialized.');
+
       console.log('[Firebase Client] Attempting to enable offline persistence...');
       enableIndexedDbPersistence(db)
         .then(() => console.log('[Firebase Client] Firestore offline persistence enabled.'))
@@ -106,4 +118,4 @@ export function initializeFirebaseAppCheck() {
   }
 }
 
-export { app, auth, db, analytics };
+export { app, auth, db, analytics, remoteConfig };

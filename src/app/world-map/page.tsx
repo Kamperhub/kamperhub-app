@@ -7,13 +7,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { fetchTrips } from '@/lib/api-client';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { Map, AdvancedMarker, Pin, InfoWindow, useMap } from '@vis.gl/react-google-maps';
-import { Globe as WorldMapIcon, Loader2, AlertTriangle, Route, ChevronLeft } from 'lucide-react';
+import { Globe as WorldMapIcon, Loader2, AlertTriangle, Route, ChevronLeft, MapPin } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { NavigationContext } from '@/components/layout/AppShell';
+import { useRemoteConfig } from '@/hooks/useRemoteConfig'; // Import the new hook
 
 const TripPolyline = ({ polyline }: { polyline: string }) => {
   const map = useMap();
@@ -51,6 +52,8 @@ const TripPolyline = ({ polyline }: { polyline: string }) => {
 export default function WorldMapPage() {
   const { user } = useAuth();
   const navContext = useContext(NavigationContext);
+  const { getString, isConfigReady } = useRemoteConfig(); // Use the hook
+  
   const { data: trips = [], isLoading, error } = useQuery<LoggedTrip[]>({
     queryKey: ['trips', user?.uid],
     queryFn: fetchTrips,
@@ -58,6 +61,8 @@ export default function WorldMapPage() {
   });
 
   const [activeTrip, setActiveTrip] = useState<LoggedTrip | null>(null);
+  
+  const mapDefaultPoiFilter = getString('map_default_poi_filter');
 
   const handleNavigation = () => {
     if(navContext) navContext.setIsNavigating(true);
@@ -106,6 +111,13 @@ export default function WorldMapPage() {
         <p className="text-muted-foreground font-body">
             An overview of all your logged trips. Click a marker to see details.
         </p>
+        <Alert variant="default">
+            <MapPin className="h-4 w-4" />
+            <AlertTitle>Personalized Map View</AlertTitle>
+            <AlertDescription>
+                Default POI filter from Remote Config: <strong>{isConfigReady ? mapDefaultPoiFilter : <Loader2 className="h-4 w-4 animate-spin inline-block"/>}</strong>
+            </AlertDescription>
+        </Alert>
         
         {trips.length === 0 ? (
             <Alert className="text-center py-10">
@@ -119,7 +131,7 @@ export default function WorldMapPage() {
                 </AlertDescription>
             </Alert>
         ) : (
-            <Card className="w-full h-[calc(100vh-300px)] min-h-[500px] overflow-hidden">
+            <Card className="w-full h-[calc(100vh-350px)] min-h-[500px] overflow-hidden">
                 <Map defaultCenter={{ lat: -25.2744, lng: 133.7751 }} defaultZoom={4} gestureHandling={'greedy'} disableDefaultUI={true} mapId={'WORLD_MAP_ID'} className="h-full w-full rounded-lg">
                     {trips.map(trip => (
                         <React.Fragment key={trip.id}>

@@ -19,6 +19,7 @@ import { generatePackingList, type PackingListGeneratorInput, type PackingListGe
 import { generateWeatherPackingSuggestions, type WeatherPackingSuggesterOutput } from '@/ai/flows/weather-packing-suggester-flow';
 import { generatePersonalizedPackingLists, type PersonalizedPackingListInput, type PersonalizedPackingListOutput, type GoogleTasksStructure } from '@/ai/flows/personalized-packing-list-flow';
 import { NavigationContext } from '@/components/layout/AppShell';
+import { useRemoteConfig } from '@/hooks/useRemoteConfig'; // Import the new hook
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -63,13 +64,16 @@ export default function TripPackingPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navContext = useContext(NavigationContext);
-  
+  const { getString, isConfigReady } = useRemoteConfig(); // Use the hook
+
   const [selectedTripId, setSelectedTripId] = useState<string>('');
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [editingItemState, setEditingItemState] = useState<{ categoryId: string; item: PackingListItem } | null>(null);
   const [weatherSuggestions, setWeatherSuggestions] = useState<WeatherPackingSuggesterOutput | null>(null);
   const [personalizedLists, setPersonalizedLists] = useState<PersonalizedPackingListOutput | null>(null);
   const personalizedListsRef = useRef<HTMLDivElement>(null);
+  
+  const packingListTemplateId = getString('packing_list_template_id');
 
   const { data: trips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery<LoggedTrip[]>({
     queryKey: ['trips', user?.uid],
@@ -278,7 +282,7 @@ export default function TripPackingPage() {
     const title = encodeURIComponent(trip.name);
     const details = encodeURIComponent(
       `Trip from ${trip.startLocationDisplay} to ${trip.endLocationDisplay}.\n` +
-      `Distance: ${trip.routeDetails.distance}, Duration: ${trip.routeDetails.duration}.\n\n` +
+      `Distance: ${trip.routeDetails.distance.text}, Duration: ${trip.routeDetails.duration.text}.\n\n` +
       `Reminder: Pack for this trip 3 days before departure!\n` +
       `View Packing List: ${packingListUrl}`
     );
@@ -342,7 +346,7 @@ export default function TripPackingPage() {
   const isGoogleTasksConnected = !!userProfile?.googleAuth?.refreshToken;
 
   if (isLoadingTrips) return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-48 w-full" /></div>;
-  if (tripsError) return <Alert variant="destructive"><AlertTitle>Error Loading Trips</AlertTitle><AlertDescription>{tripsError.message}</AlertDescription></Alert>;
+  if (tripsError) return <Alert variant="destructive"><AlertTitle>Error Loading Trips</AlertTitle><AlertDescription>{(tripsError as Error).message}</AlertDescription></Alert>;
 
   return (
     <div className="space-y-8">
@@ -356,6 +360,13 @@ export default function TripPackingPage() {
       <div>
         <h1 className="text-3xl font-headline mb-2 text-primary flex items-center"><Luggage className="mr-3 h-8 w-8" /> Trip Packing Assistant</h1>
         <p className="text-muted-foreground font-body mb-6">A multi-step assistant to generate, personalize, and share packing lists for your trips.</p>
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Personalization Active!</AlertTitle>
+          <AlertDescription>
+            This page is using a packing list template based on your active rig: <strong>{isConfigReady ? packingListTemplateId : <Loader2 className="h-4 w-4 animate-spin inline-block" />}</strong>
+          </AlertDescription>
+        </Alert>
       </div>
       
       <Card><CardHeader><CardTitle>1. Select Your Trip</CardTitle><CardDescription>Choose a saved trip to manage its packing list.</CardDescription></CardHeader>
@@ -376,7 +387,7 @@ export default function TripPackingPage() {
           {isLoadingPackingList ? (
             <Card><CardContent className="pt-6"><Skeleton className="h-64 w-full" /></CardContent></Card>
           ) : packingListError ? (
-            <Alert variant="destructive"><AlertTitle>Error Loading List</AlertTitle><AlertDescription>{packingListError.message}</AlertDescription></Alert>
+            <Alert variant="destructive"><AlertTitle>Error Loading List</AlertTitle><AlertDescription>{(packingListError as Error).message}</AlertDescription></Alert>
           ) : packingList.length > 0 ? (
             // RECALL / EDIT VIEW
             <>
