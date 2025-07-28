@@ -1,4 +1,19 @@
 
+
+export const caravanTypes = [
+  "Tent",
+  "Camper Trailer (Tent)",
+  "Camper Trailer (Hard Floor)",
+  "Pop-Top Caravan",
+  "Full-Height Caravan",
+  "Fifth-Wheeler",
+  "Campervan / Motorhome",
+  "Utility Trailer",
+  "Other",
+] as const;
+
+export type CaravanType = typeof caravanTypes[number];
+
 export interface WDHFormData {
   name: string;
   type: string;
@@ -31,6 +46,7 @@ export interface WaterTank {
 }
 
 export interface CaravanFormData {
+  type: CaravanType; // This is the new mandatory field
   make: string;
   model: string;
   year: number;
