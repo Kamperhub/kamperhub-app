@@ -47,7 +47,6 @@ export default function LoginPage() {
 
   useEffect(() => {
     const redirectedFrom = searchParams.get('redirectedFrom');
-    // Only redirect when both authentication is complete AND the user profile is loaded.
     if (authStatus === 'AUTHENTICATED' && profileStatus === 'SUCCESS') {
       const targetUrl = redirectedFrom ? decodeURIComponent(redirectedFrom) : '/dashboard';
       router.replace(targetUrl);
@@ -149,8 +148,6 @@ export default function LoginPage() {
     }
   };
 
-  // If the user is authenticated but we're still waiting for the profile to load,
-  // show a loading spinner on this page to prevent the redirect flicker.
   if (authStatus === 'AUTHENTICATED' && profileStatus !== 'SUCCESS') {
     return (
         <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
