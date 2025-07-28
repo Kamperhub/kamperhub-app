@@ -15,7 +15,7 @@ interface AuthContextType {
   user: FirebaseUser | null;
   userProfile: UserProfile | null;
   authStatus: AuthStatus;
-  profileStatus: ProfileStatus;
+  profileStatus: ProfileStatus; // New state for profile fetching
   profileError: string | null;
   isAuthLoading: boolean;
 }
@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [authStatus, setAuthStatus] = useState<AuthStatus>('LOADING');
-  const [profileStatus, setProfileStatus] = useState<ProfileStatus>('LOADING');
+  const [profileStatus, setProfileStatus] = useState<ProfileStatus>('LOADING'); // New state
   const [profileError, setProfileError] = useState<string | null>(null);
   const { setSubscriptionDetails } = useSubscription();
   
@@ -60,7 +60,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(currentUser);
       
       if (currentUser) {
+        // AUTHENTICATION is successful immediately.
         setAuthStatus('AUTHENTICATED');
+        
+        // Now, fetch profile data in the background.
         setProfileStatus('LOADING');
         setProfileError(null);
         try {
@@ -102,9 +105,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUserProfile(null);
           setSubscriptionDetails('free');
           setProfileError(errorMsg);
-          setProfileStatus('ERROR');
+          setProfileStatus('ERROR'); // Set profile status to ERROR
+          // Do not change authStatus here, user is still authenticated.
         }
       } else {
+        // No user, so reset everything.
         setUserProfile(null);
         setSubscriptionDetails('free');
         setAuthStatus('UNAUTHENTICATED');
@@ -119,7 +124,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribeAuth();
   }, [setSubscriptionDetails]);
   
-  const isAuthLoading = authStatus === 'LOADING' || (authStatus === 'AUTHENTICATED' && profileStatus === 'LOADING');
+  // The main auth loading state is now simpler.
+  const isAuthLoading = authStatus === 'LOADING';
 
   const value = { user, userProfile, authStatus, profileStatus, profileError, isAuthLoading };
 
