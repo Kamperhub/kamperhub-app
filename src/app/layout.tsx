@@ -28,7 +28,6 @@ const sourceCodePro = Source_Code_Pro({
   display: 'swap',
 });
 
-
 export const metadata: Metadata = {
   title: 'KamperHub',
   description: 'Your ultimate caravanning companion.',
