@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { Alegreya, Belleza, Source_Code_Pro } from 'next/font/google';
 import './globals.css';
