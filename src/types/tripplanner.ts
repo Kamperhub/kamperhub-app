@@ -6,6 +6,7 @@ import type { BudgetCategory, Expense } from '@/types/expense';
 export interface TripPlannerFormValues {
   startLocation: string;
   endLocation: string;
+  waypoints: { location: string }[];
   fuelEfficiency: number; // Litres/100km
   fuelPrice: number; // Price per litre
   dateRange?: DateRange | null;
@@ -49,6 +50,7 @@ export interface LoggedTrip {
   timestamp: string; // ISO string for date
   startLocationDisplay: string; // The string input by the user for start
   endLocationDisplay: string; // The string input by the user for end
+  waypoints?: { location: string }[]; // Waypoints
   fuelEfficiency: number;
   fuelPrice: number;
   routeDetails: RouteDetails;
