@@ -1,22 +1,19 @@
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // allowedDevOrigins moved from here (root level)
-
-  devIndicators: {
-    allowedDevOrigins: [
-      'https://3000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev', // The exact URL
-    ],
-  },
-
   env: {
     NEXT_PUBLIC_BUILD_TIMESTAMP: new Date().toISOString(),
+  },
+  devIndicators: {
+    allowedDevOrigins: [
+      '*.cloudworkstations.dev', // Add this to resolve the cross-origin request warning
+    ],
   },
   experimental: {
     instrumentationHook: false, // This disables Next.js's default OpenTelemetry instrumentation
     serverActions: {
       bodySizeLimit: '2mb', // Increase body size limit for potential large payloads
     },
-    // allowedDevOrigins remains REMOVED from this block
   },
   webpack: (config, { dev, isServer }) => {
     // Enable WebAssembly experiments to support all package features.

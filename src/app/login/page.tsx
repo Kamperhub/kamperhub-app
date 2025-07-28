@@ -47,10 +47,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     const redirectedFrom = searchParams.get('redirectedFrom');
-    // Only redirect when both authentication is complete AND the user profile is loaded.
     if (authStatus === 'AUTHENTICATED' && profileStatus === 'SUCCESS') {
       const targetUrl = redirectedFrom ? decodeURIComponent(redirectedFrom) : '/dashboard';
-      router.push(targetUrl);
+      router.replace(targetUrl);
     }
   }, [authStatus, profileStatus, router, searchParams]);
   
@@ -79,7 +78,7 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, trimmedEmail, password);
-      // The useEffect hook will now handle the redirect once the profile is loaded.
+      // The useEffect hook will now handle the redirect once profile is loaded.
     } catch (error: any) {
       const authError = error as AuthError;
       let errorMessage = 'An unexpected error occurred during login. Please try again.';
@@ -269,6 +268,7 @@ export default function LoginPage() {
               </div>
             </div>
             <Button type="submit" className="w-full font-body bg-primary text-primary-foreground hover:bg-primary/90" disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogInIcon className="mr-2 h-4 w-4" />}
               {isSubmitting ? 'Logging In...' : 'Log In'}
             </Button>
           </form>
