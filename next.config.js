@@ -1,12 +1,12 @@
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   env: {
     NEXT_PUBLIC_BUILD_TIMESTAMP: new Date().toISOString(),
   },
   devIndicators: {
+    // This must be the EXACT URL from your terminal output
     allowedDevOrigins: [
-      '*.cloudworkstations.dev', // Add this to resolve the cross-origin request warning
+      'https://3000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev',
     ],
   },
   experimental: {
