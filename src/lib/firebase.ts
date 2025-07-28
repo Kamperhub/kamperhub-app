@@ -3,6 +3,7 @@ import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions 
 import { getAuth, type Auth, browserSessionPersistence, setPersistence } from 'firebase/auth';
 import { getFirestore, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from '@firebase/app-check';
+import { getAnalytics, type Analytics } from "firebase/analytics";
 
 // SIMPLIFIED CONFIGURATION:
 // The Firebase client now uses NEXT_PUBLIC_FIREBASE_API_KEY as intended.
@@ -22,6 +23,7 @@ const firebaseConfig = {
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
+let analytics: Analytics | undefined;
 let appCheck: AppCheck | undefined;
 export let firebaseInitializationError: string | null = null;
 
@@ -46,6 +48,9 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}, connecting to database 'kamperhubv2'.`);
 
     if (typeof window !== 'undefined') {
+      analytics = getAnalytics(app);
+      console.log('[Firebase Client] Firebase Analytics initialized.');
+      
       console.log('[Firebase Client] Attempting to enable offline persistence...');
       enableIndexedDbPersistence(db)
         .then(() => console.log('[Firebase Client] Firestore offline persistence enabled.'))
@@ -101,4 +106,4 @@ export function initializeFirebaseAppCheck() {
   }
 }
 
-export { app, auth, db };
+export { app, auth, db, analytics };

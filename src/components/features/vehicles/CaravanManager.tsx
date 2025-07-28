@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { StoredCaravan, CaravanFormData } from '@/types/caravan';
+import type { StoredCaravan, CaravanFormData, CaravanType } from '@/types/caravan';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { CaravanForm } from './CaravanForm';
-import { PlusCircle, Edit3, Trash2, CheckCircle, Link2 as LinkIcon, Ruler, PackagePlus, MapPin, Droplet, Weight, Axe, Loader2, Disc, Flame } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle, Link2 as LinkIcon, Ruler, PackagePlus, MapPin, Droplet, Weight, Axe, Loader2, Disc, Flame, Caravan as CaravanIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
@@ -23,11 +23,36 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
+import { analytics } from '@/lib/firebase';
+import { setUserProperties } from 'firebase/analytics';
 
 interface CaravanManagerProps {
     initialCaravans: StoredCaravan[];
     initialUserPrefs: Partial<UserProfile> | null;
 }
+
+const updateAnalyticsUserProperties = (caravans: StoredCaravan[]) => {
+    if (!analytics) return;
+
+    // 1. Determine primary_camping_accommodation
+    let primaryAccommodation: CaravanType | 'none' = 'none';
+    const sleepingUnits = caravans.filter(c => c.type !== 'Utility Trailer');
+    if (sleepingUnits.length > 0) {
+        // Simple logic: the first sleeping unit is the primary.
+        // This can be enhanced later if a user can mark one as "primary".
+        primaryAccommodation = sleepingUnits[0].type;
+    }
+    
+    // 2. Determine has_utility_trailer
+    const hasUtilityTrailer = caravans.some(c => c.type === 'Utility Trailer');
+
+    // 3. Set the user properties
+    setUserProperties(analytics, {
+        primary_camping_accommodation: primaryAccommodation,
+        has_utility_trailer: hasUtilityTrailer.toString(), // Convert boolean to string for Analytics
+    });
+};
+
 
 export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanManagerProps) {
   const { toast } = useToast();
@@ -53,19 +78,22 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
   const saveCaravanMutation = useMutation({
     mutationFn: (caravanData: CaravanFormData) => {
       if (editingCaravan) {
-        // We are updating. Ensure the ID is included for the API call.
         const dataToSend: StoredCaravan = {
           ...caravanData,
           id: editingCaravan.id
         }
         return updateCaravan(dataToSend);
       } else {
-        // We are creating a new one.
         return createCaravan(caravanData);
       }
     },
     onSuccess: (savedCaravan) => {
       invalidateAndRefetch();
+      updateAnalyticsUserProperties(
+          editingCaravan
+              ? initialCaravans.map(c => c.id === savedCaravan.id ? savedCaravan : c)
+              : [...initialCaravans, savedCaravan]
+      );
       toast({
         title: editingCaravan ? "Caravan Updated" : "Caravan Added",
         description: `${savedCaravan.make} ${savedCaravan.model} has been saved.`,
@@ -80,8 +108,9 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
 
   const deleteCaravanMutation = useMutation({
     mutationFn: deleteCaravan,
-    onSuccess: () => {
+    onSuccess: (_, deletedId) => {
         invalidateAndRefetch();
+        updateAnalyticsUserProperties(initialCaravans.filter(c => c.id !== deletedId));
         toast({ title: "Caravan Deleted" });
         setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' });
     },
@@ -150,16 +179,16 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle className="font-headline">Caravans</CardTitle>
+            <CardTitle className="font-headline">Caravans / Rigs</CardTitle>
             <Dialog open={isFormOpen} onOpenChange={(isOpen) => { setIsFormOpen(isOpen); if (!isOpen) setEditingCaravan(null); }}>
               <DialogTrigger asChild>
                 <Button onClick={handleOpenFormForNew} className="bg-accent hover:bg-accent/90 text-accent-foreground font-body" disabled={isAddButtonDisabled}>
-                  <PlusCircle className="mr-2 h-4 w-4" /> Add New Caravan
+                  <PlusCircle className="mr-2 h-4 w-4" /> Add New Rig
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[725px]">
                 <DialogHeader>
-                  <DialogTitle className="font-headline">{editingCaravan ? 'Edit Caravan' : 'Add New Caravan'}</DialogTitle>
+                  <DialogTitle className="font-headline">{editingCaravan ? 'Edit Rig' : 'Add New Rig'}</DialogTitle>
                 </DialogHeader>
                 <ScrollArea className="max-h-[70vh] pr-6">
                   <CaravanForm
@@ -173,20 +202,25 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
             </Dialog>
           </div>
           <CardDescription className="font-body">
-            Manage your caravans. Select one as active for inventory and planning.
+            Manage your caravans, campers, and trailers. Select one as active for inventory and planning.
             {!hasProAccess && " (Free tier limit: 1)"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {initialCaravans.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No caravans added yet.</p>}
+          {initialCaravans.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No rigs added yet.</p>}
           {initialCaravans.map(caravan => {
             const caravanGrossPayload = (typeof caravan.atm === 'number' && typeof caravan.tareMass === 'number' && caravan.atm > 0 && caravan.tareMass > 0 && caravan.atm >= caravan.tareMass) ? caravan.atm - caravan.tareMass : null;
             return (
               <Card key={caravan.id} className={`p-4 ${activeCaravanId === caravan.id ? 'border-primary shadow-lg' : 'shadow-sm'}`}>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
                   <div className="flex-grow">
-                    <h3 className="font-semibold font-headline text-xl text-primary">{caravan.year} {caravan.make} {caravan.model}</h3>
-                    <div className="text-sm text-muted-foreground font-body grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 mt-1">
+                    <h3 className="font-semibold font-headline text-xl text-primary flex items-center">
+                        <CaravanIcon className="h-5 w-5 mr-2 text-primary/80"/>
+                        {caravan.year} {caravan.make} {caravan.model}
+                    </h3>
+                    <Badge variant="secondary" className="mt-1">{caravan.type}</Badge>
+
+                    <div className="text-sm text-muted-foreground font-body grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 mt-2">
                       <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Tare: {caravan.tareMass}kg</span>
                       <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> ATM: {caravan.atm}kg</span>
                       {caravanGrossPayload !== null && <span className="flex items-center"><PackagePlus className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Payload: {caravanGrossPayload.toFixed(0)}kg</span>}
