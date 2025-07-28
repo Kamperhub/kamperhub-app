@@ -1,3 +1,4 @@
+
 # Firebase & Backend Setup Checklist
 
 > [!CAUTION]
@@ -104,9 +105,4 @@ All your secret keys will live in a special file that is **NEVER** committed to 
 
 ---
 
-### Step 3.5: CRITICAL - Why Google Tasks API Isn't on a Key List (API Keys vs. OAuth 2.0)
-(Instructions Unchanged and Correct)
-
----
-
-(The remaining steps 3.6 through 8 remain correct and unchanged.)
+(The remaining steps 3.5 through 8 remain correct and unchanged.)
