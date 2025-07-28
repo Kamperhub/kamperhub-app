@@ -8,7 +8,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { LayoutDashboard, Settings2, Backpack, ListChecks, Briefcase, BedDouble, BookOpen, UserCircle, FileText } from 'lucide-react';
+import { LayoutDashboard, Settings2, Backpack, ListChecks, Briefcase, BedDouble, BookOpen, UserCircle, FileText, Fuel } from 'lucide-react';
 
 export function UserManualContent() {
   const manualSections = [
@@ -34,11 +34,11 @@ export function UserManualContent() {
               <p className="text-sm">Record details like make, model, year, GVM (Gross Vehicle Mass), GCM (Gross Combined Mass), max towing capacity, fuel efficiency, and define specific storage areas within your tow vehicle (e.g., "Boot," "Roof Box"). Mark one vehicle as "Active" to use its specs in calculations.</p>
             </li>
             <li>
-              <h4 className="font-semibold font-headline text-md text-foreground">Caravans:</h4>
-              <p className="text-sm">Input details like Tare Mass, ATM (Aggregate Trailer Mass), and GTM (Gross Trailer Mass). You can also manage your Weight Distribution Hitch (WDH) settings, define internal storage locations, and list your water tanks. Mark one caravan as "Active" for use in the Inventory page.</p>
+              <h4 className="font-semibold font-headline text-md text-foreground">Caravans/Rigs:</h4>
+              <p className="text-sm">Input details for any type of camping rig, from a simple "Tent" or "Utility Trailer" to a large "Fifth Wheeler". You can manage Weight Distribution Hitch (WDH) settings, define internal storage locations, and list your water tanks. Mark one rig as "Active" for use in the Inventory page.</p>
             </li>
           </ul>
-          <p className="text-sm"><strong>Subscription Note:</strong> The free version of KamperHub allows you to add 1 tow vehicle and 1 caravan. Upgrade to Pro for unlimited entries.</p>
+          <p className="text-sm"><strong>Subscription Note:</strong> The free version of KamperHub allows you to add 1 tow vehicle and 1 caravan/rig. Upgrade to Pro for unlimited entries.</p>
         </>
       )
     },
@@ -87,10 +87,10 @@ export function UserManualContent() {
           <p>The Trip Manager is the central hub for all your travel planning activities.</p>
           <ul className="list-disc pl-5 space-y-2">
             <li>
-                <strong>Journeys:</strong> Group multiple individual trips into a single adventure (e.g., "The Big Lap 2025"). Each Journey has a master map showing the combined route of all its trips.
+                <strong>Journeys:</strong> Group multiple individual trips into a single adventure (e.g., "The Big Lap 2025"). Each Journey has a master map showing the combined route of all its trips, an aggregated financial summary, and a strategic AI packing planner.
             </li>
             <li>
-                <strong>Trip Planner:</strong> Plan individual trip legs with Google Maps, factoring in vehicle height. Get estimates for distance, duration, and fuel, and track budgets and expenses for each trip.
+                <strong>Trip Planner:</strong> Plan individual trip legs with Google Maps, factoring in vehicle height. You can now add multiple stops (waypoints) to create complex routes. Get estimates for distance, duration, and fuel, and track budgets and expenses for each trip.
             </li>
             <li><strong>Trip Log:</strong> Review your past adventures, recall saved trips for re-planning, and mark trips as complete.</li>
             <li><strong>Trip Packing Assistant:</strong> Use our AI assistant to generate smart packing lists.</li>
@@ -100,7 +100,24 @@ export function UserManualContent() {
       )
     },
     {
-      title: "6. Checklists",
+      title: "6. Service & Fuel Log",
+      icon: Fuel,
+      content: (
+        <>
+          <p>Keep a detailed history of your fuel consumption and maintenance tasks for all your registered vehicles and caravans. This feature helps you monitor running costs and stay on top of your service schedule.</p>
+           <ul className="list-disc pl-5 space-y-2">
+            <li>
+              <strong>Fuel Log:</strong> Record every fill-up by selecting a vehicle, and entering the date, odometer reading, litres, price per litre, and total cost. The app will help you track fuel efficiency over time.
+            </li>
+            <li>
+              <strong>Maintenance Log:</strong> Log all service and repair tasks. Record the task name, date, cost, service provider, and any relevant notes to maintain a complete service history for your rig.
+            </li>
+          </ul>
+        </>
+      )
+    },
+    {
+      title: "7. Checklists",
       icon: ListChecks,
       content: (
         <>
@@ -117,7 +134,7 @@ export function UserManualContent() {
       )
     },
     {
-      title: "7. Bookings",
+      title: "8. Bookings",
       icon: BedDouble,
       content: (
         <>
@@ -126,16 +143,16 @@ export function UserManualContent() {
       )
     },
     {
-      title: "8. Support & Learn",
+      title: "9. Support & Learn",
       icon: BookOpen,
       content: (
         <>
-          <p>Find resources to help you with your caravanning journey, including Articles, the AI Chatbot, this User Manual, and our Terms of Service.</p>
+          <p>Find resources to help you with your caravanning journey, including Articles, the AI Chatbot (which can now answer questions about your saved trips and vehicles), this User Manual, and our Terms of Service.</p>
         </>
       )
     },
     {
-      title: "9. My Account & Subscriptions",
+      title: "10. My Account & Subscriptions",
       icon: UserCircle,
       content: (
          <>
