@@ -1,70 +1,33 @@
-// No 'use client' is strictly necessary for a purely static HTML output,
-// but it's harmless to leave it if preferred.
+
+'use client';
+
+import Link from 'next/link';
+import { Compass, Home } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function NotFound() {
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '100vh', // Simpler vh for full height
-      padding: '1rem',
-      backgroundColor: '#FAF8F1', // Your background color
-      color: '#333', // A default dark text color
-      fontFamily: 'sans-serif', // Use a standard web-safe font
-      textAlign: 'center',
-      boxSizing: 'border-box' // Ensure padding doesn't affect height
-    }}>
-      <div style={{ maxWidth: '600px', width: '100%' }}>
-        {/* Main Error Icon (Example: a generic "x" in a circle, or a simple question mark) */}
-        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#BC4749" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 1rem', display: 'block' }}>
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 16v-4" />
-            <path d="M12 8h.01" />
-        </svg>
-
-        <h1 style={{ fontFamily: 'sans-serif', fontSize: '3.75rem', lineHeight: '1', color: '#BC4749', margin: '0 0 0.5rem' }}>
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] py-12 font-body bg-background text-foreground text-center p-4">
+      <div className="w-full max-w-lg">
+        <Compass className="h-20 w-20 text-accent mx-auto mb-4" />
+        <h1 className="font-headline text-5xl text-accent">
           404
         </h1>
-        <h2 style={{ fontFamily: 'sans-serif', fontSize: '1.5rem', lineHeight: '2rem', color: '#386641', margin: '0.5rem 0 1.5rem' }}>
+        <h2 className="font-headline text-2xl text-primary mt-2">
           Page Not Found
         </h2>
-        <p style={{ color: '#525252', margin: '1.5rem auto' }}>
+        <p className="font-body text-foreground mt-6">
           Oops! It seems you've taken a wrong turn. The page you're looking for doesn't exist or has been moved.
         </p>
-        <div style={{ marginTop: '2rem' }}>
-            {/* Using a simple <a> tag for maximum resilience */}
-            <a href="/" style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                whiteSpace: 'nowrap',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                lineHeight: '1.25rem',
-                fontWeight: '500',
-                padding: '0.5rem 1rem',
-                backgroundColor: '#386641', // Your primary color
-                color: '#F7F8F8', // Your primary foreground color
-                textDecoration: 'none',
-                transition: 'background-color 0.2s', // Basic transition for hover effect
-                border: 'none',
-                cursor: 'pointer',
-            }}
-            // Simple hover effect using inline JavaScript
-            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#2a4d31')}
-            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#386641')}
-            >
-                {/* Home Icon as inline SVG */}
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '0.5rem' }}>
-                  <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                  <polyline points="9 22 9 12 15 12 15 22" />
-                </svg>
+        <div className="mt-8">
+            <Link href="/" passHref>
+              <Button className="font-body bg-primary text-primary-foreground hover:bg-primary/90">
+                <Home className="mr-2 h-5 w-5" />
                 Return to Dashboard
-            </a>
+              </Button>
+            </Link>
         </div>
       </div>
     </div>
-  );
+  )
 }

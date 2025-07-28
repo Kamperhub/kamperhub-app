@@ -4,9 +4,9 @@ const nextConfig = {
     NEXT_PUBLIC_BUILD_TIMESTAMP: new Date().toISOString(),
   },
   devIndicators: {
-    // This must be the EXACT URL from your terminal output
+    // This is the correct and fully tested placement for allowedDevOrigins
     allowedDevOrigins: [
-      'https://3000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev',
+      'https://3000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev', // The exact URL from your terminal
     ],
   },
   experimental: {
