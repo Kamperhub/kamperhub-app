@@ -1,16 +1,19 @@
 
+import type { LucideIcon } from 'lucide-react';
 
-export const caravanTypes = [
-  "Caravan",
-  "Folding Camper",
-  "Motorhome",
-  "Campervan",
-  "Slide-on Camper",
-  "Fifth Wheeler",
-  "Tent",
-  "Utility Trailer",
+export const caravanTypeDetails = [
+  { name: "Caravan", icon: 'Caravan', description: "A standard towed trailer with rigid walls." },
+  { name: "Folding Camper", icon: 'TentTree', description: "A towable unit that folds for transport." },
+  { name: "Motorhome", icon: 'Bus', description: "A self-propelled vehicle with living quarters." },
+  { name: "Campervan", icon: 'Van', description: "A van converted for sleeping and camping." },
+  { name: "Slide-on Camper", icon: 'Truck', description: "A camper unit that sits on a utility vehicle tray." },
+  { name: "Fifth Wheeler", icon: 'Trailer', description: "A large trailer that attaches via a gooseneck." },
+  { name: "Tent", icon: 'Tent', description: "Ground-based tent camping equipment." },
+  { name: "Utility Trailer", icon: 'Square', description: "A simple trailer for carrying goods or equipment." },
 ] as const;
 
+
+export const caravanTypes = caravanTypeDetails.map(detail => detail.name);
 export type CaravanType = typeof caravanTypes[number];
 
 

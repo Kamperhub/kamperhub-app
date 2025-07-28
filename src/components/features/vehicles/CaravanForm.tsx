@@ -6,16 +6,27 @@ import { useForm, type SubmitHandler, Controller, useFieldArray } from 'react-ho
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { CaravanFormData, StorageLocation, WaterTank, WDHFormData, CaravanType } from '@/types/caravan';
-import { caravanTypes } from '@/types/caravan';
+import { caravanTypes, caravanTypeDetails } from '@/types/caravan';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, XCircle, PlusCircle, Trash2, Droplet, Info, Flame, Weight, Ruler, Link2, Axe, Disc, Caravan as CaravanIcon } from 'lucide-react';
+import { Save, XCircle, PlusCircle, Trash2, Droplet, Info, Flame, Weight, Ruler, Link2, Axe, Disc, Caravan as CaravanIcon, TentTree, Bus, Van, Truck, Trailer, Tent, Square } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+
+const icons: { [key: string]: React.ElementType } = {
+    Caravan: CaravanIcon,
+    TentTree,
+    Bus,
+    Van,
+    Truck,
+    Trailer,
+    Tent,
+    Square,
+};
 
 const storageLocationSchema = z.object({
   id: z.string(),
@@ -229,9 +240,20 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
                   <SelectValue placeholder="Select a rig type..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {caravanTypes.map(type => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
+                  {caravanTypeDetails.map(type => {
+                    const Icon = icons[type.icon];
+                    return (
+                        <SelectItem key={type.name} value={type.name}>
+                            <div className="flex items-center gap-3">
+                                {Icon && <Icon className="h-5 w-5 text-muted-foreground" />}
+                                <div>
+                                    <p>{type.name}</p>
+                                    <p className="text-xs text-muted-foreground">{type.description}</p>
+                                </div>
+                            </div>
+                        </SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
             )}
