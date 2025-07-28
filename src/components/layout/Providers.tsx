@@ -1,4 +1,3 @@
-
 "use client";
 
 import { QueryProvider } from '@/components/layout/QueryProvider';

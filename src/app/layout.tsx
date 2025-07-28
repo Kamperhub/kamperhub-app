@@ -1,13 +1,36 @@
 import type { Metadata } from 'next';
+import { Alegreya, Belleza, Source_Code_Pro } from 'next/font/google';
 import './globals.css';
 import { AppShell } from '@/components/layout/AppShell';
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from '@/components/layout/Providers';
+import { ThemeProvider } from '@/components/layout/ThemeProvider';
 
 export const metadata: Metadata = {
   title: 'KamperHub',
   description: 'Your ultimate caravanning companion.',
 };
+
+const belleza = Belleza({
+  subsets: ['latin'],
+  weight: '400',
+  variable: '--font-headline',
+  display: 'swap',
+});
+
+const alegreya = Alegreya({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-body',
+  display: 'swap',
+});
+
+const sourceCodePro = Source_Code_Pro({
+  subsets: ['latin'],
+  variable: '--font-code',
+  display: 'swap',
+});
 
 export default function RootLayout({
   children,
@@ -15,21 +38,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Belleza&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet" />
-      </head>
+    <html lang="en" className={`${belleza.variable} ${alegreya.variable} ${sourceCodePro.variable}`} suppressHydrationWarning>
       <body className="font-body antialiased">
-        <Providers>
-          <AppShell>
-            {children}
-          </AppShell>
-        </Providers>
-        <Toaster />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <Providers>
+            <AppShell>
+              {children}
+            </AppShell>
+          </Providers>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
