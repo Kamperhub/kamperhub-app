@@ -168,6 +168,7 @@ By making the "Traveller Profile" truly optional and clearly communicating its b
 
 #### What This Means for Your "Traveller Profile":
 *   **Massive Head Start:** A significant chunk of the technical data needed for AI features like "Predictive Route Intelligence" is already being captured on the vehicle specs pages. This means your AI has direct access to critical inputs like dimensions and weight without needing a separate profile form for that.
+*   **Water Tanks (Capacity & Position):** This is a huge bonus! The AI can factor in the weight of water (1L ≈ 1kg) into payload and weight distribution calculations, especially if tanks are filled/emptied. It can also advise on optimal tank filling strategies for balance and even suggest water filling stations en route.
 *   **Implicit Personalization:** Your AI can start providing intelligent recommendations based on this existing data immediately. If it knows your caravan is 3.5T, it doesn't need to ask for "heavy vehicle" preference – it knows!
 *   **Simplifies "Optionality":** It makes the "Traveller Profile" lighter and more palatable. Users have already provided vehicle data for core features; now, the optional parts can focus on subjective preferences.
 
