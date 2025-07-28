@@ -1,18 +1,18 @@
 
 
 export const caravanTypes = [
+  "Caravan",
+  "Folding Camper",
+  "Motorhome",
+  "Campervan",
+  "Slide-on Camper",
+  "Fifth Wheeler",
   "Tent",
-  "Camper Trailer (Tent)",
-  "Camper Trailer (Hard Floor)",
-  "Pop-Top Caravan",
-  "Full-Height Caravan",
-  "Fifth-Wheeler",
-  "Campervan / Motorhome",
   "Utility Trailer",
-  "Other",
 ] as const;
 
 export type CaravanType = typeof caravanTypes[number];
+
 
 export interface WDHFormData {
   name: string;
@@ -46,7 +46,7 @@ export interface WaterTank {
 }
 
 export interface CaravanFormData {
-  type: CaravanType; // This is the new mandatory field
+  type: CaravanType;
   make: string;
   model: string;
   year: number;
@@ -67,8 +67,8 @@ export interface CaravanFormData {
   overallHeight?: number | null;
   hitchToAxleCenterDistance?: number | null;
   interAxleSpacing?: number | null;
-  storageLocations: StorageLocation[];
-  waterTanks: WaterTank[];
+  storageLocations?: StorageLocation[];
+  waterTanks?: WaterTank[];
   wdh?: WDHFormData | null;
 }
 

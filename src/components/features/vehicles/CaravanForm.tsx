@@ -5,12 +5,13 @@ import React, { useEffect, useMemo } from 'react';
 import { useForm, type SubmitHandler, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { CaravanFormData, StorageLocation, WaterTank, WDHFormData } from '@/types/caravan';
+import type { CaravanFormData, StorageLocation, WaterTank, WDHFormData, CaravanType } from '@/types/caravan';
+import { caravanTypes } from '@/types/caravan';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, XCircle, PlusCircle, Trash2, Droplet, Info, Flame, Weight, Ruler, Link2, Axe, Disc } from 'lucide-react';
+import { Save, XCircle, PlusCircle, Trash2, Droplet, Info, Flame, Weight, Ruler, Link2, Axe, Disc, Caravan as CaravanIcon } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
@@ -56,6 +57,7 @@ const wdhSchema = z.object({
 });
 
 const caravanSchema = z.object({
+  type: z.enum(caravanTypes, { required_error: "Please select a rig type." }),
   make: z.string().min(1, "Make is required"),
   model: z.string().min(1, "Model is required"),
   year: z.coerce.number().min(1900, "Invalid year").max(new Date().getFullYear() + 2, "Invalid year"),
@@ -95,6 +97,7 @@ interface CaravanFormProps {
 export function CaravanForm({ initialData, onSave, onCancel, isLoading }: CaravanFormProps) {
   
   const defaultFormValues: CaravanFormInternalData = {
+    type: "Caravan",
     make: '',
     model: '',
     year: new Date().getFullYear(),
@@ -214,7 +217,27 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="p-4 border rounded-md space-y-4 bg-muted/30">
-        <h3 className="text-lg font-medium font-headline text-primary flex items-center"><Info className="mr-2 h-5 w-5" /> Basic Information</h3>
+        <h3 className="text-lg font-medium font-headline text-primary flex items-center"><CaravanIcon className="mr-2 h-5 w-5" /> Rig Type &amp; Details</h3>
+        <div>
+          <Label htmlFor="caravanType" className="font-body">Type of Rig*</Label>
+          <Controller
+            name="type"
+            control={control}
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} value={field.value}>
+                <SelectTrigger id="caravanType" className="font-body bg-background">
+                  <SelectValue placeholder="Select a rig type..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {caravanTypes.map(type => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {errors.type && <p className="text-sm text-destructive font-body mt-1">{errors.type.message}</p>}
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="md:col-span-2">
             <Label htmlFor="caravanMake" className="font-body">Make</Label>
@@ -230,11 +253,6 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
             <Label htmlFor="caravanYear" className="font-body">Year</Label>
             <Input id="caravanYear" type="number" {...register("year")} placeholder="e.g., 2021" className="font-body" />
             {errors.year && <p className="text-sm text-destructive font-body mt-1">{errors.year.message}</p>}
-          </div>
-          <div>
-            <Label htmlFor="numberOfAxles" className="font-body">Number of Axles</Label>
-            <Input id="numberOfAxles" type="number" {...register("numberOfAxles")} placeholder="e.g., 1 or 2" className="font-body" />
-            {errors.numberOfAxles && <p className="text-sm text-destructive font-body mt-1">{errors.numberOfAxles.message}</p>}
           </div>
         </div>
       </div>
@@ -277,7 +295,12 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
       <div className="p-4 border rounded-md space-y-4 bg-muted/30">
         <h3 className="text-lg font-medium font-headline text-primary flex items-center"><Axe className="mr-2 h-5 w-5" /> Axle, Gas & Tyre Specifications</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          <div className="sm:col-span-2">
+           <div>
+            <Label htmlFor="numberOfAxles" className="font-body">Number of Axles</Label>
+            <Input id="numberOfAxles" type="number" {...register("numberOfAxles")} placeholder="e.g., 1 or 2" className="font-body" />
+            {errors.numberOfAxles && <p className="text-sm text-destructive font-body mt-1">{errors.numberOfAxles.message}</p>}
+          </div>
+          <div className="sm:col-span-1">
             <Label htmlFor="axleGroupRating" className="font-body">Axle Group Rating (kg)</Label>
             <Input id="axleGroupRating" type="number" {...register("axleGroupRating")} placeholder="e.g., 2400" className="font-body" />
             {errors.axleGroupRating && <p className="text-sm text-destructive font-body mt-1">{errors.axleGroupRating.message}</p>}
