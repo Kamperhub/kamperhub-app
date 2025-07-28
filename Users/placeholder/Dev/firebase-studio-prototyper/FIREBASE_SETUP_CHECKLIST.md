@@ -86,12 +86,12 @@ This process remains the same, but is now more reliable because the server key i
 2.  **A) Configure Your Firebase Browser Key:**
     *   Find the key that matches `NEXT_PUBLIC_FIREBASE_API_KEY`.
     *   **API RESTRICTIONS:** Restrict it to **Identity Toolkit API** and **Firebase App Check API**.
-    *   **WEBSITE RESTRICTIONS:** Add `*.cloudworkstations.dev/*` and `localhost:*/*`.
+    *   **WEBSITE RESTRICTIONS:** Add the specific URL of your development environment (e.g., `https://3000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev/*`) and `localhost:*/*`.
 
 3.  **B) Create & Configure Your Google Maps Browser Key:**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Maps Key`.
     *   **API RESTRICTIONS:** Restrict it to **Maps JavaScript API** and **Places API (New)**.
-    *   **WEBSITE RESTRICTIONS:** Add `*.cloudworkstations.dev/*` and `localhost:*/*`.
+    *   **WEBSITE RESTRICTIONS:** Add the specific URL of your development environment (e.g., `https://3000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev/*`) and `localhost:*/*`.
     *   Paste this key into `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
 
 4.  **C) Create & Configure Your Server Key:**
