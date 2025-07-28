@@ -20,9 +20,9 @@ const config = {
     },
     extend: {
       fontFamily: {
-        body: ['var(--font-body)', 'serif'],
-        headline: ['var(--font-headline)', 'sans-serif'],
-        code: ['var(--font-code)', 'monospace'],
+        body: ['var(--font-body)'],
+        headline: ['var(--font-headline)'],
+        code: ['var(--font-code)'],
       },
       colors: {
         border: 'hsl(var(--border))',
