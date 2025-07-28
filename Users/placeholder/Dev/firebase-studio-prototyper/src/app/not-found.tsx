@@ -3,6 +3,7 @@
 
 import Link from 'next/link';
 import { Compass, Home } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function NotFound() {
   return (
@@ -20,7 +21,7 @@ export default function NotFound() {
         </p>
         <div className="mt-8">
             <Link href="/" passHref>
-              <Button className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 font-body bg-primary text-primary-foreground hover:bg-primary/90">
+              <Button className="font-body bg-primary text-primary-foreground hover:bg-primary/90">
                 <Home className="mr-2 h-5 w-5" />
                 Return to Dashboard
               </Button>
