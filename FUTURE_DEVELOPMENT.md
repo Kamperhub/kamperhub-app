@@ -98,8 +98,10 @@ This section tracks potential new features and enhancements for future considera
     *   Based on user preferences (e.g., type of travel, interests, past trips), suggest potential destinations or routes.
     *   Integrate with the Chatbot to help users plan trips conversationally.
 
-*   **Automated Maintenance Reminders:**
-    *   Allow users to log caravan/vehicle service dates and set reminders for common maintenance tasks (e.g., tyre checks, bearing services) based on time or distance traveled (if GPS tracking were ever implemented).
+*   **Predictive Vehicle & Caravan Maintenance Assistant:**
+    This feature would be split into two distinct but complementary functions to provide a truly smart maintenance experience.
+    *   **Function 1: Standard Interval Reminders:** This foundational layer provides reminders based on fixed time or mileage intervals. It would use the vehicle's make/model, current odometer, date of last service, and service interval (user-defined or from a database) to provide simple notifications like, "Your next service is due in 2,000km or 2 months."
+    *   **Function 2: Proactive Trip-Based Service Planning:** This is the unique, intelligent feature. It actively integrates maintenance needs with upcoming travel plans to prevent issues. When a user plans a new trip, GenKit would calculate the projected odometer at the end of the trip. If a service is predicted to fall due during the journey, it would issue a proactive advisory like, "AI predicts your 15,000km service will be due around [Date/Location] during this trip." It could then offer solutions, such as suggesting the service be brought forward or, more powerfully, suggesting a service stop by identifying major towns on the route and proposing an extra day in the itinerary to accommodate the service.
 
 ### AI & Automation Enhancements (Advanced Concepts)
 
@@ -247,3 +249,4 @@ For your KamperHub web app, definitely add the text to the app, but do it dynami
       
 
       
+
