@@ -26,7 +26,7 @@ function getDocWithTimeout(docRef: DocumentReference, timeout: number): Promise<
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`Firestore request timed out after ${timeout}ms. This usually means a problem connecting to the database. Please check your internet connection and ensure the database name in your configuration ('kamperhubv2') is correct in the Firebase Console.`));
-    }, timeout);
+    }, 7000);
 
     getDoc(docRef).then(
       (snapshot) => {
