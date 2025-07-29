@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -7,7 +6,6 @@ import { Briefcase } from 'lucide-react';
 import { tripManagerItems, type NavItem } from '@/lib/navigation'; 
 import { useContext } from 'react';
 import { NavigationContext } from '@/components/layout/AppShell';
-import * as icons from 'lucide-react';
 
 export default function TripManagerPage() {
   const navContext = useContext(NavigationContext);
@@ -28,13 +26,13 @@ export default function TripManagerPage() {
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {tripManagerItems.map((item: NavItem) => {
-          const IconComponent = icons[item.iconName as keyof typeof icons] || null;
+          const IconComponent = item.icon;
           return (
             <Link key={item.href} href={item.href} className="block h-full no-underline group" onClick={handleNavigation}>
               <Card className="h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader className="pb-4">
                   <CardTitle className="font-headline text-xl text-primary flex items-center">
-                    {IconComponent && <IconComponent className="w-6 h-6 mr-3 text-primary" />}
+                    <IconComponent className="w-6 h-6 mr-3 text-primary" />
                     {item.label}
                   </CardTitle>
                 </CardHeader>
@@ -46,7 +44,7 @@ export default function TripManagerPage() {
                     className="h-32 w-full bg-muted/30 rounded-md flex items-center justify-center my-2 overflow-hidden"
                     data-ai-hint={item.keywords}
                   >
-                    {IconComponent && <IconComponent className="w-16 h-16 text-accent opacity-50" />}
+                    <IconComponent className="w-16 h-16 text-accent opacity-50" />
                   </div>
                 </CardContent>
               </Card>

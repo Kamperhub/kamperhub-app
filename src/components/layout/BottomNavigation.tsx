@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useContext } from 'react';
@@ -7,8 +6,6 @@ import { usePathname } from 'next/navigation';
 import { navItems } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import { NavigationContext } from './AppShell';
-import * as icons from 'lucide-react';
-
 
 export function BottomNavigation() {
   const pathname = usePathname();
@@ -20,8 +17,6 @@ export function BottomNavigation() {
     }
   };
 
-  // The main dashboard nav items are too numerous for a bottom bar.
-  // We'll define a specific, smaller set here.
   const bottomNavItems = [
     navItems.find(item => item.href === '/dashboard'),
     navItems.find(item => item.href === '/vehicles'),
@@ -31,7 +26,6 @@ export function BottomNavigation() {
   ].filter(Boolean) as (typeof navItems);
 
 
-  // New logic: Define which paths belong to the Trip Manager group
   const tripManagerPaths = ['/trip-manager', '/trip-expense-planner', '/triplog', '/trip-packing', '/journeys', '/world-map', '/checklists'];
 
   return (
@@ -39,7 +33,7 @@ export function BottomNavigation() {
       <div className="container mx-auto px-2 sm:px-4">
         <ul className="flex justify-around items-center h-12">
           {bottomNavItems.map((item) => {
-            if (!item) return null; // Should not happen with the filter, but good for safety
+            if (!item) return null;
             
             const isDashboardLink = item.href === '/dashboard';
             const isTripManagerLink = item.href === '/trip-manager';
@@ -48,13 +42,12 @@ export function BottomNavigation() {
             if (isDashboardLink) {
               isActive = pathname === '/' || pathname === '/dashboard' || pathname === '/dashboard-details';
             } else if (isTripManagerLink) {
-              // Check if the current path or its dynamic parent (e.g., /journeys/[id]) is in the group
               isActive = tripManagerPaths.some(p => pathname.startsWith(p));
             } else {
               isActive = pathname.startsWith(item.href);
             }
               
-            const IconComponent = icons[item.iconName as keyof typeof icons];
+            const IconComponent = item.icon;
 
             return (
               <li key={item.label} className="flex-1 text-center">

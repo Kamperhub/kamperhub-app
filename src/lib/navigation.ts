@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, Globe, Fuel, FileText as DocumentIcon } from 'lucide-react';
+import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, Globe, FileText as DocumentIcon } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -40,7 +40,7 @@ export const tripManagerItems: NavItem[] = [
     keywords: 'packing checklist luggage'
   },
   {
-    href: '/trip-manager/checklists',
+    href: '/checklists',
     label: 'Procedural Checklists',
     icon: ListChecks,
     description: 'Use pre-departure, setup, and pack-down checklists for your trips. Never miss a step!',
