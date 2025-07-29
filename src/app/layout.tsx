@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { AppShell } from '@/components/layout/AppShell';
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from '@/components/layout/Providers';
 import { ThemeProvider } from '@/components/layout/ThemeProvider';
@@ -27,7 +26,6 @@ const sourceCodePro = Source_Code_Pro({
   display: 'swap',
 });
 
-
 export const metadata: Metadata = {
   title: 'KamperHub',
   description: 'Your ultimate caravanning companion.',
@@ -48,11 +46,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Providers>
-            <AppShell>
-              {children}
-            </AppShell>
+            {children}
+            <Toaster />
           </Providers>
-          <Toaster />
         </ThemeProvider>
       </body>
     </html>
