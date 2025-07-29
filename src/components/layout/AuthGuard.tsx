@@ -121,12 +121,12 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     return <LoadingScreen message="Initializing Session..." />;
   }
   
-  if (profileStatus === 'ERROR') {
-    return <ErrorScreen error={profileError} />;
-  }
-
   if (authStatus === 'AUTHENTICATED' && profileStatus === 'LOADING') {
     return <LoadingScreen message="Loading Your Profile..." />;
+  }
+
+  if (profileStatus === 'ERROR') {
+    return <ErrorScreen error={profileError} />;
   }
   
   if (authStatus === 'AUTHENTICATED' && profileStatus === 'SUCCESS') {
