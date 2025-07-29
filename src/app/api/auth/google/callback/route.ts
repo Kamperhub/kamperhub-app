@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -82,7 +81,27 @@ export async function GET(req: NextRequest) {
     }, { merge: true });
 
     console.log(`[AUTH CALLBACK] Successfully processed. Redirecting to success page.`);
-    return NextResponse.redirect(new URL('/my-account?success=google_auth_connected', req.url));
+    
+    // Respond with a simple HTML page that performs the redirect on the top-level window
+    return new NextResponse(
+      `<!DOCTYPE html>
+      <html>
+        <head>
+          <title>Redirecting...</title>
+          <script>
+            window.top.location.href = "/my-account?success=google_auth_connected";
+          </script>
+        </head>
+        <body>
+          <p>Authentication successful. Redirecting...</p>
+        </body>
+      </html>`,
+      {
+        headers: {
+          'Content-Type': 'text/html',
+        },
+      }
+    );
     
   } catch (err: any) {
     console.error("[AUTH CALLBACK] An error occurred in the callback handler:", err);
