@@ -107,29 +107,45 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (authStatus === 'UNAUTHENTICATED') {
-      const currentPath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-      if (pathname !== '/login' && pathname !== '/') {
-        router.push(`/login?redirectedFrom=${encodeURIComponent(currentPath)}`);
-      } else {
-        router.push('/login');
+    // If the user's auth state is fully resolved and they are logged in...
+    if (authStatus === 'AUTHENTICATED' && profileStatus === 'SUCCESS') {
+      // ...and they are on the public landing page ('/')...
+      if (pathname === '/') {
+        // ...redirect them to their dashboard.
+        router.replace('/dashboard');
       }
     }
-  }, [authStatus, router, pathname, searchParams]);
+    
+    // If the user's auth state is resolved and they are NOT logged in...
+    if (authStatus === 'UNAUTHENTICATED') {
+      const currentPath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+      // ...and they are on a protected page, redirect them to login.
+      // We don't need to check every protected page, just ensure we don't redirect from public pages.
+      const isPublicPage = pathname === '/login' || pathname === '/' || pathname === '/signup';
+      if (!isPublicPage) {
+        router.replace(`/login?redirectedFrom=${encodeURIComponent(currentPath)}`);
+      }
+    }
+  }, [authStatus, profileStatus, router, pathname, searchParams]);
 
-  if (authStatus === 'LOADING') {
-    return <LoadingScreen message="Initializing Session..." />;
+  if (authStatus === 'LOADING' || (authStatus === 'AUTHENTICATED' && profileStatus === 'LOADING')) {
+    return <LoadingScreen message={authStatus === 'LOADING' ? 'Initializing Session...' : 'Loading Your Profile...'} />;
   }
   
-  if (authStatus === 'AUTHENTICATED' && profileStatus === 'LOADING') {
-    return <LoadingScreen message="Loading Your Profile..." />;
-  }
-
   if (profileStatus === 'ERROR') {
     return <ErrorScreen error={profileError} />;
   }
   
   if (authStatus === 'AUTHENTICATED' && profileStatus === 'SUCCESS') {
+    // If we're still on the root path before redirect effect kicks in, show loading to prevent flashing the landing page.
+    if (pathname === '/') {
+        return <LoadingScreen message="Redirecting to dashboard..." />;
+    }
+    return <>{children}</>;
+  }
+  
+  // For unauthenticated users on public pages, render the children immediately
+  if (authStatus === 'UNAUTHENTICATED') {
     return <>{children}</>;
   }
   
