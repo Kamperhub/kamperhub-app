@@ -16,6 +16,8 @@ interface NavigationContextType {
 
 export const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
 
+// A new internal component to hold the main layout structure.
+// This allows AuthGuard to wrap the entire visible app.
 const MainLayout = ({ children, apiKeyMissing }: { children: React.ReactNode, apiKeyMissing: boolean }) => {
   const pathname = usePathname();
   const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/';
@@ -48,6 +50,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    // Hide loader whenever the path changes, which signifies navigation is complete
     setIsNavigating(false);
   }, [pathname, searchParams]);
   

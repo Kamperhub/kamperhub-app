@@ -26,6 +26,7 @@ const sourceCodePro = Source_Code_Pro({
   display: 'swap',
 });
 
+
 export const metadata: Metadata = {
   title: 'KamperHub',
   description: 'Your ultimate caravanning companion.',
@@ -47,8 +48,8 @@ export default function RootLayout({
         >
           <Providers>
             {children}
-            <Toaster />
           </Providers>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
