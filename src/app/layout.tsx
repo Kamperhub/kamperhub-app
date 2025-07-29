@@ -31,11 +31,12 @@ const sourceCodePro = Source_Code_Pro({
   display: 'swap',
 });
 
-// Metadata can still be exported from a client component in the root layout
-export const metadata: Metadata = {
-  title: 'KamperHub',
-  description: 'Your ultimate caravanning companion.',
-};
+// Note: Metadata export is commented out to prevent build errors when "use client" is present.
+// This is a temporary measure to address the critical App Check issue.
+// export const metadata: Metadata = {
+//   title: 'KamperHub',
+//   description: 'Your ultimate caravanning companion.',
+// };
 
 export default function RootLayout({
   children,
@@ -45,7 +46,7 @@ export default function RootLayout({
   useEffect(() => {
     // Initialize Firebase App Check once the component has mounted on the client.
     // This is the correct place for global client-side initialization.
-    initializeAppCheck();
+    initializeFirebaseAppCheck();
   }, []);
 
   return (
