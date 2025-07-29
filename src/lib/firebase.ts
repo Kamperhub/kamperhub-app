@@ -6,7 +6,6 @@ import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from '
 import { getRemoteConfig, type RemoteConfig } from "firebase/remote-config";
 
 // --- Declare global for App Check Debug Token (Crucial for localhost testing) ---
-// This tells TypeScript that FIREBASE_APPCHECK_DEBUG_TOKEN can exist globally
 declare global {
   // eslint-disable-next-line no-var
   var FIREBASE_APPCHECK_DEBUG_TOKEN: string | boolean | undefined;
@@ -46,7 +45,6 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
 
     if (typeof window !== 'undefined') {
         remoteConfig = getRemoteConfig(app);
-        // Set minimum fetch interval for development
         if (process.env.NEXT_PUBLIC_APP_ENV === 'development') {
             remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour
         }
@@ -80,7 +78,8 @@ export function initializeFirebaseAppCheck() {
   if (typeof window !== 'undefined' && app?.name && !appCheck) {
     if (process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN) {
       console.log('[Firebase Client] App Check: Using debug token for local development.');
-      self.FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN;
+      // This is the most reliable way for the SDK to pick up the token.
+      (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN;
     }
 
     if (process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY) {
