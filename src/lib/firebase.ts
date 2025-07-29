@@ -3,10 +3,17 @@ import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions 
 import { getAuth, type Auth, browserSessionPersistence, setPersistence } from 'firebase/auth';
 import { getFirestore, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from '@firebase/app-check';
+import { getRemoteConfig, type RemoteConfig } from "firebase/remote-config";
 
-// This configuration now correctly uses its own dedicated API key for Firebase services.
+// --- Declare global for App Check Debug Token (Crucial for localhost testing) ---
+// This tells TypeScript that FIREBASE_APPCHECK_DEBUG_TOKEN can exist globally
+declare global {
+  // eslint-disable-next-line no-var
+  var FIREBASE_APPCHECK_DEBUG_TOKEN: string | boolean | undefined;
+}
+
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY, // CORRECT: Use the dedicated Firebase API key
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
@@ -15,11 +22,10 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-
-// Initialize Firebase
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
+let remoteConfig: RemoteConfig | null = null;
 let appCheck: AppCheck | undefined;
 export let firebaseInitializationError: string | null = null;
 
@@ -35,23 +41,27 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   try {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig as FirebaseOptions);
     auth = getAuth(app);
-    
-    // Set session persistence to avoid unexpected Passkey/WebAuthn prompts and fix redirect loops
     setPersistence(auth, browserSessionPersistence);
-
     db = getFirestore(app, 'kamperhubv2');
+
+    if (typeof window !== 'undefined') {
+        remoteConfig = getRemoteConfig(app);
+        // Set minimum fetch interval for development
+        if (process.env.NEXT_PUBLIC_APP_ENV === 'development') {
+            remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour
+        }
+    }
     
     console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}, connecting to database 'kamperhubv2'.`);
 
     if (typeof window !== 'undefined') {
-      console.log('[Firebase Client] Attempting to enable offline persistence...');
       enableIndexedDbPersistence(db)
         .then(() => console.log('[Firebase Client] Firestore offline persistence enabled.'))
         .catch((err) => {
           if (err.code === 'failed-precondition') {
-            console.warn('[Firebase Client] Firestore offline persistence could not be enabled. This can happen if you have multiple tabs open. Please close other tabs and refresh.');
+            console.warn('[Firebase Client] Firestore offline persistence could not be enabled. This can happen if you have multiple tabs open.');
           } else if (err.code === 'unimplemented') {
-            console.warn('[Firebase Client] Firestore offline persistence is not available in this browser. The app will work, but data will not be available offline.');
+            console.warn('[Firebase Client] Firestore offline persistence is not available in this browser.');
           } else {
               console.error("[Firebase Client] Error enabling Firestore offline persistence:", err);
           }
@@ -66,23 +76,13 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   }
 }
 
-/**
- * Initializes Firebase App Check on the client side.
- * This function is designed to be called from a useEffect hook in a top-level component
- * to ensure the DOM is ready, preventing reCAPTCHA placeholder errors.
- * It prioritizes the debug token for local development.
- */
 export function initializeFirebaseAppCheck() {
   if (typeof window !== 'undefined' && app?.name && !appCheck) {
-    // For local development, prioritize the debug token if it exists.
     if (process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN) {
       console.log('[Firebase Client] App Check: Using debug token for local development.');
-      // Make the debug token available globally for Firebase to pick up.
-      (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN;
+      self.FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN;
     }
 
-    // Initialize with reCAPTCHA Enterprise provider if the key is available.
-    // The SDK will automatically use the debug token if window.FIREBASE_APPCHECK_DEBUG_TOKEN is set.
     if (process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY) {
       try {
         appCheck = initializeAppCheck(app, {
@@ -99,4 +99,4 @@ export function initializeFirebaseAppCheck() {
   }
 }
 
-export { app, auth, db };
+export { app, auth, db, remoteConfig };
