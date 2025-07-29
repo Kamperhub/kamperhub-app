@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { StoredCaravan, CaravanFormData, CaravanType } from '@/types/caravan';
+import type { StoredCaravan, CaravanFormData } from '@/types/caravan';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -35,11 +35,9 @@ const updateAnalyticsUserProperties = (caravans: StoredCaravan[]) => {
     if (!analytics) return;
 
     // 1. Determine primary_camping_accommodation
-    let primaryAccommodation: CaravanType | 'none' = 'none';
+    let primaryAccommodation: string = 'none';
     const sleepingUnits = caravans.filter(c => c.type !== 'Utility Trailer');
     if (sleepingUnits.length > 0) {
-        // Simple logic: the first sleeping unit is the primary.
-        // This can be enhanced later if a user can mark one as "primary".
         primaryAccommodation = sleepingUnits[0].type;
     }
     
@@ -49,7 +47,7 @@ const updateAnalyticsUserProperties = (caravans: StoredCaravan[]) => {
     // 3. Set the user properties
     setUserProperties(analytics, {
         primary_camping_accommodation: primaryAccommodation,
-        has_utility_trailer: hasUtilityTrailer.toString(), // Convert boolean to string for Analytics
+        has_utility_trailer: hasUtilityTrailer.toString(),
     });
 };
 
@@ -88,12 +86,11 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
       }
     },
     onSuccess: (savedCaravan) => {
+      const updatedCaravans = editingCaravan
+            ? initialCaravans.map(c => c.id === savedCaravan.id ? savedCaravan : c)
+            : [...initialCaravans, savedCaravan];
+      updateAnalyticsUserProperties(updatedCaravans);
       invalidateAndRefetch();
-      updateAnalyticsUserProperties(
-          editingCaravan
-              ? initialCaravans.map(c => c.id === savedCaravan.id ? savedCaravan : c)
-              : [...initialCaravans, savedCaravan]
-      );
       toast({
         title: editingCaravan ? "Caravan Updated" : "Caravan Added",
         description: `${savedCaravan.make} ${savedCaravan.model} has been saved.`,
@@ -109,8 +106,8 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
   const deleteCaravanMutation = useMutation({
     mutationFn: deleteCaravan,
     onSuccess: (_, deletedId) => {
-        invalidateAndRefetch();
         updateAnalyticsUserProperties(initialCaravans.filter(c => c.id !== deletedId));
+        invalidateAndRefetch();
         toast({ title: "Caravan Deleted" });
         setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' });
     },
