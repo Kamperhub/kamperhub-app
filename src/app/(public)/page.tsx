@@ -7,6 +7,7 @@ import { LogIn } from 'lucide-react';
 import Image from 'next/image';
 import { navItems } from '@/lib/navigation';
 import { ClientBuildTimestamp } from '@/components/shared/ClientBuildTimestamp';
+import * as icons from 'lucide-react';
 
 export default function LandingPage() {
 
@@ -55,19 +56,22 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {featuresToDisplay.map((feature) => (
-                <Card key={feature.label} className="text-center shadow-lg hover:shadow-xl transition-shadow">
-                  <CardHeader>
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
-                      <feature.icon className="h-6 w-6" />
-                    </div>
-                    <CardTitle className="font-headline text-xl">{feature.label}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">{feature.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
+              {featuresToDisplay.map((feature) => {
+                const Icon = icons[feature.iconName] as React.ElementType;
+                return (
+                  <Card key={feature.label} className="text-center shadow-lg hover:shadow-xl transition-shadow">
+                    <CardHeader>
+                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <CardTitle className="font-headline text-xl">{feature.label}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">{feature.description}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -78,32 +82,18 @@ export default function LandingPage() {
                  <h2 className="text-3xl md:text-4xl font-headline text-primary">Your Data, Your Control</h2>
                  <p className="mt-2 max-w-3xl mx-auto text-lg text-muted-foreground">We provide optional features that can connect to your Google account. Here’s why:</p>
                  <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                     <Card className="text-left">
-                        <CardHeader>
-                            <CardTitle className="font-headline text-xl flex items-center">
-                                <Image src="/google-tasks.svg" alt="Google Tasks Logo" width={24} height={24} className="mr-2"/>
-                                Google Tasks (Optional)
-                            </CardTitle>
-                        </CardHeader>
-                         <CardContent>
-                            <p className="text-muted-foreground">
-                                You can choose to connect your Google Account to authorize KamperHub to create detailed packing checklists directly in your Google Tasks. This is an optional feature to help you manage your packing outside our app. We only request permission to create new tasks and do not read, store, or delete any of your existing tasks.
-                            </p>
-                         </CardContent>
-                     </Card>
-                     <Card className="text-left">
-                        <CardHeader>
-                            <CardTitle className="font-headline text-xl flex items-center">
-                                <Image src="/google-calendar.svg" alt="Google Calendar Logo" width={24} height={24} className="mr-2"/>
-                                Google Calendar (Optional)
-                            </CardTitle>
-                        </CardHeader>
-                         <CardContent>
-                            <p className="text-muted-foreground">
-                                The "Add to Calendar" feature for your trips works by generating a standard Google Calendar event link. Clicking this link opens Google Calendar in a new tab with pre-filled event details for you to save. This feature does not require you to grant KamperHub any special permissions and we do not access or store your calendar data.
-                            </p>
-                         </CardContent>
-                     </Card>
+                     <div className="bg-card border p-6 rounded-lg shadow-sm text-left">
+                         <h3 className="font-headline text-xl flex items-center"><Image src="/google-tasks.svg" alt="Google Tasks Logo" width={24} height={24} className="mr-2" /> Google Tasks (Optional)</h3>
+                         <p className="mt-2 text-muted-foreground">
+                            You can choose to connect your Google Account to authorize KamperHub to create detailed packing checklists directly in your Google Tasks. This is an optional feature to help you manage your packing outside our app. We only request permission to create new tasks and do not read, store, or delete any of your existing tasks.
+                         </p>
+                     </div>
+                     <div className="bg-card border p-6 rounded-lg shadow-sm text-left">
+                         <h3 className="font-headline text-xl flex items-center"><Image src="/google-calendar.svg" alt="Google Calendar Logo" width={24} height={24} className="mr-2" /> Google Calendar (Optional)</h3>
+                         <p className="mt-2 text-muted-foreground">
+                            The "Add to Calendar" feature for your trips works by generating a standard Google Calendar event link. Clicking this link opens Google Calendar in a new tab with pre-filled event details for you to save. This feature does not require you to grant KamperHub any special permissions and we do not access or store your calendar data.
+                         </p>
+                     </div>
                  </div>
             </div>
         </section>
