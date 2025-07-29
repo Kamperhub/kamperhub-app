@@ -276,6 +276,11 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
             <Input id="caravanYear" type="number" {...register("year")} placeholder="e.g., 2021" className="font-body" />
             {errors.year && <p className="text-sm text-destructive font-body mt-1">{errors.year.message}</p>}
           </div>
+          <div>
+            <Label htmlFor="numberOfAxles" className="font-body">Number of Axles</Label>
+            <Input id="numberOfAxles" type="number" {...register("numberOfAxles")} placeholder="e.g., 1 or 2" className="font-body" />
+            {errors.numberOfAxles && <p className="text-sm text-destructive font-body mt-1">{errors.numberOfAxles.message}</p>}
+          </div>
         </div>
       </div>
 
@@ -317,12 +322,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
       <div className="p-4 border rounded-md space-y-4 bg-muted/30">
         <h3 className="text-lg font-medium font-headline text-primary flex items-center"><Axe className="mr-2 h-5 w-5" /> Axle, Gas & Tyre Specifications</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-           <div>
-            <Label htmlFor="numberOfAxles" className="font-body">Number of Axles</Label>
-            <Input id="numberOfAxles" type="number" {...register("numberOfAxles")} placeholder="e.g., 1 or 2" className="font-body" />
-            {errors.numberOfAxles && <p className="text-sm text-destructive font-body mt-1">{errors.numberOfAxles.message}</p>}
-          </div>
-          <div className="sm:col-span-1">
+          <div className="sm:col-span-2">
             <Label htmlFor="axleGroupRating" className="font-body">Axle Group Rating (kg)</Label>
             <Input id="axleGroupRating" type="number" {...register("axleGroupRating")} placeholder="e.g., 2400" className="font-body" />
             {errors.axleGroupRating && <p className="text-sm text-destructive font-body mt-1">{errors.axleGroupRating.message}</p>}
