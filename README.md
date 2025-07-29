@@ -1,5 +1,5 @@
 
-npm ru# KamperHub - A Firebase Studio Project
+# KamperHub - A Firebase Studio Project
 
 This is a Next.js starter project for KamperHub, built within Firebase Studio. It's designed for developing and managing a comprehensive caravanning companion application.
 

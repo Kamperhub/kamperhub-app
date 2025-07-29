@@ -23,34 +23,11 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { analytics } from '@/lib/firebase';
-import { setUserProperties } from 'firebase/analytics';
 
 interface CaravanManagerProps {
     initialCaravans: StoredCaravan[];
     initialUserPrefs: Partial<UserProfile> | null;
 }
-
-const updateAnalyticsUserProperties = (caravans: StoredCaravan[]) => {
-    if (!analytics) return;
-
-    // 1. Determine primary_camping_accommodation
-    let primaryAccommodation: string = 'none';
-    const sleepingUnits = caravans.filter(c => c.type !== 'Utility Trailer');
-    if (sleepingUnits.length > 0) {
-        primaryAccommodation = sleepingUnits[0].type;
-    }
-    
-    // 2. Determine has_utility_trailer
-    const hasUtilityTrailer = caravans.some(c => c.type === 'Utility Trailer');
-
-    // 3. Set the user properties
-    setUserProperties(analytics, {
-        primary_camping_accommodation: primaryAccommodation,
-        has_utility_trailer: hasUtilityTrailer.toString(),
-    });
-};
-
 
 export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanManagerProps) {
   const { toast } = useToast();
@@ -86,10 +63,6 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
       }
     },
     onSuccess: (savedCaravan) => {
-      const updatedCaravans = editingCaravan
-            ? initialCaravans.map(c => c.id === savedCaravan.id ? savedCaravan : c)
-            : [...initialCaravans, savedCaravan];
-      updateAnalyticsUserProperties(updatedCaravans);
       invalidateAndRefetch();
       toast({
         title: editingCaravan ? "Caravan Updated" : "Caravan Added",
@@ -105,15 +78,14 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
 
   const deleteCaravanMutation = useMutation({
     mutationFn: deleteCaravan,
-    onSuccess: (_, deletedId) => {
-        updateAnalyticsUserProperties(initialCaravans.filter(c => c.id !== deletedId));
+    onSuccess: () => {
         invalidateAndRefetch();
         toast({ title: "Caravan Deleted" });
         setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' });
     },
     onError: (err: Error) => {
-        invalidateAndRefetch();
-        toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
+      invalidateAndRefetch();
+      toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
     },
   });
 
