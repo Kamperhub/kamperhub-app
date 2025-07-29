@@ -187,8 +187,7 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
                         <CaravanIcon className="h-5 w-5 mr-2 text-primary/80"/>
                         {caravan.year} {caravan.make} {caravan.model}
                     </h3>
-                    <Badge variant="secondary" className="mt-1">{caravan.type}</Badge>
-
+                    {caravan.type && <Badge variant="secondary" className="mt-1">{caravan.type}</Badge>}
                     <div className="text-sm text-muted-foreground font-body grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 mt-2">
                       <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Tare: {caravan.tareMass}kg</span>
                       <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> ATM: {caravan.atm}kg</span>
