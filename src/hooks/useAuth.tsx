@@ -2,8 +2,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
-import { doc, setDoc, onSnapshot, type DocumentReference, type DocumentSnapshot } from 'firebase/firestore';
+import { onIdTokenChanged, type User as FirebaseUser } from 'firebase/auth';
+import { doc, onSnapshot, type DocumentReference, type DocumentSnapshot } from 'firebase/firestore';
 import { auth, db, firebaseInitializationError } from '@/lib/firebase';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from './useSubscription';
@@ -38,11 +38,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribeAuth = onIdTokenChanged(auth, async (currentUser) => {
       setUser(currentUser);
       let unsubscribeProfile: (() => void) | undefined;
-      
+
       if (currentUser) {
+        // Sync the session cookie with the server.
+        try {
+            const idToken = await currentUser.getIdToken();
+            await fetch('/api/auth/session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken }),
+            });
+        } catch (error) {
+            console.error("Failed to sync session cookie:", error);
+        }
+        
         setAuthStatus('AUTHENTICATED');
         setProfileStatus('LOADING');
         setProfileError(null);
@@ -60,14 +72,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 );
                 setProfileStatus('SUCCESS');
             } else {
-               console.warn(`User document for ${currentUser.uid} not found. This may occur during new user signup.`);
-               // This can be a transient state during signup. If it persists, it's an error.
-               // For now, we wait for the signup process to create the document.
-               // If after a short period no profile appears, it's an issue.
-               // For this implementation, we will treat it as an error to be safe.
                setUserProfile(null);
                setSubscriptionDetails('free');
-               setProfileError("User profile document not found in Firestore.");
+               setProfileError("User profile document not found in Firestore. This might happen during initial signup and should resolve shortly.");
                setProfileStatus('ERROR');
             }
           },
@@ -83,6 +90,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         );
       } else {
+        // User logged out, clear the session cookie.
+        fetch('/api/auth/session', { method: 'DELETE' });
+        
         setUserProfile(null);
         setSubscriptionDetails('free');
         setAuthStatus('UNAUTHENTICATED');
