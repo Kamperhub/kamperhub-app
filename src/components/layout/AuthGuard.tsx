@@ -109,20 +109,21 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
   useEffect(() => {
     // If the user's auth state is fully resolved and they are logged in...
     if (authStatus === 'AUTHENTICATED' && profileStatus === 'SUCCESS') {
-      // ...and they are on the public landing page ('/')...
-      if (pathname === '/') {
+      // ...and they are on a public page (login, signup, or root)...
+      if (pathname === '/login' || pathname === '/signup' || pathname === '/') {
         // ...redirect them to their dashboard.
-        router.replace('/dashboard');
+        const redirectedFrom = searchParams.get('redirectedFrom');
+        const targetUrl = redirectedFrom ? decodeURIComponent(redirectedFrom) : '/dashboard';
+        router.replace(targetUrl);
       }
     }
     
     // If the user's auth state is resolved and they are NOT logged in...
     if (authStatus === 'UNAUTHENTICATED') {
       const currentPath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-      // ...and they are on a protected page, redirect them to login.
-      // We don't need to check every protected page, just ensure we don't redirect from public pages.
       const isPublicPage = pathname === '/login' || pathname === '/' || pathname === '/signup';
       if (!isPublicPage) {
+        // ...and they are on a protected page, redirect them to login.
         router.replace(`/login?redirectedFrom=${encodeURIComponent(currentPath)}`);
       }
     }
@@ -137,8 +138,8 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
   }
   
   if (authStatus === 'AUTHENTICATED' && profileStatus === 'SUCCESS') {
-    // If we're still on the root path before redirect effect kicks in, show loading to prevent flashing the landing page.
-    if (pathname === '/') {
+    // If we're still on a public path before the redirect effect kicks in, show loading to prevent flashing content.
+    if (pathname === '/login' || pathname === '/signup' || pathname === '/') {
         return <LoadingScreen message="Redirecting to dashboard..." />;
     }
     return <>{children}</>;
@@ -146,8 +147,11 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
   
   // For unauthenticated users on public pages, render the children immediately
   if (authStatus === 'UNAUTHENTICATED') {
-    return <>{children}</>;
+    const isPublicPage = pathname === '/login' || pathname === '/' || pathname === '/signup';
+    if (isPublicPage) {
+      return <>{children}</>;
+    }
   }
   
-  return <LoadingScreen message="Redirecting..." />;
+  return <LoadingScreen message="Verifying session..." />;
 };
