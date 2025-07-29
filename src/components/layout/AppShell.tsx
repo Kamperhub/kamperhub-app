@@ -53,7 +53,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // Hide loader whenever the path changes, which signifies navigation is complete
     setIsNavigating(false);
   }, [pathname, searchParams]);
-  
+
   const isPublicPage = pathname === '/' || pathname === '/login' || pathname === '/signup';
   const apiKeyMissing = !apiKey;
   
