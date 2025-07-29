@@ -1,4 +1,3 @@
-
 "use client";
 
 import { QueryProvider } from '@/components/layout/QueryProvider';
@@ -6,10 +5,15 @@ import { AuthProvider } from '@/hooks/useAuth';
 import { SubscriptionProvider } from '@/hooks/useSubscription';
 import { RemoteConfigProvider } from '@/hooks/useRemoteConfig';
 import { APIProvider } from '@vis.gl/react-google-maps';
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { initializeFirebaseAppCheck } from '@/lib/firebase';
 
 export function Providers({ children }: { children: ReactNode }) {
   const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+  useEffect(() => {
+    initializeFirebaseAppCheck();
+  }, []);
 
   if (!mapsApiKey) {
     console.error("FATAL: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not set in your .env.local file. Maps and location services will fail. Please follow the setup guide to configure this key.");

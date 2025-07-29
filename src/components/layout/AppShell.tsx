@@ -7,7 +7,6 @@ import { Header } from './Header';
 import { BottomNavigation } from './BottomNavigation';
 import { AuthGuard } from './AuthGuard';
 import { Loader2 } from 'lucide-react';
-import { initializeFirebaseAppCheck } from '@/lib/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
@@ -52,10 +51,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setIsNavigating(false);
   }, [pathname, searchParams]);
   
-  useEffect(() => {
-    initializeFirebaseAppCheck();
-  }, []);
-
   const isPublicPage = pathname === '/' || pathname === '/login' || pathname === '/signup';
   const apiKeyMissing = !apiKey;
   
