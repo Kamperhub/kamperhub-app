@@ -46,8 +46,11 @@ export default function MyAccountPage() {
     if (typeof window === 'undefined') {
       return '';
     }
-    // Use the URL constructor to correctly join the origin and path, avoiding double slashes.
-    return new URL('/api/auth/google/callback', window.location.origin).toString();
+    try {
+      return new URL('/api/auth/google/callback', window.location.origin).toString();
+    } catch (e) {
+      return '';
+    }
   }, []);
 
 
@@ -400,7 +403,7 @@ export default function MyAccountPage() {
                 <div className="space-y-3">
                   <p className="text-sm font-body">Connect KamperHub to other services to enhance your experience.</p>
                   
-                  {isAdminUser && (
+                  {isAdminUser && !isGoogleTasksConnected && (
                     <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
                       <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
                       <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">Admin: Configuration Required</AlertTitle>
