@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -43,12 +43,11 @@ export default function MyAccountPage() {
   const { toast } = useToast();
   
   const expectedRedirectUri = useMemo(() => {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8083');
-    try {
-        return new URL('/api/auth/google/callback', appUrl).toString();
-    } catch (e) {
-        return `${appUrl}/api/auth/google/callback`;
+    if (typeof window === 'undefined') {
+      return '';
     }
+    // Use the URL constructor to correctly join the origin and path, avoiding double slashes.
+    return new URL('/api/auth/google/callback', window.location.origin).toString();
   }, []);
 
 
