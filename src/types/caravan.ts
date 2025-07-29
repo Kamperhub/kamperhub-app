@@ -7,7 +7,7 @@ export const caravanTypeDetails = [
   { name: "Motorhome", icon: 'Bus', description: "A self-propelled vehicle with living quarters." },
   { name: "Campervan", icon: 'Van', description: "A van converted for sleeping and camping." },
   { name: "Slide-on Camper", icon: 'Truck', description: "A camper unit that sits on a utility vehicle tray." },
-  { name: "Fifth Wheeler", icon: 'Trailer', description: "A large trailer that attaches via a gooseneck." },
+  { name: "Fifth Wheeler", icon: 'Tractor', description: "A large trailer that attaches via a gooseneck." },
   { name: "Tent", icon: 'Tent', description: "Ground-based tent camping equipment." },
   { name: "Utility Trailer", icon: 'Square', description: "A simple trailer for carrying goods or equipment." },
   { name: "Other", icon: 'Square', description: "Any other type of rig or setup." },

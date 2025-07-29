@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, XCircle, PlusCircle, Trash2, Droplet, Info, Flame, Weight, Ruler, Link2, Axe, Disc, Caravan as CaravanIcon, TentTree, Bus, Van, Truck, Trailer, Tent, Square } from 'lucide-react';
+import { Save, XCircle, PlusCircle, Trash2, Droplet, Info, Flame, Weight, Ruler, Link2, Axe, Disc, Caravan as CaravanIcon, TentTree, Bus, Van, Truck, Tractor, Tent, Square } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,7 +23,7 @@ const icons: { [key: string]: React.ElementType } = {
     Bus,
     Van,
     Truck,
-    Trailer,
+    Tractor,
     Tent,
     Square,
 };
@@ -228,7 +228,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="p-4 border rounded-md space-y-4 bg-muted/30">
-        <h3 className="text-lg font-medium font-headline text-primary flex items-center"><CaravanIcon className="mr-2 h-5 w-5" /> Rig Type &amp; Details</h3>
+        <h3 className="text-lg font-medium font-headline text-primary flex items-center"><CaravanIcon className="mr-2 h-5 w-5" /> Rig Type & Details</h3>
         <div>
           <Label htmlFor="caravanType" className="font-body">Type of Rig*</Label>
           <Controller
