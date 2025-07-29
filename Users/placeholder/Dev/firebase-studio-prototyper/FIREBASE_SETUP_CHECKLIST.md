@@ -39,7 +39,7 @@
     NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN="your-app-check-debug-token-if-needed"
 
     # --- Application URL and Environment ---
-    NEXT_PUBLIC_APP_URL="http://localhost:8083"
+    NEXT_PUBLIC_APP_URL="https://6000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev"
     NEXT_PUBLIC_APP_ENV="development"
 
     # --- Stripe & Google OAuth (No changes needed here) ---
@@ -84,14 +84,14 @@ This process remains the same, but is now more reliable because the server key i
 1.  **Go to the [Google Cloud Credentials page for kamperhub-s4hc2](https://console.cloud.google.com/apis/credentials?project=kamperhub-s4hc2).**
 
 2.  **A) Configure Your Firebase Browser Key:**
-    *   Find the key that matches `NEXT_PUBLIC_FIREBASE_API_KEY`.
+    *   Find the key that matches the value in your `.env.local` for `NEXT_PUBLIC_FIREBASE_API_KEY`.
     *   **API RESTRICTIONS:** Restrict it to **Identity Toolkit API** and **Firebase App Check API**.
-    *   **WEBSITE RESTRICTIONS:** Add the specific URL of your development environment (e.g., `https://3000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev/*`) and `localhost:*/*`.
+    *   **WEBSITE RESTRICTIONS:** Add the specific URL of your development environment (e.g., `https://6000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev/*`) and `localhost:*/*`.
 
 3.  **B) Create & Configure Your Google Maps Browser Key:**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Dev Maps Key`.
     *   **API RESTRICTIONS:** Restrict it to **Maps JavaScript API** and **Places API (New)**.
-    *   **WEBSITE RESTRICTIONS:** Add the specific URL of your development environment (e.g., `https://3000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev/*`) and `localhost:*/*`.
+    *   **WEBSITE RESTRICTIONS:** Add the specific URL of your development environment (e.g., `https://6000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev/*`) and `localhost:*/*`.
     *   Paste this key into `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
 
 4.  **C) Create & Configure Your Server Key:**

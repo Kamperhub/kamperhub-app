@@ -8,7 +8,7 @@
 ---
 
 ### **A Note on Ports**
-Your development server runs on a specific port (like `3000` or `3001`), which is then exposed to the internet on a different port (like `8083` or `8084`). **Check your terminal output from `npm run dev` to see which port your app is using.** The `NEXT_PUBLIC_APP_URL` variable in your `.env.local` file must match this exposed URL for Stripe to work correctly.
+Your development server runs on a specific port (like `3000` or `3001`), which is then exposed to the internet on a different port (like `6000`). **Check your terminal output from `npm run dev` to see which port your app is using.** The `NEXT_PUBLIC_APP_URL` variable in your `.env.local` file must match this exposed URL for Stripe to work correctly.
 
 ---
 
@@ -36,7 +36,7 @@ Your development server runs on a specific port (like `3000` or `3001`), which i
     *   On the Payment Link details page, look for the **"After payment"** or **"Confirmation page"** section.
     *   Click **"Edit"**.
     *   The selected option MUST be **"Redirect customers to your website"**.
-    *   The URL in the box must match your running application's URL, followed by `/subscribe/success`. This URL is set in your `.env.local` file as `NEXT_PUBLIC_APP_URL`. For example, if your app is at `http://localhost:8083`, the full URL is `http://localhost:8083/subscribe/success`.
+    *   The URL in the box must match your running application's URL, followed by `/subscribe/success`. This URL is set in your `.env.local` file as `NEXT_PUBLIC_APP_URL`. For example, if your app is at `https://6000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev`, the full URL is `https://6000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev/subscribe/success`.
     *   If this is not set correctly, the application will not know the subscription was successful. **Save your changes if you made any.**
 
 6.  **RE-COPY THE VERIFIED LINK.**
@@ -84,7 +84,7 @@ Instead of just getting a Price ID, you will now create a shareable Payment Link
     *   **CRITICAL: Configure the Confirmation Page:**
         *   On the Payment Link creation page, find the **"After payment"** section.
         *   Select the option to **Redirect customers to your website**.
-        *   In the URL box, enter the URL from your `.env.local` file's `NEXT_PUBLIC_APP_URL` variable, followed by `/subscribe/success`. For example: `http://localhost:8083/subscribe/success`.
+        *   In the URL box, enter the URL from your `.env.local` file's `NEXT_PUBLIC_APP_URL` variable, followed by `/subscribe/success`. For example: `https://6000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev/subscribe/success`.
         *   This ensures users are sent back to the app after a successful subscription.
     *   Click **Create link** in the top right.
 
@@ -111,8 +111,8 @@ This is the most common point of failure. The webhook secret for local developme
 
 3.  **Start Event Forwarding:** Open a **new, separate terminal window** (do not stop your Next.js app) and run this exact command, replacing the port if necessary:
     ```bash
-    # Use the port that matches your NEXT_PUBLIC_APP_URL (e.g., 8083 or 8084)
-    stripe listen --forward-to localhost:8083/api/stripe-webhook
+    # Use the port that matches your app's internal port (e.g., 3000)
+    stripe listen --forward-to localhost:3000/api/stripe-webhook
     ```
 
 4.  **CRITICAL - Find Your Secret:** The CLI will immediately print your webhook signing secret **in the terminal**. It will look like this:
@@ -137,7 +137,7 @@ After you believe everything is set up, run through this checklist to catch comm
 1.  **Restart Your Development Server:** Have you stopped (`Ctrl+C`) and restarted (`npm run dev`) your Next.js application since you last saved your `.env.local` file? The server only reads these variables on startup.
 
 2.  **Check Your `.env.local` File:**
-    *   `NEXT_PUBLIC_APP_URL` must match your exposed server URL (e.g., `http://localhost:8083`).
+    *   `NEXT_PUBLIC_APP_URL` must match your exposed server URL (e.g., `https://6000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev`).
     *   `NEXT_PUBLIC_STRIPE_PAYMENT_LINK` must start with `https://buy.stripe.com/` and not be in quotes.
     *   `STRIPE_SECRET_KEY` must start with `sk_test_`.
     *   `STRIPE_WEBHOOK_SECRET` must start with `whsec_` and be the one provided by the `stripe listen` command, NOT one from the Stripe Dashboard.
