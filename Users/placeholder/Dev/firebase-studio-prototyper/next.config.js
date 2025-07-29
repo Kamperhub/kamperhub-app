@@ -21,7 +21,7 @@ const nextConfig = {
 
     // In some environments, file system watching is unreliable.
     // Polling is a more robust, albeit slightly more resource-intensive, method to detect changes.
-    // This is a common fix for HMR (Fast Refresh) issues in containerized/cloud dev environments.
+    // This is a common fix for HMR (Fast Refresh) and ChunkLoadError issues in containerized/cloud dev environments.
     if (dev && !isServer) {
       config.watchOptions = {
         poll: 1000, // Check for changes every second.
