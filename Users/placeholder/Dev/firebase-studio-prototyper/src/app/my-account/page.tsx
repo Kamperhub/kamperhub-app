@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useContext } from 'react';
@@ -25,7 +26,7 @@ import { NavigationContext } from '@/components/layout/AppShell';
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export default function MyAccountPage() {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, profileStatus } = useAuth();
   const { hasProAccess, subscriptionTier, stripeCustomerId, isTrialActive, trialEndsAt } = useSubscription();
   const queryClient = useQueryClient();
   const navContext = useContext(NavigationContext);
@@ -41,7 +42,14 @@ export default function MyAccountPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   
-  const expectedRedirectUri = typeof window !== 'undefined' ? `${window.location.origin}/api/auth/google/callback` : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8083'}/api/auth/google/callback`;
+  const expectedRedirectUri = useMemo(() => {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8083');
+    try {
+        return new URL('/api/auth/google/callback', appUrl).toString();
+    } catch (e) {
+        return `${appUrl}/api/auth/google/callback`;
+    }
+  }, []);
 
 
   useEffect(() => {
@@ -272,8 +280,13 @@ export default function MyAccountPage() {
   
   const isAdminUser = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  if (!user || !userProfile) {
-    return null;
+  if (profileStatus === 'LOADING' || !user || !userProfile) {
+     return (
+        <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
+            <p className="font-body text-muted-foreground">Loading Account...</p>
+        </div>
+    );
   }
   
   const initialProfileDataForEdit: EditProfileFormData = {
@@ -388,24 +401,26 @@ export default function MyAccountPage() {
                 <div className="space-y-3">
                   <p className="text-sm font-body">Connect KamperHub to other services to enhance your experience.</p>
                   
-                  <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
-                    <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
-                    <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">Configuration Required</AlertTitle>
-                    <AlertDescription className="font-body text-blue-700 dark:text-blue-300 text-xs">
-                      <p>To connect successfully, ensure the following URL is added to your 'Authorized redirect URIs' in the Google Cloud Console for your OAuth 2.0 Client ID:</p>
-                      <div className="flex items-center gap-2 mt-2 p-2 rounded-md bg-blue-100 dark:bg-blue-900">
-                         <code className="flex-grow">{expectedRedirectUri}</code>
-                         <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => { navigator.clipboard.writeText(expectedRedirectUri); toast({title: "Copied!", description: "Redirect URI copied to clipboard."})}}
-                          >
-                           <Copy className="h-4 w-4"/>
-                         </Button>
-                      </div>
-                    </AlertDescription>
-                  </Alert>
+                  {isAdminUser && (
+                    <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+                      <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+                      <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">Admin: Configuration Required</AlertTitle>
+                      <AlertDescription className="font-body text-blue-700 dark:text-blue-300 text-xs">
+                        <p>To connect successfully, ensure the following URL is added to your 'Authorized redirect URIs' in the Google Cloud Console for your OAuth 2.0 Client ID:</p>
+                        <div className="flex items-center gap-2 mt-2 p-2 rounded-md bg-blue-100 dark:bg-blue-900">
+                           <code className="flex-grow">{expectedRedirectUri}</code>
+                           <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => { navigator.clipboard.writeText(expectedRedirectUri); toast({title: "Copied!", description: "Redirect URI copied to clipboard."})}}
+                            >
+                             <Copy className="h-4 w-4"/>
+                           </Button>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
 
                   <Button onClick={handleConnectGoogleTasks} className="w-full sm:w-auto" variant="outline" disabled={isConnectingGoogle}>
                       {isConnectingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <LinkIcon className="mr-2 h-4 w-4"/>}
