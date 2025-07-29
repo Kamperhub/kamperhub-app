@@ -32,11 +32,11 @@ export function BottomNavigation() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-top md:hidden z-50">
       <div className="container mx-auto px-2 sm:px-4">
-        <ul className="flex justify-around items-center h-16">
+        <ul className="flex justify-around items-center h-12">
           {bottomNavItems.map((item) => {
             if (!item) return null;
-            const IconComponent = item.icon;
             
+            const IconComponent = item.icon;
             const isDashboardLink = item.href === '/dashboard';
             const isTripManagerLink = item.href === '/trip-manager';
             
@@ -62,13 +62,10 @@ export function BottomNavigation() {
                   title={item.label}
                 >
                   <IconComponent 
-                    className={cn("w-6 h-6 mb-0.5", isActive ? "text-accent" : "text-accent opacity-50")} 
+                    className={cn("w-6 h-6", isActive ? "text-accent" : "text-accent opacity-50")} 
                     strokeWidth={2.5}
                   />
-                  <span className={cn(
-                      "text-xs font-body transition-colors",
-                      isActive ? "text-accent" : "text-accent/50"
-                  )}>{item.label}</span>
+                  <span className="sr-only">{item.label}</span>
                 </Link>
               </li>
             );
