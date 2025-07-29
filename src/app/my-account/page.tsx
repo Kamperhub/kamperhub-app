@@ -26,7 +26,7 @@ import { NavigationContext } from '@/components/layout/AppShell';
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
 export default function MyAccountPage() {
-  const { user, userProfile, profileStatus } from 'useAuth';
+  const { user, userProfile, profileStatus } = useAuth();
   const { hasProAccess, subscriptionTier, stripeCustomerId, isTrialActive, trialEndsAt } = useSubscription();
   const queryClient = useQueryClient();
   const navContext = useContext(NavigationContext);
