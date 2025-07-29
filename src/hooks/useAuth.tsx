@@ -9,7 +9,7 @@ import type { UserProfile } from '@/types/auth';
 import { useSubscription } from './useSubscription';
 
 export type AuthStatus = 'LOADING' | 'UNAUTHENTICATED' | 'AUTHENTICATED' | 'ERROR';
-export type ProfileStatus = 'LOADING' | 'SUCCESS' | 'ERROR';
+export type ProfileStatus = 'LOADING' | 'SUCCESS' | 'ERROR' | 'NOT_APPLICABLE';
 
 interface AuthContextType {
   user: FirebaseUser | null;
@@ -108,7 +108,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUserProfile(null);
         setSubscriptionDetails('free');
         setAuthStatus('UNAUTHENTICATED');
-        setProfileStatus('LOADING');
+        setProfileStatus('NOT_APPLICABLE');
         setProfileError(null);
       }
     }, (error) => {
