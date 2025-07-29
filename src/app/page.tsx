@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogIn } from 'lucide-react';
 import Image from 'next/image';
 import { navItems } from '@/lib/navigation';
-import { ClientBuildTimestamp } from '@/components/shared/ClientBuildTimestamp';
 
 export default function LandingPage() {
 
@@ -118,7 +117,6 @@ export default function LandingPage() {
           <Link href="/learn?tab=tos" className="text-sm hover:text-primary hover:underline">
               Privacy Policy & Terms of Service
           </Link>
-          <ClientBuildTimestamp className="text-xs mt-2" />
         </div>
       </footer>
     </div>
