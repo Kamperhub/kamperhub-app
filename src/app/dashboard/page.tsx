@@ -36,6 +36,7 @@ export default function DashboardPage() {
   });
 
   const orderedNavItems = useMemo(() => {
+    // Exclude the main dashboard link itself from the grid
     const mainPageNavItems = defaultNavItems.filter(item => item.href !== '/dashboard');
     const storedLayoutHrefs = userPrefs?.dashboardLayout;
 
