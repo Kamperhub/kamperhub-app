@@ -207,6 +207,7 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
           {initialCaravans.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No rigs added yet.</p>}
           {initialCaravans.map(caravan => {
             const caravanGrossPayload = (typeof caravan.atm === 'number' && typeof caravan.tareMass === 'number' && caravan.atm > 0 && caravan.tareMass > 0 && caravan.atm >= caravan.tareMass) ? caravan.atm - caravan.tareMass : null;
+            const caravanType = caravan.type || "Other"; // **FIX: Provide a default value**
             return (
               <Card key={caravan.id} className={`p-4 ${activeCaravanId === caravan.id ? 'border-primary shadow-lg' : 'shadow-sm'}`}>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
@@ -215,7 +216,7 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
                         <CaravanIcon className="h-5 w-5 mr-2 text-primary/80"/>
                         {caravan.year} {caravan.make} {caravan.model}
                     </h3>
-                    <Badge variant="secondary" className="mt-1">{caravan.type}</Badge>
+                    <Badge variant="secondary" className="mt-1">{caravanType}</Badge>
 
                     <div className="text-sm text-muted-foreground font-body grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 mt-2">
                       <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Tare: {caravan.tareMass}kg</span>
