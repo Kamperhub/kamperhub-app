@@ -11,10 +11,10 @@ import { CaravanManager } from '@/components/features/vehicles/CaravanManager';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
+// This function now includes the critical sanitization step
 async function getVehiclePageData() {
   const session = await getSession();
   if (!session) {
-    // This should be caught by middleware, but as a safeguard:
     return { vehicles: [], caravans: [], userProfile: null };
   }
   
@@ -34,7 +34,8 @@ async function getVehiclePageData() {
   const caravans = caravansSnapshot.docs.map(doc => doc.data() as StoredCaravan);
   const userProfile = userDocSnap.exists ? userDocSnap.data() as UserProfile : null;
 
-  // Sanitize data by converting Timestamps to strings for client components
+  // CRITICAL FIX: Convert Firestore data types (like Timestamps) to plain JSON
+  // This is necessary before passing data from a Server Component to a Client Component.
   return JSON.parse(JSON.stringify({ vehicles, caravans, userProfile }));
 }
 
