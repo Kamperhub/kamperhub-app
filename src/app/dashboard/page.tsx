@@ -24,7 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { user, userProfile: userPrefs, isAuthLoading } = useAuth();
+  const { user, userProfile: userPrefs, isAuthLoading } from useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navContext = useContext(NavigationContext);
