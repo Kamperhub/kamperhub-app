@@ -69,8 +69,12 @@ export default function LoginPage() {
     setBlockedReferer(null);
     const trimmedEmail = email.trim();
 
-    if (!trimmedEmail || !password) {
-      toast({ title: 'Validation Error', description: 'Email and password cannot be empty.', variant: 'destructive' });
+    if (!trimmedEmail) {
+      toast({ title: 'Validation Error', description: 'Email cannot be empty.', variant: 'destructive' });
+      return;
+    }
+    if (!password) {
+      toast({ title: 'Validation Error', description: 'Password cannot be empty.', variant: 'destructive' });
       return;
     }
 
@@ -78,7 +82,10 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, trimmedEmail, password);
-      // The useEffect hook will now handle the redirect once profile is loaded.
+      // Explicitly navigate on success instead of waiting for the hook
+      const redirectedFrom = searchParams.get('redirectedFrom');
+      const targetUrl = redirectedFrom ? decodeURIComponent(redirectedFrom) : '/dashboard';
+      router.replace(targetUrl);
     } catch (error: any) {
       const authError = error as AuthError;
       let errorMessage = 'An unexpected error occurred during login. Please try again.';
