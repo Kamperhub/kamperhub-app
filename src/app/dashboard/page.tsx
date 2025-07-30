@@ -36,7 +36,6 @@ export default function DashboardPage() {
   });
 
   const orderedNavItems = useMemo(() => {
-    // Exclude the main dashboard link itself from the grid
     const mainPageNavItems = defaultNavItems.filter(item => item.href !== '/dashboard');
     const storedLayoutHrefs = userPrefs?.dashboardLayout;
 
@@ -129,7 +128,7 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
         <div className="flex items-center">
           <Image
-            src="/KamperHub_512x512.jpg"
+            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.appspot.com/o/KamperHub%20512x512.jpg?alt=media"
             alt="KamperHub Logo"
             width={60}
             height={60}

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useContext } from 'react';
@@ -13,11 +14,6 @@ import { NavigationContext } from './AppShell';
 
 const EnvironmentBanner = () => {
   const appEnv = process.env.NEXT_PUBLIC_APP_ENV;
-  const showBanner = process.env.NEXT_PUBLIC_SHOW_ENV_BANNER === 'true';
-
-  if (!showBanner) {
-    return null;
-  }
 
   if (appEnv === 'production') {
     return (
@@ -78,7 +74,7 @@ export function Header() {
       <div className="container mx-auto px-4 py-3 flex items-center justify-between h-[68px]">
         <Link href={homeLink} className="flex items-center" onClick={handleNavigation}>
           <Image
-            src="/Kamper_Social_Media_Banner.jpg"
+            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.appspot.com/o/Kamper%20Social%20Media%20Banner.jpg?alt=media"
             alt="KamperHub Banner Logo"
             width={160}
             height={40}
