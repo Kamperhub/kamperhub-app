@@ -3,7 +3,9 @@ import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions 
 import { getAuth, type Auth, browserSessionPersistence, setPersistence } from 'firebase/auth';
 import { getFirestore, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from '@firebase/app-check';
+import { getAnalytics, type Analytics } from "firebase/analytics";
 import { getRemoteConfig, type RemoteConfig } from "firebase/remote-config";
+
 
 // --- Declare global for App Check Debug Token (Crucial for localhost testing) ---
 declare global {
@@ -24,6 +26,7 @@ const firebaseConfig = {
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
+let analytics: Analytics | null = null;
 let remoteConfig: RemoteConfig | null = null;
 let appCheck: AppCheck | undefined;
 export let firebaseInitializationError: string | null = null;
@@ -41,12 +44,15 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig as FirebaseOptions);
     auth = getAuth(app);
     setPersistence(auth, browserSessionPersistence);
+    
+    // CRITICAL FIX: Explicitly connect to the 'kamperhubv2' database on the client.
     db = getFirestore(app, 'kamperhubv2');
 
     if (typeof window !== 'undefined') {
+        analytics = getAnalytics(app);
         remoteConfig = getRemoteConfig(app);
         if (process.env.NEXT_PUBLIC_APP_ENV === 'development') {
-            remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour
+            remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour for dev
         }
     }
     
@@ -78,7 +84,6 @@ export function initializeFirebaseAppCheck() {
   if (typeof window !== 'undefined' && app?.name && !appCheck) {
     if (process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN) {
       console.log('[Firebase Client] App Check: Using debug token for local development.');
-      // This is the most reliable way for the SDK to pick up the token.
       (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN;
     }
 
@@ -98,4 +103,4 @@ export function initializeFirebaseAppCheck() {
   }
 }
 
-export { app, auth, db, remoteConfig };
+export { app, auth, db, analytics, remoteConfig };
