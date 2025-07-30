@@ -23,11 +23,34 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
+import { analytics } from '@/lib/firebase';
+import { setUserProperties } from 'firebase/analytics';
 
 interface CaravanManagerProps {
     initialCaravans: StoredCaravan[];
     initialUserPrefs: Partial<UserProfile> | null;
 }
+
+const updateAnalyticsUserProperties = (caravans: StoredCaravan[]) => {
+    if (!analytics) return;
+
+    // 1. Determine primary_camping_accommodation
+    let primaryAccommodation: string = 'none';
+    const sleepingUnits = caravans.filter(c => c.type !== 'Utility Trailer');
+    if (sleepingUnits.length > 0) {
+        primaryAccommodation = sleepingUnits[0].type;
+    }
+    
+    // 2. Determine has_utility_trailer
+    const hasUtilityTrailer = caravans.some(c => c.type === 'Utility Trailer');
+
+    // 3. Set the user properties
+    setUserProperties(analytics, {
+        primary_camping_accommodation: primaryAccommodation,
+        has_utility_trailer: hasUtilityTrailer.toString(),
+    });
+};
+
 
 export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanManagerProps) {
   const { toast } = useToast();
@@ -63,6 +86,10 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
       }
     },
     onSuccess: (savedCaravan) => {
+      const updatedCaravans = editingCaravan
+            ? initialCaravans.map(c => c.id === savedCaravan.id ? savedCaravan : c)
+            : [...initialCaravans, savedCaravan];
+      updateAnalyticsUserProperties(updatedCaravans);
       invalidateAndRefetch();
       toast({
         title: editingCaravan ? "Caravan Updated" : "Caravan Added",
@@ -78,14 +105,15 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
 
   const deleteCaravanMutation = useMutation({
     mutationFn: deleteCaravan,
-    onSuccess: () => {
+    onSuccess: (_, deletedId) => {
+        updateAnalyticsUserProperties(initialCaravans.filter(c => c.id !== deletedId));
         invalidateAndRefetch();
         toast({ title: "Caravan Deleted" });
         setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' });
     },
     onError: (err: Error) => {
-      invalidateAndRefetch();
-      toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
+        invalidateAndRefetch();
+        toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
     },
   });
 
@@ -179,6 +207,7 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
           {initialCaravans.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No rigs added yet.</p>}
           {initialCaravans.map(caravan => {
             const caravanGrossPayload = (typeof caravan.atm === 'number' && typeof caravan.tareMass === 'number' && caravan.atm > 0 && caravan.tareMass > 0 && caravan.atm >= caravan.tareMass) ? caravan.atm - caravan.tareMass : null;
+            const caravanType = caravan.type || "Other"; // **FIX: Provide a default value**
             return (
               <Card key={caravan.id} className={`p-4 ${activeCaravanId === caravan.id ? 'border-primary shadow-lg' : 'shadow-sm'}`}>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
@@ -187,11 +216,7 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
                         <CaravanIcon className="h-5 w-5 mr-2 text-primary/80"/>
                         {caravan.year} {caravan.make} {caravan.model}
                     </h3>
-                    {caravan.type ? (
-                        <Badge variant="secondary" className="mt-1">{caravan.type}</Badge>
-                    ) : (
-                        <Badge variant="outline" className="mt-1 text-muted-foreground border-dashed">Type: Not Set</Badge>
-                    )}
+                    <Badge variant="secondary" className="mt-1">{caravanType}</Badge>
 
                     <div className="text-sm text-muted-foreground font-body grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 mt-2">
                       <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Tare: {caravan.tareMass}kg</span>
