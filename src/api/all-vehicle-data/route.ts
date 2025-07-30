@@ -1,4 +1,3 @@
-
 // src/app/api/all-vehicle-data/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
@@ -53,12 +52,16 @@ const handleApiError = (error: any): NextResponse => {
   if (error.message.includes('Server configuration error')) {
     return NextResponse.json({ error: 'Server configuration error', details: error.message }, { status: 503 });
   }
+  if (error.code === 16) { // UNAUTHENTICATED from Firebase Admin
+     return NextResponse.json({ error: 'Server Authentication Failed', details: `16 UNAUTHENTICATED: ${error.message}. This is a server configuration issue. Check your GOOGLE_APPLICATION_CREDENTIALS_JSON.` }, { status: 500 });
+  }
   return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
 };
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
     try {
         const { uid, firestore } = await verifyUserAndGetInstances(req);
+        console.log(`[API LOG] Handling GET request for all-vehicle-data for UID: ${uid}`);
 
         const [vehiclesSnapshot, caravansSnapshot, userDocSnap, tripsSnapshot] = await Promise.all([
             firestore.collection('users').doc(uid).collection('vehicles').get(),
@@ -66,11 +69,19 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             firestore.collection('users').doc(uid).get(),
             firestore.collection('users').doc(uid).collection('trips').get()
         ]);
+        
+        console.log(`[API LOG] Firestore snapshots received. Caravans found: ${caravansSnapshot.size}`);
+
+        const caravans = caravansSnapshot.docs.map(doc => doc.data() as StoredCaravan);
+        
+        // ** NEW DIAGNOSTIC LOG **
+        console.log('[API LOG] Raw caravan data fetched from Firestore:', JSON.stringify(caravans, null, 2));
 
         const vehicles = vehiclesSnapshot.docs.map(doc => doc.data() as StoredVehicle);
-        const caravans = caravansSnapshot.docs.map(doc => doc.data() as StoredCaravan);
         const userProfile = userDocSnap.exists ? userDocSnap.data() as UserProfile : null;
         const trips = tripsSnapshot.docs.map(doc => doc.data() as LoggedTrip);
+        
+        console.log(`[API LOG] Data processed. Found ${vehicles.length} vehicles, ${caravans.length} caravans, ${trips.length} trips. User profile exists: ${!!userProfile}`);
 
         const data = {
             vehicles,
@@ -80,9 +91,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         };
         
         const sanitizedData = sanitizeData(data);
+        console.log('[API LOG] Data sanitized and ready to send to client.');
 
         return NextResponse.json(sanitizedData, { status: 200 });
     } catch (err: any) {
-        return handleApiError(err);
+       console.error('[API LOG] CRITICAL ERROR in all-vehicle-data GET handler:', err);
+       return handleApiError(err);
     }
 }
