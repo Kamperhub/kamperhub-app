@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -8,6 +7,7 @@ import { LogIn } from 'lucide-react';
 import Image from 'next/image';
 import { navItems } from '@/lib/navigation';
 import { ClientBuildTimestamp } from '@/components/shared/ClientBuildTimestamp';
+import * as icons from 'lucide-react';
 
 export default function LandingPage() {
 
@@ -57,7 +57,7 @@ export default function LandingPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {featuresToDisplay.map((feature) => {
-                const Icon = feature.icon;
+                const Icon = icons[feature.iconName] as React.ElementType;
                 return (
                   <Card key={feature.label} className="text-center shadow-lg hover:shadow-xl transition-shadow">
                     <CardHeader>
