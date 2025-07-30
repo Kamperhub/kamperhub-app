@@ -1,5 +1,6 @@
-
 // src/app/vehicles/page.tsx
+'use server';
+
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import { getSession } from '@/lib/server-session';
 import type { StoredVehicle } from '@/types/vehicle';
@@ -20,7 +21,7 @@ async function getVehiclePageData() {
   const uid = session.uid;
   const { firestore } = getFirebaseAdmin();
   if (!firestore) {
-    throw new Error('Server configuration error: Firestore not available.');
+    throw new Error("Server configuration error: Firestore not available.");
   }
 
   const [vehiclesSnapshot, caravansSnapshot, userDocSnap] = await Promise.all([

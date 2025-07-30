@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -34,14 +33,17 @@ interface CaravanManagerProps {
 const updateAnalyticsUserProperties = (caravans: StoredCaravan[]) => {
     if (!analytics) return;
 
+    // 1. Determine primary_camping_accommodation
     let primaryAccommodation: string = 'none';
     const sleepingUnits = caravans.filter(c => c.type !== 'Utility Trailer');
     if (sleepingUnits.length > 0) {
         primaryAccommodation = sleepingUnits[0].type;
     }
     
+    // 2. Determine has_utility_trailer
     const hasUtilityTrailer = caravans.some(c => c.type === 'Utility Trailer');
 
+    // 3. Set the user properties
     setUserProperties(analytics, {
         primary_camping_accommodation: primaryAccommodation,
         has_utility_trailer: hasUtilityTrailer.toString(),
@@ -295,7 +297,8 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' })} className="font-body" disabled={deleteCaravanMutation.isPending}>Cancel</Button>
             <Button variant="destructive" onClick={confirmDeleteCaravan} disabled={deleteDialogState.confirmationText !== "DELETE" || deleteCaravanMutation.isPending} className="font-body">
-              {deleteCaravanMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Confirm Delete
+              {deleteCaravanMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirm Delete
             </Button>
           </div>
         </DialogContent>
@@ -303,5 +306,3 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
     </>
   );
 }
-
-    

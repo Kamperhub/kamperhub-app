@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -209,8 +208,8 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
               <Card key={vehicle.id} className={`p-4 ${activeVehicleId === vehicle.id ? 'border-primary shadow-lg' : 'shadow-sm'}`}>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
                   <div className="flex-grow">
-                    <h3 className="font-semibold font-body text-lg">{vehicle.year} {vehicle.make} {vehicle.model}</h3>
-                    <div className="text-sm text-muted-foreground font-body grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1">
+                    <h3 className="font-semibold font-headline text-xl text-primary">{vehicle.year} {vehicle.make} {vehicle.model}</h3>
+                    <div className="text-sm text-muted-foreground font-body grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 mt-2">
                       <span>GVM: {vehicle.gvm}kg</span>
                       <span>GCM: {vehicle.gcm}kg</span>
                       <span>Tow: {vehicle.maxTowCapacity}kg</span>
@@ -322,5 +321,3 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
     </>
   );
 }
-
-    
