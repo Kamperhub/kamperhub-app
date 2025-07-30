@@ -5,16 +5,28 @@ import React, { useEffect, useMemo } from 'react';
 import { useForm, type SubmitHandler, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { CaravanFormData, StorageLocation, WaterTank, WDHFormData } from '@/types/caravan';
+import type { CaravanFormData, StorageLocation, WaterTank, WDHFormData, CaravanType } from '@/types/caravan';
+import { caravanTypes, caravanTypeDetails } from '@/types/caravan';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, XCircle, PlusCircle, Trash2, Droplet, Info, Flame, Weight, Ruler, Link2, Axe, Disc } from 'lucide-react';
+import { Save, XCircle, PlusCircle, Trash2, Droplet, Info, Flame, Weight, Ruler, Link2, Axe, Disc, Caravan as CaravanIcon, TentTree, Bus, Van, Truck, Tractor, Tent, Square } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+
+const icons: { [key: string]: React.ElementType } = {
+    Caravan: CaravanIcon,
+    TentTree,
+    Bus,
+    Van,
+    Truck,
+    Tractor,
+    Tent,
+    Square,
+};
 
 const storageLocationSchema = z.object({
   id: z.string(),
@@ -56,6 +68,7 @@ const wdhSchema = z.object({
 });
 
 const caravanSchema = z.object({
+  type: z.enum(caravanTypes, { required_error: "Please select a rig type." }),
   make: z.string().min(1, "Make is required"),
   model: z.string().min(1, "Model is required"),
   year: z.coerce.number().min(1900, "Invalid year").max(new Date().getFullYear() + 2, "Invalid year"),
@@ -95,6 +108,7 @@ interface CaravanFormProps {
 export function CaravanForm({ initialData, onSave, onCancel, isLoading }: CaravanFormProps) {
   
   const defaultFormValues: CaravanFormInternalData = {
+    type: "Caravan",
     make: '',
     model: '',
     year: new Date().getFullYear(),
@@ -214,7 +228,38 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="p-4 border rounded-md space-y-4 bg-muted/30">
-        <h3 className="text-lg font-medium font-headline text-primary flex items-center"><Info className="mr-2 h-5 w-5" /> Basic Information</h3>
+        <h3 className="text-lg font-medium font-headline text-primary flex items-center"><CaravanIcon className="mr-2 h-5 w-5" /> Rig Type & Details</h3>
+        <div>
+          <Label htmlFor="caravanType" className="font-body">Type of Rig*</Label>
+          <Controller
+            name="type"
+            control={control}
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} value={field.value}>
+                <SelectTrigger id="caravanType" className="font-body bg-background">
+                  <SelectValue placeholder="Select a rig type..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {caravanTypeDetails.map(type => {
+                    const Icon = icons[type.icon];
+                    return (
+                        <SelectItem key={type.name} value={type.name}>
+                            <div className="flex items-center gap-3">
+                                {Icon && <Icon className="h-5 w-5 text-muted-foreground" />}
+                                <div>
+                                    <p>{type.name}</p>
+                                    <p className="text-xs text-muted-foreground">{type.description}</p>
+                                </div>
+                            </div>
+                        </SelectItem>
+                    )
+                  })}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {errors.type && <p className="text-sm text-destructive font-body mt-1">{errors.type.message}</p>}
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="md:col-span-2">
             <Label htmlFor="caravanMake" className="font-body">Make</Label>
