@@ -23,11 +23,22 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
+import { analytics } from '@/lib/firebase';
+import { setUserProperties } from 'firebase/analytics';
 
 interface VehicleManagerProps {
     initialVehicles: StoredVehicle[];
     initialUserPrefs: Partial<UserProfile> | null;
 }
+
+const updateAnalyticsUserProperties = (vehicles: StoredVehicle[]) => {
+    if (!analytics || vehicles.length === 0) return;
+    setUserProperties(analytics, {
+        primary_tow_vehicle_make: vehicles[0].make,
+        primary_tow_vehicle_model: vehicles[0].model,
+    });
+};
+
 
 export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleManagerProps) {
   const { toast } = useToast();
@@ -47,6 +58,7 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
   const activeVehicleId = initialUserPrefs?.activeVehicleId;
   
   const invalidateAndRefetch = () => {
+    // We invalidate the consolidated query key now
     queryClient.invalidateQueries({ queryKey: ['allVehicleData', user?.uid] });
   };
 
@@ -55,7 +67,12 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
       const dataToSend = editingVehicle ? { ...editingVehicle, ...vehicleData } : vehicleData;
       return 'id' in dataToSend && dataToSend.id ? updateVehicle(dataToSend as StoredVehicle) : createVehicle(dataToSend as VehicleFormData);
     },
-    onSuccess: () => {
+    onSuccess: (savedVehicle) => {
+      const updatedVehicles = editingVehicle
+            ? initialVehicles.map(v => v.id === savedVehicle.id ? savedVehicle : v)
+            : [...initialVehicles, savedVehicle];
+      updateAnalyticsUserProperties(updatedVehicles);
+
       invalidateAndRefetch();
       toast({
         title: editingVehicle ? "Vehicle Updated" : "Vehicle Added",
@@ -75,7 +92,8 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
 
   const deleteVehicleMutation = useMutation({
     mutationFn: deleteVehicle,
-    onSuccess: () => {
+     onSuccess: (_, deletedId) => {
+        updateAnalyticsUserProperties(initialVehicles.filter(v => v.id !== deletedId));
         invalidateAndRefetch();
         toast({ title: "Vehicle Deleted" });
         setDeleteDialogState({ isOpen: false, vehicleId: null, vehicleName: null, confirmationText: '' });
@@ -304,3 +322,5 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
     </>
   );
 }
+
+    

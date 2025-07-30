@@ -34,17 +34,14 @@ interface CaravanManagerProps {
 const updateAnalyticsUserProperties = (caravans: StoredCaravan[]) => {
     if (!analytics) return;
 
-    // 1. Determine primary_camping_accommodation
     let primaryAccommodation: string = 'none';
     const sleepingUnits = caravans.filter(c => c.type !== 'Utility Trailer');
     if (sleepingUnits.length > 0) {
         primaryAccommodation = sleepingUnits[0].type;
     }
     
-    // 2. Determine has_utility_trailer
     const hasUtilityTrailer = caravans.some(c => c.type === 'Utility Trailer');
 
-    // 3. Set the user properties
     setUserProperties(analytics, {
         primary_camping_accommodation: primaryAccommodation,
         has_utility_trailer: hasUtilityTrailer.toString(),
@@ -207,7 +204,7 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
           {initialCaravans.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No rigs added yet.</p>}
           {initialCaravans.map(caravan => {
             const caravanGrossPayload = (typeof caravan.atm === 'number' && typeof caravan.tareMass === 'number' && caravan.atm > 0 && caravan.tareMass > 0 && caravan.atm >= caravan.tareMass) ? caravan.atm - caravan.tareMass : null;
-            const caravanType = caravan.type || "Other"; // **FIX: Provide a default value**
+            const caravanType = caravan.type || "Other";
             return (
               <Card key={caravan.id} className={`p-4 ${activeCaravanId === caravan.id ? 'border-primary shadow-lg' : 'shadow-sm'}`}>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
@@ -306,3 +303,5 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
     </>
   );
 }
+
+    
