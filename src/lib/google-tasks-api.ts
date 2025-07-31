@@ -1,4 +1,5 @@
 
+import 'server-only';
 import { google, type tasks_v1 } from 'googleapis';
 import type { OAuth2Client } from 'google-auth-library';
 import type { GoogleTasksStructure } from '@/ai/flows/personalized-packing-list-flow';

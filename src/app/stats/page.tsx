@@ -1,9 +1,11 @@
-// This page is now a Server Component and does not use client-side hooks.
+
+'use server';
+import 'server-only';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { BarChart3, Trophy, Route as RouteIcon, CalendarDays, CheckCircle, TrendingUp, Wallet, Fuel as FuelIcon, Banknote, Crown } from 'lucide-react';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
 import { getSession } from '@/lib/server-session';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { parseISO, differenceInCalendarDays, isValid } from 'date-fns';

@@ -1,6 +1,7 @@
-'use server';
 
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+'use server';
+import 'server-only';
+import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
 import { getSession } from '@/lib/server-session';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { ChecklistsPageClient } from '@/components/features/checklists/ChecklistsPageClient';
@@ -10,7 +11,6 @@ import { AlertTriangle } from 'lucide-react';
 async function getTripsForChecklists(): Promise<LoggedTrip[]> {
   const session = await getSession();
   if (!session) {
-    // This case should ideally be handled by middleware, but as a fallback:
     return [];
   }
   const uid = session.uid;

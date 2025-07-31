@@ -1,7 +1,7 @@
-// src/app/vehicles/page.tsx
-'use server';
 
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+'use server';
+import 'server-only';
+import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
 import { getSession } from '@/lib/server-session';
 import type { StoredVehicle } from '@/types/vehicle';
 import type { StoredCaravan } from '@/types/caravan';
