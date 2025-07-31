@@ -26,9 +26,10 @@ export async function POST(req: NextRequest) {
     const options = {
       name: '__session',
       value: sessionCookie,
-      maxAge: expiresIn,
+      maxAge: expiresIn / 1000,
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
     };
 
     // Set cookie on the response.
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     // Clear the '__session' cookie.
-    cookies().set('__session', '', { maxAge: -1 });
+    cookies().set('__session', '', { maxAge: -1, path: '/' });
     return NextResponse.json({ status: 'success' }, { status: 200 });
   } catch (error: any) {
     console.error('Session logout error:', error);
