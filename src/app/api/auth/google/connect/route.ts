@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
 import { randomBytes } from 'crypto';
 
 const OAUTH2_SCOPES = ['https://www.googleapis.com/auth/tasks'];

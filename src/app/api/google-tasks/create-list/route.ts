@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
 import { getOauth2Client, createTaskListWithItems } from '@/lib/google-tasks-api';
 import type { UserProfile } from '@/types/auth';
 import type { GoogleTasksStructure } from '@/ai/flows/personalized-packing-list-flow';

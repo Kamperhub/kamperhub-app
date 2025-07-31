@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
 import admin from 'firebase-admin';
 import type { UserProfile } from '@/types/auth';
 import { google } from 'googleapis';

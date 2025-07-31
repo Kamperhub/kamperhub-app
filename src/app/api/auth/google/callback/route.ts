@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
 
 export async function GET(req: NextRequest) {
   console.log(`[AUTH CALLBACK] Received GET request for: ${req.url}`);
@@ -81,53 +81,13 @@ export async function GET(req: NextRequest) {
       updatedAt: new Date().toISOString(),
     }, { merge: true });
 
-    console.log(`[AUTH CALLBACK] Successfully processed. Responding with client-side redirect script.`);
-    
-    const successUrl = new URL('/my-account?success=google_auth_connected', appUrl).toString();
-
-    return new NextResponse(
-      `<!DOCTYPE html>
-      <html>
-        <head>
-          <title>Redirecting...</title>
-          <script>
-            window.top.location.href = "${successUrl}";
-          </script>
-        </head>
-        <body>
-          <p>Authentication successful. Redirecting...</p>
-        </body>
-      </html>`,
-      {
-        headers: {
-          'Content-Type': 'text/html',
-        },
-      }
-    );
+    console.log(`[AUTH CALLBACK] Successfully processed. Redirecting to success page.`);
+    return NextResponse.redirect(new URL('/my-account?success=google_auth_connected', req.url));
     
   } catch (err: any) {
     console.error("[AUTH CALLBACK] An error occurred in the callback handler:", err);
     console.error(err.stack); // Log the full stack trace
     await stateDocRef.delete().catch(() => {}); // Clean up state doc on error
-    const errorUrl = new URL(`/my-account?error=${encodeURIComponent(err.message)}`, req.url).toString();
-    return new NextResponse(
-      `<!DOCTYPE html>
-      <html>
-        <head>
-          <title>Redirecting...</title>
-          <script>
-            window.top.location.href = "${errorUrl}";
-          </script>
-        </head>
-        <body>
-          <p>An error occurred. Redirecting...</p>
-        </body>
-      </html>`,
-      {
-        headers: {
-          'Content-Type': 'text/html',
-        },
-      }
-    );
+    return NextResponse.redirect(new URL(`/my-account?error=${encodeURIComponent(err.message)}`, req.url));
   }
 }

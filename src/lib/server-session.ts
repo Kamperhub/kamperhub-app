@@ -1,7 +1,8 @@
+
 'use server';
 
 import { cookies } from 'next/headers';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
 /**

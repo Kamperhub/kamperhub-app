@@ -1,6 +1,7 @@
+
 // src/app/api/auth/session/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
 import { cookies } from 'next/headers';
 
 // This endpoint manages the server-side session cookie.

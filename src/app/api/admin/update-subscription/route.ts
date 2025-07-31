@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
 import type { UserProfile, SubscriptionTier } from '@/types/auth';
 import { z, ZodError } from 'zod';
 import type admin from 'firebase-admin';
