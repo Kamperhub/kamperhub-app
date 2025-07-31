@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getSession } from './lib/server-session';
 
 const protectedRoutes = [
   '/dashboard',
@@ -25,24 +24,22 @@ const protectedRoutes = [
 
 const publicRoutes = ['/login', '/signup', '/'];
 
-export async function middleware(req: NextRequest) {
-  const session = await getSession();
+export function middleware(req: NextRequest) {
+  const sessionCookie = req.cookies.get('__session');
   const { pathname } = req.nextUrl;
 
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
 
-  // If the user is not logged in and is trying to access a protected route,
-  // redirect them to the login page.
-  if (!session && isProtectedRoute) {
+  // If trying to access a protected route without a session, redirect to login
+  if (!sessionCookie && isProtectedRoute) {
     const url = req.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirectedFrom', pathname);
     return NextResponse.redirect(url);
   }
 
-  // If the user is logged in and tries to access a public-only page like login,
-  // redirect them to the dashboard.
-  if (session && publicRoutes.includes(pathname)) {
+  // If logged in (has session) and trying to access a public-only page, redirect to dashboard
+  if (sessionCookie && publicRoutes.includes(pathname)) {
      const url = req.nextUrl.clone();
      url.pathname = '/dashboard';
      return NextResponse.redirect(url);
@@ -61,7 +58,8 @@ export const config = {
      * - favicon.ico (favicon file)
      * - learn (public learn/support page)
      * - contact (public contact page)
+     * - any files with an extension (e.g., .jpg, .svg)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|learn|contact).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|learn|contact|.*\\..*).*)',
   ],
 };

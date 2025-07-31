@@ -102,7 +102,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         );
       } else {
-        // User logged out, clear the server session cookie.
         fetch('/api/auth/session', { method: 'DELETE' });
         
         setUserProfile(null);
