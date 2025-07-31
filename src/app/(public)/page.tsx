@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -58,7 +59,7 @@ export default function LandingPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {featuresToDisplay.map((feature) => {
-                const Icon = icons[feature.iconName];
+                const Icon = icons[feature.iconName as keyof typeof icons] as React.ElementType;
                 return (
                   <Card key={feature.label} className="text-center shadow-lg hover:shadow-xl transition-shadow">
                     <CardHeader>
