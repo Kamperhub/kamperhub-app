@@ -1,6 +1,9 @@
+// src/app/(public)/signup/page.tsx
+// This page is for unauthenticated users. It MUST NOT use NavigationContext.
+
 "use client";
 
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react'; // Removed useContext from import
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -18,7 +21,6 @@ import { z } from 'zod';
 import type { UserProfile } from '@/types/auth';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
-import { NavigationContext } from '@/components/layout/AppShell';
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
@@ -73,11 +75,6 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { authStatus } = useAuth();
-  const navContext = useContext(NavigationContext);
-
-  const handleNavigation = () => {
-    navContext?.setIsNavigating(true);
-  };
 
   const handleSignup: SubmitHandler<SignupFormData> = async (data) => {
     setIsLoading(true);
@@ -125,7 +122,7 @@ export default function SignupPage() {
         duration: 7000,
       });
       
-    } catch (error: any) {
+    }  catch (error: any) {
       let toastMessage = 'An unexpected error occurred. Please try again.';
       if (error instanceof Error) {
         toastMessage = error.message;
@@ -358,7 +355,7 @@ export default function SignupPage() {
           </form>
           <p className="text-sm text-center text-muted-foreground mt-4 font-body">
             Already have an account?{' '}
-            <Link href="/login" className="font-medium text-primary hover:underline" onClick={handleNavigation}>
+            <Link href="/login" className="font-medium text-primary hover:underline">
               Log In
             </Link>
           </p>
