@@ -37,7 +37,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { authStatus } = useAuth();
+  const { authStatus, profileStatus } = useAuth();
 
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
@@ -45,6 +45,14 @@ export default function LoginPage() {
   
   const currentReferer = typeof window !== 'undefined' ? window.location.origin : '';
 
+  useEffect(() => {
+    const redirectedFrom = searchParams.get('redirectedFrom');
+    if (authStatus === 'AUTHENTICATED' && profileStatus === 'SUCCESS') {
+      const targetUrl = redirectedFrom ? decodeURIComponent(redirectedFrom) : '/dashboard';
+      router.push(targetUrl);
+    }
+  }, [authStatus, profileStatus, router, searchParams]);
+  
   useEffect(() => {
     if (firebaseInitializationError) {
       setLoginError(firebaseInitializationError);
@@ -57,12 +65,8 @@ export default function LoginPage() {
     setBlockedReferer(null);
     const trimmedEmail = email.trim();
 
-    if (!trimmedEmail) {
-      toast({ title: 'Validation Error', description: 'Email cannot be empty.', variant: 'destructive' });
-      return;
-    }
-    if (!password) {
-      toast({ title: 'Validation Error', description: 'Password cannot be empty.', variant: 'destructive' });
+    if (!trimmedEmail || !password) {
+      toast({ title: 'Validation Error', description: 'Email and password cannot be empty.', variant: 'destructive' });
       return;
     }
 
@@ -70,7 +74,7 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, trimmedEmail, password);
-      // The useAuth hook and middleware will handle the redirect.
+      // The useEffect hook will now handle the redirect once profile is loaded.
     } catch (error: any) {
       const authError = error as AuthError;
       let errorMessage = 'An unexpected error occurred during login. Please try again.';
@@ -140,12 +144,12 @@ export default function LoginPage() {
     }
   };
 
-  if (authStatus === 'LOADING') {
+  if (authStatus === 'AUTHENTICATED' && profileStatus !== 'SUCCESS') {
     return (
         <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
             <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
             <p className="font-body text-muted-foreground">
-              Loading session...
+              Session found. Verifying profile and redirecting...
             </p>
         </div>
     );

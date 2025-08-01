@@ -11,7 +11,6 @@ import { ClientBuildTimestamp } from '@/components/shared/ClientBuildTimestamp';
 import * as icons from 'lucide-react';
 
 export default function LandingPage() {
-
   // Filter for the features to be displayed on the landing page, excluding meta-pages
   const featuresToDisplay = navItems.filter(item => 
     !['/my-account', '/contact', '/dashboard-details', '/trip-manager', '/learn', '/dashboard'].includes(item.href)
