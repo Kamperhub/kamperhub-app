@@ -1,25 +1,17 @@
-
 rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    
-    // Allow public read access ONLY to files inside the "Kamperhub Media" folder.
-    // This is for public assets like your logo and banners.
+    // Allow public, unauthenticated read access to the media folder for logos, etc.
     match /Kamperhub Media/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null; // Optional: Only allow authenticated users to write/upload
+      allow read;
+      // Write access is still restricted to authenticated users to prevent public uploads.
+      allow write: if request.auth != null;
     }
 
-    // Protect all other user-uploaded files.
-    // Only the authenticated user who owns the file can read or write it.
+    // Secure user-specific folders. A user can only access their own folder.
     match /users/{userId}/{allPaths=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Deny access to all other paths by default.
-    match /{allPaths=**} {
-      allow read, write: if false;
     }
   }
 }
