@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -8,6 +7,7 @@ import { LogIn } from 'lucide-react';
 import Image from 'next/image';
 import { navItems } from '@/lib/navigation';
 import { ClientBuildTimestamp } from '@/components/shared/ClientBuildTimestamp';
+import * as icons from 'lucide-react';
 
 export default function LandingPage() {
 
@@ -22,7 +22,7 @@ export default function LandingPage() {
         {/* Hero Section */}
         <section className="text-center py-12 md:py-20 px-4">
           <Image
-            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.appspot.com/o/Kamperhub%20Media%2FKamperHub%20512x512.jpg?alt=media&token=e2729107-9b25-4223-9097-90059c3613e5"
+            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.appspot.com/o/Kamperhub%20Media%2FKamperHub%20512x512.jpg?alt=media"
             alt="KamperHub Logo"
             width={120}
             height={120}
@@ -56,19 +56,22 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {featuresToDisplay.map((feature) => (
-                <Card key={feature.label} className="text-center shadow-lg hover:shadow-xl transition-shadow">
-                  <CardHeader>
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
-                      <feature.icon className="h-6 w-6" />
-                    </div>
-                    <CardTitle className="font-headline text-xl">{feature.label}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">{feature.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
+              {featuresToDisplay.map((feature) => {
+                const Icon = icons[feature.iconName as keyof typeof icons] as React.ElementType;
+                return (
+                  <Card key={feature.label} className="text-center shadow-lg hover:shadow-xl transition-shadow">
+                    <CardHeader>
+                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <CardTitle className="font-headline text-xl">{feature.label}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">{feature.description}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         </section>

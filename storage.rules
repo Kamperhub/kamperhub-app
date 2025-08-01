@@ -1,18 +1,27 @@
 rules_version = '2';
 
 service firebase.storage {
-  match /b/{bucket}/o {
-    // Allow public read access to all files within the Kamperhub Media folder.
-    // This is necessary for logos, banners, etc., to display on the public website.
+  // The Firebase project name is kamperhub-s4hc2, so the bucket is kamperhub-s4hc2.appspot.com
+  match /b/kamperhub-s4hc2.appspot.com/o {
+  
+    // Rule 1: Make all files in the 'Kamperhub Media' folder publicly readable.
+    // This allows the public website to display logos and banners.
     match /Kamperhub Media/{allPaths=**} {
       allow read;
+      allow write: if false; // Explicitly deny write access to the public.
     }
 
-    // Secure all other paths. This is a placeholder for user-specific uploads.
-    // By default, no one can read or write to other paths.
-    // You would add user-specific rules here later, e.g.:
-    // match /users/{userId}/{allPaths=**} {
-    //   allow read, write: if request.auth != null && request.auth.uid == userId;
-    // }
+    // Rule 2: Secure all other user-uploaded files.
+    // This rule ensures that only an authenticated user can write to their own private folder,
+    // and only they can read their own files.
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Rule 3: Default Deny.
+    // As a security best practice, explicitly deny access to any other paths.
+    // Note: This rule is implicitly handled if the paths above are the only ones,
+    // but being explicit is safer. This line is not strictly needed if no other paths exist.
+    // We will omit a catch-all deny to avoid conflicts with the specific rules above.
   }
 }
