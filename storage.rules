@@ -1,22 +1,23 @@
-
 rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-  
-    // Rule 1: Make the main logo image publicly readable by anyone.
-    // This allows the public landing page to display it without requiring users to be logged in.
-    match /KamperHub 512x512.jpg {
-      allow read: if true;
-      allow write: if request.auth != null; // Optional: Only allow authenticated users to update it.
+    // Rule 1: Allow public read access to the Kamperhub Media folder
+    match /Kamperhub Media/{allPaths=**} {
+      allow read;
+      allow write: if false; // Explicitly deny writes
     }
-    
-    // Rule 2: Secure all other user-specific files.
-    // This rule applies to any file stored in a folder named after a user's ID.
-    // Example path: /users/USER_ID/profile_picture.jpg
+
+    // Rule 2: Secure user-specific files
+    // Only the authenticated user can read/write their own files.
     match /users/{userId}/{allPaths=**} {
-      // Only allow the authenticated user to read or write files in their own folder.
       allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Rule 3: Deny all other access
+    // This is a catch-all to ensure any path not explicitly matched above is denied.
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }
