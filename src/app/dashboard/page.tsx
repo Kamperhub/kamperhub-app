@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useMemo, useContext } from 'react';
@@ -11,7 +10,7 @@ import { navItems as defaultNavItems } from '@/lib/navigation';
 import { updateUserPreferences, fetchAllVehicleData } from '@/lib/api-client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { NavigationContext } from '@/components/layout/AppShell';
+import { NavigationContext } from '@/app/(protected)/layout';
 
 import { SortableNavItemCard } from '@/components/features/dashboard/SortableNavItemCard';
 import { GettingStartedGuide } from '@/components/features/dashboard/GettingStartedGuide';
@@ -22,9 +21,11 @@ import { ReturnTripDialog } from '@/components/features/dashboard/ReturnTripDial
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import * as icons from 'lucide-react';
+
 
 export default function DashboardPage() {
-  const { user, userProfile: userPrefs, isAuthLoading } from useAuth();
+  const { user, userProfile: userPrefs, isAuthLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navContext = useContext(NavigationContext);
@@ -36,8 +37,7 @@ export default function DashboardPage() {
   });
 
   const orderedNavItems = useMemo(() => {
-    // Exclude the main dashboard link itself from the grid
-    const mainPageNavItems = defaultNavItems.filter(item => item.href !== '/dashboard');
+    const mainPageNavItems = defaultNavItems.filter(item => item.href !== '/dashboard' && item.href !== '/');
     const storedLayoutHrefs = userPrefs?.dashboardLayout;
 
     if (storedLayoutHrefs && Array.isArray(storedLayoutHrefs) && storedLayoutHrefs.length > 0) {
@@ -52,9 +52,10 @@ export default function DashboardPage() {
         }
       });
       finalItems = finalItems.filter(item => currentMainPageHrefs.has(item.href));
-      return finalItems;
+      
+      return finalItems.map(item => ({...item, icon: icons[item.iconName as keyof typeof icons]}));
     }
-    return mainPageNavItems;
+    return mainPageNavItems.map(item => ({...item, icon: icons[item.iconName as keyof typeof icons]}));
   }, [userPrefs]);
   
   const updateUserPreferencesMutation = useMutation({
@@ -129,7 +130,7 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
         <div className="flex items-center">
           <Image
-            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.appspot.com/o/Kamperhub%20Media%2FKamperHub%20512x512.jpg?alt=media&token=e2729107-9b25-4223-9097-90059c3613e5"
+            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.appspot.com/o/KamperhubMedia%2FKamperHub%20512x512.jpg?alt=media"
             alt="KamperHub Logo"
             width={60}
             height={60}

@@ -22,7 +22,7 @@ export default function LandingPage() {
         {/* Hero Section */}
         <section className="text-center py-12 md:py-20 px-4">
           <Image
-            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.appspot.com/o/Kamperhub%20Media%2FKamperHub%20512x512.jpg?alt=media"
+            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.appspot.com/o/KamperhubMedia%2FKamperHub%20512x512.jpg?alt=media"
             alt="KamperHub Logo"
             width={120}
             height={120}
