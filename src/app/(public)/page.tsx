@@ -1,16 +1,18 @@
-// src/app/(public)/page.tsx
+
 "use client";
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogIn, ArrowRight } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import Image from 'next/image';
 import { navItems } from '@/lib/navigation';
 import { ClientBuildTimestamp } from '@/components/shared/ClientBuildTimestamp';
 import * as icons from 'lucide-react';
 
+
 export default function LandingPage() {
+
   // Filter for the features to be displayed on the landing page, excluding meta-pages
   const featuresToDisplay = navItems.filter(item => 
     !['/my-account', '/contact', '/dashboard-details', '/trip-manager', '/learn', '/dashboard'].includes(item.href)
@@ -38,7 +40,7 @@ export default function LandingPage() {
           </p>
           <div className="mt-8 flex justify-center gap-4">
              <Button asChild size="lg" className="font-headline text-lg">
-              <Link href="/signup">Get Started for Free <ArrowRight className="ml-2 h-5 w-5" /></Link>
+              <Link href="/signup">Get Started for Free</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="font-headline text-lg">
               <Link href="/login"><LogIn className="mr-2 h-5 w-5"/> Log In</Link>
@@ -57,7 +59,7 @@ export default function LandingPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {featuresToDisplay.map((feature) => {
-                const Icon = icons[feature.iconName as keyof typeof icons];
+                const Icon = icons[feature.iconName as keyof typeof icons] as React.ElementType;
                 return (
                   <Card key={feature.label} className="text-center shadow-lg hover:shadow-xl transition-shadow">
                     <CardHeader>

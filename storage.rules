@@ -1,8 +1,18 @@
+
 rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Users can read and write to their own folder in storage
+    // Rule 1: Make the main logo file publicly readable by anyone.
+    // This allows it to be displayed on your public landing page.
+    match /KamperHub 512x512.jpg {
+      allow read: if true;
+      allow write: if request.auth != null; // Only authenticated users can overwrite (optional but good practice)
+    }
+
+    // Rule 2: Secure all other user-specific files.
+    // This rule ensures that only an authenticated user can read or write files
+    // within their own designated folder (e.g., /users/USER_ID/...).
     match /users/{userId}/{allPaths=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
