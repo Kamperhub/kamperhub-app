@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogIn } from 'lucide-react';
+import { LogIn, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import { navItems } from '@/lib/navigation';
 import { ClientBuildTimestamp } from '@/components/shared/ClientBuildTimestamp';
@@ -38,7 +38,7 @@ export default function LandingPage() {
           </p>
           <div className="mt-8 flex justify-center gap-4">
              <Button asChild size="lg" className="font-headline text-lg">
-              <Link href="/signup">Get Started for Free</Link>
+              <Link href="/signup">Get Started for Free <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="font-headline text-lg">
               <Link href="/login"><LogIn className="mr-2 h-5 w-5"/> Log In</Link>
