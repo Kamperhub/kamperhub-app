@@ -1,62 +1,50 @@
+
 rules_version = '2';
 
 service cloud.firestore {
-  match /databases/{database}/documents {
+  match /databases/kamperhubv2/documents {
 
-    // Default deny all access unless explicitly allowed.
-    // This is a critical security best practice.
-    match /{document=**} {
-      allow read, write: if false;
+    // Helper function to check if a user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // Secure user profile data.
-    // A user can read or write their own profile document.
+    // Helper function to check if the requesting user is the owner of the data
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Rules for the 'users' collection
     match /users/{userId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-      // Allow any authenticated user to create their own profile document.
-      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
-    }
+      // A user can create their own profile document.
+      allow create: if isOwner(userId);
+      
+      // A user can read, update, or delete their own profile document.
+      allow read, update, delete: if isOwner(userId);
 
-    // Secure all sub-collections belonging to a user.
-    // This function ensures that any request to a sub-collection
-    // is made by the authenticated owner of that data.
-    function isUserAuthenticated(userId) {
-      return request.auth != null && request.auth.uid == userId;
+      // Rules for all subcollections under a user's document (e.g., trips, vehicles)
+      match /{collection}/{docId} {
+        // A user can create, read, update, and delete documents in their own subcollections.
+        allow read, write: if isOwner(userId);
+      }
     }
-
-    // Rules for all user-specific collections
-    match /users/{userId}/vehicles/{vehicleId} {
-      allow read, write: if isUserAuthenticated(userId);
-    }
-    match /users/{userId}/caravans/{caravanId} {
-      allow read, write: if isUserAuthenticated(userId);
-    }
-    match /users/{userId}/inventories/{inventoryId} {
-      allow read, write: if isUserAuthenticated(userId);
-    }
-    match /users/{userId}/trips/{tripId} {
-      allow read, write: if isUserAuthenticated(userId);
-    }
-    match /users/{userId}/bookings/{bookingId} {
-      allow read, write: if isUserAuthenticated(userId);
-    }
-    match /users/{userId}/packingLists/{listId} {
-      allow read, write: if isUserAuthenticated(userId);
-    }
-    match /users/{userId}/journeys/{journeyId} {
-      allow read, write: if isUserAuthenticated(userId);
-    }
-
-    // Allow authenticated users to create a state token for Google OAuth flow.
-    // The state token is used to prevent cross-site request forgery.
+    
+    // Rules for Google Auth state tokens
     match /oauthStates/{state} {
       // Allow any authenticated user to create a state token for themselves.
       // The document ID is the random 'state' string.
       // We check that the 'userId' in the document being created matches the user's UID.
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       
       // Only the user who created the state token can read or delete it.
-      allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow read, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Rules for contact form submissions (write-only for anyone)
+    match /contactSubmissions/{submissionId} {
+      allow create: if true;
+      // Deny read, update, delete for all clients to protect privacy.
+      allow read, update, delete: if false;
     }
   }
 }
