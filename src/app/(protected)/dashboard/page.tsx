@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useMemo, useContext } from 'react';
@@ -10,7 +11,7 @@ import { navItems as defaultNavItems } from '@/lib/navigation';
 import { updateUserPreferences, fetchAllVehicleData } from '@/lib/api-client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { NavigationContext } from '@/components/layout/AppShell';
+import { NavigationContext } from '@/app/(protected)/layout';
 
 import { SortableNavItemCard } from '@/components/features/dashboard/SortableNavItemCard';
 import { GettingStartedGuide } from '@/components/features/dashboard/GettingStartedGuide';
@@ -130,7 +131,7 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
         <div className="flex items-center">
           <Image
-            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.appspot.com/o/KamperHub%20512x512.jpg?alt=media"
+            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.appspot.com/o/KamperHub%20512x512.jpg?alt=media&token=00bf2acd-dbca-4cc2-984e-58461f67fdbd"
             alt="KamperHub Logo"
             width={60}
             height={60}

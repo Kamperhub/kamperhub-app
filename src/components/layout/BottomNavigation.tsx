@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useContext } from 'react';
@@ -6,7 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { navItems } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
-import { NavigationContext } from './AppShell';
+import { NavigationContext } from '@/app/(protected)/AppShell';
+import * as icons from 'lucide-react';
 
 export function BottomNavigation() {
   const pathname = usePathname();
@@ -32,11 +32,12 @@ export function BottomNavigation() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-top md:hidden z-50">
       <div className="container mx-auto px-2 sm:px-4">
-        <ul className="flex justify-around items-center h-12">
+        <ul className="flex justify-around items-center h-16">
           {bottomNavItems.map((item) => {
             if (!item) return null;
             
-            const IconComponent = item.icon;
+            const IconComponent = icons[item.iconName as keyof typeof icons] as React.ElementType;
+            
             const isDashboardLink = item.href === '/dashboard';
             const isTripManagerLink = item.href === '/trip-manager';
             
@@ -62,10 +63,13 @@ export function BottomNavigation() {
                   title={item.label}
                 >
                   <IconComponent 
-                    className={cn("w-6 h-6", isActive ? "text-accent" : "text-accent opacity-50")} 
+                    className={cn("w-6 h-6 mb-0.5", isActive ? "text-accent" : "text-accent opacity-50")} 
                     strokeWidth={2.5}
                   />
-                  <span className="sr-only">{item.label}</span>
+                  <span className={cn(
+                      "text-xs font-body transition-colors",
+                      isActive ? "text-accent" : "text-accent/50"
+                  )}>{item.label}</span>
                 </Link>
               </li>
             );
