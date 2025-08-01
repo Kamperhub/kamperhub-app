@@ -3,7 +3,6 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     // Allow public, unauthenticated read access to the media folder for logos, etc.
-    // The folder name has been changed to remove spaces, fixing path issues.
     match /KamperhubMedia/{allPaths=**} {
       allow read;
       // Write access is still restricted to authenticated users to prevent public uploads.
@@ -13,11 +12,6 @@ service firebase.storage {
     // Secure user-specific folders. A user can only access their own folder.
     match /users/{userId}/{allPaths=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Default deny all other paths for security.
-    match /{allPaths=**} {
-      allow read, write: if false;
     }
   }
 }
