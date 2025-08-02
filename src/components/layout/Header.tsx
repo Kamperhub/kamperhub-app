@@ -73,7 +73,7 @@ export function Header() {
       <div className="container mx-auto px-4 py-3 flex items-center justify-between h-[68px]">
         <Link href={homeLink} className="flex items-center" onClick={handleNavigation}>
           <Image
-            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.appspot.com/o/KamperhubMedia%2FKamper%20Social%20Media%20Banner.jpg?alt=media"
+            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.appspot.com/o/KamperhubMedia%2FKamper%20Social%20Media%20Banner.jpg?alt=media&token=1050fb50-5c13-4f03-8cad-d80954cf9072"
             alt="KamperHub Banner Logo"
             width={160}
             height={40}

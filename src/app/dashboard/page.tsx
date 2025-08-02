@@ -130,7 +130,7 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
         <div className="flex items-center">
           <Image
-            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.appspot.com/o/KamperhubMedia%2FKamperHub%20512x512.jpg?alt=media"
+            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.appspot.com/o/KamperhubMedia%2FKamperHub%20512x512.jpg?alt=media&token=85520c57-6031-4d34-a8f2-8947e4ac87d2"
             alt="KamperHub Logo"
             width={60}
             height={60}
