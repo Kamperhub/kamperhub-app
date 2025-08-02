@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogIn } from 'lucide-react';
+import { LogIn, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import { navItems } from '@/lib/navigation';
 import { ClientBuildTimestamp } from '@/components/shared/ClientBuildTimestamp';
@@ -22,7 +22,7 @@ export default function LandingPage() {
         {/* Hero Section */}
         <section className="text-center py-12 md:py-20 px-4">
           <Image
-            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.appspot.com/o/KamperhubMedia%2FKamperHub%20512x512.jpg?alt=media"
+            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.appspot.com/o/KamperhubMedia%2FKamperHub%20512x512.jpg?alt=media&token=85520c57-6031-4d34-a8f2-8947e4ac87d2"
             alt="KamperHub Logo"
             width={120}
             height={120}
@@ -38,7 +38,7 @@ export default function LandingPage() {
           </p>
           <div className="mt-8 flex justify-center gap-4">
              <Button asChild size="lg" className="font-headline text-lg">
-              <Link href="/signup">Get Started for Free</Link>
+              <Link href="/signup">Get Started for Free <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="font-headline text-lg">
               <Link href="/login"><LogIn className="mr-2 h-5 w-5"/> Log In</Link>
