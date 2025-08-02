@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -22,7 +23,7 @@ export default function LandingPage() {
         {/* Hero Section */}
         <section className="text-center py-12 md:py-20 px-4">
           <Image
-            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.appspot.com/o/KamperhubMedia%2FKamperHub%20512x512.jpg?alt=media&token=85520c57-6031-4d34-a8f2-8947e4ac87d2"
+            src="https://firebasestorage.googleapis.com/v0/b/kamperhub-s4hc2.firebasestorage.app/o/KamperHubMedia%2FKamperHub%20512x512.jpg?alt=media&token=9e0e9b04-0d96-4a96-9853-1c8b831cf91c"
             alt="KamperHub Logo"
             width={120}
             height={120}
