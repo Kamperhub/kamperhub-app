@@ -14,6 +14,19 @@ const nextConfig = {
       bodySizeLimit: '2mb', // Increase body size limit for potential large payloads
     },
   },
+  webpack: (config) => {
+    config.experiments = {
+      ...config.experiments,
+      asyncWebAssembly: true,
+    };
+
+    config.module.rules.push({
+      test: /\.wasm$/,
+      type: 'webassembly/async',
+    });
+
+    return config;
+  },
   async headers() {
     // Apply Content-Security-Policy headers in all environments to ensure consistency
     const cspHeader = [
