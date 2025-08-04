@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
@@ -60,7 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const profileDocRef = doc(db, "users", currentUser.uid);
         unsubscribeProfile = onSnapshot(profileDocRef, 
-          async (docSnap) => {
+          async (docSnap) => { // Make this async to handle profile creation
             if (docSnap.exists()) {
                 const profile = docSnap.data() as UserProfile;
                 setUserProfile(profile);
@@ -83,7 +84,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     trialEndsAt: trialEndDate.toISOString(),
                  };
                  await setDoc(profileDocRef, minimalProfile);
+                 // The onSnapshot listener will fire again with the new data, so we don't set state here.
+                 // We just ensure the profileStatus gets resolved on the next snapshot.
                } catch (creationError: any) {
+                 // If creation fails, we must set an error state.
                  const errorMsg = `Failed to create user profile after signup. Error: ${creationError.message}`;
                  setProfileError(errorMsg);
                  setProfileStatus('ERROR');
@@ -102,6 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         );
       } else {
+        // User logged out, clear the session cookie.
         fetch('/api/auth/session', { method: 'DELETE' });
         
         setUserProfile(null);
