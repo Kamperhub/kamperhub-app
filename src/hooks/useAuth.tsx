@@ -1,9 +1,8 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { onIdTokenChanged, type User as FirebaseUser } from 'firebase/auth';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, getDoc, type DocumentReference, type DocumentSnapshot } from 'firebase/firestore';
 import { auth, db, firebaseInitializationError } from '@/lib/firebase';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from './useSubscription';
@@ -43,13 +42,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       let unsubscribeProfile: (() => void) | undefined;
 
       if (currentUser) {
+        // The client SDK has confirmed the user is authenticated.
+        // The server-side session cookie is managed by middleware and API routes.
+        // There is no need for a client-side fetch to the session API here.
+        
         setAuthStatus('AUTHENTICATED');
         setProfileStatus('LOADING');
         setProfileError(null);
 
         const profileDocRef = doc(db, "users", currentUser.uid);
         unsubscribeProfile = onSnapshot(profileDocRef, 
-          async (docSnap) => {
+          async (docSnap) => { // Make this async to handle profile creation
             if (docSnap.exists()) {
                 const profile = docSnap.data() as UserProfile;
                 setUserProfile(profile);
@@ -72,6 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     trialEndsAt: trialEndDate.toISOString(),
                  };
                  await setDoc(profileDocRef, minimalProfile);
+                 // The onSnapshot listener will fire again with the new data.
                } catch (creationError: any) {
                  const errorMsg = `Failed to create user profile after signup. Error: ${creationError.message}`;
                  setProfileError(errorMsg);
@@ -91,6 +95,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         );
       } else {
+        // User logged out on the client.
+        // The server-side session cookie will be cleared by the next request to a protected route via middleware.
         setUserProfile(null);
         setSubscriptionDetails('free');
         setAuthStatus('UNAUTHENTICATED');

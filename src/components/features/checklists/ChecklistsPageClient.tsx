@@ -45,9 +45,9 @@ function migrateLegacyChecklist(legacyChecklist: any): ChecklistStage[] {
   }
   
   // If it's already the new format, just ensure it's a deep copy
-  return legacyChecklist.map(stage => ({
+  return legacyChecklist.map((stage: ChecklistStage) => ({
     ...stage,
-    items: stage.items.map((item: any) => ({...item})) 
+    items: stage.items.map((item: ChecklistItem) => ({...item})) 
   }));
 }
 
@@ -57,10 +57,9 @@ export function ChecklistsPageClient() {
   const { toast } = useToast();
   const { user, isAuthLoading } = useAuth();
 
-
   const { data: loggedTrips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery<LoggedTrip[]>({
       queryKey: ['trips', user?.uid],
-      queryFn: () => fetchTrips(),
+      queryFn: fetchTrips,
       enabled: !!user,
   });
 
