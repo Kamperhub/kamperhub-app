@@ -5,7 +5,7 @@ import React, { useState, useEffect, createContext } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Header } from './Header';
 import { BottomNavigation } from './BottomNavigation';
-import { AuthGuard } from './AuthGuard';
+import { AuthGuard } from '@/components/layout/AuthGuard';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
