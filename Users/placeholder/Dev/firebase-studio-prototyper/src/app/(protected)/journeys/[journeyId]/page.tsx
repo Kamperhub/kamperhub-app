@@ -1,0 +1,1 @@
+/Users/placeholder/Dev/firebase-studio-prototyper/src/app/journeys/[journeyId]/page.tsx

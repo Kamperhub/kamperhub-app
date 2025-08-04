@@ -1,0 +1,1 @@
+/Users/placeholder/Dev/firebase-studio-prototyper/src/app/signup/page.tsx
