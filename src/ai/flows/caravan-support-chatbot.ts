@@ -12,7 +12,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { staticCaravanningArticles, type AiGeneratedArticle } from '@/types/learn';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import type { Expense } from '@/types/expense';
 import type { StoredVehicle } from '@/types/vehicle';

@@ -7,9 +7,16 @@ export function getFirebaseAdmin() {
   // If the app is already initialized, return the existing instances.
   if (admin.apps.length > 0 && admin.apps[0]) {
     const app = admin.apps[0];
+    const firestore = getFirestore(app, 'kamperhubv2');
+    if (!firestore) {
+      // This case can happen if the database with the specified ID doesn't exist.
+      const error = new Error("FATAL: Failed to get Firestore instance for database 'kamperhubv2'. Please ensure a Firestore database with this exact ID exists in your Firebase project.");
+      console.error("CRITICAL: Firebase Admin SDK initialization failed.", error);
+      return { auth: null, firestore: null, error };
+    }
     return {
       auth: admin.auth(app),
-      firestore: getFirestore(app, 'kamperhubv2'),
+      firestore: firestore,
       error: null
     };
   }
@@ -65,6 +72,7 @@ export function getFirebaseAdmin() {
 
   } catch (error: any) {
     console.error("CRITICAL: Firebase Admin SDK initialization failed.", error);
+    // Return the error object so the caller knows initialization failed.
     return { auth: null, firestore: null, error };
   }
 }
