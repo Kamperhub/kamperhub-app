@@ -15,19 +15,9 @@ const nextConfig = {
       bodySizeLimit: '2mb', // Increase body size limit for potential large payloads
     },
   },
-  webpack: (config, { dev, isServer }) => {
+  webpack: (config) => {
     // Enable WebAssembly experiments to support all package features.
     config.experiments = { ...config.experiments, asyncWebAssembly: true };
-
-    // In some environments, file system watching is unreliable.
-    // Polling is a more robust, albeit slightly more resource-intensive, method to detect changes.
-    // This is a common fix for HMR (Fast Refresh) and ChunkLoadError issues in containerized/cloud dev environments.
-    if (dev && !isServer) {
-      config.watchOptions = {
-        poll: 1000, // Check for changes every second.
-        aggregateTimeout: 300, // Delay before rebuilding.
-      };
-    }
     return config;
   },
   async headers() {

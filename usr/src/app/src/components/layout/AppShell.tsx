@@ -1,7 +1,6 @@
-
 "use client";
 
-import React, a part of React;
+import React, { useState, useEffect, createContext } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Header } from './Header';
 import { BottomNavigation } from './BottomNavigation';
