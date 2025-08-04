@@ -1,45 +1,47 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
+import { getSession } from '@/lib/server-session';
 
 const protectedRoutes = [
-  '/dashboard',
-  '/vehicles',
-  '/inventory',
-  '/trip-manager',
-  '/bookings',
-  '/my-account',
   '/admin',
-  '/checklists',
+  '/bookings',
   '/chatbot',
+  '/checklists',
+  '/dashboard',
+  '/dashboard-details',
+  '/documents',
+  '/inventory',
   '/journeys',
+  '/my-account',
   '/rewards',
   '/service-log',
   '/stats',
   '/trip-expense-planner',
+  '/trip-manager',
   '/trip-packing',
   '/triplog',
+  '/vehicles',
   '/world-map',
-  '/dashboard-details',
-  '/documents'
 ];
 
-const publicRoutes = ['/login', '/signup', '/'];
+const publicRoutes = ['/', '/login', '/signup', '/learn', '/contact'];
 
-export function middleware(req: NextRequest) {
-  const sessionCookie = req.cookies.get('__session');
+export async function middleware(req: NextRequest) {
+  const session = await getSession();
   const { pathname } = req.nextUrl;
 
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
 
   // If trying to access a protected route without a session, redirect to login
-  if (!sessionCookie && isProtectedRoute) {
+  if (!session && isProtectedRoute) {
     const url = req.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirectedFrom', pathname);
     return NextResponse.redirect(url);
   }
 
-  // If logged in (has session) and trying to access a public-only page, redirect to dashboard
-  if (sessionCookie && publicRoutes.includes(pathname)) {
+  // If logged in (has session) and trying to access a public-only page (login/signup), redirect to dashboard
+  if (session && (pathname === '/login' || pathname === '/signup')) {
      const url = req.nextUrl.clone();
      url.pathname = '/dashboard';
      return NextResponse.redirect(url);
@@ -56,10 +58,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - learn (public learn/support page)
-     * - contact (public contact page)
      * - any files with an extension (e.g., .jpg, .svg)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|learn|contact|.*\\..*).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)',
   ],
 };
