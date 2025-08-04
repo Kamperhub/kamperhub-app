@@ -1,58 +1,63 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if the user is authenticated
-    function isAuthenticated() {
-      return request.auth != null;
+    // Default deny all access unless explicitly allowed.
+    // This is a critical security best practice.
+    match /{document=**} {
+      allow read, write: if false;
     }
 
-    // Helper function to check if the user is the owner of the document
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-    
-    // Helper function to check if the user is an admin
-    function isAdmin() {
-      // An admin user is defined by having a specific document in the 'admins' collection
-      // This is a more secure way than checking a custom claim that might not be set.
-      return isAuthenticated() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
-    }
-
-    // Secure all user data by default
+    // Secure user profile data.
+    // A user can read or write their own profile document.
     match /users/{userId} {
-      // A user can only read or write their own top-level profile document.
-      allow read, write: if isOwner(userId);
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      // Allow any authenticated user to create their own profile document.
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+    }
 
-      // Secure all subcollections within a user's document
-      match /{subcollection}/{docId} {
-        // A user can only access documents within their own subcollections.
-        allow read, write, delete: if isOwner(userId);
-      }
+    // Secure all sub-collections belonging to a user.
+    // This function ensures that any request to a sub-collection
+    // is made by the authenticated owner of that data.
+    function isUserAuthenticated(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
-    
-    // Rules for the 'admins' collection
-    match /admins/{adminId} {
-        // Only other authenticated admins can read the list of admins
-        allow read: if isAdmin();
-        // Writing to the admin collection should be locked down and handled manually in the console
-        // or through a secure backend function for promotion/demotion.
-        allow write: if false;
+
+    // Rules for all user-specific collections
+    match /users/{userId}/vehicles/{vehicleId} {
+      allow read, write: if isUserAuthenticated(userId);
     }
-    
-    // Rules for the contact form submissions
-    match /contactSubmissions/{submissionId} {
-        // Allow anyone to create a contact submission
-        allow create: if true;
-        // Only admins can read or delete contact submissions
-        allow read, delete: if isAdmin();
-        // Nobody can update a submission once it's created
-        allow update: if false;
+    match /users/{userId}/caravans/{caravanId} {
+      allow read, write: if isUserAuthenticated(userId);
     }
-    
-    // Rules for the OAuth state tokens used during Google Account linking
+    match /users/{userId}/inventories/{inventoryId} {
+      allow read, write: if isUserAuthenticated(userId);
+    }
+    match /users/{userId}/trips/{tripId} {
+      allow read, write: if isUserAuthenticated(userId);
+    }
+    match /users/{userId}/bookings/{bookingId} {
+      allow read, write: if isUserAuthenticated(userId);
+    }
+    match /users/{userId}/packingLists/{listId} {
+      allow read, write: if isUserAuthenticated(userId);
+    }
+    match /users/{userId}/journeys/{journeyId} {
+      allow read, write: if isUserAuthenticated(userId);
+    }
+     match /users/{userId}/documents/{documentId} {
+      allow read, write: if isUserAuthenticated(userId);
+    }
+    match /users/{userId}/fuelLogs/{logId} {
+      allow read, write: if isUserAuthenticated(userId);
+    }
+    match /users/{userId}/maintenanceTasks/{taskId} {
+      allow read, write: if isUserAuthenticated(userId);
+    }
+
+    // Allow authenticated users to create a state token for Google OAuth flow.
+    // The state token is used to prevent cross-site request forgery.
     match /oauthStates/{state} {
       // Allow any authenticated user to create a state token for themselves.
       // The document ID is the random 'state' string.
@@ -60,8 +65,15 @@ service cloud.firestore {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       
       // Only the user who created the state token can read or delete it.
-      // This is used by the server callback to verify the state.
       allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+     // Rules for the contact form submissions
+    match /contactSubmissions/{submissionId} {
+        // Allow anyone to create a contact submission, as this is a public form
+        allow create: if true;
+        // Reading/deleting submissions should be restricted to admins via a backend function,
+        // so we deny direct client access here for security.
+        allow read, update, delete: if false;
     }
   }
 }
