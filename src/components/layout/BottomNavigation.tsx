@@ -5,8 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { navItems } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
-import { NavigationContext } from '@/app/(protected)/AppShell';
-import * as icons from 'lucide-react';
+import { NavigationContext } from './AppShell';
 
 export function BottomNavigation() {
   const pathname = usePathname();
@@ -36,7 +35,7 @@ export function BottomNavigation() {
           {bottomNavItems.map((item) => {
             if (!item) return null;
             
-            const IconComponent = icons[item.iconName as keyof typeof icons] as React.ElementType;
+            const IconComponent = item.icon;
             
             const isDashboardLink = item.href === '/dashboard';
             const isTripManagerLink = item.href === '/trip-manager';
