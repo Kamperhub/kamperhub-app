@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const profileDocRef = doc(db, "users", currentUser.uid);
         unsubscribeProfile = onSnapshot(profileDocRef, 
-          async (docSnap) => { // Make this async to handle profile creation
+          async (docSnap) => {
             if (docSnap.exists()) {
                 const profile = docSnap.data() as UserProfile;
                 setUserProfile(profile);
@@ -91,8 +91,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         );
       } else {
-        fetch('/api/auth/session', { method: 'DELETE' });
-        
         setUserProfile(null);
         setSubscriptionDetails('free');
         setAuthStatus('UNAUTHENTICATED');
