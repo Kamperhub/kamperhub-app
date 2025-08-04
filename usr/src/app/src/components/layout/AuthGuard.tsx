@@ -109,6 +109,7 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
   useEffect(() => {
     if (authStatus === 'UNAUTHENTICATED') {
       const currentPath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+      // Prevent redirecting to login from the login page itself or base path if it's public
       if (pathname !== '/login' && pathname !== '/') {
         router.push(`/login?redirectedFrom=${encodeURIComponent(currentPath)}`);
       } else {
@@ -117,14 +118,10 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     }
   }, [authStatus, router, pathname, searchParams]);
 
-  if (authStatus === 'LOADING') {
-    return <LoadingScreen message="Initializing Session..." />;
+  if (authStatus === 'LOADING' || (authStatus === 'AUTHENTICATED' && profileStatus === 'LOADING')) {
+    return <LoadingScreen message={authStatus === 'LOADING' ? 'Initializing Session...' : 'Loading Your Profile...'} />;
   }
   
-  if (authStatus === 'AUTHENTICATED' && profileStatus === 'LOADING') {
-    return <LoadingScreen message="Loading Your Profile..." />;
-  }
-
   if (profileStatus === 'ERROR') {
     return <ErrorScreen error={profileError} />;
   }
@@ -133,5 +130,6 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     return <>{children}</>;
   }
   
+  // This will catch the UNAUTHENTICATED state while the useEffect redirect is firing
   return <LoadingScreen message="Redirecting..." />;
 };

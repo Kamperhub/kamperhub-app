@@ -16,19 +16,6 @@ const nextConfig = {
     },
   },
   webpack: (config, { dev, isServer }) => {
-    // Exclude server-only packages from the client-side bundle to prevent build errors.
-    if (!isServer) {
-      config.externals = [
-        ...(config.externals || []),
-        'firebase-admin', 
-        '@google-cloud/firestore', 
-        'google-auth-library', 
-        'google-gax', 
-        'gcp-metadata', 
-        'google-logging-utils'
-      ];
-    }
-
     // Enable WebAssembly experiments to support all package features.
     config.experiments = { ...config.experiments, asyncWebAssembly: true };
 
