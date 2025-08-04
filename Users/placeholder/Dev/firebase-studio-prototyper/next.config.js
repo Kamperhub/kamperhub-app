@@ -1,4 +1,3 @@
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   env: {
@@ -14,11 +13,6 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb', // Increase body size limit for potential large payloads
     },
-  },
-  webpack: (config) => {
-    // Enable WebAssembly experiments to support all package features.
-    config.experiments = { ...config.experiments, asyncWebAssembly: true };
-    return config;
   },
   async headers() {
     // Apply Content-Security-Policy headers in all environments to ensure consistency
