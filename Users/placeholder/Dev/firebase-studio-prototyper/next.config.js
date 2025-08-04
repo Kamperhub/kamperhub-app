@@ -14,28 +14,14 @@ const nextConfig = {
       bodySizeLimit: '2mb', // Increase body size limit for potential large payloads
     },
   },
-  webpack: (config, { isServer }) => {
-    // Enable WebAssembly experiments to support all package features.
-    config.experiments = {
-      ...(config.experiments || {}),
-      asyncWebAssembly: true,
-    };
-
-    // Add a rule to handle .wasm files
+  webpack: (config) => {
+    // This is the configuration required to load WebAssembly modules.
+    // It's essential for dependencies of `firebase-admin`.
+    config.experiments = { ...config.experiments, asyncWebAssembly: true };
     config.module.rules.push({
       test: /\.wasm$/,
-      type: 'webassembly/async',
+      type: "webassembly/async",
     });
-
-    // In some environments, file system watching is unreliable.
-    // Polling is a more robust, albeit slightly more resource-intensive, method to detect changes.
-    if (!isServer) {
-      config.watchOptions = {
-        poll: 1000, // Check for changes every second.
-        aggregateTimeout: 300, // Delay before rebuilding.
-      };
-    }
-
     return config;
   },
   async headers() {

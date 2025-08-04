@@ -43,18 +43,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       let unsubscribeProfile: (() => void) | undefined;
 
       if (currentUser) {
-        // Sync the session cookie with the server.
-        try {
-            const idToken = await currentUser.getIdToken();
-            await fetch('/api/auth/session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ idToken }),
-            });
-        } catch (error) {
-            console.error("Failed to sync session cookie:", error);
-        }
-        
         setAuthStatus('AUTHENTICATED');
         setProfileStatus('LOADING');
         setProfileError(null);
@@ -84,10 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     trialEndsAt: trialEndDate.toISOString(),
                  };
                  await setDoc(profileDocRef, minimalProfile);
-                 // The onSnapshot listener will fire again with the new data, so we don't set state here.
-                 // We just ensure the profileStatus gets resolved on the next snapshot.
                } catch (creationError: any) {
-                 // If creation fails, we must set an error state.
                  const errorMsg = `Failed to create user profile after signup. Error: ${creationError.message}`;
                  setProfileError(errorMsg);
                  setProfileStatus('ERROR');
@@ -106,7 +91,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         );
       } else {
-        // User logged out, clear the session cookie.
         fetch('/api/auth/session', { method: 'DELETE' });
         
         setUserProfile(null);
