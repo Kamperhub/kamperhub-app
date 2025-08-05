@@ -1,3 +1,4 @@
-// This file has been moved to src/lib/server/server-session.ts
-// This is a placeholder to ensure the old path is removed.
+
+// This file is obsolete and has been removed.
+// All server-side session logic is now consolidated in `src/lib/server/server-session.ts`.
 export {};
