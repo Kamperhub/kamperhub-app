@@ -1,31 +1,10 @@
 // middleware.ts
-// This middleware runs in the Edge Runtime and fetches session data from a Node.js API route.
+// This middleware runs in the Edge Runtime, and fetches session data from a Node.js API route.
 
 import { NextResponse, type NextRequest } from 'next/server';
 
 // All routes under these paths are considered protected and require authentication.
-const protectedPaths = [
-  '/admin',
-  '/bookings',
-  '/chatbot',
-  '/checklists',
-  '/dashboard',
-  '/dashboard-details',
-  '/documents',
-  '/inventory',
-  '/journeys',
-  '/my-account',
-  '/rewards',
-  '/service-log',
-  '/stats',
-  '/trip-expense-planner',
-  '/trip-manager',
-  '/trip-packing',
-  '/triplog',
-  '/vehicles',
-  '/world-map',
-];
-
+const protectedPaths = ['/admin', '/dashboard', '/vehicles', '/inventory', '/trip-manager', '/bookings', '/my-account', '/chatbot', '/checklists', '/dashboard-details', '/documents', '/journeys', '/rewards', '/service-log', '/stats', '/trip-expense-planner', '/trip-packing', '/triplog', '/world-map'];
 const publicOnlyRoutes = ['/login', '/signup'];
 
 /**
@@ -94,14 +73,6 @@ export async function middleware(req: NextRequest) {
 // Next.js Middleware configuration
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - any files with an extension (e.g., .jpg, .svg)
-     */
     '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)',
   ],
 };
