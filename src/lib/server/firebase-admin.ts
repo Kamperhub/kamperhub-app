@@ -1,14 +1,13 @@
+
 import 'server-only';
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 
 export function getFirebaseAdmin() {
-  // If the app is already initialized, return the existing instances.
   if (admin.apps.length > 0 && admin.apps[0]) {
     const app = admin.apps[0];
     const firestore = getFirestore(app, 'kamperhubv2');
     if (!firestore) {
-      // This case can happen if the database with the specified ID doesn't exist.
       const error = new Error("FATAL: Failed to get Firestore instance for database 'kamperhubv2'. Please ensure a Firestore database with this exact ID exists in your Firebase project.");
       console.error("CRITICAL: Firebase Admin SDK initialization failed.", error);
       return { auth: null, firestore: null, error };
@@ -20,7 +19,6 @@ export function getFirebaseAdmin() {
     };
   }
 
-  // If not initialized, proceed with the new, robust Base64 decoding setup.
   try {
     console.log("[Firebase Admin] No initialized app found. Starting new initialization with Base64 credentials...");
     const serviceAccountBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
@@ -36,9 +34,7 @@ export function getFirebaseAdmin() {
     
     let serviceAccount;
     try {
-        // Decode the Base64 string to get the original JSON string.
         const decodedJsonString = Buffer.from(serviceAccountBase64, 'base64').toString('utf-8');
-        // Parse the decoded JSON string.
         serviceAccount = JSON.parse(decodedJsonString);
     } catch (e: any) {
         throw new Error(`FATAL: The GOOGLE_APPLICATION_CREDENTIALS_JSON string in your .env.local file could not be decoded from Base64 or parsed as JSON. Please ensure it is a valid, single-line Base64 string. Error: ${e.message}`);
@@ -71,7 +67,6 @@ export function getFirebaseAdmin() {
 
   } catch (error: any) {
     console.error("CRITICAL: Firebase Admin SDK initialization failed.", error);
-    // Return the error object so the caller knows initialization failed.
     return { auth: null, firestore: null, error };
   }
 }
