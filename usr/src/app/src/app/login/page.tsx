@@ -1,7 +1,7 @@
-
+// src/app/login/page.tsx
 "use client";
 
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,6 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
-import { NavigationContext } from '@/components/layout/AppShell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function LoginPage() {
@@ -37,7 +36,6 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { authStatus, profileStatus } = useAuth();
-  const navContext = useContext(NavigationContext);
 
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
@@ -49,7 +47,7 @@ export default function LoginPage() {
     const redirectedFrom = searchParams.get('redirectedFrom');
     if (authStatus === 'AUTHENTICATED' && profileStatus === 'SUCCESS') {
       const targetUrl = redirectedFrom ? decodeURIComponent(redirectedFrom) : '/dashboard';
-      router.replace(targetUrl);
+      router.push(targetUrl);
     }
   }, [authStatus, profileStatus, router, searchParams]);
   
@@ -58,10 +56,6 @@ export default function LoginPage() {
       setLoginError(firebaseInitializationError);
     }
   }, []);
-
-  const handleNavigation = () => {
-    navContext?.setIsNavigating(true);
-  };
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -78,6 +72,7 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, trimmedEmail, password);
+      // The useEffect hook will now handle the redirect once profile is loaded.
     } catch (error: any) {
       const authError = error as AuthError;
       let errorMessage = 'An unexpected error occurred during login. Please try again.';
@@ -272,7 +267,7 @@ export default function LoginPage() {
           </form>
           <p className="text-sm text-center text-muted-foreground mt-6 font-body">
             Don't have an account?{' '}
-            <Link href="/signup" className="font-medium text-primary hover:underline" onClick={handleNavigation}>
+            <Link href="/signup" className="font-medium text-primary hover:underline">
               Sign Up
             </Link>
           </p>

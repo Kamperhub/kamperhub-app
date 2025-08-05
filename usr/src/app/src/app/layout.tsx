@@ -1,10 +1,10 @@
-
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from '@/components/layout/Providers';
 import { ThemeProvider } from '@/components/layout/ThemeProvider';
 import { Alegreya, Belleza, Source_Code_Pro } from 'next/font/google';
+import { AppShell } from '@/components/layout/AppShell';
 
 const belleza = Belleza({
   subsets: ['latin'],
@@ -48,9 +48,11 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Providers>
-            {children}
+            <AppShell>
+              {children}
+            </AppShell>
+            <Toaster />
           </Providers>
-          <Toaster />
         </ThemeProvider>
       </body>
     </html>
