@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,10 +17,12 @@ import Link from 'next/link';
 import type { LoggedTrip } from '@/types/tripplanner';
 import type { ChecklistItem, ChecklistStage } from '@/types/checklist';
 import { useToast } from '@/hooks/use-toast';
-import { updateTrip } from '@/lib/api-client';
+import { fetchTrips, updateTrip } from '@/lib/api-client';
 import { fullRigChecklist, vehicleOnlyChecklist } from '@/types/checklist';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/hooks/useAuth';
 
 // Utility to migrate old checklist format to new stage-based format
 function migrateLegacyChecklist(legacyChecklist: any): ChecklistStage[] {
@@ -43,23 +46,30 @@ function migrateLegacyChecklist(legacyChecklist: any): ChecklistStage[] {
   }
   
   // If it's already the new format, just ensure it's a deep copy
-  return legacyChecklist.map(stage => ({
+  return legacyChecklist.map((stage: ChecklistStage) => ({
     ...stage,
-    items: stage.items.map((item: any) => ({...item})) 
+    items: stage.items.map((item: ChecklistItem) => ({...item})) 
   }));
 }
 
-export function ChecklistsPageClient({ serverTrips }: { serverTrips: LoggedTrip[] }) {
+export function ChecklistsPageClient() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user, isAuthLoading } = useAuth();
+
+
+  const { data: loggedTrips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery<LoggedTrip[]>({
+      queryKey: ['trips', user?.uid],
+      queryFn: () => fetchTrips(),
+      enabled: !!user,
+  });
 
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [checklist, setChecklist] = useState<ChecklistStage[]>([]);
-  const [editingItem, setEditingItem] = useState<{ stageIndex: number; itemIndex: number } | null>(null);
   const [newItemText, setNewItemText] = useState<{ [stageIndex: number]: string }>({});
 
-  const selectedTrip = useMemo(() => serverTrips.find(trip => trip.id === selectedTripId), [serverTrips, selectedTripId]);
+  const selectedTrip = useMemo(() => loggedTrips.find(trip => trip.id === selectedTripId), [loggedTrips, selectedTripId]);
 
   // Load and migrate checklist when a trip is selected
   useEffect(() => {
@@ -79,8 +89,7 @@ export function ChecklistsPageClient({ serverTrips }: { serverTrips: LoggedTrip[
   const updateTripMutation = useMutation({
     mutationFn: (updatedTrip: Partial<LoggedTrip> & { id: string }) => updateTrip(updatedTrip as LoggedTrip),
     onSuccess: (data) => {
-      // Invalidate the query to refetch from the server, ensuring data consistency
-      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
       toast({ title: "Checklist Saved" });
     },
     onError: (error: Error) => toast({ title: "Error Saving Checklist", description: error.message, variant: "destructive" }),
@@ -89,12 +98,12 @@ export function ChecklistsPageClient({ serverTrips }: { serverTrips: LoggedTrip[
   // Set initial trip from URL query param
   useEffect(() => {
     const tripIdFromQuery = searchParams.get('tripId');
-    if (tripIdFromQuery && serverTrips.length > 0 && serverTrips.some(trip => trip.id === tripIdFromQuery)) {
+    if (tripIdFromQuery && loggedTrips.length > 0 && loggedTrips.some(trip => trip.id === tripIdFromQuery)) {
       if (selectedTripId !== tripIdFromQuery) {
         setSelectedTripId(tripIdFromQuery);
       }
     }
-  }, [searchParams, serverTrips, selectedTripId]);
+  }, [searchParams, loggedTrips, selectedTripId]);
 
   const { totalItems, completedItems } = useMemo(() => {
     let total = 0;
@@ -154,8 +163,31 @@ export function ChecklistsPageClient({ serverTrips }: { serverTrips: LoggedTrip[
     const destination = encodeURIComponent(selectedTrip.endLocationDisplay);
     const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
     window.open(googleMapsUrl, '_blank');
-}, [selectedTrip, toast]);
+  }, [selectedTrip, toast]);
 
+
+  if (isLoadingTrips || isAuthLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-1/3 mb-4" />
+        <Skeleton className="h-10 w-full md:w-1/2" />
+        <Skeleton className="h-40 w-full mt-6" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    );
+  }
+
+  if (tripsError) {
+    return (
+      <div className="container mx-auto py-8">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error Loading Trip Data</AlertTitle>
+          <AlertDescription>{(tripsError as Error).message}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -170,7 +202,7 @@ export function ChecklistsPageClient({ serverTrips }: { serverTrips: LoggedTrip[
         <h1 className="text-3xl font-headline mb-6 text-primary flex items-center"><ListChecks className="mr-3 h-8 w-8" /> Procedural Checklist</h1>
       </div>
       
-      {serverTrips.length === 0 ? (
+      {loggedTrips.length === 0 ? (
         <p className="text-muted-foreground text-center font-body py-6">No saved trips found. Plan a trip to manage its checklist.</p>
       ) : (
         <div className="mb-6">
@@ -181,7 +213,7 @@ export function ChecklistsPageClient({ serverTrips }: { serverTrips: LoggedTrip[
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none" className="font-body">-- Select a Trip --</SelectItem>
-              {serverTrips.map(trip => <SelectItem key={trip.id} value={trip.id}>{trip.name}</SelectItem>)}
+              {loggedTrips.map(trip => <SelectItem key={trip.id} value={trip.id}>{trip.name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
