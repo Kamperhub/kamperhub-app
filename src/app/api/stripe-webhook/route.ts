@@ -1,8 +1,7 @@
-
 // src/app/api/stripe-webhook/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import Stripe from 'stripe';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
 import type { UserProfile, SubscriptionTier } from '@/types/auth';
 import type admin from 'firebase-admin';
 

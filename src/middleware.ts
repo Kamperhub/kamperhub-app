@@ -1,4 +1,3 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSession } from '@/lib/server/server-session';
 

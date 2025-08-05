@@ -1,6 +1,6 @@
-
+import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
 import { z, ZodError } from 'zod';
 
 const contactFormSchema = z.object({
