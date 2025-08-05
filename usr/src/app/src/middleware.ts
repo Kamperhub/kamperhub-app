@@ -1,4 +1,3 @@
-
 // middleware.ts
 // This middleware runs in the Edge Runtime, and fetches session data from a Node.js API route.
 
