@@ -57,9 +57,10 @@ export function ChecklistsPageClient() {
   const { toast } = useToast();
   const { user, isAuthLoading } = useAuth();
 
+
   const { data: loggedTrips = [], isLoading: isLoadingTrips, error: tripsError } = useQuery<LoggedTrip[]>({
       queryKey: ['trips', user?.uid],
-      queryFn: fetchTrips,
+      queryFn: () => fetchTrips(),
       enabled: !!user,
   });
 

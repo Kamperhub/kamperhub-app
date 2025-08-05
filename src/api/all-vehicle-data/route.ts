@@ -1,11 +1,10 @@
-// src/app/api/all-vehicle-data/route.ts
+import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
 import type { UserProfile } from '@/types/auth';
 import type { StoredVehicle } from '@/types/vehicle';
 import type { StoredCaravan } from '@/types/caravan';
 import type { LoggedTrip } from '@/types/tripplanner';
-import type admin from 'firebase-admin';
 
 const firestoreTimestampReplacer = (key: any, value: any) => {
     if (value && typeof value.toDate === 'function') {
@@ -24,64 +23,42 @@ const sanitizeData = (data: any) => {
     }
 };
 
-async function verifyUserAndGetInstances(req: NextRequest): Promise<{ uid: string; firestore: admin.firestore.Firestore; }> {
+async function verifyUserAndGetInstances(req: NextRequest) {
   const { auth, firestore, error } = getFirebaseAdmin();
   if (error || !auth || !firestore) {
-    throw new Error('Server configuration error.');
+    return { uid: null, firestore: null, errorResponse: NextResponse.json({ error: 'Server configuration error.', details: error?.message }, { status: 503 }) };
   }
 
   const authorizationHeader = req.headers.get('Authorization');
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    throw new Error('Unauthorized: Missing or invalid Authorization header.');
+    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Missing or invalid Authorization header.' }, { status: 401 }) };
   }
   const idToken = authorizationHeader.split('Bearer ')[1];
 
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
-    return { uid: decodedToken.uid, firestore };
+    return { uid: decodedToken.uid, firestore, errorResponse: null };
   } catch (error: any) {
-    throw new Error('Unauthorized: Invalid ID token.');
+    return { uid: null, firestore, errorResponse: NextResponse.json({ error: 'Unauthorized: Invalid ID token.', details: error.message }, { status: 401 }) };
   }
 }
 
-const handleApiError = (error: any): NextResponse => {
-  console.error('API Error in all-vehicle-data route:', error);
-  if (error.message.includes('Unauthorized')) {
-    return NextResponse.json({ error: 'Unauthorized', details: error.message }, { status: 401 });
-  }
-  if (error.message.includes('Server configuration error')) {
-    return NextResponse.json({ error: 'Server configuration error', details: error.message }, { status: 503 });
-  }
-  if (error.code === 16) { // UNAUTHENTICATED from Firebase Admin
-     return NextResponse.json({ error: 'Server Authentication Failed', details: `16 UNAUTHENTICATED: ${error.message}. This is a server configuration issue. Check your GOOGLE_APPLICATION_CREDENTIALS_JSON.` }, { status: 500 });
-  }
-  return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
-};
+export async function GET(req: NextRequest) {
+    const { uid, firestore, errorResponse } = await verifyUserAndGetInstances(req);
+    if (errorResponse || !uid || !firestore) return errorResponse;
 
-export async function GET(req: NextRequest): Promise<NextResponse> {
     try {
-        const { uid, firestore } = await verifyUserAndGetInstances(req);
-        console.log(`[API LOG] Handling GET request for all-vehicle-data for UID: ${uid}`);
-
         const [vehiclesSnapshot, caravansSnapshot, userDocSnap, tripsSnapshot] = await Promise.all([
             firestore.collection('users').doc(uid).collection('vehicles').get(),
             firestore.collection('users').doc(uid).collection('caravans').get(),
             firestore.collection('users').doc(uid).get(),
             firestore.collection('users').doc(uid).collection('trips').get()
         ]);
-        
-        console.log(`[API LOG] Firestore snapshots received. Caravans found: ${caravansSnapshot.size}`);
-
-        const caravans = caravansSnapshot.docs.map(doc => doc.data() as StoredCaravan);
-        
-        // ** NEW DIAGNOSTIC LOG **
-        console.log('[API LOG] Raw caravan data fetched from Firestore:', JSON.stringify(caravans, null, 2));
 
         const vehicles = vehiclesSnapshot.docs.map(doc => doc.data() as StoredVehicle);
+        const caravans = caravansSnapshot.docs.map(doc => doc.data() as StoredCaravan);
         const userProfile = userDocSnap.exists ? userDocSnap.data() as UserProfile : null;
         const trips = tripsSnapshot.docs.map(doc => doc.data() as LoggedTrip);
-        
-        console.log(`[API LOG] Data processed. Found ${vehicles.length} vehicles, ${caravans.length} caravans, ${trips.length} trips. User profile exists: ${!!userProfile}`);
 
         const data = {
             vehicles,
@@ -91,11 +68,21 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         };
         
         const sanitizedData = sanitizeData(data);
-        console.log('[API LOG] Data sanitized and ready to send to client.');
 
         return NextResponse.json(sanitizedData, { status: 200 });
     } catch (err: any) {
-       console.error('[API LOG] CRITICAL ERROR in all-vehicle-data GET handler:', err);
-       return handleApiError(err);
+        console.error('API Error in all-vehicle-data:', err);
+        let errorTitle = 'Internal Server Error';
+        let errorDetails = 'An unexpected error occurred.';
+        if (err.code) {
+            switch(err.code) {
+                case 5: errorTitle = 'Database Not Found'; errorDetails = `The Firestore database 'kamperhubv2' could not be found.`; break;
+                case 16: errorTitle = 'Server Authentication Failed'; errorDetails = `The server's credentials are not valid.`; break;
+                default: errorDetails = err.message; break;
+            }
+        } else {
+            errorDetails = err.message;
+        }
+        return NextResponse.json({ error: errorTitle, details: errorDetails }, { status: 500 });
     }
 }
