@@ -23,7 +23,7 @@ const protectedRoutes = [
   '/world-map',
 ];
 
-const publicOnlyRoutes = ['/login', '/signup'];
+const publicRoutes = ['/', '/login', '/signup', '/learn', '/contact'];
 
 export async function middleware(req: NextRequest) {
   const session = await getSession();
@@ -31,6 +31,7 @@ export async function middleware(req: NextRequest) {
 
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
 
+  // If trying to access a protected route without a session, redirect to login
   if (!session && isProtectedRoute) {
     const url = req.nextUrl.clone();
     url.pathname = '/login';
@@ -38,7 +39,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (session && publicOnlyRoutes.includes(pathname)) {
+  // If logged in (has session) and trying to access a public-only page (login/signup), redirect to dashboard
+  if (session && (pathname === '/login' || pathname === '/signup')) {
      const url = req.nextUrl.clone();
      url.pathname = '/dashboard';
      return NextResponse.redirect(url);
