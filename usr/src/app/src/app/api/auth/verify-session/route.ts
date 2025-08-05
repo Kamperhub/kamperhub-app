@@ -1,3 +1,4 @@
+
 // src/app/api/auth/verify-session/route.ts
 // This API route handles session verification using the full Node.js runtime
 // where firebase-admin is fully compatible.
