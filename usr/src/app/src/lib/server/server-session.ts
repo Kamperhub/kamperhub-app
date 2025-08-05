@@ -1,34 +1,11 @@
-import 'server-only';
-import { cookies } from 'next/headers';
-import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
-import type { DecodedIdToken } from 'firebase-admin/auth';
+// src/lib/server/server-session.ts
+// IMPORTANT: Temporarily comment out all imports that are not 'server-only'
+import 'server-only'; // KEEP THIS
+// import { cookies } from 'next/headers'; // COMMENT THIS OUT
+// import { getFirebaseAdmin } from '@/lib/server/firebase-admin'; // COMMENT THIS OUT
+// import type { DecodedIdToken } from 'firebase-admin/auth'; // COMMENT THIS OUT
 
-/**
- * Gets the server-side session from the '__session' cookie.
- * @returns The decoded user token or null if not authenticated.
- */
-export async function getSession(): Promise<DecodedIdToken | null> {
-  const { auth } = getFirebaseAdmin();
-  if (!auth) {
-    console.error("Auth session check failed: Firebase Admin SDK not initialized.");
-    return null;
-  }
-
-  const sessionCookie = cookies().get('__session')?.value || '';
-
-  if (!sessionCookie) {
-    return null;
-  }
-
-  try {
-    const decodedIdToken = await auth.verifySessionCookie(sessionCookie, true);
-    return decodedIdToken;
-  } catch (error: any) {
-    if (error.code === 'auth/session-cookie-revoked' || error.code === 'auth/session-cookie-expired') {
-      // Expected condition for expired sessions, not an app error.
-    } else {
-      console.error('Session cookie verification failed:', error.code, error.message);
-    }
-    return null;
-  }
+export async function getSession(): Promise<any> { // Change return type to 'any' for simplicity
+  console.log("🔥🔥🔥 TEST: getSession function IS REACHED IN MIDDLEWARE! 🔥🔥🔥");
+  return { test: true, source: 'simplified-middleware-test' };
 }

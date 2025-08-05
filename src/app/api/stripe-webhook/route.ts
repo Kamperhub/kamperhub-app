@@ -1,4 +1,5 @@
 // src/app/api/stripe-webhook/route.ts
+import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import Stripe from 'stripe';
 import { getFirebaseAdmin } from '@/lib/server/firebase-admin';

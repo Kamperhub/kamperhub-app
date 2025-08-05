@@ -1,4 +1,5 @@
 // src/app/api/create-customer-portal-session/route.ts
+import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
