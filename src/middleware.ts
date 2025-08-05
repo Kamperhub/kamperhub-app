@@ -1,6 +1,5 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
-import { getSession } from '@/lib/server/server-session';
+import { getSession } from './src/lib/server/server-session';
 
 const protectedRoutes = [
   '/admin',
