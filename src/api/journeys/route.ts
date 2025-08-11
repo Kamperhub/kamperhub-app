@@ -1,7 +1,6 @@
-
 // src/app/api/journeys/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
 import type { Journey } from '@/types/journey';
 import { z, ZodError } from 'zod';
 import type admin from 'firebase-admin';
@@ -41,6 +40,9 @@ const handleApiError = (error: any): NextResponse => {
     if (error instanceof ZodError) {
       return NextResponse.json({ error: 'Invalid data', details: error.format() }, { status: 400 });
     }
+    if (error.message.includes('Unauthorized')) {
+        return NextResponse.json({ error: 'Unauthorized', details: error.message }, { status: 401 });
+    }
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
 };
 
@@ -68,7 +70,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const newJourney: Journey = {
       id: newJourneyRef.id,
       name: parsedData.name,
-      description: parsedData.description || null, // Ensure `null` instead of `undefined`
+      description: parsedData.description || null,
       tripIds: [],
       masterPolyline: null,
       createdAt: now,

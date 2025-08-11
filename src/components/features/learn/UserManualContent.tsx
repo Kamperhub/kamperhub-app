@@ -8,17 +8,18 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { LayoutDashboard, Settings2, Backpack, ListChecks, Briefcase, BedDouble, BookOpen, UserCircle, FileText, Fuel } from 'lucide-react';
+import { LayoutDashboard, Settings2, Backpack, ListChecks, Briefcase, BedDouble, BookOpen, UserCircle, FileText, Fuel, Users, Wand2, Map } from 'lucide-react';
 
 export function UserManualContent() {
   const manualSections = [
     {
-      title: "1. Dashboard",
+      title: "1. Dashboard & Onboarding",
       icon: LayoutDashboard,
       content: (
         <>
-          <p>The Dashboard is your home screen. The main section contains draggable cards for quick access to all of KamperHub's features. On a desktop computer, you can drag and drop these cards to customize the layout to your preference. This layout is saved to your account and will sync across devices.</p>
-          <p>The "Dashboard Hub" provides access to secondary features like the new Document Locker, your Travel Statistics, and the upcoming Rewards Program.</p>
+          <p>The Dashboard is your home screen and command center. For new users, it first displays a helpful "Getting Started" guide to walk you through the essential initial setup, such as adding your vehicle and caravan.</p>
+          <p>Once you dismiss the guide, the main dashboard contains draggable cards for quick access to all of KamperHub's features. On a desktop computer, you can drag and drop these cards to customize the layout to your preference. This layout is saved to your account and will sync across devices.</p>
+          <p>The "Adventure Hub" provides access to secondary features like the Document Locker, your Travel Statistics, and the upcoming Rewards Program.</p>
         </>
       )
     },
@@ -35,7 +36,11 @@ export function UserManualContent() {
             </li>
             <li>
               <h4 className="font-semibold font-headline text-md text-foreground">Caravans/Rigs:</h4>
-              <p className="text-sm">Input details for any type of camping rig, from a simple "Tent" or "Utility Trailer" to a large "Fifth Wheeler". You can manage Weight Distribution Hitch (WDH) settings, define internal storage locations, and list your water tanks. Mark one rig as "Active" for use in the Inventory page.</p>
+              <p className="text-sm">Input details for any type of camping rig. You can manage Weight Distribution Hitch (WDH) settings, define internal storage locations, and list your water tanks. Mark one rig as "Active" for use in the Inventory page.</p>
+            </li>
+             <li>
+              <h4 className="font-semibold font-headline text-md text-foreground">Weight Distribution Hitch (WDH):</h4>
+              <p className="text-sm">A WDH is a crucial safety device that improves handling by distributing the towball mass across the axles of both the tow vehicle and caravan. You can add your WDH details directly within the caravan setup form. This information is used to provide contextual advice on the Inventory page.</p>
             </li>
           </ul>
           <p className="text-sm"><strong>Subscription Note:</strong> The free version of KamperHub allows you to add 1 tow vehicle and 1 caravan/rig. Upgrade to Pro for unlimited entries.</p>
@@ -47,7 +52,7 @@ export function UserManualContent() {
       icon: FileText,
       content: (
         <>
-          <p>The Document Locker, accessible from the "Dashboard Hub," is a central, secure place for all your important travel-related files. Instead of attaching diagrams to specific caravans, you can now manage all documents in one place.</p>
+          <p>The Document Locker, accessible from the "Adventure Hub," is a central, secure place for all your important travel-related files. Instead of attaching diagrams to specific caravans, you can now manage all documents in one place.</p>
           <ul className="list-disc pl-5 space-y-2">
             <li>
               <h4 className="font-semibold font-headline text-md text-foreground">How it Works:</h4>
@@ -68,9 +73,14 @@ export function UserManualContent() {
          <>
           <p>This powerful tool helps you track items loaded into your active caravan and vehicle, manage their weights, and monitor compliance with various weight limits (ATM, GTM, Towball Mass, GVM, GCM).</p>
           <ul className="list-disc pl-5 space-y-2">
-            <li><strong>Active Selections:</strong> This page relies on the "Active" caravan and "Active" tow vehicle set in the "Vehicle & Caravan Setup" section for its calculations.</li>
-            <li><strong>Adding Items:</strong> Input an item's name, weight, quantity, and assign it to a predefined storage location from your active caravan or vehicle.</li>
-            <li><strong>Occupant Weight:</strong> Select a saved trip to automatically include the weight of the occupants from that trip in the vehicle's GVM calculation.</li>
+            <li>
+              <h4 className="font-semibold font-headline text-md text-foreground"><Wand2 className="inline h-4 w-4 mr-1"/>AI Starter Inventory:</h4>
+              <p className="text-sm">For new, empty caravans, an "AI Starter Inventory" button will appear. This feature generates a sensible list of essential items with estimated weights and suggests logical storage locations, giving you a great starting point instead of a blank slate.</p>
+            </li>
+            <li>
+              <h4 className="font-semibold font-headline text-md text-foreground"><Users className="inline h-4 w-4 mr-1"/>Occupant Weight:</h4>
+              <p className="text-sm">You can select a saved trip to load its specific occupant list (adults, children, pets). The total weight of these occupants is then correctly factored into your vehicle's Gross Vehicle Mass (GVM) for accurate compliance checks.</p>
+            </li>
             <li>
               <h4 className="font-semibold font-headline text-md text-foreground">Advanced Weight Summary:</h4>
               <p className="text-sm">The "Calculated Towball Mass" uses a physics-based moment calculation, considering the weight of each item and its distance from the caravan's axle center. This provides a more accurate estimate than a simple percentage. Visual charts help you monitor your ATM, Axle Load, and Towball Mass against their limits.</p>
@@ -87,13 +97,14 @@ export function UserManualContent() {
           <p>The Trip Manager is the central hub for all your travel planning activities.</p>
           <ul className="list-disc pl-5 space-y-2">
             <li>
-                <strong>Journeys:</strong> Group multiple individual trips into a single adventure (e.g., "The Big Lap 2025"). Each Journey has a master map showing the combined route of all its trips, an aggregated financial summary, and a strategic AI packing planner.
+                <h4 className="font-semibold font-headline text-md text-foreground"><Map className="inline h-4 w-4 mr-1"/>Journeys:</h4>
+                <p className="text-sm">Group multiple individual trips into a single adventure (e.g., "The Big Lap 2025"). Each Journey has a master map showing the combined route of all its trips, an aggregated financial summary, and a strategic AI packing planner.</p>
             </li>
             <li>
                 <strong>Trip Planner:</strong> Plan individual trip legs with Google Maps, factoring in vehicle height. Get estimates for distance, duration, and fuel, and track budgets and expenses for each trip.
             </li>
             <li><strong>Trip Log:</strong> Review your past adventures, recall saved trips for re-planning, and mark trips as complete.</li>
-            <li><strong>Trip Packing Assistant:</strong> Use our AI assistant to generate smart packing lists.</li>
+            <li><strong>Trip Packing Assistant:</strong> Use our AI assistant to generate smart packing lists. You can send the master list or personalized passenger lists to Google Tasks.</li>
             <li><strong>World Map:</strong> View all your completed trips on a global map.</li>
         </ul>
         </>

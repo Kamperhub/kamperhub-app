@@ -1,3 +1,4 @@
+// src/components/layout/BottomNavigation.tsx
 "use client";
 
 import { useContext } from 'react';
@@ -6,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { navItems } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import { NavigationContext } from './AppShell';
+import * as icons from 'lucide-react';
 
 export function BottomNavigation() {
   const pathname = usePathname();
@@ -25,7 +27,6 @@ export function BottomNavigation() {
     navItems.find(item => item.href === '/my-account'),
   ].filter(Boolean) as (typeof navItems);
 
-
   const tripManagerPaths = ['/trip-manager', '/trip-expense-planner', '/triplog', '/trip-packing', '/journeys', '/world-map', '/checklists'];
 
   return (
@@ -34,15 +35,15 @@ export function BottomNavigation() {
         <ul className="flex justify-around items-center h-16">
           {bottomNavItems.map((item) => {
             if (!item) return null;
-            
-            const IconComponent = item.icon;
+
+            const IconComponent = icons[item.iconName as keyof typeof icons] as React.ElementType;
             
             const isDashboardLink = item.href === '/dashboard';
             const isTripManagerLink = item.href === '/trip-manager';
             
             let isActive = false;
             if (isDashboardLink) {
-              isActive = pathname === '/' || pathname === '/dashboard' || pathname === '/dashboard-details';
+              isActive = pathname === '/' || pathname === '/dashboard' || pathname.startsWith('/dashboard-details');
             } else if (isTripManagerLink) {
               isActive = tripManagerPaths.some(p => pathname.startsWith(p));
             } else {

@@ -1,3 +1,2 @@
-// This file is obsolete and has been removed.
-// All chatbot logic is now handled through the Genkit flow at `src/ai/flows/caravan-support-chatbot.ts`.
-export {};
+// This file is being moved to /src/app/api/ai/chat/route.ts
+// This placeholder will be removed.

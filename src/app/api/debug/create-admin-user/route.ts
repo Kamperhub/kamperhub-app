@@ -1,4 +1,4 @@
-
+// src/app/api/debug/create-admin-user/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
 /**

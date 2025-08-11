@@ -1,4 +1,4 @@
-
+// src/app/api/debug/env/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
 /**

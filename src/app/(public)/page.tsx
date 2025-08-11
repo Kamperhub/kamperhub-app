@@ -13,7 +13,7 @@ import * as icons from 'lucide-react';
 export default function LandingPage() {
 
   const featuresToDisplay = navItems.filter(item => 
-    !['/my-account', '/contact', '/dashboard-details', '/trip-manager', '/learn', '/dashboard'].includes(item.href)
+    !['/my-account', '/contact', '/dashboard-details', '/trip-manager', '/learn', '/dashboard', '/chatbot'].includes(item.href)
   );
 
   return (

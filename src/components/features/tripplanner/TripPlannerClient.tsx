@@ -16,20 +16,18 @@ import { vehicleOnlyChecklist, fullRigChecklist } from '@/types/checklist';
 import type { BudgetCategory, Expense } from '@/types/expense';
 import { BudgetTab } from '@/components/features/tripplanner/BudgetTab';
 import { ExpenseTab } from '@/components/features/tripplanner/ExpenseTab';
-import { OccupantManager } from '@/components/features/tripplanner/OccupantManager';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Map, AdvancedMarker, Pin, InfoWindow, useMap } from '@vis.gl/react-google-maps';
-import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, Search, StickyNote, Edit, DollarSign, Users, AlertTriangle, XCircle, Edit3, Car, Settings, TowerControl, Home, Info, Map as MapIcon } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Loader2, RouteIcon, Fuel, MapPin, Save, CalendarDays, Navigation, StickyNote, Edit, DollarSign, Users, AlertTriangle, XCircle, Edit3, Car, Settings, TowerControl, Home, Info, Map as MapIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -41,10 +39,10 @@ import {
 } from "@/components/ui/popover";
 import type { DateRange } from 'react-day-picker';
 import { GooglePlacesAutocompleteInput } from '@/components/shared/GooglePlacesAutocompleteInput';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { createTrip, updateTrip, fetchAllVehicleData, fetchJourneys } from '@/lib/api-client';
-import Link from 'next/link';
+import { createTrip, updateTrip } from '@/lib/api-client';
+import type { UserProfile } from '@/types/auth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const tripPlannerSchema = z.object({
@@ -103,7 +101,14 @@ const RouteRenderer = ({ routeDetails }: { routeDetails: RouteDetails | null }) 
   return null;
 };
 
-export function TripPlannerClient() {
+interface TripPlannerClientProps {
+    userPrefs: Partial<UserProfile> | null;
+    allVehicles: StoredVehicle[];
+    allCaravans: StoredCaravan[];
+    allJourneys: Journey[];
+}
+
+export function TripPlannerClient({ userPrefs, allVehicles, allCaravans, allJourneys }: TripPlannerClientProps) {
   const { control, handleSubmit, formState: { errors }, setValue, getValues, reset } = useForm<TripPlannerFormValues>({
     resolver: zodResolver(tripPlannerSchema),
     defaultValues: {
@@ -129,27 +134,10 @@ export function TripPlannerClient() {
   const [activeTrip, setActiveTrip] = useState<LoggedTrip | null>(null);
   const [tripBudget, setTripBudget] = useState<BudgetCategory[]>([]);
   const [tripExpenses, setTripExpenses] = useState<Expense[]>([]);
-  const [tripOccupants, setTripOccupants] = useState<Occupant[]>([]);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
   const [showFuelStations, setShowFuelStations] = useState(false);
   const [activeFuelStation, setActiveFuelStation] = useState<FuelStation | null>(null);
-  
-  const { data: pageData, isLoading: isLoadingPageData } = useQuery({
-      queryKey: ['allVehicleData', user?.uid],
-      queryFn: fetchAllVehicleData,
-      enabled: !!user,
-  });
-  
-  const userPrefs = pageData?.userProfile;
-  const allVehicles = pageData?.vehicles || [];
-  const allCaravans = pageData?.caravans || [];
-
-  const { data: allJourneys = [] } = useQuery<Journey[]>({
-    queryKey: ['journeys', user?.uid],
-    queryFn: fetchJourneys,
-    enabled: !!user,
-  });
 
   const sortedJourneys = useMemo(() => {
     return [...allJourneys].sort((a, b) => a.name.localeCompare(b.name));
@@ -174,7 +162,6 @@ export function TripPlannerClient() {
     setActiveTrip(null);
     setTripBudget([]);
     setTripExpenses([]);
-    setTripOccupants([]);
     setPendingTripName('');
     setPendingTripNotes('');
     setAvoidTolls(false);
@@ -226,12 +213,6 @@ export function TripPlannerClient() {
         
         setRouteDetails(result);
         
-        if (!activeTrip && tripOccupants.length === 0 && user) {
-          const defaultDriver: Occupant = { id: `driver_${Date.now()}`, name: user.displayName || 'Driver', type: 'Adult', weight: 75, notes: null, age: null };
-          setTripOccupants([defaultDriver]);
-          toast({ title: "Default Driver Added", description: "You can edit occupant details as needed." });
-        }
-
         const currentFormData = getValues();
         if (result.distance.value > 0 && currentFormData.fuelEfficiency > 0) {
             const fuelNeeded = (result.distance.value / 1000 / 100) * currentFormData.fuelEfficiency;
@@ -247,7 +228,7 @@ export function TripPlannerClient() {
     } finally { 
         setIsLoading(false); 
     }
-  }, [userPrefs, allVehicles, allCaravans, toast, user, getValues, activeTrip, tripOccupants, isTowing, avoidTolls]);
+  }, [userPrefs, allVehicles, allCaravans, toast, user, getValues, isTowing, avoidTolls]);
 
   const onSubmit: SubmitHandler<Omit<TripPlannerFormValues, 'waypoints'>> = (data) => {
     calculateRoute(data);
@@ -261,7 +242,7 @@ export function TripPlannerClient() {
 
   useEffect(() => {
     let recalledTripLoaded = false;
-    if (typeof window !== 'undefined' && pageData) {
+    if (typeof window !== 'undefined') {
       try {
         const recalledTripJson = localStorage.getItem(RECALLED_TRIP_DATA_KEY);
         if (recalledTripJson) {
@@ -279,7 +260,6 @@ export function TripPlannerClient() {
           setIsTowing(!sanitizedTrip.isVehicleOnly);
           setTripBudget(sanitizedTrip.budget || []);
           setTripExpenses(sanitizedTrip.expenses || []);
-          setTripOccupants(sanitizedTrip.occupants || []);
           setSelectedJourneyId(sanitizedTrip.journeyId || null);
           
           reset({
@@ -314,12 +294,12 @@ export function TripPlannerClient() {
         }
       }
     }
-  }, [reset, setValue, toast, userPrefs, allVehicles, getValues, pageData]); 
+  }, [reset, setValue, toast, userPrefs, allVehicles, getValues]); 
 
   const createTripMutation = useMutation({
     mutationFn: (data: Omit<LoggedTrip, 'id' | 'timestamp'>) => createTrip(data),
     onSuccess: (savedTrip) => {
-      queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
+      queryClient.invalidateQueries({ queryKey: ['allVehicleData', user?.uid] });
       queryClient.invalidateQueries({ queryKey: ['journeys', user?.uid] });
       toast({ title: "Trip Saved!", description: `"${savedTrip.name}" has been added to your Trip Log.` });
       setIsSaveTripDialogOpen(false);
@@ -331,7 +311,7 @@ export function TripPlannerClient() {
   const updateTripMutation = useMutation({
     mutationFn: (data: Partial<LoggedTrip> & { id: string }) => updateTrip(data),
     onSuccess: (updatedTrip) => {
-      queryClient.invalidateQueries({ queryKey: ['trips', user?.uid] });
+      queryClient.invalidateQueries({ queryKey: ['allVehicleData', user?.uid] });
       queryClient.invalidateQueries({ queryKey: ['journeys', user?.uid] });
       toast({ title: "Trip Updated!", description: `"${updatedTrip.trip.name}" has been updated.` });
     },
@@ -341,23 +321,16 @@ export function TripPlannerClient() {
   const handleBudgetUpdate = useCallback((newBudget: BudgetCategory[]) => {
     setTripBudget(newBudget);
     if(activeTrip) {
-      updateTripMutation.mutate({ ...activeTrip, budget: newBudget, expenses: tripExpenses, occupants: tripOccupants });
+      updateTripMutation.mutate({ ...activeTrip, budget: newBudget, expenses: tripExpenses });
     }
-  }, [activeTrip, tripExpenses, tripOccupants, updateTripMutation]);
+  }, [activeTrip, tripExpenses, updateTripMutation]);
 
   const handleExpensesUpdate = useCallback((newExpenses: Expense[]) => {
     setTripExpenses(newExpenses);
     if(activeTrip) {
-      updateTripMutation.mutate({ ...activeTrip, budget: tripBudget, expenses: newExpenses, occupants: tripOccupants });
+      updateTripMutation.mutate({ ...activeTrip, budget: tripBudget, expenses: newExpenses });
     }
-  }, [activeTrip, tripBudget, tripOccupants, updateTripMutation]);
-
-  const handleOccupantsUpdate = useCallback((newOccupants: Occupant[]) => {
-    setTripOccupants(newOccupants);
-    if(activeTrip) {
-        updateTripMutation.mutate({ ...activeTrip, budget: tripBudget, expenses: tripExpenses, occupants: newOccupants });
-    }
-  }, [activeTrip, tripBudget, tripExpenses, updateTripMutation]);
+  }, [activeTrip, tripBudget, updateTripMutation]);
 
   const handleOpenSaveTripDialog = useCallback(() => {
     if (!routeDetails) {
@@ -380,15 +353,6 @@ export function TripPlannerClient() {
       toast({ title: "Error", description: "Route details are missing.", variant: "destructive" });
       return;
     }
-    if (tripOccupants.length === 0) {
-      toast({
-        title: "Occupant Required",
-        description: "Please add at least one occupant (e.g., the driver) before saving.",
-        variant: "destructive",
-        duration: 6000,
-      });
-      return;
-    }
 
     const newTripChecklistSet: ChecklistStage[] = isTowing
         ? fullRigChecklist.map(stage => ({ ...stage, items: [...stage.items] }))
@@ -408,14 +372,10 @@ export function TripPlannerClient() {
       plannedStartDate: currentFormData.dateRange?.from?.toISOString() || null,
       plannedEndDate: currentFormData.dateRange?.to?.toISOString() || null,
       notes: pendingTripNotes.trim() || null,
-      checklists: newTripChecklistSet,
+      checklists: activeTrip?.checklists || newTripChecklistSet,
       budget: tripBudget,
       expenses: tripExpenses,
-      occupants: tripOccupants.map(occ => ({
-          ...occ,
-          age: occ.age ?? null,
-          notes: occ.notes ?? null,
-      })),
+      occupants: activeTrip?.occupants || [],
       isVehicleOnly: !isTowing,
       activeCaravanIdAtTimeOfCreation: isTowing ? (activeCaravan?.id || null) : null,
       activeCaravanNameAtTimeOfCreation: isTowing ? (activeCaravan ? `${activeCaravan.year} ${activeCaravan.make} ${activeCaravan.model}` : null) : null,
@@ -428,51 +388,10 @@ export function TripPlannerClient() {
     } else {
         createTripMutation.mutate(tripData);
     }
-  }, [routeDetails, getValues, fuelEstimate, toast, pendingTripName, pendingTripNotes, userPrefs, createTripMutation, updateTripMutation, activeTrip, tripBudget, tripExpenses, tripOccupants, allCaravans, isTowing, selectedJourneyId]);
+  }, [routeDetails, getValues, fuelEstimate, toast, pendingTripName, pendingTripNotes, userPrefs, createTripMutation, updateTripMutation, activeTrip, tripBudget, tripExpenses, allCaravans, isTowing, selectedJourneyId, user]);
 
 
-  const mapHeight = "400px"; 
-
-  if (isLoadingPageData) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-center py-10">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
-          <p className="font-body text-lg">Loading vehicle setup...</p>
-        </div>
-        <Skeleton className="h-48 w-full" />
-      </div>
-    );
-  }
-
-  if (!isLoadingPageData && allVehicles.length === 0) {
-    return (
-      <Card className="max-w-xl mx-auto">
-        <CardHeader>
-          <CardTitle className="font-headline flex items-center text-destructive">
-            <AlertTriangle className="mr-3 h-6 w-6" /> Tow Vehicle Required
-          </CardTitle>
-          <CardDescription>
-            You must add at least one tow vehicle before you can plan a trip.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">
-            <Car className="h-4 w-4" />
-            <AlertTitle className="font-headline">Action Required</AlertTitle>
-            <AlertDescription className="font-body">
-              Trip planning uses your vehicle's specifications, like fuel efficiency, for accurate calculations. Please go to the Vehicle Setup page to add your primary tow vehicle.
-            </AlertDescription>
-          </Alert>
-          <Button asChild className="mt-6 w-full font-body">
-            <Link href="/vehicles">
-              <Settings className="mr-2 h-4 w-4" /> Go to Vehicle Setup
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
+  const mapHeight = "550px"; 
 
   return (
     <>
@@ -574,33 +493,6 @@ export function TripPlannerClient() {
                     </div>
                     {!isGoogleApiReady && <p className="text-xs text-muted-foreground text-center font-body mt-1">Map services loading...</p>}
                   </form>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline flex items-center"><Users className="mr-2 h-6 w-6 text-primary" /> Vehicle Occupants</CardTitle>
-                    <CardDescription>Add travelers to account for their weight and personalize packing lists.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {!routeDetails && !activeTrip && (
-                        <Alert variant="default" className="mb-4 bg-muted/50">
-                            <Info className="h-4 w-4" />
-                            <AlertTitle className="font-headline">Plan Itinerary First</AlertTitle>
-                            <AlertDescription className="font-body">
-                                This section will unlock after you calculate a route.
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                    {routeDetails && tripOccupants.length === 0 && !activeTrip && (
-                        <Alert variant="destructive" className="mb-4">
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle className="font-headline">Occupant Required</AlertTitle>
-                            <AlertDescription className="font-body">
-                                Please add at least one occupant before saving the trip.
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                    <OccupantManager occupants={tripOccupants} onUpdate={handleOccupantsUpdate} disabled={!routeDetails && !activeTrip} />
                 </CardContent>
               </Card>
             </div>

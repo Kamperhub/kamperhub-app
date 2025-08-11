@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -26,24 +27,21 @@ import { analytics } from '@/lib/firebase';
 import { setUserProperties } from 'firebase/analytics';
 
 interface CaravanManagerProps {
-    initialCaravans: StoredCaravan[];
-    initialUserPrefs: Partial<UserProfile> | null;
+    caravans: StoredCaravan[];
+    userPrefs: Partial<UserProfile> | null;
 }
 
 const updateAnalyticsUserProperties = (caravans: StoredCaravan[]) => {
     if (!analytics) return;
 
-    // 1. Determine primary_camping_accommodation
     let primaryAccommodation: string = 'none';
     const sleepingUnits = caravans.filter(c => c.type !== 'Utility Trailer');
     if (sleepingUnits.length > 0) {
         primaryAccommodation = sleepingUnits[0].type;
     }
     
-    // 2. Determine has_utility_trailer
     const hasUtilityTrailer = caravans.some(c => c.type === 'Utility Trailer');
 
-    // 3. Set the user properties
     setUserProperties(analytics, {
         primary_camping_accommodation: primaryAccommodation,
         has_utility_trailer: hasUtilityTrailer.toString(),
@@ -51,7 +49,7 @@ const updateAnalyticsUserProperties = (caravans: StoredCaravan[]) => {
 };
 
 
-export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanManagerProps) {
+export function CaravanManager({ caravans, userPrefs }: CaravanManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
@@ -66,7 +64,7 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
     confirmationText: '',
   });
 
-  const activeCaravanId = initialUserPrefs?.activeCaravanId;
+  const activeCaravanId = userPrefs?.activeCaravanId;
   
   const invalidateAndRefetch = () => {
     queryClient.invalidateQueries({ queryKey: ['allVehicleData', user?.uid] });
@@ -85,10 +83,6 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
       }
     },
     onSuccess: (savedCaravan) => {
-      const updatedCaravans = editingCaravan
-            ? initialCaravans.map(c => c.id === savedCaravan.id ? savedCaravan : c)
-            : [...initialCaravans, savedCaravan];
-      updateAnalyticsUserProperties(updatedCaravans);
       invalidateAndRefetch();
       toast({
         title: editingCaravan ? "Caravan Updated" : "Caravan Added",
@@ -105,7 +99,6 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
   const deleteCaravanMutation = useMutation({
     mutationFn: deleteCaravan,
     onSuccess: (_, deletedId) => {
-        updateAnalyticsUserProperties(initialCaravans.filter(c => c.id !== deletedId));
         invalidateAndRefetch();
         toast({ title: "Caravan Deleted" });
         setDeleteDialogState({ isOpen: false, caravanId: null, caravanName: null, confirmationText: '' });
@@ -168,7 +161,7 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
     return `${longText} / ${latText}`;
   };
 
-  const isAddButtonDisabled = !hasProAccess && initialCaravans.length >= 1;
+  const isAddButtonDisabled = !hasProAccess && caravans.length >= 1;
 
   return (
     <>
@@ -203,10 +196,9 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {initialCaravans.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No rigs added yet.</p>}
-          {initialCaravans.map(caravan => {
+          {caravans.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No rigs added yet.</p>}
+          {caravans.map(caravan => {
             const caravanGrossPayload = (typeof caravan.atm === 'number' && typeof caravan.tareMass === 'number' && caravan.atm > 0 && caravan.tareMass > 0 && caravan.atm >= caravan.tareMass) ? caravan.atm - caravan.tareMass : null;
-            const caravanType = caravan.type || "Other";
             return (
               <Card key={caravan.id} className={`p-4 ${activeCaravanId === caravan.id ? 'border-primary shadow-lg' : 'shadow-sm'}`}>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
@@ -215,7 +207,6 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
                         <CaravanIcon className="h-5 w-5 mr-2 text-primary/80"/>
                         {caravan.year} {caravan.make} {caravan.model}
                     </h3>
-                    <Badge variant="secondary" className="mt-1">{caravanType}</Badge>
 
                     <div className="text-sm text-muted-foreground font-body grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 mt-2">
                       <span className="flex items-center"><Weight className="w-3.5 h-3.5 mr-1.5 text-primary/80"/> Tare: {caravan.tareMass}kg</span>
@@ -237,7 +228,11 @@ export function CaravanManager({ initialCaravans, initialUserPrefs }: CaravanMan
                         {setActiveCaravanMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <CheckCircle className="mr-2 h-4 w-4 text-green-500" />} Set Active
                       </Button>
                     )}
-                    {activeCaravanId === caravan.id && <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white text-xs h-8 w-full sm:w-auto flex items-center justify-center"><CheckCircle className="mr-1 h-4 w-4" /> Active</Badge>}
+                     {activeCaravanId === caravan.id && (
+                      <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white text-xs h-8 w-full sm:w-auto flex items-center justify-center">
+                        <CheckCircle className="mr-1 h-4 w-4" /> Active
+                      </Badge>
+                    )}
                     <div className="flex gap-1 w-full sm:w-auto">
                       <Button variant="ghost" size="sm" onClick={() => handleEditCaravan(caravan)} className="font-body flex-grow sm:flex-grow-0"><Edit3 className="h-4 w-4 sm:mr-1" /><span className="sm:hidden ml-1">Edit</span></Button>
                       <Button variant="ghost" size="sm" onClick={() => handleDeleteCaravan(caravan.id, `${caravan.year} ${caravan.make} ${caravan.model}`)} className="font-body text-destructive hover:text-destructive hover:bg-destructive/10 flex-grow sm:flex-grow-0"><Trash2 className="h-4 w-4 sm:mr-1" /><span className="sm:hidden ml-1">Delete</span></Button>

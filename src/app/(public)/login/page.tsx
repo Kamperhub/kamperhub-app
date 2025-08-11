@@ -1,9 +1,8 @@
-// src/app/(public)/login/page.tsx
-// This page is for unauthenticated users. It MUST NOT use NavigationContext.
 
+// src/app/(public)/login/page.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react'; // Removed useContext from import
+import React, { useState, useEffect, useContext } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -25,6 +24,7 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
+import { NavigationContext } from '@/components/layout/AppShell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function LoginPage() {
@@ -38,6 +38,7 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { authStatus, profileStatus } = useAuth();
+  const navContext = useContext(NavigationContext);
 
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
@@ -58,6 +59,10 @@ export default function LoginPage() {
       setLoginError(firebaseInitializationError);
     }
   }, []);
+
+  const handleNavigation = () => {
+    if (navContext) navContext.setIsNavigating(true);
+  };
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -269,7 +274,7 @@ export default function LoginPage() {
           </form>
           <p className="text-sm text-center text-muted-foreground mt-6 font-body">
             Don't have an account?{' '}
-            <Link href="/signup" className="font-medium text-primary hover:underline">
+            <Link href="/signup" className="font-medium text-primary hover:underline" onClick={handleNavigation}>
               Sign Up
             </Link>
           </p>

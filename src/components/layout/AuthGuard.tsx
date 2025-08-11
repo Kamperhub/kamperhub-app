@@ -67,12 +67,12 @@ const ErrorScreen = ({ error }: { error: string | null }) => {
             </pre>
             {isTimeoutError && (
                <div className="mt-4 border-t border-destructive/30 pt-3 text-left font-body space-y-4">
-                <p className="font-bold">This is a timeout error. It almost always means the app cannot connect to the Firestore database named `kamperhubv2`.</p>
+                <p className="font-bold">This is a timeout error. It almost always means the app cannot connect to the Firestore database named `(default)`.</p>
                 <p>This is the most common and critical setup issue. Please follow these steps exactly:</p>
                 <ul className="list-decimal pl-5 space-y-2">
                   <li>Open the file <code className="bg-background/20 px-1 rounded-sm">FIREBASE_SETUP_CHECKLIST.md</code>.</li>
-                  <li>Carefully follow the instructions in <strong>Step 5: CRITICAL - Verify Firestore Database Exists (with ID `kamperhubv2`)</strong>.</li>
-                  <li>Your database ID <strong>must be `kamperhubv2`</strong>, not `(default)`. If it is `(default)`, you must delete it and create a new one with the correct ID.</li>
+                  <li>Carefully follow the instructions in <strong>Step 5: CRITICAL - Create the (default) Firestore Database</strong>.</li>
+                  <li>Your database ID <strong>must be `(default)`</strong>. If it is not, you must delete any other databases and create a new one with the correct ID.</li>
                 </ul>
               </div>
             )}
@@ -85,7 +85,7 @@ const ErrorScreen = ({ error }: { error: string | null }) => {
                 </div>
                 <div>
                   <h3 className="font-semibold">2. Deploy the Rules in Firebase</h3>
-                  <p className="text-sm">Go to the Firebase Console, select your project (`kamperhub-s4hc2`), go to the "Firestore Database" section, select the `kamperhubv2` database, and click the "Rules" tab. Paste the copied rules into the editor, replacing anything that's currently there, and click "Publish".</p>
+                  <p className="text-sm">Go to the Firebase Console, select your project (`kamperhub-s4hc2`), go to the "Firestore Database" section, select the `(default)` database, and click the "Rules" tab. Paste the copied rules into the editor, replacing anything that's currently there, and click "Publish".</p>
                 </div>
                  <p className="mt-2 text-sm">After publishing the rules, refresh this page.</p>
               </div>
@@ -106,28 +106,28 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const isPublicPath = ['/login', '/signup', '/landing', '/learn', '/contact', '/subscribe/success', '/subscribe/cancel'].some(path => pathname.startsWith(path));
+
   useEffect(() => {
-    if (authStatus === 'UNAUTHENTICATED') {
+    if (authStatus === 'UNAUTHENTICATED' && !isPublicPath) {
       const currentPath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-      if (pathname !== '/login' && pathname !== '/') {
-        router.push(`/login?redirectedFrom=${encodeURIComponent(currentPath)}`);
-      } else {
-        router.push('/login');
-      }
+      router.push(`/login?redirectedFrom=${encodeURIComponent(currentPath)}`);
     }
-  }, [authStatus, router, pathname, searchParams]);
+  }, [authStatus, router, pathname, searchParams, isPublicPath]);
 
   if (authStatus === 'LOADING' || (authStatus === 'AUTHENTICATED' && profileStatus === 'LOADING')) {
     return <LoadingScreen message={authStatus === 'LOADING' ? 'Initializing Session...' : 'Loading Your Profile...'} />;
   }
   
-  if (profileStatus === 'ERROR') {
+  if (profileStatus === 'ERROR' && !isPublicPath) {
     return <ErrorScreen error={profileError} />;
   }
   
-  if (authStatus === 'AUTHENTICATED' && profileStatus === 'SUCCESS') {
+  // If user is authenticated and profile is ready OR if it's a public page, show the children
+  if ((authStatus === 'AUTHENTICATED' && profileStatus === 'SUCCESS') || isPublicPath) {
     return <>{children}</>;
   }
   
-  return <LoadingScreen message="Redirecting..." />;
+  // For unauthenticated users trying to access protected routes, this will show a brief loading screen before the redirect kicks in.
+  return <LoadingScreen message="Checking authentication..." />;
 };

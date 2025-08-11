@@ -1,15 +1,15 @@
+
+'use server';
 import 'server-only';
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 
 export function getFirebaseAdmin() {
-  // If the app is already initialized, return the existing instances.
   if (admin.apps.length > 0 && admin.apps[0]) {
     const app = admin.apps[0];
-    const firestore = getFirestore(app, 'kamperhubv2');
+    const firestore = getFirestore(app);
     if (!firestore) {
-      // This case can happen if the database with the specified ID doesn't exist.
-      const error = new Error("FATAL: Failed to get Firestore instance for database 'kamperhubv2'. Please ensure a Firestore database with this exact ID exists in your Firebase project.");
+      const error = new Error("FATAL: Failed to get Firestore instance for (default) database. Please ensure a Firestore database with this exact ID exists in your Firebase project.");
       console.error("CRITICAL: Firebase Admin SDK initialization failed.", error);
       return { auth: null, firestore: null, error };
     }
@@ -20,7 +20,6 @@ export function getFirebaseAdmin() {
     };
   }
 
-  // If not initialized, proceed with the new, robust Base64 decoding setup.
   try {
     console.log("[Firebase Admin] No initialized app found. Starting new initialization with Base64 credentials...");
     const serviceAccountBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
@@ -58,9 +57,9 @@ export function getFirebaseAdmin() {
 
     console.log(`[Firebase Admin] SDK initialized successfully for project: ${serviceAccount.project_id}`);
     
-    const firestore = getFirestore(newApp, 'kamperhubv2');
+    const firestore = getFirestore(newApp);
     if (!firestore) {
-      throw new Error("FATAL: Failed to get Firestore instance for database 'kamperhubv2' after initializing a new app. Please ensure a Firestore database with this exact ID exists.");
+      throw new Error("FATAL: Failed to get Firestore instance for (default) database after initializing a new app. Please ensure a Firestore database exists.");
     }
 
     return {

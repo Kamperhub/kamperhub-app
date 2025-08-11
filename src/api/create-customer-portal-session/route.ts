@@ -1,3 +1,4 @@
+
 // src/app/api/create-customer-portal-session/route.ts
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
       errorDetails = `The server's credentials (GOOGLE_APPLICATION_CREDENTIALS_JSON) are invalid or lack IAM permissions. Please follow the setup checklist to verify your service account role and Firestore rules, then restart the server. Original Error: ${error.message}`;
     } else if (error.code === 5 || (error.message && error.message.toLowerCase().includes('not_found'))) {
       errorTitle = `DATABASE NOT FOUND`;
-      errorDetails = `The server could not find the Firestore database 'kamperhubv2'. Please verify it has been created in your Firebase project. Original Error: ${error.message}`;
+      errorDetails = `The server could not find the Firestore database '(default)'. Please verify it has been created in your Firebase project. Original Error: ${error.message}`;
     } else if (error.type) { // Stripe-specific error
         errorTitle = `Stripe Error: ${error.type}`;
         errorDetails = error.message;

@@ -1,4 +1,3 @@
-
 'use server';
 import {z} from 'zod';
 import {ai} from '@/ai/genkit';
@@ -55,6 +54,8 @@ const prompt = ai.definePrompt({
   },
   prompt: `You are an intelligent, meticulous travel assistant and packing expert. Your primary goal is to generate a single, consolidated, and comprehensive "master" packing list for a trip based on the provided details. The output MUST be a single JSON object that strictly follows the requested schema.
 
+**Critical Instruction:** You MUST create a single master list for all travelers combined. Do NOT create separate lists for each individual in this output. This is a crucial step for the application's workflow.
+
 **Trip Details:**
 *   **Destination:** {{{destination}}}
 *   **Departure Date:** {{{departureDate}}}
@@ -72,7 +73,7 @@ const prompt = ai.definePrompt({
 
 **Instructions:**
 1.  **Assess Conditions:** Based on the **Destination**, **Dates**, and any provided **Weather Context**, determine the likely weather and environment.
-2.  **Consolidate Needs:** Consider all **Travelers** and **Activities** to create a single, unified packing list for the entire group. Do NOT break the list down per traveler.
+2.  **Consolidate Needs:** Consider all **Travelers** and **Activities** to create a single, unified packing list for the entire group. Do NOT break the list down per traveler. This is a master list.
 3.  **Categorize Items:** Logically group all items into clear categories like 'Clothing', 'Toiletries', 'Documents & Money', 'Electronics', 'Health & Safety', 'Shared Gear', 'Pet Supplies', etc.
 4.  **Specify Quantities:** Where appropriate, include quantities in the item name (e.g., "4x T-shirts", "2x Pairs of socks per person").
 5.  **JSON Output Format (Strict Requirement):**

@@ -1,6 +1,4 @@
 
-import type { LucideIcon } from 'lucide-react';
-
 export const caravanTypeDetails = [
   { name: "Caravan", icon: 'Caravan', description: "A standard towed trailer with rigid walls." },
   { name: "Pop-Top Caravan & Folding Camper", icon: 'TentTree', description: "A towable unit that folds or has a pop-top roof." },
@@ -33,7 +31,7 @@ export interface StorageLocation {
   name: string;
   longitudinalPosition: 'front-of-axles' | 'over-axles' | 'rear-of-axles';
   lateralPosition: 'left' | 'center' | 'right';
-  distanceFromAxleCenterMm?: number | null; 
+  distanceFromAxleCenterMm?: number | null;
   distanceFromCenterlineMm?: number | null;
   heightFromGroundMm?: number | null;
   maxWeightCapacityKg?: number | null;
@@ -41,7 +39,7 @@ export interface StorageLocation {
 
 export interface WaterTank {
   id: string;
-  name: string; 
+  name: string;
   type: 'fresh' | 'grey' | 'black';
   capacityLitres: number;
   longitudinalPosition: 'front-of-axles' | 'over-axles' | 'rear-of-axles';
@@ -54,9 +52,9 @@ export interface CaravanFormData {
   make: string;
   model: string;
   year: number;
-  tareMass: number; 
-  atm: number; 
-  gtm: number; 
+  tareMass: number;
+  atm: number;
+  gtm: number;
   maxTowballDownload: number;
   numberOfAxles: number;
   axleGroupRating: number;

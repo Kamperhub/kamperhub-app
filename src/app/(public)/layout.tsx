@@ -1,18 +1,3 @@
-// src/app/(public)/layout.tsx
-import type { ReactNode } from 'react';
-import { Header } from '@/components/layout/Header';
 
-export default function PublicLayout({
-    children,
-}: {
-    children: ReactNode;
-}) {
-    return (
-        <div className="flex flex-col min-h-screen">
-            <Header />
-            <main className="flex-grow container mx-auto px-4 py-8">
-                {children}
-            </main>
-        </div>
-    );
-}
+// This file is now obsolete and will be removed.
+// The root layout at /src/app/layout.tsx now handles the main page structure.

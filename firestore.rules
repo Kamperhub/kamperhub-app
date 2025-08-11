@@ -2,10 +2,42 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default deny all access to this database.
-    // This is a critical security best practice for unused databases.
-    match /{document=**} {
-      allow read, write: if false;
+
+    // Helper function to check if a user is the owner of the data
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Rules for the main user profile document
+    match /users/{userId} {
+      allow read, update: if isOwner(userId);
+      allow create: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Rules for all user subcollections (e.g., vehicles, caravans, trips)
+    match /users/{userId}/{collection}/{docId} {
+      allow read, create, update, delete: if isOwner(userId);
+    }
+    
+    // Rules for the new 'favoriteSpots' subcollection
+    match /users/{userId}/favoriteSpots/{spotId} {
+      allow read, create, update, delete: if isOwner(userId);
+    }
+
+    // Rules for the 'contactSubmissions' collection (publicly writable)
+    match /contactSubmissions/{submissionId} {
+      allow create: if true; // Anyone can submit the form
+      allow read, update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true; // Only admins can manage
+    }
+    
+    // Rules for Google Auth state tokens
+    match /oauthStates/{state} {
+      // Allow any authenticated user to create a state token for themselves.
+      // We check that the 'userId' in the document being created matches the user's UID.
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      
+      // Only the user who created the state token can read or delete it.
+      allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
   }
 }

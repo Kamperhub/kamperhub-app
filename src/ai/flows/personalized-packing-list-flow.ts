@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview AI agent for generating personalized packing lists for multiple passengers.
@@ -60,7 +59,9 @@ const prompt = ai.definePrompt({
   name: 'personalizedPackingListPrompt',
   input: {schema: PersonalizedPackingListInputSchema},
   output: {schema: PersonalizedPackingListOutputSchema},
-  prompt: `You are an expert travel assistant and personal concierge for 'KamperHub' trips. Your main task is to take a comprehensive, pre-generated packing list for a trip and personalize it for each individual passenger, considering their type and specific needs. You must then format this personalized list for two distinct purposes: a friendly, concise message for a messaging service, and a highly structured output for direct integration with Google Tasks.
+  prompt: `You are an expert travel assistant for 'KamperHub'. Your task is to take a master packing list and personalize it for each passenger.
+
+**Critical Rule:** If there is only one passenger in the list, you MUST throw an error with the exact message: "Personalization is not needed for a single passenger." This is a hard rule.
 
 **Trip Details:**
 - **Name:** {{trip_details.name}}
@@ -86,22 +87,21 @@ const prompt = ai.definePrompt({
 
 **Output Generation Rules:**
 
-1.  **messenger_message:** A friendly, personalized message string for a messenger service.
-    -   Start with a warm greeting.
-    -   Mention the trip name and dates.
-    -   List only the items relevant to that specific passenger.
-    -   Categorize items clearly (e.g., using bolding or bullet points).
-    -   Add a brief, personalized closing remark based on their needs (e.g., "Don't forget your teddy bear, Maya!").
-    -   Ensure conciseness suitable for a mobile message.
+1.  **messenger_message:** A friendly, personalized message.
+    -   Start with a greeting.
+    -   Mention trip name and dates.
+    -   List only items relevant to that specific passenger.
+    -   Categorize items clearly.
+    -   Add a brief, personalized closing remark.
+    -   Ensure conciseness for mobile.
 
-2.  **google_tasks_structure:** A structured JSON object for programmatic Google Tasks creation.
-    -   The top-level task should be the \`trip_task_name\`, which is the trip name followed by " - [Passenger Name]'s Packing List".
-    -   Under this trip task, create sub-tasks for each category (e.g., "Clothing", "Gear").
+2.  **google_tasks_structure:** A structured JSON object for Google Tasks.
+    -   \`trip_task_name\` should be "[Trip Name] - [Passenger Name]'s Packing List".
+    -   Create sub-tasks for each category.
     -   Under each category, create sub-tasks for each individual item.
-    -   Exclude any shared items (marked as "(shared)") from individual passenger lists, unless specifically relevant for a passenger to track. Assume shared items are managed centrally.
-    -   Strictly adhere to the hierarchy: Trip Task > Category Sub-Task > Item Sub-Sub-Task.
+    -   Exclude shared items (marked with "(shared)") from individual lists.
 
-Your final output MUST be a single JSON object containing an array of \`passenger_lists\`, with each element containing the \`passenger_id\`, \`passenger_name\`, \`messenger_message\`, and \`google_tasks_structure\`. Do not call any tools.
+Your final output MUST be a single JSON object containing an array of \`passenger_lists\`. Do not call any tools.
 `,
 });
 
@@ -113,6 +113,9 @@ const personalizedPackingListFlow = ai.defineFlow(
   },
   async (input) => {
     try {
+      if (input.passengers.length <= 1) {
+        throw new Error("Personalization is not needed for a single passenger.");
+      }
       const {output} = await prompt(input);
       if (!output) {
         throw new Error('The AI returned an empty or invalid response.');

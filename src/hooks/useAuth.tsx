@@ -1,9 +1,8 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { onIdTokenChanged, type User as FirebaseUser } from 'firebase/auth';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, getDoc, type DocumentReference, type DocumentSnapshot } from 'firebase/firestore';
 import { auth, db, firebaseInitializationError } from '@/lib/firebase';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from './useSubscription';
@@ -21,6 +20,25 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+function getDocWithTimeout(docRef: DocumentReference, timeout: number): Promise<DocumentSnapshot> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Firestore request timed out after ${timeout}ms. This usually means a problem connecting to the database. Please check your internet connection and ensure the (default) database has been created in the Firebase Console.`));
+    }, 7000);
+
+    getDoc(docRef).then(
+      (snapshot) => {
+        clearTimeout(timer);
+        resolve(snapshot);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -43,13 +61,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       let unsubscribeProfile: (() => void) | undefined;
 
       if (currentUser) {
+        try {
+            const idToken = await currentUser.getIdToken();
+            await fetch('/api/auth/session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken }),
+            });
+        } catch (error) {
+            console.error("Failed to sync session cookie:", error);
+        }
+        
         setAuthStatus('AUTHENTICATED');
         setProfileStatus('LOADING');
         setProfileError(null);
 
         const profileDocRef = doc(db, "users", currentUser.uid);
         unsubscribeProfile = onSnapshot(profileDocRef, 
-          async (docSnap) => { 
+          async (docSnap) => {
             if (docSnap.exists()) {
                 const profile = docSnap.data() as UserProfile;
                 setUserProfile(profile);
@@ -62,14 +91,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             } else {
                console.warn(`User document for ${currentUser.uid} not found. Attempting to create a new default profile.`);
                try {
+                 const isAdmin = currentUser.email?.toLowerCase() === 'info@kamperhub.com';
                  const trialEndDate = new Date();
                  trialEndDate.setDate(trialEndDate.getDate() + 7);
 
                  const minimalProfile: UserProfile = {
                     uid: currentUser.uid, email: currentUser.email, displayName: currentUser.displayName,
                     firstName: null, lastName: null, city: null, state: null, country: null,
-                    subscriptionTier: 'trialing', stripeCustomerId: null, createdAt: new Date().toISOString(),
-                    trialEndsAt: trialEndDate.toISOString(),
+                    subscriptionTier: isAdmin ? 'pro' : 'trialing', 
+                    stripeCustomerId: null, createdAt: new Date().toISOString(),
+                    trialEndsAt: isAdmin ? null : trialEndDate.toISOString(),
+                    isAdmin: isAdmin,
                  };
                  await setDoc(profileDocRef, minimalProfile);
                } catch (creationError: any) {
@@ -83,6 +115,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             let errorMsg = `Failed to load user profile. Error: ${error.message}`;
             if (error.code === 'permission-denied' || error.message.toLowerCase().includes('permission denied')) {
               errorMsg = "PERMISSION_DENIED: Your app is being blocked by Firestore Security Rules. Please follow the instructions in FIREBASE_SETUP_CHECKLIST.md to deploy the rules file.";
+            } else if (!navigator.onLine) {
+              errorMsg = "You are offline. Could not connect to the database to fetch your profile."
+            } else if (error.message.toLowerCase().includes('firestore is not available')) {
+              errorMsg = "CRITICAL: Firestore service is not available for this project. Please go to the Firebase Console, select your project, go to Firestore Database, and ensure the '(default)' database has been created.";
             }
             setUserProfile(null);
             setSubscriptionDetails('free');
@@ -91,6 +127,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         );
       } else {
+        fetch('/api/auth/session', { method: 'DELETE' });
+        
         setUserProfile(null);
         setSubscriptionDetails('free');
         setAuthStatus('UNAUTHENTICATED');

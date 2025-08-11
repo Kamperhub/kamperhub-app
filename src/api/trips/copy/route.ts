@@ -1,7 +1,6 @@
-
 // src/app/api/trips/copy/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
 import type { LoggedTrip } from '@/types/tripplanner';
 import type { ChecklistItem, ChecklistStage } from '@/types/checklist';
 import { z, ZodError } from 'zod';
@@ -10,8 +9,34 @@ import type { firestore } from 'firebase-admin';
 import { decode, encode } from '@googlemaps/polyline-codec';
 import type { Journey } from '@/types/journey';
 
-// This recalculation logic is now centralized in the main trips route.
-// This file is now simplified.
+async function updateJourneyFinancials(journeyId: string, userId: string, db: firestore.Firestore) {
+    const journeyRef = db.collection('users').doc(userId).collection('journeys').doc(journeyId);
+    const journeyDoc = await journeyRef.get();
+    if (!journeyDoc.exists) return;
+
+    const journeyData = journeyDoc.data() as Journey;
+    const tripIds = journeyData.tripIds || [];
+    if (tripIds.length === 0) {
+        await journeyRef.update({ totalJourneyBudget: 0, totalJourneySpend: 0 });
+        return;
+    }
+
+    const tripRefs = tripIds.map(id => db.collection('users').doc(userId).collection('trips').doc(id));
+    const tripDocs = await db.getAll(...tripRefs);
+    
+    let totalBudget = 0;
+    let totalSpend = 0;
+    tripDocs.forEach(doc => {
+        if (doc.exists) {
+            const trip = doc.data() as LoggedTrip;
+            totalBudget += trip.budget?.reduce((sum, cat) => sum + cat.budgetedAmount, 0) || 0;
+            totalSpend += trip.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
+        }
+    });
+
+    await journeyRef.update({ totalJourneyBudget: totalBudget, totalJourneySpend: totalSpend });
+}
+
 async function recalculateAndSaveMasterPolyline(journeyId: string, userId: string, db: firestore.Firestore) {
     const journeyRef = db.collection('users').doc(userId).collection('journeys').doc(journeyId);
     const journeyDoc = await journeyRef.get();
@@ -117,7 +142,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
             const sourceTripData = sourceTripDoc.data() as LoggedTrip;
 
-            // Deep clone and reset checklist completion status
             const checklists = sourceTripData.checklists ? JSON.parse(JSON.stringify(sourceTripData.checklists)) : undefined;
             if (checklists && Array.isArray(checklists)) {
                 checklists.forEach((stage: ChecklistStage) => {
@@ -135,7 +159,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
                 name: `Copy of: ${sourceTripData.name}`,
                 timestamp: new Date().toISOString(),
                 journeyId: destinationJourneyId,
-                expenses: [],
+                budget: [], // Reset budget
+                expenses: [], // Reset expenses
                 isCompleted: false,
                 plannedStartDate: null,
                 plannedEndDate: null,
@@ -151,8 +176,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             newTripDataForResponse = newTripData;
         });
 
-        // After the transaction completes, recalculate the master polyline
+        // After transaction, recalculate polyline and financials
         await recalculateAndSaveMasterPolyline(destinationJourneyId, uid, firestore);
+        await updateJourneyFinancials(destinationJourneyId, uid, firestore);
         
         if (!newTripDataForResponse) {
           throw new Error("Transaction failed to produce new trip data.");

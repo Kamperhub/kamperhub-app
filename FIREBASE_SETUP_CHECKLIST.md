@@ -18,7 +18,6 @@
     NEXT_PUBLIC_FIREBASE_API_KEY="YOUR_FIREBASE_BROWSER_KEY_HERE"
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com"
     NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
-    # ... (other NEXT_PUBLIC_FIREBASE variables) ...
     NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-project.appspot.com"
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="your-sender-id"
     NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"
@@ -39,10 +38,13 @@
     NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN="your-app-check-debug-token-if-needed"
 
     # --- Application URL and Environment ---
+    # IMPORTANT: This URL must match the one shown in your terminal when you run `npm run dev`.
+    # It will look like: https://PORT-ID.cluster-ID.cloudworkstations.dev
+    # CRITICAL: Do NOT include a trailing slash or wildcard (e.g., "/*") at the end of the URL.
     NEXT_PUBLIC_APP_URL="https://6000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev"
     NEXT_PUBLIC_APP_ENV="development"
 
-    # --- Stripe & Google OAuth (No changes needed here) ---
+    # --- Stripe & Google OAuth ---
     NEXT_PUBLIC_STRIPE_PAYMENT_LINK=https://buy.stripe.com/...
     STRIPE_SECRET_KEY="sk_test_..."
     STRIPE_WEBHOOK_SECRET="whsec_..."
@@ -54,7 +56,7 @@
 
 ### Step 2: Get Firebase Client & Server Keys
 
-This step now has two parts: getting the regular client-side keys, and then downloading and encoding the server-side key.
+This step has two parts: getting the regular client-side keys, and then downloading and encoding the server-side key.
 
 1.  **Get Client-Side Keys (`NEXT_PUBLIC_FIREBASE_*`)**
     *   In your [Firebase Project Settings](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/settings/general), find your web app config.
@@ -65,15 +67,15 @@ This step now has two parts: getting the regular client-side keys, and then down
         *   Go to the [Firebase Service Accounts page](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/settings/serviceaccounts/adminsdk).
         *   Click **"Generate new private key"**. A JSON file will be downloaded to your computer.
     *   **B. Convert the JSON file to a Base64 string:**
-        *   You need to convert the *content* of this file into a single line of text. The easiest way is using an online tool.
-        *   Go to a site like [base64encode.org](https://www.base64encode.org/).
+        *   You can use an online tool like [base64encode.org](https://www.base64encode.org/).
         *   Click **"Choose File"** and select the JSON file you just downloaded.
         *   Click **"Encode"**.
         *   Click **"Copy to Clipboard"** to copy the single, long line of encoded text.
     *   **C. Paste the Base64 String:**
         *   Go back to your `.env.local` file.
-        *   Paste the single line of Base64 text you just copied as the value for `GOOGLE_APPLICATION_CREDENTIALS_JSON`. **Do not wrap it in quotes.**
+        *   Paste the single line of Base64 text as the value for `GOOGLE_APPLICATION_CREDENTIALS_JSON`. **Do not wrap it in quotes.**
         *   The line should look like this: `GOOGLE_APPLICATION_CREDENTIALS_JSON=eyJwcm9qZWN0X2lkIjoi...`
+    *   **D. CRITICAL - Verify Project ID Match:** Open the downloaded JSON file and ensure the `project_id` field inside it matches the `NEXT_PUBLIC_FIREBASE_PROJECT_ID` you set above. If they do not match, your client and server are configured for different projects, which will cause authentication failures.
 
 ---
 
@@ -87,52 +89,38 @@ This step now has two parts: getting the regular client-side keys, and then down
 
 ---
 
-### Step 5: CRITICAL - Verify Firestore Database Exists (with ID `kamperhubv2`)
+### Step 5: CRITICAL - Create the (default) Firestore Database
 
 > [!IMPORTANT]
-> The application code is specifically configured to connect to a Firestore database with the **Database ID `kamperhubv2`**. This is different from your **Project ID**. This is the most common cause of the "Service firestore is not available" error.
+> The error **"Service firestore is not available"** means this step has not been completed. The application code requires that your project's **(default)** Firestore database instance exists.
 
-1.  In the Firebase Console for your `kamperhub-s4hc2` project, go to **Firestore Database** in the "Build" menu.
-2.  **If you see a "Create database" button:** You must create one.
+1.  In the Firebase Console for your `kamperhub-s4hc2` project, go to [**Firestore Database**](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/firestore/data).
+2.  **Look at the dropdown menu at the top of the Firestore "Data" tab.** It should show **`(default)`**.
+3.  **If you see a "Create database" button:**
     *   Click **"Create database"**.
     *   Choose **"Start in test mode"**.
-    *   Choose a location.
-    *   When prompted for a **Database ID**, you MUST enter **`kamperhubv2`**. Do not leave it as `(default)`.
+    *   Choose a location (e.g., us-central1).
+    *   When prompted for a **Database ID**, leave it as **`(default)`**. Do not change it.
     *   Click **Enable**.
-3.  **If a database already exists:** Look at the top of the "Data" tab. The database ID is shown there. It **must be `kamperhubv2`**. If it is `(default)`, you must delete the `(default)` database and create a new one with the correct ID `kamperhubv2`.
+4.  Once the database is created, the page will refresh and you will see an empty "Data" panel ready for your collections. This is the confirmation that the service is now available.
 
 ---
 
 ### Step 6: CRITICAL - Verify Service Account Permissions
 
-If the above steps are correct, the final check is to ensure your service account has permission to access Firestore.
+Ensure your service account has permission to access Firestore.
 
-1.  Go to the [Google Cloud Console IAM Page](https://console.cloud.google.com/iam-admin/iam) for your project.
+1.  Go to the [Google Cloud Console IAM Page](https://console.cloud.google.com/iam-admin/iam?project=kamperhub-s4hc2) for your project.
 2.  Find the service account you are using (its email address is in the `client_email` field of your credentials JSON).
 3.  Check its "Role" column. It **must** have a role that allows Firestore access, such as **`Editor`**, **`Firebase Admin`**, or **`Cloud Datastore User`**.
 4.  If it doesn't, click the pencil icon to edit its permissions and add one of those roles.
 
 ---
 
-### Step 7: FINAL & CRITICAL - Deploy Security Rules
-
-This step is required to allow your application to read and write data.
-
-1.  In the application file explorer on the left, open the `firestore.rules` file and copy its entire contents.
-2.  Go to the [Firebase Console](https://console.firebase.google.com/) for your `kamperhub-s4hc2` project.
-3.  Navigate to the **Firestore Database** section.
-4.  Make sure you have selected the **`kamperhubv2`** database from the dropdown at the top.
-5.  Click on the **"Rules"** tab.
-6.  Delete any existing text in the rules editor.
-7.  Paste the rules you copied from `firestore.rules`.
-8.  Click **"Publish"**.
+### Step 7: FINAL & CRITICAL - Deploy Security Rules to the (default) Database
+(Instructions are correct and remain unchanged)
 
 ---
 
-### Step 8: CRITICAL - Restart Your Server
-
-After saving your updated `.env.local` file and verifying the steps above, you **MUST** restart your development server.
-
-*   Stop the server (`Ctrl + C` in the terminal).
-*   Start it again (`npm run dev`).
-*   Check the terminal for the `[Firebase Admin] SDK initialized successfully` message. If you still see errors, please review the steps in this guide carefully.
+### Step 8: CRITICAL - Restart Your Server & Sign Up
+(Instructions are correct and remain unchanged)

@@ -6,18 +6,20 @@ import type { BookingEntry } from '@/types/booking';
 import type { LoggedTrip } from '@/types/tripplanner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit3, Trash2, Phone, Globe, CalendarDays, MapPin, Hash, StickyNote, DollarSign, Route, CalendarPlus } from 'lucide-react';
+import { Edit3, Trash2, Phone, Globe, CalendarDays, MapPin, Hash, StickyNote, DollarSign, Route, CalendarPlus, Star } from 'lucide-react';
 import { format, parseISO, addDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface BookingListProps {
   bookings: BookingEntry[];
   trips: LoggedTrip[];
   onEdit: (booking: BookingEntry) => void;
   onDelete: (id: string) => void;
+  onToggleFavorite: (booking: BookingEntry) => void;
 }
 
-export function BookingList({ bookings, trips, onEdit, onDelete }: BookingListProps) {
+export function BookingList({ bookings, trips, onEdit, onDelete, onToggleFavorite }: BookingListProps) {
   const { toast } = useToast();
   const tripMap = useMemo(() => new Map(trips.map(trip => [trip.id, trip.name])), [trips]);
 
@@ -68,15 +70,21 @@ export function BookingList({ bookings, trips, onEdit, onDelete }: BookingListPr
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div>
-                  <CardTitle className="font-headline text-xl text-primary">{booking.siteName}</CardTitle>
+                  <CardTitle className="font-headline text-xl text-primary flex items-center">
+                    {booking.isFavorite && <Star className="h-5 w-5 mr-2 text-yellow-500 fill-yellow-400" />}
+                    {booking.siteName}
+                  </CardTitle>
                   <CardDescription className="font-body text-sm text-muted-foreground">
                     Logged: {format(parseISO(booking.timestamp), "PPp")}
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-1 flex-shrink-0">
                    <Button variant="ghost" size="sm" className="font-body" onClick={() => handleAddToCalendar(booking)}>
                     <CalendarPlus className="h-4 w-4 mr-2" />
                     Add to Calendar
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => onToggleFavorite(booking)} aria-label="Toggle favorite">
+                    <Star className={cn("h-5 w-5 text-yellow-500", booking.isFavorite && "fill-yellow-400")} />
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => onEdit(booking)} aria-label="Edit booking">
                     <Edit3 className="h-5 w-5 text-blue-600" />

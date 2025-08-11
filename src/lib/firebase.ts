@@ -36,17 +36,20 @@ console.log("[Firebase Client] Starting initialization...");
 if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   firebaseInitializationError = "CRITICAL ERROR: Firebase client-side configuration is missing. Please ensure all required NEXT_PUBLIC_FIREBASE_ variables are set in your .env.local file (especially NEXT_PUBLIC_FIREBASE_API_KEY) and that you have restarted the development server. The application cannot connect to Firebase.";
   console.error(`[Firebase Client] ${firebaseInitializationError}`);
-  app = {} as FirebaseApp;
-  auth = {} as Auth;
-  db = {} as Firestore;
+  // @ts-ignore
+  app = {};
+  // @ts-ignore
+  auth = {};
+  // @ts-ignore
+  db = {};
 } else {
   try {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig as FirebaseOptions);
     auth = getAuth(app);
     setPersistence(auth, browserSessionPersistence);
     
-    // CRITICAL FIX: Explicitly connect to the 'kamperhubv2' database on the client.
-    db = getFirestore(app, 'kamperhubv2');
+    // CORRECTED: The client SDK connects to the default Firestore instance for the project.
+    db = getFirestore(app);
 
     if (typeof window !== 'undefined') {
         analytics = getAnalytics(app);
@@ -56,7 +59,7 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
         }
     }
     
-    console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}, connecting to database 'kamperhubv2'.`);
+    console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}.`);
 
     if (typeof window !== 'undefined') {
       enableIndexedDbPersistence(db)
@@ -74,9 +77,12 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   } catch (e: any) {
     firebaseInitializationError = `Firebase failed to initialize. Please check your Firebase project configuration and API keys. Error: ${e.message}`;
     console.error(`[Firebase Client] ${firebaseInitializationError}`, e);
-    app = {} as FirebaseApp;
-    auth = {} as Auth;
-    db = {} as Firestore;
+    // @ts-ignore
+    app = {};
+    // @ts-ignore
+    auth = {};
+    // @ts-ignore
+    db = {};
   }
 }
 

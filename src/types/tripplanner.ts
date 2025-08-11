@@ -1,3 +1,4 @@
+// src/types/tripplanner.ts
 
 import type { DateRange } from 'react-day-picker';
 import type { ChecklistStage } from '@/types/checklist';

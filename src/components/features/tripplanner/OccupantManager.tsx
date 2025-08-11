@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit3, Trash2 } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Loader2 } from 'lucide-react';
 
 interface OccupantManagerProps {
     occupants: Occupant[];

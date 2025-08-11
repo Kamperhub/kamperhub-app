@@ -1,10 +1,10 @@
 // src/types/service.ts
 import { z } from 'zod';
 
-// Schema for a single fuel log entry
+// Schema for a single fuel log entry for client-side forms and API validation
 export const fuelLogSchema = z.object({
   id: z.string(),
-  vehicleId: z.string(), // Links to either a tow vehicle or a caravan
+  vehicleId: z.string({ required_error: "Please select a vehicle." }),
   date: z.string().datetime({ message: "Date must be a valid ISO date string" }),
   odometer: z.coerce.number().min(0, "Odometer reading must be a non-negative number"),
   litres: z.coerce.number().positive("Litres must be a positive number"),
@@ -16,17 +16,18 @@ export const fuelLogSchema = z.object({
 
 export type FuelLogEntry = z.infer<typeof fuelLogSchema>;
 
-// Schema for a single maintenance task
+
+// Schema for a single maintenance task for client-side forms and API validation
 export const maintenanceTaskSchema = z.object({
   id: z.string(),
-  vehicleId: z.string(), // Links to a specific vehicle or caravan
+  vehicleId: z.string({ required_error: "Please select a vehicle." }),
   taskName: z.string().min(1, "Task name is required"),
   description: z.string().optional().nullable(),
   serviceProvider: z.string().optional().nullable(),
   cost: z.coerce.number().min(0, "Cost must be a non-negative number").optional().nullable(),
   dateCompleted: z.string().datetime({ message: "Date must be a valid ISO date string" }),
   odometerAtCompletion: z.coerce.number().min(0, "Odometer reading must be non-negative").optional().nullable(),
-  documents: z.array(z.object({ name: z.string(), url: z.string().url() })).optional(),
+  // Documents are now handled by the central Document Locker and are no longer part of this schema.
   timestamp: z.string().datetime(),
 });
 

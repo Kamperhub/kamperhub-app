@@ -17,8 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { DateRange } from 'react-day-picker';
+import { Checkbox } from '@/components/ui/checkbox';
 
-// Define schema outside the component to prevent re-creation on re-renders
 const bookingFormSchema = z.object({
   siteName: z.string().min(1, "Site name is required"),
   locationAddress: z.string().optional(),
@@ -32,6 +32,7 @@ const bookingFormSchema = z.object({
   notes: z.string().optional(),
   budgetedCost: z.coerce.number().min(0, "Budgeted cost must be non-negative").optional().nullable(),
   assignedTripId: z.string().nullable().optional(),
+  isFavorite: z.boolean().default(false),
 }).refine(data => {
     if (data.dateRange.from && data.dateRange.to) {
         return data.dateRange.to >= data.dateRange.from;
@@ -69,6 +70,7 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
       notes: initialData?.notes || '',
       budgetedCost: initialData?.budgetedCost ?? null,
       assignedTripId: initialData?.assignedTripId ?? null,
+      isFavorite: initialData?.isFavorite || false,
     },
   });
 
@@ -86,6 +88,7 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
       notes: data.notes || null,
       budgetedCost: data.budgetedCost || null,
       assignedTripId: data.assignedTripId || null,
+      isFavorite: data.isFavorite,
     };
     onSave(dataToSave as Omit<BookingEntry, 'id' | 'timestamp'>);
   };
@@ -190,6 +193,22 @@ export function BookingForm({ initialData, onSave, onCancel, isLoading, trips }:
         <Label htmlFor="notes" className="font-body">Notes</Label>
         <Textarea id="notes" {...register("notes")} placeholder="e.g., Request site near amenities, late arrival info" className="font-body" />
         {errors.notes && <p className="text-sm text-destructive font-body mt-1">{errors.notes.message}</p>}
+      </div>
+
+       <div className="flex items-center space-x-2 pt-2">
+        <Controller
+          name="isFavorite"
+          control={control}
+          render={({ field }) => (
+            <Checkbox
+              id="isFavorite"
+              checked={field.value}
+              onCheckedChange={field.onChange}
+              disabled={isLoading}
+            />
+          )}
+        />
+        <Label htmlFor="isFavorite" className="font-body">Mark as a Favorite Spot</Label>
       </div>
 
       <div className="flex justify-end gap-2 pt-4">

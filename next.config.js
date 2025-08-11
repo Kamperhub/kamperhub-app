@@ -1,12 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
   env: {
     NEXT_PUBLIC_BUILD_TIMESTAMP: new Date().toISOString(),
-  },
-  devIndicators: {
-    allowedDevOrigins: [
-      'https://3000-firebase-studio-1748946751962.cluster-isls3qj2gbd5qs4jkjqvhahfv6.cloudworkstations.dev',
-    ],
   },
   experimental: {
     instrumentationHook: false, // This disables Next.js's default OpenTelemetry instrumentation
@@ -14,28 +10,19 @@ const nextConfig = {
       bodySizeLimit: '2mb', // Increase body size limit for potential large payloads
     },
   },
-  webpack: (config, { isServer }) => {
-    // Enable WebAssembly experiments
-    config.experiments = {
-      ...(config.experiments || {}),
-      asyncWebAssembly: true,
-    };
-
-    // Add a rule to handle .wasm files
-    config.module.rules.push({
-      test: /\.wasm$/,
-      type: 'webassembly/async',
-    });
-
+  webpack: (config, { dev, isServer }) => {
+    // Enable WebAssembly experiments to support all package features.
+    config.experiments = { ...config.experiments, asyncWebAssembly: true };
+    
     // In some environments, file system watching is unreliable.
     // Polling is a more robust, albeit slightly more resource-intensive, method to detect changes.
-    if (!isServer) {
+    // This is a common fix for HMR (Fast Refresh) issues in containerized/cloud dev environments.
+    if (dev && !isServer) {
       config.watchOptions = {
         poll: 1000, // Check for changes every second.
         aggregateTimeout: 300, // Delay before rebuilding.
       };
     }
-
     return config;
   },
   async headers() {
@@ -51,7 +38,7 @@ const nextConfig = {
       // Fonts
       "font-src 'self' https://fonts.gstatic.com",
       // Connections - Allow self, Google APIs, local dev server, Stripe, and Cloud IDE resources, including websockets
-      "connect-src 'self' https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com wss://*.cloudworkstations.dev https://*.cloudworkstations.dev https://*.stripe.com https://m.stripe.network https://*.cloudworkstations.googleusercontent.com wss://*.cloudworkstations.googleusercontent.com https://vscode-resource.vscode-cdn.net",
+      "connect-src 'self' https://*.googleapis.com wss://*.cloudworkstations.dev https://*.cloudworkstations.dev https://*.stripe.com https://m.stripe.network https://*.cloudworkstations.googleusercontent.com wss://*.cloudworkstations.googleusercontent.com https://vscode-resource.vscode-cdn.net",
       // Workers - Allow self, blobs, and Cloud IDE resources
       "worker-src 'self' blob: https://*.cloudworkstations.googleusercontent.com https://vscode-resource.vscode-cdn.net",
       // Frames - Allow self, Google (for Recaptcha/maps), and Stripe (for portal and payment forms)

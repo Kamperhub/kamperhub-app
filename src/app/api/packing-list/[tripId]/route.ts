@@ -1,6 +1,6 @@
 // src/app/api/packing-list/[tripId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
 import { packingListCategorySchema } from '@/types/packing';
 import { z, ZodError } from 'zod';
 import type admin from 'firebase-admin';

@@ -1,4 +1,4 @@
-import 'server-only';
+// src/app/api/all-vehicle-data/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/server/firebase-admin';
 import type { UserProfile } from '@/types/auth';
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
         let errorDetails = 'An unexpected error occurred.';
         if (err.code) {
             switch(err.code) {
-                case 5: errorTitle = 'Database Not Found'; errorDetails = `The Firestore database 'kamperhubv2' could not be found.`; break;
+                case 5: errorTitle = 'Database Not Found'; errorDetails = `The Firestore database '(default)' could not be found.`; break;
                 case 16: errorTitle = 'Server Authentication Failed'; errorDetails = `The server's credentials are not valid.`; break;
                 default: errorDetails = err.message; break;
             }

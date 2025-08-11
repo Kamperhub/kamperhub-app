@@ -8,8 +8,7 @@ async function apiFetch(url: string, options: RequestInit = {}) {
       throw new Error('User not authenticated. Cannot make API call.');
     }
     const headers = new Headers(options.headers || {});
-    // Force token refresh before every API call to ensure validity.
-    const authToken = await user.getIdToken(true); 
+    const authToken = await user.getIdToken(true);
     headers.set('Authorization', `Bearer ${authToken}`);
     if (options.body) {
       headers.set('Content-Type', 'application/json');
@@ -78,6 +77,17 @@ export const updateUserPreferences = (preferences: any) => apiFetch('/api/user-p
 export const fetchPackingList = (tripId: string) => apiFetch(`/api/packing-list/${tripId}`);
 export const updatePackingList = (payload: { tripId: string; list: any[] }) => apiFetch(`/api/packing-list/${payload.tripId}`, { method: 'PUT', body: JSON.stringify(payload.list) });
 export const deletePackingList = (tripId: string) => apiFetch(`/api/packing-list/${tripId}`, { method: 'DELETE' });
+
+// ---- Service & Fuel Log API Functions ----
+export const fetchFuelLogs = () => apiFetch('/api/fuel');
+export const createFuelLog = (data: any) => apiFetch('/api/fuel', { method: 'POST', body: JSON.stringify(data) });
+export const updateFuelLog = (data: any) => apiFetch('/api/fuel', { method: 'PUT', body: JSON.stringify(data) });
+export const deleteFuelLog = (id: string) => apiFetch('/api/fuel', { method: 'DELETE', body: JSON.stringify({ id }) });
+
+export const fetchMaintenanceTasks = () => apiFetch('/api/maintenance');
+export const createMaintenanceTask = (data: any) => apiFetch('/api/maintenance', { method: 'POST', body: JSON.stringify(data) });
+export const updateMaintenanceTask = (data: any) => apiFetch('/api/maintenance', { method: 'PUT', body: JSON.stringify(data) });
+export const deleteMaintenanceTask = (id: string) => apiFetch('/api/maintenance', { method: 'DELETE', body: JSON.stringify({ id }) });
 
 // ---- Admin & Auth Functions ----
 export const fetchAllUsers = () => apiFetch('/api/admin/list-users');

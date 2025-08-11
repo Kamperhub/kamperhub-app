@@ -14,8 +14,8 @@ Your Firebase project (`kamperhub-s4hc2`) needs to be configured for live traffi
 
 Your local development started in "test mode". For production, you must switch to secure rules.
 
-1.  Go to the [Firebase Console Rules Editor for kamperhubv2](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/firestore/databases/-kamperhubv2-/rules).
-2.  Ensure the **`kamperhubv2`** database is selected from the dropdown at the top.
+1.  Go to the [Firebase Console Rules Editor for your project](https://console.firebase.google.com/u/0/project/kamperhub-s4hc2/firestore/rules).
+2.  Ensure the **`(default)`** database is selected from the dropdown at the top.
 3.  Replace any existing rules with the contents of the `firestore.rules` file from your project. This ensures only authenticated users can access their own data.
 4.  Click **Publish**.
 
@@ -45,7 +45,7 @@ Your local development started in "test mode". For production, you must switch t
     *   **WEBSITE RESTRICTIONS:** Add the same list of production domains as in the previous step.
     *   Click **Save**. Copy this new key. You will use it in your App Hosting configuration.
 
-4.  **C) Create the Server Key (for `GOOGLE_API_KEY`):**
+4.  **C) Create the Server Key (for `GOOGLE_API_KEY`)**
     *   Click **"+ CREATE CREDENTIALS"** -> **"API Key"**. Name it `Kamperhub Production Server Key`.
     *   **APPLICATION RESTRICTIONS:** Select **"None"**. This is critical. Do not add website restrictions.
     *   **API RESTRICTIONS:** Select **"Restrict key"** and choose only these three APIs:

@@ -19,13 +19,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 const icons: { [key: string]: React.ElementType } = {
     Caravan: CaravanIcon,
-    TentTree,
-    Bus,
-    Van,
-    Truck,
-    Tractor,
+    "Pop-Top Caravan & Folding Camper": TentTree,
+    Motorhome: Bus,
+    Campervan: Van,
+    "Slide-on Camper": Truck,
+    "Fifth Wheeler": Tractor,
     Tent,
-    Square,
+    "Utility Trailer": Square,
+    Other: Square,
 };
 
 const storageLocationSchema = z.object({
@@ -94,8 +95,6 @@ const caravanSchema = z.object({
   wdh: wdhSchema.nullable().optional(),
 });
 
-
-// Add hasWdh to form data type for UI control, but it won't be in the final saved data
 type CaravanFormInternalData = CaravanFormData & { hasWdh: boolean };
 
 interface CaravanFormProps {
@@ -241,7 +240,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
                 </SelectTrigger>
                 <SelectContent>
                   {caravanTypeDetails.map(type => {
-                    const Icon = icons[type.icon];
+                    const Icon = icons[type.icon as keyof typeof icons];
                     return (
                         <SelectItem key={type.name} value={type.name}>
                             <div className="flex items-center gap-3">
@@ -262,22 +261,22 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="md:col-span-2">
-            <Label htmlFor="caravanMake" className="font-body">Make</Label>
+            <Label htmlFor="caravanMake" className="font-body">Make*</Label>
             <Input id="caravanMake" {...register("make")} placeholder="e.g., Jayco" className="font-body" />
             {errors.make && <p className="text-sm text-destructive font-body mt-1">{errors.make.message}</p>}
           </div>
           <div className="md:col-span-2">
-            <Label htmlFor="caravanModel" className="font-body">Model</Label>
+            <Label htmlFor="caravanModel" className="font-body">Model*</Label>
             <Input id="caravanModel" {...register("model")} placeholder="e.g., Starcraft" className="font-body" />
             {errors.model && <p className="text-sm text-destructive font-body mt-1">{errors.model.message}</p>}
           </div>
           <div>
-            <Label htmlFor="caravanYear" className="font-body">Year</Label>
+            <Label htmlFor="caravanYear" className="font-body">Year*</Label>
             <Input id="caravanYear" type="number" {...register("year")} placeholder="e.g., 2021" className="font-body" />
             {errors.year && <p className="text-sm text-destructive font-body mt-1">{errors.year.message}</p>}
           </div>
           <div>
-            <Label htmlFor="numberOfAxles" className="font-body">Number of Axles</Label>
+            <Label htmlFor="numberOfAxles" className="font-body">Number of Axles*</Label>
             <Input id="numberOfAxles" type="number" {...register("numberOfAxles")} placeholder="e.g., 1 or 2" className="font-body" />
             {errors.numberOfAxles && <p className="text-sm text-destructive font-body mt-1">{errors.numberOfAxles.message}</p>}
           </div>
@@ -288,23 +287,27 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
         <h3 className="text-lg font-medium font-headline text-primary flex items-center"><Weight className="mr-2 h-5 w-5" /> Weight Specifications</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
-            <Label htmlFor="tareMass" className="font-body">Tare Mass (kg)</Label>
+            <Label htmlFor="tareMass" className="font-body">Tare Mass (kg)*</Label>
             <Input id="tareMass" type="number" {...register("tareMass")} placeholder="e.g., 1800" className="font-body" />
+            <p className="text-xs text-muted-foreground font-body mt-1">Weight of the empty rig.</p>
             {errors.tareMass && <p className="text-sm text-destructive font-body mt-1">{errors.tareMass.message}</p>}
           </div>
           <div>
-            <Label htmlFor="atm" className="font-body">ATM (kg)</Label>
+            <Label htmlFor="atm" className="font-body">ATM (kg)*</Label>
             <Input id="atm" type="number" {...register("atm")} placeholder="e.g., 2500" className="font-body" />
+            <p className="text-xs text-muted-foreground font-body mt-1">Max total weight when unhitched.</p>
             {errors.atm && <p className="text-sm text-destructive font-body mt-1">{errors.atm.message}</p>}
           </div>
           <div>
-            <Label htmlFor="gtm" className="font-body">GTM (kg)</Label>
+            <Label htmlFor="gtm" className="font-body">GTM (kg)*</Label>
             <Input id="gtm" type="number" {...register("gtm")} placeholder="e.g., 2350" className="font-body" />
+            <p className="text-xs text-muted-foreground font-body mt-1">Max weight on axles when hitched.</p>
             {errors.gtm && <p className="text-sm text-destructive font-body mt-1">{errors.gtm.message}</p>}
           </div>
           <div>
-            <Label htmlFor="maxTowballDownload" className="font-body">Max Towball (kg)</Label>
+            <Label htmlFor="maxTowballDownload" className="font-body">Max Towball (kg)*</Label>
             <Input id="maxTowballDownload" type="number" {...register("maxTowballDownload")} placeholder="e.g., 250" className="font-body" />
+            <p className="text-xs text-muted-foreground font-body mt-1">Max vertical weight on tow ball.</p>
             {errors.maxTowballDownload && <p className="text-sm text-destructive font-body mt-1">{errors.maxTowballDownload.message}</p>}
           </div>
         </div>
@@ -323,7 +326,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
         <h3 className="text-lg font-medium font-headline text-primary flex items-center"><Axe className="mr-2 h-5 w-5" /> Axle, Gas & Tyre Specifications</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           <div className="sm:col-span-2">
-            <Label htmlFor="axleGroupRating" className="font-body">Axle Group Rating (kg)</Label>
+            <Label htmlFor="axleGroupRating" className="font-body">Axle Group Rating (kg)*</Label>
             <Input id="axleGroupRating" type="number" {...register("axleGroupRating")} placeholder="e.g., 2400" className="font-body" />
             {errors.axleGroupRating && <p className="text-sm text-destructive font-body mt-1">{errors.axleGroupRating.message}</p>}
           </div>
@@ -376,6 +379,7 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
            <div className="col-span-2 md:col-span-3">
             <Label htmlFor="hitchToAxleCenterDistance" className="font-body">Hitch to Axle Center (mm)</Label>
             <Input id="hitchToAxleCenterDistance" type="number" {...register("hitchToAxleCenterDistance")} placeholder="Coupling to axle(s) center" className="font-body" />
+            <p className="text-xs text-muted-foreground font-body mt-1">Crucial for accurate Towball Mass calculation in the Inventory section.</p>
             {errors.hitchToAxleCenterDistance && <p className="text-sm text-destructive font-body mt-1">{errors.hitchToAxleCenterDistance.message}</p>}
           </div>
         </div>
@@ -395,6 +399,13 @@ export function CaravanForm({ initialData, onSave, onCancel, isLoading }: Carava
         </div>
         {hasWdh && (
             <div className="p-4 border rounded-md bg-background space-y-4">
+                 <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+                    <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+                    <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">What is a WDH?</AlertTitle>
+                    <AlertDescription className="font-body text-blue-700 dark:text-blue-300 text-xs">
+                      A Weight Distribution Hitch (WDH) is a crucial safety device that improves handling and stability when towing. It works by distributing the heavy downward pressure from the caravan's towball across the axles of both the tow vehicle and the caravan. This levels the ride, reduces vehicle sag, and significantly helps to control caravan sway.
+                    </AlertDescription>
+                 </Alert>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="wdhName" className="font-body">Name / Model</Label>

@@ -15,6 +15,7 @@ export interface BookingEntry {
   timestamp: string; // ISO string for when the log was created/updated
   assignedTripId: string | null;
   budgetedCost: number | null;
+  isFavorite?: boolean;
 }
 
 export interface AffiliateLink {

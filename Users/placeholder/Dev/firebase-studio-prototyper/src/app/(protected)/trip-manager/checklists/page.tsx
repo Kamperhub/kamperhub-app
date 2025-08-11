@@ -1,1 +1,0 @@
-/Users/placeholder/Dev/firebase-studio-prototyper/src/app/trip-manager/checklists/page.tsx

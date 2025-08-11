@@ -1,13 +1,10 @@
 import type { LucideIcon } from 'lucide-react';
-import { Home, Settings, Backpack, ListChecks, BookOpen, Route as RouteIcon, History, BedDouble, UserCircle, BarChart3, Award, LayoutDashboard, BookText, Mail, MessageSquare, Luggage, Briefcase, Map, Globe, FileText as DocumentIcon, Fuel } from 'lucide-react';
 import * as icons from 'lucide-react';
-
 
 export interface NavItem {
   href: string;
   label: string;
   iconName: keyof typeof icons; // Use icon name string instead of component
-  icon: LucideIcon;
   description: string;
   keywords: string;
 }
@@ -18,7 +15,6 @@ export const tripManagerItems: NavItem[] = [
     href: '/journeys',
     label: 'Journeys',
     iconName: 'Map',
-    icon: Map,
     description: "Group individual trips into epic multi-leg journeys. Plan, track, and map your grand adventures.",
     keywords: 'journey adventure roadtrip'
   },
@@ -26,7 +22,6 @@ export const tripManagerItems: NavItem[] = [
     href: '/trip-expense-planner',
     label: 'Trip Planner',
     iconName: 'Route',
-    icon: RouteIcon,
     description: "Plan routes, set budgets, and track expenses for your individual trips. The building blocks of a Journey.",
     keywords: 'route map budget expense'
   },
@@ -34,7 +29,6 @@ export const tripManagerItems: NavItem[] = [
     href: '/triplog',
     label: 'Trip Log',
     iconName: 'History',
-    icon: History,
     description: "Review your past adventures, recall saved trips for re-planning, and see a history of your individual journeys.",
     keywords: 'trip history'
   },
@@ -42,7 +36,6 @@ export const tripManagerItems: NavItem[] = [
     href: '/trip-packing',
     label: 'Trip Packing Assistant',
     iconName: 'Luggage',
-    icon: Luggage,
     description: "Use our AI assistant to generate smart, personalized packing lists for your individual trips and passengers.",
     keywords: 'packing checklist luggage'
   },
@@ -50,7 +43,6 @@ export const tripManagerItems: NavItem[] = [
     href: '/checklists',
     label: 'Procedural Checklists',
     iconName: 'ListChecks',
-    icon: ListChecks,
     description: 'Use pre-departure, setup, and pack-down checklists for your trips. Never miss a step!',
     keywords: 'checklist safety setup',
   },
@@ -58,7 +50,6 @@ export const tripManagerItems: NavItem[] = [
     href: '/world-map',
     label: 'World Map',
     iconName: 'Globe',
-    icon: Globe,
     description: "View all your completed trips and journeys on an interactive global map. Explore your travel history at a glance.",
     keywords: 'world map history travel'
   },
@@ -71,23 +62,20 @@ export const navItems: NavItem[] = [
     href: '/dashboard',
     label: 'Dashboard',
     iconName: 'LayoutDashboard',
-    icon: LayoutDashboard,
     description: 'The main hub of your application. Access all features from here.',
     keywords: 'home main overview',
   },
   {
     href: '/dashboard-details',
-    label: 'Dashboard Hub',
+    label: 'Adventure Hub',
     iconName: 'Home',
-    icon: Home,
-    description: "Access your travel statistics, rewards program, and important document storage all in one place.",
+    description: "Your command center for travel history, important documents, and loyalty rewards. See how far you've come.",
     keywords: 'stats rewards documents'
   },
   {
     href: '/vehicles',
     label: 'Vehicle & Caravan Setup',
     iconName: 'Settings',
-    icon: Settings,
     description: "Manage your tow vehicle and caravan specs, including weights, dimensions, and storage. Essential for accurate planning.",
     keywords: 'caravan setup'
   },
@@ -95,7 +83,6 @@ export const navItems: NavItem[] = [
     href: '/inventory',
     label: 'Inventory & Weight',
     iconName: 'Backpack',
-    icon: Backpack,
     description: "Track items, manage weights for storage locations, and monitor compliance with ATM, GTM, and towball limits.",
     keywords: 'camping gear'
   },
@@ -103,15 +90,13 @@ export const navItems: NavItem[] = [
     href: '/trip-manager',
     label: 'Trip Manager',
     iconName: 'Briefcase',
-    icon: Briefcase,
-    description: 'A central hub to plan individual trips, journeys, packing lists, and review your travel history.',
+    description: 'A central hub to plan individual trips, group them into Journeys, and manage packing lists.',
     keywords: 'trip planner log packing journey map'
   },
    {
     href: '/service-log',
     label: 'Service & Fuel Log',
     iconName: 'Fuel',
-    icon: Fuel,
     description: "Keep a detailed history of your fuel consumption and maintenance tasks for all your vehicles.",
     keywords: 'fuel maintenance service'
   },
@@ -119,7 +104,6 @@ export const navItems: NavItem[] = [
     href: '/bookings',
     label: 'Bookings',
     iconName: 'BedDouble',
-    icon: BedDouble,
     description: "Log your campsite and accommodation bookings. Keep track of your stays and find new places to explore.",
     keywords: 'campsite booking'
   },
@@ -127,7 +111,6 @@ export const navItems: NavItem[] = [
     href: '/learn',
     label: 'Support & Learn',
     iconName: 'BookOpen',
-    icon: BookOpen,
     description: "Access helpful articles, guides, and the user manual to master your caravanning adventures.",
     keywords: 'support guide manual'
   },
@@ -135,7 +118,6 @@ export const navItems: NavItem[] = [
     href: '/contact',
     label: 'Contact Us',
     iconName: 'Mail',
-    icon: Mail,
     description: "Get in touch with the KamperHub team for support, feedback, or inquiries.",
     keywords: 'support email help'
   },
@@ -143,9 +125,15 @@ export const navItems: NavItem[] = [
     href: '/my-account',
     label: 'My Account',
     iconName: 'UserCircle',
-    icon: UserCircle,
     description: "Update your profile, manage your subscription, and view your account details.",
     keywords: 'profile user'
+  },
+   {
+    href: '/chatbot',
+    label: 'Chatbot',
+    iconName: 'MessageSquare',
+    description: 'Get instant answers to your questions from our AI-powered caravanning expert.',
+    keywords: 'ai assistant help',
   },
 ];
 
@@ -155,7 +143,6 @@ export const dashboardDetailItems: NavItem[] = [
     href: '/documents',
     label: 'Document Locker',
     iconName: 'FileText',
-    icon: DocumentIcon,
     description: 'A central, secure place for all your important documents like insurance, registration, and manuals.',
     keywords: 'documents files insurance registration',
   },
@@ -163,7 +150,6 @@ export const dashboardDetailItems: NavItem[] = [
     href: '/stats',
     label: 'Travel Statistics',
     iconName: 'BarChart3',
-    icon: BarChart3,
     description: 'Track your kilometers, trips completed, and other interesting travel data.',
     keywords: 'data chart'
   },
@@ -171,7 +157,6 @@ export const dashboardDetailItems: NavItem[] = [
     href: '/rewards',
     label: 'Rewards Program',
     iconName: 'Award',
-    icon: Award,
     description: 'Details about loyalty points, badges, and exclusive benefits for KamperHub users.',
     keywords: 'user achievement'
   }

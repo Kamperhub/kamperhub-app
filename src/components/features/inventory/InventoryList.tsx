@@ -18,11 +18,12 @@ import { Trash2, PlusCircle, Edit3, AlertTriangle, Car, HomeIcon, Weight, Axe, S
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Label as RechartsLabel } from 'recharts';
-import { fetchInventory, updateInventory, updateUserPreferences } from '@/lib/api-client';
-import { auth } from '@/lib/firebase';
-import type { User as FirebaseUser } from 'firebase/auth';
+import { fetchInventory, updateInventory, updateUserPreferences, updateTrip } from '@/lib/api-client';
+import { useAuth } from '@/hooks/useAuth';
 import { Separator } from '@/components/ui/separator';
-
+import { OccupantManager } from '@/components/features/tripplanner/OccupantManager';
+import { generateStarterInventory, type StarterInventoryInput, type StarterInventoryOutput } from '@/ai/flows/starter-inventory-suggester-flow';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
 
 interface InventoryListClientProps {
   activeCaravan: StoredCaravan | null;
@@ -65,7 +66,7 @@ const DonutChartCustomLabel = ({ viewBox, value, limit, unit, name }: { viewBox?
 
 export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferences, trips }: InventoryListClientProps) {
   const queryClient = useQueryClient();
-  const user = auth.currentUser;
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const { data: inventoryData, isLoading: isLoadingInventory } = useQuery<{ items: InventoryItem[] }>({
@@ -82,9 +83,17 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [localWaterLevels, setLocalWaterLevels] = useState<Record<string, number>>({});
   const [selectedTripId, setSelectedTripId] = useState<string>('none');
+  const [occupants, setOccupants] = useState<Occupant[]>([]);
 
   const selectedTrip = useMemo(() => trips.find(trip => trip.id === selectedTripId), [trips, selectedTripId]);
-  const occupants = useMemo(() => selectedTrip?.occupants || [], [selectedTrip]);
+
+  useEffect(() => {
+    if (selectedTrip) {
+      setOccupants(selectedTrip.occupants || []);
+    } else {
+      setOccupants([]);
+    }
+  }, [selectedTrip]);
 
   const preferencesMutation = useMutation({
     mutationFn: (prefs: Partial<UserProfile>) => updateUserPreferences(prefs),
@@ -96,6 +105,39 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
     },
   });
 
+   const updateTripMutation = useMutation({
+    mutationFn: (updatedTrip: Partial<LoggedTrip> & { id: string }) => updateTrip(updatedTrip as LoggedTrip),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['allVehicleData', user?.uid] });
+      toast({ title: "Occupants Saved", description: `Occupant list for "${data.trip.name}" has been updated.` });
+    },
+    onError: (error: Error) => toast({ title: "Error Saving Occupants", description: error.message, variant: "destructive" }),
+  });
+
+  const starterInventoryMutation = useMutation({
+    mutationFn: (input: StarterInventoryInput) => generateStarterInventory(input),
+    onSuccess: (data: StarterInventoryOutput) => {
+      const newItems: InventoryItem[] = [];
+      data.categories.forEach(category => {
+        category.items.forEach(item => {
+          newItems.push({
+            id: `ai_${Date.now()}_${Math.random()}`,
+            name: item.name,
+            weight: item.weight,
+            quantity: item.quantity,
+            locationId: item.suggestedLocationId || null,
+          });
+        });
+      });
+      inventoryMutation.mutate(newItems);
+      toast({ title: "Starter Inventory Added!", description: "A list of common items has been added to your inventory. You can now edit and assign them to locations." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "AI Suggester Failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+
   const debouncedSaveWaterLevels = useCallback(
     (() => {
       let timer: NodeJS.Timeout;
@@ -103,7 +145,7 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
         clearTimeout(timer);
         timer = setTimeout(() => {
           preferencesMutation.mutate({ caravanWaterLevels: levels });
-        }, 500); // 500ms debounce delay
+        }, 500);
       };
     })(),
     [preferencesMutation]
@@ -158,6 +200,13 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
     },
   });
   
+  const handleOccupantsUpdate = useCallback((newOccupants: Occupant[]) => {
+      setOccupants(newOccupants);
+      if (selectedTrip) {
+          updateTripMutation.mutate({ id: selectedTrip.id, occupants: newOccupants });
+      }
+  }, [selectedTrip, updateTripMutation]);
+
   const enrichedCombinedStorageLocations = useMemo(() => {
     const formatPosition = (pos: { longitudinalPosition: string; lateralPosition: string; }) => {
       const longText = {
@@ -167,8 +216,8 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
       const latText = { 'left': 'Left', 'center': 'Center', 'right': 'Right' }[pos.lateralPosition] || pos.lateralPosition;
       return `(${longText} / ${latText})`;
     };
-    const caravanLocs = (activeCaravan?.storageLocations || []).map(loc => ({ id: `cv-${loc.id}`, name: `CV: ${loc.name}`, details: formatPosition(loc), maxWeightCapacityKg: loc.maxWeightCapacityKg, distanceFromAxleCenterMm: loc.distanceFromAxleCenterMm, type: 'caravan' as 'caravan' | 'vehicle' }));
-    const vehicleLocs = (activeVehicle?.storageLocations || []).map(loc => ({ id: `veh-${loc.id}`, name: `VEH: ${loc.name}`, details: formatPosition(loc), maxWeightCapacityKg: loc.maxWeightCapacityKg, distanceFromRearAxleMm: loc.distanceFromRearAxleMm, type: 'vehicle' as 'caravan' | 'vehicle' }));
+    const caravanLocs = (activeCaravan?.storageLocations || []).map(loc => ({ id: loc.id, name: `CV: ${loc.name}`, details: formatPosition(loc), maxWeightCapacityKg: loc.maxWeightCapacityKg, distanceFromAxleCenterMm: loc.distanceFromAxleCenterMm, type: 'caravan' as 'caravan' | 'vehicle' }));
+    const vehicleLocs = (activeVehicle?.storageLocations || []).map(loc => ({ id: loc.id, name: `VEH: ${loc.name}`, details: formatPosition(loc), maxWeightCapacityKg: loc.maxWeightCapacityKg, distanceFromRearAxleMm: loc.distanceFromRearAxleMm, type: 'vehicle' as 'caravan' | 'vehicle' }));
     return [...caravanLocs, ...vehicleLocs];
   }, [activeCaravan?.storageLocations, activeVehicle?.storageLocations]);
   
@@ -235,7 +284,6 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
     return isNaN(calculatedTBM) ? 0 : calculatedTBM;
   }, [items, activeCaravan, enrichedCombinedStorageLocations, localWaterLevels, totalCaravanInventoryWeight, unassignedWeight, totalWaterWeight, hitchToAxleCenterDistance]);
 
-  const remainingPayloadATM = atmLimit > 0 ? atmLimit - currentCaravanMass : 0;
   const currentLoadOnAxles = currentCaravanMass - calculatedTowballMass;
   const axleLoadLimit = Math.min(gtmLimit || Infinity, axleGroupRating || Infinity);
   
@@ -249,17 +297,10 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
   const currentVehicleMass = vehicleKerbWeight + vehicleAddedPayload;
 
   const vehicleMaxTowCapacity = activeVehicle?.maxTowCapacity ?? 0;
-  const vehicleMaxTowballMass = activeVehicle?.maxTowballMass ?? 0;
   
   const isOverMaxTowCapacity = vehicleMaxTowCapacity > 0 && currentCaravanMass > vehicleMaxTowCapacity;
-  const isOverVehicleMaxTowball = vehicleMaxTowballMass > 0 && calculatedTowballMass > vehicleMaxTowballMass;
   
   const currentGCM = currentCaravanMass + currentVehicleMass;
-
-  const wdhMaxCapacity = wdh?.maxCapacityKg ?? 0;
-  const wdhMinCapacity = wdh?.minCapacityKg ?? null;
-  const isTowballOverWdhMax = wdhMaxCapacity > 0 && calculatedTowballMass > wdhMaxCapacity;
-  const isTowballUnderWdhMin = wdhMinCapacity !== null && wdhMinCapacity > 0 && calculatedTowballMass < wdhMinCapacity;
 
   const handleAddItem = () => {
     if (!activeCaravan) {
@@ -312,26 +353,32 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
     };
   };
 
+  const handleGenerateStarterInventory = () => {
+    if (!activeCaravan) return;
+    const payloadCapacity = activeCaravan.atm - activeCaravan.tareMass;
+    if (payloadCapacity <= 0) {
+      toast({ title: "Invalid Payload", description: "Cannot suggest inventory for a caravan with zero or negative payload capacity.", variant: "destructive" });
+      return;
+    }
+    const locations = (activeCaravan.storageLocations || []).map(l => ({ id: l.id, name: l.name }));
+    starterInventoryMutation.mutate({
+      caravanType: activeCaravan.type || 'Caravan',
+      payloadCapacity: payloadCapacity,
+      storageLocations: locations
+    });
+  };
+
   const atmChart = prepareChartData(currentCaravanMass, atmLimit);
   const axleLoadChart = prepareChartData(currentLoadOnAxles, axleLoadLimit);
   const towballChart = prepareChartData(calculatedTowballMass, caravanMaxTowballDownloadLimit);
   const gcmChart = prepareChartData(currentGCM, vehicleGCM);
   
-  const getLocationNameById = (locationId: string | null | undefined) => !locationId ? 'Unassigned' : enrichedCombinedStorageLocations.find(loc => loc.id === locationId)?.name || 'Unknown';
+  const getLocationNameById = (locationId: string | null | undefined) => {
+    if (!locationId) return 'Unassigned';
+    const location = enrichedCombinedStorageLocations.find(loc => loc.id === locationId);
+    return location ? location.name : 'Unknown Location';
+  };
   
-  const capacityTrackedLocations = useMemo(() => enrichedCombinedStorageLocations.filter(loc => typeof loc.maxWeightCapacityKg === 'number' && loc.maxWeightCapacityKg > 0), [enrichedCombinedStorageLocations]);
-  
-  const locationWeights = useMemo(() => {
-    const weightsMap = new Map<string, number>();
-    capacityTrackedLocations.forEach(loc => weightsMap.set(loc.id, 0));
-    items.forEach(item => {
-      if (item.locationId && weightsMap.has(item.locationId)) {
-        weightsMap.set(item.locationId, (weightsMap.get(item.locationId) || 0) + (item.weight * item.quantity));
-      }
-    });
-    return weightsMap;
-  }, [items, capacityTrackedLocations]);
-
   const isFormDisabled = !activeCaravan;
 
   return (
@@ -344,12 +391,12 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
           <Card className="bg-muted/30">
             <CardHeader>
                 <CardTitle className="font-headline flex items-center"><Users className="mr-2 h-5 w-5"/>Occupant Weight</CardTitle>
-                <CardDescription>Select a trip to include occupant weights in the GVM calculation.</CardDescription>
+                <CardDescription>Select a trip to include occupant weights in the GVM calculation. Changes made here are saved to the selected trip.</CardDescription>
             </CardHeader>
             <CardContent>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div className="space-y-4">
                     <div>
-                        <Label htmlFor="trip-occupants-select">Include Occupants from Trip</Label>
+                        <Label htmlFor="trip-occupants-select">Load/Save Occupants for Trip</Label>
                         <Select value={selectedTripId} onValueChange={setSelectedTripId}>
                             <SelectTrigger id="trip-occupants-select">
                                 <SelectValue placeholder="Select a trip..."/>
@@ -360,39 +407,21 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
                             </SelectContent>
                         </Select>
                     </div>
-                    {occupants.length > 0 && (
-                        <div className="space-y-1">
-                            <Label>Occupants ({totalOccupantWeight.toFixed(1)} kg total)</Label>
-                            <ul className="text-sm text-muted-foreground list-disc pl-5">
-                                {occupants.map(occ => (
-                                    <li key={occ.id}>
-                                        {occ.name} ({occ.weight} kg)
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
+                    <OccupantManager 
+                        occupants={occupants} 
+                        onUpdate={handleOccupantsUpdate} 
+                        disabled={!selectedTripId || selectedTripId === 'none' || updateTripMutation.isPending}
+                    />
                  </div>
             </CardContent>
           </Card>
           <h3 className="text-xl font-headline">Weight Summary &amp; Compliance</h3>
           <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
             <Info className="h-4 w-4 text-blue-700 dark:text-blue-300" />
-            <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">For Accurate Calculations</AlertTitle>
+            <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">How "Unassigned" Items are Treated</AlertTitle>
             <AlertDescription className="font-body text-blue-700 dark:text-blue-300 text-xs">
-              The precision of these weight figures, especially the Calculated Towball Mass, depends directly on the accuracy of your inventory. Ensure each item's weight is correct and that items are assigned to the appropriate storage location. "Unassigned" items are assumed to be centered over the axles and will not contribute to the towball moment calculation.
+              Items without a specific storage location ("Unassigned") are included in the total Caravan ATM calculation. For the "Calculated Towball Mass", they are assumed to be centered over the axles and **do not** contribute to the towball moment calculation. For the most accurate TBM, assign all items to a specific location.
             </AlertDescription>
-          </Alert>
-          <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
-              <Wand className="h-4 w-4 text-blue-700 dark:text-blue-300" />
-              <AlertTitle className="font-headline text-blue-800 dark:text-blue-200">About these calculations</AlertTitle>
-              <AlertDescription className="font-body text-blue-700 dark:text-blue-300 text-xs">
-                  {hitchToAxleCenterDistance ? 
-                  "Tow Ball Mass is now calculated based on the position of items. This provides a more accurate estimate than the simple percentage method. Unassigned items are assumed to be over the axle." :
-                  "Tow Ball Mass is a simple 10% estimate of payload. For a more accurate calculation, edit your active caravan and provide the 'Hitch to Axle Center' distance."
-                  }
-                  Always verify weights at a certified weighbridge.
-              </AlertDescription>
           </Alert>
            {wdh && (
              <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
@@ -470,6 +499,41 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
                 <AlertDescription className="font-body text-muted-foreground">Inventory management is disabled. Please set an active caravan in 'Vehicles' to add or modify items.</AlertDescription>
             </Alert>
         )}
+
+        {activeCaravan && items.length === 0 && !isLoadingInventory && (
+          <Card className="bg-muted/30 text-center">
+            <CardHeader>
+              <CardTitle className="font-headline flex items-center justify-center"><Wand className="mr-2 h-5 w-5 text-primary"/>New Caravan Setup</CardTitle>
+              <CardDescription>Get started quickly by letting our AI suggest a starter inventory list for you.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="default" disabled={starterInventoryMutation.isPending}>
+                    {starterInventoryMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand className="mr-2 h-4 w-4"/>}
+                    AI Starter Inventory Suggester
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Confirm AI Inventory Suggestion</DialogTitle>
+                    <DialogDescription>
+                      This will add a list of common, essential items with estimated weights to your inventory for your <strong>{activeCaravan.model}</strong>. Items will be assigned to your defined storage locations where possible.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+                    <Button onClick={handleGenerateStarterInventory} disabled={starterInventoryMutation.isPending}>
+                        {starterInventoryMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand className="mr-2 h-4 w-4"/>}
+                        Generate & Add Items
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="space-y-4">
             <div className="flex flex-col gap-4 md:flex-row md:items-end">
                 <div className="flex-1 min-w-0">
@@ -560,4 +624,3 @@ export function InventoryList({ activeCaravan, activeVehicle, wdh, userPreferenc
   );
 }
 
-    

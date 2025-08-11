@@ -13,6 +13,11 @@ import { NavigationContext } from '@/components/layout/AppShell';
 
 const EnvironmentBanner = () => {
   const appEnv = process.env.NEXT_PUBLIC_APP_ENV;
+  const showBanner = process.env.NEXT_PUBLIC_SHOW_ENV_BANNER === 'true';
+
+  if (!showBanner) {
+    return null;
+  }
 
   if (appEnv === 'production') {
     return (

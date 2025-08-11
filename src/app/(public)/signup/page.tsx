@@ -1,9 +1,7 @@
 // src/app/(public)/signup/page.tsx
-// This page is for unauthenticated users. It MUST NOT use NavigationContext.
-
 "use client";
 
-import React, { useState, useEffect } from 'react'; // Removed useContext from import
+import React, { useState, useEffect, useContext } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -11,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { auth, db } from '@/lib/firebase'; 
+import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, updateProfile, type User as FirebaseUser, type AuthError, deleteUser } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { UserPlus, Mail, User, KeyRound, MapPin, Building, Globe, Loader2, CheckSquare, Eye, EyeOff } from 'lucide-react';
@@ -21,6 +19,7 @@ import { z } from 'zod';
 import type { UserProfile } from '@/types/auth';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
+import { NavigationContext } from '@/components/layout/AppShell';
 
 const ADMIN_EMAIL = 'info@kamperhub.com';
 
@@ -75,6 +74,17 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { authStatus } = useAuth();
+  const navContext = useContext(NavigationContext);
+
+  useEffect(() => {
+    if (authStatus === 'AUTHENTICATED') {
+        router.push('/dashboard');
+    }
+  }, [authStatus, router]);
+
+  const handleNavigation = () => {
+    if (navContext) navContext.setIsNavigating(true);
+  };
 
   const handleSignup: SubmitHandler<SignupFormData> = async (data) => {
     setIsLoading(true);
@@ -355,7 +365,7 @@ export default function SignupPage() {
           </form>
           <p className="text-sm text-center text-muted-foreground mt-4 font-body">
             Already have an account?{' '}
-            <Link href="/login" className="font-medium text-primary hover:underline">
+            <Link href="/login" className="font-medium text-primary hover:underline" onClick={handleNavigation}>
               Log In
             </Link>
           </p>

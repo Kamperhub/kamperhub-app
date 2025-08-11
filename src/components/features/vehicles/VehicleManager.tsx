@@ -1,3 +1,4 @@
+// src/components/features/vehicles/VehicleManager.tsx
 "use client";
 
 import React, { useState } from 'react';
@@ -26,8 +27,8 @@ import { analytics } from '@/lib/firebase';
 import { setUserProperties } from 'firebase/analytics';
 
 interface VehicleManagerProps {
-    initialVehicles: StoredVehicle[];
-    initialUserPrefs: Partial<UserProfile> | null;
+    vehicles: StoredVehicle[];
+    userPrefs: Partial<UserProfile> | null;
 }
 
 const updateAnalyticsUserProperties = (vehicles: StoredVehicle[]) => {
@@ -39,7 +40,7 @@ const updateAnalyticsUserProperties = (vehicles: StoredVehicle[]) => {
 };
 
 
-export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleManagerProps) {
+export function VehicleManager({ vehicles, userPrefs }: VehicleManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasProAccess } = useSubscription();
@@ -54,10 +55,9 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
     confirmationText: '',
   });
 
-  const activeVehicleId = initialUserPrefs?.activeVehicleId;
+  const activeVehicleId = userPrefs?.activeVehicleId;
   
   const invalidateAndRefetch = () => {
-    // We invalidate the consolidated query key now
     queryClient.invalidateQueries({ queryKey: ['allVehicleData', user?.uid] });
   };
 
@@ -67,17 +67,14 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
       return 'id' in dataToSend && dataToSend.id ? updateVehicle(dataToSend as StoredVehicle) : createVehicle(dataToSend as VehicleFormData);
     },
     onSuccess: (savedVehicle) => {
-      const updatedVehicles = editingVehicle
-            ? initialVehicles.map(v => v.id === savedVehicle.id ? savedVehicle : v)
-            : [...initialVehicles, savedVehicle];
-      updateAnalyticsUserProperties(updatedVehicles);
-
       invalidateAndRefetch();
       toast({
         title: editingVehicle ? "Vehicle Updated" : "Vehicle Added",
         description: `Vehicle details have been saved.`,
       });
-      setIsFormOpen(false);
+      if (editingVehicle) {
+        setIsFormOpen(false);
+      }
       setEditingVehicle(null);
     },
     onError: (error: Error) => {
@@ -91,8 +88,7 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
 
   const deleteVehicleMutation = useMutation({
     mutationFn: deleteVehicle,
-     onSuccess: (_, deletedId) => {
-        updateAnalyticsUserProperties(initialVehicles.filter(v => v.id !== deletedId));
+     onSuccess: () => {
         invalidateAndRefetch();
         toast({ title: "Vehicle Deleted" });
         setDeleteDialogState({ isOpen: false, vehicleId: null, vehicleName: null, confirmationText: '' });
@@ -163,7 +159,7 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
     return typeof value === 'number' ? `${value}${unit}` : 'N/A';
   };
 
-  const isAddButtonDisabled = !hasProAccess && initialVehicles.length >= 1;
+  const isAddButtonDisabled = !hasProAccess && vehicles.length >= 1;
 
   return (
     <>
@@ -201,8 +197,8 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {initialVehicles.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No vehicles added yet. Click "Add New Vehicle" to start.</p>}
-          {initialVehicles.map(vehicle => {
+          {vehicles.length === 0 && <p className="text-muted-foreground text-center font-body py-4">No vehicles added yet. Click "Add New Vehicle" to start.</p>}
+          {vehicles.map(vehicle => {
             const vehiclePayload = (typeof vehicle.gvm === 'number' && typeof vehicle.kerbWeight === 'number' && vehicle.gvm > 0 && vehicle.kerbWeight > 0 && vehicle.gvm >= vehicle.kerbWeight) ? vehicle.gvm - vehicle.kerbWeight : null;
             return (
               <Card key={vehicle.id} className={`p-4 ${activeVehicleId === vehicle.id ? 'border-primary shadow-lg' : 'shadow-sm'}`}>
@@ -236,12 +232,8 @@ export function VehicleManager({ initialVehicles, initialUserPrefs }: VehicleMan
                       </Badge>
                     )}
                     <div className="flex gap-1 w-full sm:w-auto">
-                      <Button variant="ghost" size="sm" onClick={() => handleEditVehicle(vehicle)} className="font-body flex-grow sm:flex-grow-0">
-                        <Edit3 className="h-4 w-4 sm:mr-1" /><span className="sm:hidden ml-1">Edit</span>
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteVehicle(vehicle.id, `${vehicle.year} ${vehicle.make} ${vehicle.model}`)} className="font-body text-destructive hover:text-destructive hover:bg-destructive/10 flex-grow sm:flex-grow-0">
-                        <Trash2 className="h-4 w-4 sm:mr-1" /><span className="sm:hidden ml-1">Delete</span>
-                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleEditVehicle(vehicle)} className="font-body flex-grow sm:flex-grow-0"><Edit3 className="h-4 w-4 sm:mr-1" /><span className="sm:hidden ml-1">Edit</span></Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDeleteVehicle(vehicle.id, `${vehicle.year} ${vehicle.make} ${vehicle.model}`)} className="font-body text-destructive hover:text-destructive hover:bg-destructive/10 flex-grow sm:flex-grow-0"><Trash2 className="h-4 w-4 sm:mr-1" /><span className="sm:hidden ml-1">Delete</span></Button>
                     </div>
                   </div>
                 </div>
