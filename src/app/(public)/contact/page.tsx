@@ -1,7 +1,6 @@
-// src/app/contact/page.tsx
+// src/app/(public)/contact/page.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,65 +9,49 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail as MailIcon, Send, User, Type, MailOpen, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import { Mail, Send, Loader2 } from 'lucide-react';
+import { useState } from 'react';
 
 const contactFormSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Please enter a valid email address"),
-  subject: z.string().min(1, "Subject is required"),
-  message: z.string().min(10, "Message must be at least 10 characters long"),
+  name: z.string().min(2, "Name must be at least 2 characters."),
+  email: z.string().email("Please enter a valid email address."),
+  subject: z.string().min(5, "Subject must be at least 5 characters."),
+  message: z.string().min(10, "Message must be at least 10 characters."),
 });
 
 type ContactFormData = z.infer<typeof contactFormSchema>;
 
 export default function ContactPage() {
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user, userProfile } = useAuth();
-  
-  const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<ContactFormData>({
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<ContactFormData>({
     resolver: zodResolver(contactFormSchema),
   });
-  
-  useEffect(() => {
-    if (user && userProfile) {
-      const fullName = userProfile.firstName && userProfile.lastName 
-        ? `${userProfile.firstName} ${userProfile.lastName}`
-        : userProfile.displayName || '';
-      setValue('name', fullName);
-      setValue('email', userProfile.email || user.email || '');
-    }
-  }, [user, userProfile, setValue]);
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const onSubmit: SubmitHandler<ContactFormData> = async (data) => {
     setIsSubmitting(true);
     try {
       const response = await fetch('/api/contact', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Something went wrong');
+        throw new Error(result.error || 'Failed to send message.');
       }
 
       toast({
         title: "Message Sent!",
-        description: "We've received your message and will get back to you soon.",
+        description: "Thank you for reaching out. We'll get back to you soon.",
       });
-      // Only reset subject and message, keep pre-filled data
-      setValue('subject', '');
-      setValue('message', '');
+      reset();
     } catch (error: any) {
       toast({
-        title: "Submission Failed",
+        title: "Error Sending Message",
         description: error.message,
         variant: "destructive",
       });
@@ -78,83 +61,47 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <Card className="max-w-2xl mx-auto shadow-xl">
+    <div className="flex justify-center items-start pt-10">
+      <Card className="w-full max-w-2xl shadow-xl">
         <CardHeader>
           <CardTitle className="font-headline text-2xl text-primary flex items-center">
-            <MailIcon className="mr-3 h-7 w-7" /> Contact KamperHub
+            <Mail className="mr-3 h-6 w-6" />
+            Contact Us
           </CardTitle>
           <CardDescription className="font-body">
-            Have questions, feedback, or need support? Fill out the form below to send us a message directly.
+            Have a question, feedback, or need support? Fill out the form below and we'll get back to you.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div>
-              <Label htmlFor="name" className="font-body">Your Name</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="name"
-                  {...register("name")}
-                  placeholder="e.g., Jane Doe"
-                  className="font-body pl-10"
-                  disabled={isSubmitting || !!user}
-                  readOnly={!!user}
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <Label htmlFor="name" className="font-body">Your Name</Label>
+                <Input id="name" {...register("name")} placeholder="Jane Doe" disabled={isSubmitting} className="font-body" />
+                {errors.name && <p className="text-sm text-destructive font-body mt-1">{errors.name.message}</p>}
               </div>
-              {errors.name && <p className="text-sm text-destructive font-body mt-1">{errors.name.message}</p>}
-            </div>
-
-            <div>
-              <Label htmlFor="email" className="font-body">Your Email Address</Label>
-              <div className="relative">
-                <MailOpen className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  {...register("email")}
-                  placeholder="e.g., your.email@example.com"
-                  className="font-body pl-10"
-                  disabled={isSubmitting || !!user}
-                  readOnly={!!user}
-                />
+              <div>
+                <Label htmlFor="email" className="font-body">Your Email</Label>
+                <Input id="email" type="email" {...register("email")} placeholder="jane.doe@example.com" disabled={isSubmitting} className="font-body" />
+                {errors.email && <p className="text-sm text-destructive font-body mt-1">{errors.email.message}</p>}
               </div>
-              {errors.email && <p className="text-sm text-destructive font-body mt-1">{errors.email.message}</p>}
             </div>
-
             <div>
               <Label htmlFor="subject" className="font-body">Subject</Label>
-              <div className="relative">
-                <Type className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="subject"
-                  {...register("subject")}
-                  placeholder="e.g., Question about Trip Planner"
-                  className="font-body pl-10"
-                  disabled={isSubmitting}
-                />
-              </div>
+              <Input id="subject" {...register("subject")} placeholder="e.g., Feedback on Trip Planner" disabled={isSubmitting} className="font-body" />
               {errors.subject && <p className="text-sm text-destructive font-body mt-1">{errors.subject.message}</p>}
             </div>
-
             <div>
               <Label htmlFor="message" className="font-body">Message</Label>
-              <Textarea
-                id="message"
-                {...register("message")}
-                placeholder="Please type your message here..."
-                className="font-body min-h-[120px]"
-                rows={5}
-                disabled={isSubmitting}
-              />
+              <Textarea id="message" {...register("message")} placeholder="Tell us what's on your mind..." rows={6} disabled={isSubmitting} className="font-body" />
               {errors.message && <p className="text-sm text-destructive font-body mt-1">{errors.message.message}</p>}
             </div>
-            
-            <Button type="submit" className="w-full font-body bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-              {isSubmitting ? 'Sending...' : 'Send Message'}
-            </Button>
+            <div className="text-right">
+              <Button type="submit" className="w-full sm:w-auto font-body bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                {isSubmitting ? 'Sending...' : 'Send Message'}
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>

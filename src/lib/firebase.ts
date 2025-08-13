@@ -24,7 +24,7 @@ const firebaseConfig = {
 
 let app: FirebaseApp;
 let auth: Auth;
-let db: Firestore;
+let db: Firestore; // Declared here to be accessible outside the if (typeof window) block
 let analytics: Analytics | null = null;
 let remoteConfig: RemoteConfig | null = null;
 let appCheck: AppCheck | undefined;
@@ -40,7 +40,7 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   // @ts-ignore
   auth = {};
   // @ts-ignore
-  db = {};
+  db = {}; // Assign empty object on error
 } else {
   try {
     // DEBUG LOG: Display the firebaseConfig object being used
@@ -54,21 +54,18 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     auth = getAuth(app);
     setPersistence(auth, browserSessionPersistence);
     
-    // CORRECTED: The client SDK connects to the default Firestore instance for the project.
-    db = getFirestore(app);
-
+    // ONLY INITIALIZE BROWSER-SPECIFIC SERVICES WHEN IN THE BROWSER ENVIRONMENT
     if (typeof window !== 'undefined') {
-        analytics = getAnalytics(app);
-        remoteConfig = getRemoteConfig(app);
-        if (process.env.NEXT_PUBLIC_APP_ENV === 'development') {
-            remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour for dev
-        }
-    }
-    
-    console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}.`);
+      // CORRECTED: The client SDK connects to the default Firestore instance for the project.
+      db = getFirestore(app); // <-- MOVED HERE
+      
+      analytics = getAnalytics(app);
+      remoteConfig = getRemoteConfig(app);
+      if (process.env.NEXT_PUBLIC_APP_ENV === 'development') {
+        remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour for dev
+      }
 
-    if (typeof window !== 'undefined') {
-      enableIndexedDbPersistence(db)
+      enableIndexedDbPersistence(db) // <-- MOVED HERE (depends on db)
         .then(() => console.log('[Firebase Client] Firestore offline persistence enabled.'))
         .catch((err) => {
           if (err.code === 'failed-precondition') {
@@ -76,10 +73,17 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
           } else if (err.code === 'unimplemented') {
             console.warn('[Firebase Client] Firestore offline persistence is not available in this browser.');
           } else {
-              console.error("[Firebase Client] Error enabling Firestore offline persistence:", err);
+                console.error("[Firebase Client] Error enabling Firestore offline persistence:", err);
           }
         });
+    } else {
+        // When running on the server, db should not be initialized from client SDK
+        // @ts-ignore
+        db = {}; // Or null, depending on how your consumers handle it. Assigning empty object for consistency.
     }
+    
+    console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}.`);
+
   } catch (e: any) {
     firebaseInitializationError = `Firebase failed to initialize. Please check your Firebase project configuration and API keys. Error: ${e.message}`;
     console.error(`[Firebase Client] ${firebaseInitializationError}`, e);
@@ -88,7 +92,7 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     // @ts-ignore
     auth = {};
     // @ts-ignore
-    db = {};
+    db = {}; // Assign empty object on error
   }
 }
 
