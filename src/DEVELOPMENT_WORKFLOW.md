@@ -1,4 +1,3 @@
-
 # KamperHub Development & Deployment Workflow
 
 This document outlines the safe and standard process for developing new features, fixing bugs, and deploying changes to your live production application hosted on Firebase App Hosting.
