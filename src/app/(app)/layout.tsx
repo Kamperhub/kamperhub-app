@@ -1,3 +1,4 @@
+
 // src/app/(app)/layout.tsx
 import { AppShell } from '@/components/layout/AppShell';
 import { AuthGuard } from '@/components/layout/AuthGuard';

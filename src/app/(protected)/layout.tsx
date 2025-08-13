@@ -1,4 +1,17 @@
 
-// This file is now obsolete and will be removed.
-// The root layout at /src/app/layout.tsx now handles the main page structure
-// and the AuthGuard within AppShell handles protection.
+// src/app/(protected)/layout.tsx
+import { AppShell } from '@/components/layout/AppShell';
+import { AuthGuard } from '@/components/layout/AuthGuard';
+import type { ReactNode } from 'react';
+
+export default function ProtectedAppLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return (
+    <AuthGuard>
+      <AppShell>{children}</AppShell>
+    </AuthGuard>
+  );
+}

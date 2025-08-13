@@ -1,11 +1,12 @@
 
+// This component now strictly provides the UI shell for AUTHENTICATED users.
+// It is wrapped by AuthGuard in the (protected) layout.
 "use client";
 
 import React, { useState, useEffect, createContext } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Header } from './Header';
 import { BottomNavigation } from './BottomNavigation';
-import { AuthGuard } from '@/components/layout/AuthGuard';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
@@ -28,7 +29,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname, searchParams]);
 
   const apiKeyMissing = !apiKey;
-  const isPublicPage = ['/', '/login', '/signup', '/landing', '/learn', '/contact', '/subscribe/success', '/subscribe/cancel'].some(path => pathname.startsWith(path));
 
   return (
     <NavigationContext.Provider value={{ isNavigating, setIsNavigating }}>
@@ -38,25 +38,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <p className="text-lg font-semibold text-primary">Loading...</p>
         </div>
       )}
-      
-      <AuthGuard>
-        <div className="flex flex-col min-h-screen">
-          <Header />
-          <main className="flex-grow container mx-auto px-4 py-8 pb-24 sm:pb-8">
-            {apiKeyMissing && !isPublicPage && (
-              <Alert variant="destructive" className="mb-6">
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-grow container mx-auto px-4 py-8 pb-24 sm:pb-8">
+          {apiKeyMissing && (
+             <Alert variant="destructive" className="mb-6">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle className="font-headline">Google Maps API Key Missing</AlertTitle>
                 <AlertDescription className="font-body">
                   The `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is not set. Map-related features will not work.
                 </AlertDescription>
               </Alert>
-            )}
-            {children}
-          </main>
-          {!isPublicPage && <BottomNavigation />}
-        </div>
-      </AuthGuard>
+          )}
+          {children}
+        </main>
+        <BottomNavigation />
+      </div>
     </NavigationContext.Provider>
   );
 }
