@@ -1,4 +1,3 @@
-
 import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
 import { getAuth, type Auth, browserSessionPersistence, setPersistence } from 'firebase/auth';
 import { getFirestore, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
@@ -44,7 +43,14 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   db = {};
 } else {
   try {
+    // DEBUG LOG: Display the firebaseConfig object being used
+    console.log("DEBUG_RUNTIME_FIREBASE_CONFIG: ", firebaseConfig); 
+    
     app = getApps().length ? getApp() : initializeApp(firebaseConfig as FirebaseOptions);
+    
+    // DEBUG LOG: Display information about the initialized Firebase app instance
+    console.log("DEBUG_RUNTIME_FIREBASE_APP_INSTANCE:", app.name, app.options.projectId); 
+    
     auth = getAuth(app);
     setPersistence(auth, browserSessionPersistence);
     
