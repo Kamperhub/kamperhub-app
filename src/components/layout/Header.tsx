@@ -42,7 +42,7 @@ const EnvironmentBanner = () => {
 
 
 export function Header() {
-  const { user, userProfile, isAuthLoading } from useAuth();
+  const { user, userProfile, isAuthLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const navContext = useContext(NavigationContext);
