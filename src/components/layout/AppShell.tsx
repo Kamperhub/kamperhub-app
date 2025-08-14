@@ -1,11 +1,11 @@
 
-// This component now strictly provides the UI shell for AUTHENTICATED users.
+// // This component now strictly provides the UI shell for AUTHENTICATED users.
 // It is wrapped by AuthGuard in the (protected) layout.
 "use client";
 
 import React, { useState, useEffect, createContext } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Header } from '@/components/layout/Header';
+import { Header } from '@/components/layout/Header'; // THIS IS THE CRITICAL ALIAS IMPORT
 import { BottomNavigation } from './BottomNavigation';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -23,6 +23,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [isNavigating, setIsNavigating] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  // TEMP FIX: Forcing build system re-evaluation (Date: 2025-08-14)
+  // console.log("AppShell: Forcing build re-evaluation for header import"); // This line can stay or go, but the above comment is key
 
   useEffect(() => {
     setIsNavigating(false);
@@ -46,7 +49,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle className="font-headline">Google Maps API Key Missing</AlertTitle>
                 <AlertDescription className="font-body">
-                  The \`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY\` is not set. Map-related features will not work.
+                  The `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is not set. Map-related features will not work.
                 </AlertDescription>
               </Alert>
           )}
