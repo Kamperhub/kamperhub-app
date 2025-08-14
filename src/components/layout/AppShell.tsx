@@ -1,11 +1,12 @@
+
 // This component now strictly provides the UI shell for AUTHENTICATED users.
 // It is wrapped by AuthGuard in the (protected) layout.
 "use client";
 
 import React, { useState, useEffect, createContext } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Header } from '@/components/layout/Header';
-import { BottomNavigation } from '@/components/layout/BottomNavigation';
+import { Header } from './Header';
+import { BottomNavigation } from './BottomNavigation';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
@@ -45,7 +46,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle className="font-headline">Google Maps API Key Missing</AlertTitle>
                 <AlertDescription className="font-body">
-                  The `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is not set. Map-related features will not work.
+                  The \`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY\` is not set. Map-related features will not work.
                 </AlertDescription>
               </Alert>
           )}

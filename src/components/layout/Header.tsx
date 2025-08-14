@@ -1,9 +1,10 @@
+
 "use client";
 
 import React, { useContext } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, UserCircle, LogIn, LogOut, MessageSquare, Loader2, AlertTriangle, LayoutDashboard } from 'lucide-react';
+import { LayoutDashboard, UserCircle, LogIn, LogOut, MessageSquare, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
@@ -41,7 +42,7 @@ const EnvironmentBanner = () => {
 
 
 export function Header() {
-  const { user, userProfile, isAuthLoading } = useAuth();
+  const { user, userProfile, isAuthLoading } from useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const navContext = useContext(NavigationContext);
@@ -55,11 +56,13 @@ export function Header() {
   const handleLogout = async () => {
     try {
       await auth.signOut();
+      // Clear session cookie by calling the API route
+      await fetch('/api/auth/session', { method: 'DELETE' });
       toast({
         title: 'Logged Out',
         description: 'You have been successfully logged out.',
       });
-      router.push('/login'); 
+      router.push('/auth'); 
     } catch (error) {
       console.error("Error signing out: ", error);
       toast({
@@ -91,7 +94,7 @@ export function Header() {
         <div className="flex items-center gap-2 sm:gap-3">
           {user && (
             <Link href="/dashboard" passHref>
-              <Button variant="ghost" size="icon" aria-label="Go to Dashboard" className="p-0 hover:bg-primary/80" onClick={handleNavigation}>
+              <Button variant="ghost" size="icon" aria-label="Go to Dashboard" className="p-0 hover:bg-primary/80 hidden md:flex" onClick={handleNavigation}>
                 <LayoutDashboard className="h-7 w-7" />
               </Button>
             </Link>
@@ -118,7 +121,7 @@ export function Header() {
               </Button>
             </>
           ) : (
-            <Link href="/login" passHref>
+            <Link href="/auth" passHref>
               <Button variant="ghost" className="p-0 sm:px-3 sm:py-2 hover:bg-primary/80 flex items-center" onClick={handleNavigation}>
                 <LogIn className="h-6 w-6 sm:mr-2" />
                 <span className="hidden sm:inline font-body text-sm">Log In / Sign Up</span>

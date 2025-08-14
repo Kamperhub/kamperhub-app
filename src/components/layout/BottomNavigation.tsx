@@ -1,4 +1,4 @@
-// src/components/layout/BottomNavigation.tsx
+
 "use client";
 
 import { useContext } from 'react';
@@ -25,7 +25,7 @@ export function BottomNavigation() {
     navItems.find(item => item.href === '/trip-manager'),
     navItems.find(item => item.href === '/inventory'),
     navItems.find(item => item.href === '/my-account'),
-  ].filter(Boolean) as (typeof navItems);
+  ].filter(Boolean) as (typeof navItems[0])[];
 
   const tripManagerPaths = ['/trip-manager', '/trip-expense-planner', '/triplog', '/trip-packing', '/journeys', '/world-map', '/checklists'];
 
