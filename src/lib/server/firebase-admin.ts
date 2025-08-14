@@ -53,6 +53,7 @@ export function getFirebaseAdmin() {
     
     const newApp = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
+      authDomain: "kamperhub.com",
     });
 
     console.log(`[Firebase Admin] SDK initialized successfully for project: ${serviceAccount.project_id}`);
