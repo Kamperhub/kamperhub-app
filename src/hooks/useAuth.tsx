@@ -5,7 +5,7 @@ import { onIdTokenChanged, type User as FirebaseUser } from 'firebase/auth';
 import { doc, onSnapshot, setDoc, getDoc, type DocumentReference, type DocumentSnapshot } from 'firebase/firestore';
 import { auth, db, firebaseInitializationError } from '@/lib/firebase';
 import type { UserProfile } from '@/types/auth';
-import { useSubscription } from './useSubscription';
+import { useSubscription } from '@/hooks/useSubscription'; // <--- THIS LINE IS CHANGED
 
 export type AuthStatus = 'LOADING' | 'UNAUTHENTICATED' | 'AUTHENTICATED' | 'ERROR';
 export type ProfileStatus = 'LOADING' | 'SUCCESS' | 'ERROR' | 'NOT_APPLICABLE';
