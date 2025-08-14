@@ -48,7 +48,7 @@
     "date-fns": "^3.6.0",
     "firebase": "^11.8.1",
     "firebase-admin": "^12.2.0",
-    "firebaseui": "^6.1.0",
+    "firebaseui": "^7.1.0",
     "genkit": "^1.0.0",
     "googleapis": "^140.0.1",
     "lucide-react": "^0.475.0",
