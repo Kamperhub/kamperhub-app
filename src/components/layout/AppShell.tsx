@@ -1,4 +1,3 @@
-
 // This component now strictly provides the UI shell for AUTHENTICATED users.
 // It is wrapped by AuthGuard in the (protected) layout.
 "use client";
