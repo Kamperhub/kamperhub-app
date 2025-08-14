@@ -1,6 +1,6 @@
 // src/app/(public)/layout.tsx
 import type { ReactNode } from 'react';
-// REMOVED: import { Header } from '@/components/layout/Header'; // This line is removed
+import { Header } from '@/components/layout/Header';
 
 export default function PublicLayout({
     children,
@@ -9,11 +9,10 @@ export default function PublicLayout({
 }) {
     return (
         <div className="flex flex-col min-h-screen">
-            {/* REMOVED: <Header /> */} {/* This line is removed */}
+            <Header />
             <main className="flex-grow container mx-auto px-4 py-8">
                 {children}
             </main>
         </div>
     );
 }
-
