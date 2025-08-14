@@ -14,6 +14,13 @@ const nextConfig = {
     // Enable WebAssembly experiments to support all package features.
     config.experiments = { ...config.experiments, asyncWebAssembly: true };
     
+    // This helps Next.js and Webpack correctly resolve internal Firebase dependencies.
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      // Map the internal @firebase/app package to the main firebase/app package
+      '@firebase/app': require.resolve('firebase/app'),
+    };
+
     // In some environments, file system watching is unreliable.
     // Polling is a more robust, albeit slightly more resource-intensive, method to detect changes.
     // This is a common fix for HMR (Fast Refresh) issues in containerized/cloud dev environments.
@@ -25,6 +32,7 @@ const nextConfig = {
     }
     return config;
   },
+  
   async headers() {
     // Apply Content-Security-Policy headers in all environments to ensure consistency
     const cspHeader = [
