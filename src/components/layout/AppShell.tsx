@@ -4,8 +4,8 @@
 
 import React, { useState, useEffect, createContext } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Header } from './Header';
-import { BottomNavigation } from './BottomNavigation';
+import { Header } from '@/components/layout/Header';
+import { BottomNavigation } from '@/components/layout/BottomNavigation';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
