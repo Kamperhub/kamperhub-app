@@ -15,7 +15,6 @@
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
     "@dnd-kit/sortable": "^8.0.0",
-    "@firebase/app-check": "^0.10.0",
     "@genkit-ai/googleai": "^1.0.0",
     "@googlemaps/polyline-codec": "^1.0.28",
     "@hookform/resolvers": "^4.1.3",
