@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
 import { getAuth, type Auth, browserSessionPersistence, setPersistence } from 'firebase/auth';
 import { getFirestore, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
-import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from 'firebase/app-check';
+// Removed: import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from 'firebase/app-check';
 import { getAnalytics, type Analytics } from "firebase/analytics";
 import { getRemoteConfig, type RemoteConfig } from "firebase/remote-config";
 
@@ -24,11 +24,18 @@ const firebaseConfig = {
 
 let app: FirebaseApp;
 let auth: Auth;
-let db: Firestore; // Declared here to be accessible outside the if (typeof window) block
+let db: Firestore;
 let analytics: Analytics | null = null;
 let remoteConfig: RemoteConfig | null = null;
 let appCheck: AppCheck | undefined;
 export let firebaseInitializationError: string | null = null;
+
+// Declare functions for App Check, will be assigned dynamically
+let initializeAppCheckFunc: typeof import('firebase/app-check')['initializeAppCheck'] | undefined;
+let ReCaptchaEnterpriseProviderClass: typeof import('firebase/app-check')['ReCaptchaEnterpriseProvider'] | undefined;
+// Also declare the AppCheck type from firebase/app-check, as it's no longer directly imported
+type AppCheckType = import('firebase/app-check').AppCheck;
+
 
 console.log("[Firebase Client] Starting initialization...");
 
@@ -51,15 +58,24 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     // DEBUG LOG: Display information about the initialized Firebase app instance
     console.log("DEBUG_RUNTIME_FIREBASE_APP_INSTANCE:", app.name, app.options.projectId);
 
-    auth = getAuth(app); // Still initialize auth here, but its persistence is browser-only
+    auth = getAuth(app);
 
     // ONLY INITIALIZE BROWSER-SPECIFIC SERVICES WHEN IN THE BROWSER ENVIRONMENT
     if (typeof window !== 'undefined') {
-      // THIS IS THE KEY CHANGE: setPersistence is now inside the browser-only block
+      // Dynamic import for App Check and other browser-specific modules
+      Promise.all([
+        import('firebase/app-check').then(m => {
+          initializeAppCheckFunc = m.initializeAppCheck;
+          ReCaptchaEnterpriseProviderClass = m.ReCaptchaEnterpriseProvider;
+        }),
+        // You might want to dynamically import getFirestore, getAnalytics, getRemoteConfig here too
+        // if they ever cause issues, but typically they don't have these
+        // deep browser-only static initialization side-effects like App Check.
+      ]).catch(console.error); // Catch any errors during dynamic import
+
       setPersistence(auth, browserSessionPersistence);
 
-      // CORRECTED: The client SDK connects to the default Firestore instance for the project.
-      db = getFirestore(app); // This was already correctly inside
+      db = getFirestore(app);
 
       analytics = getAnalytics(app);
       remoteConfig = getRemoteConfig(app);
@@ -67,7 +83,7 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
         remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour for dev
       }
 
-      enableIndexedDbPersistence(db) // This was already correctly inside (depends on db)
+      enableIndexedDbPersistence(db)
         .then(() => console.log('[Firebase Client] Firestore offline persistence enabled.'))
         .catch((err) => {
           if (err.code === 'failed-precondition') {
@@ -81,7 +97,7 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     } else {
         // When running on the server, db should not be initialized from client SDK
         // @ts-ignore
-        db = {}; // Or null, depending on how your consumers handle it. Assigning empty object for consistency.
+        db = {};
     }
 
     console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}.`);
@@ -94,12 +110,13 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     // @ts-ignore
     auth = {};
     // @ts-ignore
-    db = {}; // Assign empty object on error
+    db = {};
   }
 }
 
 export function initializeFirebaseAppCheck() {
-  if (typeof window !== 'undefined' && app?.name && !appCheck) {
+  // Only attempt to initialize App Check if in browser AND dynamic imports have completed successfully
+  if (typeof window !== 'undefined' && app?.name && !appCheck && initializeAppCheckFunc && ReCaptchaEnterpriseProviderClass) {
     if (process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN) {
       console.log('[Firebase Client] App Check: Using debug token for local development.');
       (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN;
@@ -107,10 +124,10 @@ export function initializeFirebaseAppCheck() {
 
     if (process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY) {
       try {
-        appCheck = initializeAppCheck(app, {
-          provider: new ReCaptchaEnterpriseProvider(process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY),
+        appCheck = initializeAppCheckFunc(app, {
+          provider: new ReCaptchaEnterpriseProviderClass(process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY),
           isTokenAutoRefreshEnabled: true
-        });
+        }) as AppCheckType; // Type assertion for appCheck
         console.log('[Firebase Client] App Check initialized with reCAPTCHA Enterprise provider.');
       } catch(e: any) {
         console.error(`[Firebase Client] App Check initialization failed. Error: ${e.message}`);
