@@ -1,12 +1,14 @@
+// firebase.ts (or wherever your Firebase client-side initialization lives)
+
 import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
 import { getAuth, type Auth, browserSessionPersistence, setPersistence } from 'firebase/auth';
 import { getFirestore, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
-// Removed: import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from 'firebase/app-check';
-import { getAnalytics, type Analytics } from "firebase/analytics";
-import { getRemoteConfig, type RemoteConfig } from "firebase/remote-config";
 
+// IMPORTANT: All client-side specific Firebase SDKs (like Analytics, Remote Config, App Check)
+// should be dynamically imported. This prevents them from being included and executed
+// during Next.js's server-side build process, which can cause 'n.registerVersion' errors.
 
-// --- Declare global for App Check Debug Token (Crucial for localhost testing) ---
+// Declare global for App Check Debug Token (Crucial for localhost testing)
 declare global {
   // eslint-disable-next-line no-var
   var FIREBASE_APPCHECK_DEBUG_TOKEN: string | boolean | undefined;
@@ -22,29 +24,29 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// KEY CHANGE: All Firebase instances are now initialized to null, and typed as potentially null
+// All Firebase instances are now initialized to null, and typed as potentially null
+// These will remain null on the server, and be populated on the client.
 let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-let db: Firestore | null = null;
-let analytics: Analytics | null = null;
-let remoteConfig: RemoteConfig | null = null;
-let appCheck: import('firebase/app-check').AppCheck | undefined; // Use import type for AppCheck here
+export let auth: Auth | null = null;
+export let db: Firestore | null = null;
+export let analytics: import('firebase/analytics').Analytics | null = null; // Type imported dynamically
+export let remoteConfig: import('firebase/remote-config').RemoteConfig | null = null; // Type imported dynamically
+export let appCheck: import('firebase/app-check').AppCheck | undefined; // Type imported dynamically
 
 export let firebaseInitializationError: string | null = null;
 
-// Declare functions for App Check, will be assigned dynamically
+// Declare placeholders for dynamically imported functions
 let initializeAppCheckFunc: typeof import('firebase/app-check')['initializeAppCheck'] | undefined;
 let ReCaptchaEnterpriseProviderClass: typeof import('firebase/app-check')['ReCaptchaEnterpriseProvider'] | undefined;
-// Also declare the AppCheck type from firebase/app-check, as it's no longer directly imported
-type AppCheckType = import('firebase/app-check').AppCheck;
-
+let getAnalyticsFunc: typeof import('firebase/analytics')['getAnalytics'] | undefined;
+let getRemoteConfigFunc: typeof import('firebase/remote-config')['getRemoteConfig'] | undefined;
 
 console.log("[Firebase Client] Starting initialization...");
 
 if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   firebaseInitializationError = "CRITICAL ERROR: Firebase client-side configuration is missing. Please ensure all required NEXT_PUBLIC_FIREBASE_ variables are set in your .env.local file (especially NEXT_PUBLIC_FIREBASE_API_KEY) and that you have restarted the development server. The application cannot connect to Firebase.";
   console.error(`[Firebase Client] ${firebaseInitializationError}`);
-  // KEY CHANGE: No assignments to app, auth, db here; they remain null as per their initial declaration
+  // No assignments to app, auth, db here; they remain null as per their initial declaration
 } else {
   try {
     // DEBUG LOG: Display the firebaseConfig object being used
@@ -57,24 +59,49 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
       // DEBUG LOG: Display information about the initialized Firebase app instance
       console.log("DEBUG_RUNTIME_FIREBASE_APP_INSTANCE:", app.name, app.options.projectId);
 
+      // Auth and Firestore can generally be imported directly as they are core services
+      // that don't typically run into the same 'registerVersion' issues as services
+      // that might have more immediate side effects on import.
       auth = getAuth(app);
-      setPersistence(auth, browserSessionPersistence); // This is now safely inside
+      setPersistence(auth, browserSessionPersistence);
 
       db = getFirestore(app);
-      analytics = getAnalytics(app);
-      remoteConfig = getRemoteConfig(app);
-      if (process.env.NEXT_PUBLIC_APP_ENV === 'development') {
-        // Ensure remoteConfig is not null before accessing its properties
-        if (remoteConfig) remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour for dev
-      }
 
-      // Dynamic import for App Check and other browser-specific modules
+      // Dynamic imports for Analytics, Remote Config, and App Check
+      // These services have specific browser dependencies or behaviors that
+      // are best loaded only in the client environment.
       Promise.all([
+        import('firebase/analytics').then(m => {
+          getAnalyticsFunc = m.getAnalytics;
+          console.log('[Firebase Client] Firebase Analytics module loaded dynamically.');
+        }),
+        import('firebase/remote-config').then(m => {
+          getRemoteConfigFunc = m.getRemoteConfig;
+          console.log('[Firebase Client] Firebase Remote Config module loaded dynamically.');
+        }),
         import('firebase/app-check').then(m => {
           initializeAppCheckFunc = m.initializeAppCheck;
           ReCaptchaEnterpriseProviderClass = m.ReCaptchaEnterpriseProvider;
+          console.log('[Firebase Client] Firebase App Check module loaded dynamically.');
         }),
-      ]).catch(console.error); // Catch any errors during dynamic import
+      ]).then(() => {
+        // Assign the dynamically loaded services to our exported variables
+        if (app && getAnalyticsFunc) {
+          analytics = getAnalyticsFunc(app);
+          console.log('[Firebase Client] Analytics service initialized.');
+        }
+        if (app && getRemoteConfigFunc) {
+          remoteConfig = getRemoteConfigFunc(app);
+          if (process.env.NEXT_PUBLIC_APP_ENV === 'development') {
+            // Ensure remoteConfig is not null before accessing its properties
+            if (remoteConfig) remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour for dev
+          }
+          console.log('[Firebase Client] Remote Config service initialized.');
+        }
+        // App Check initialization is handled by initializeFirebaseAppCheck() separately
+      }).catch(importError => {
+        console.error('[Firebase Client] Error loading dynamic Firebase services:', importError);
+      });
 
       // Firestore persistence
       // Ensure db is not null before enabling persistence
@@ -100,7 +127,7 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   } catch (e: any) {
     firebaseInitializationError = `Firebase failed to initialize. Please check your Firebase project configuration and API keys. Error: ${e.message}`;
     console.error(`[Firebase Client] ${firebaseInitializationError}`, e);
-    // KEY CHANGE: If an error occurs during initialization, ensure all are null
+    // If an error occurs during initialization, ensure all are null
     app = null;
     auth = null;
     db = null;
@@ -116,7 +143,8 @@ export function initializeFirebaseAppCheck() {
   if (typeof window !== 'undefined' && app && initializeAppCheckFunc && ReCaptchaEnterpriseProviderClass) {
     if (process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN) {
       console.log('[Firebase Client] App Check: Using debug token for local development.');
-      (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN;
+      // Convert string env var to boolean for debug token (if you set it as 'true'/'false' in .env)
+      (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN === 'true';
     }
 
     if (process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY) {
@@ -124,7 +152,7 @@ export function initializeFirebaseAppCheck() {
         appCheck = initializeAppCheckFunc(app, {
           provider: new ReCaptchaEnterpriseProviderClass(process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY),
           isTokenAutoRefreshEnabled: true
-        }) as AppCheckType;
+        });
         console.log('[Firebase Client] App Check initialized with reCAPTCHA Enterprise provider.');
       } catch(e: any) {
         console.error(`[Firebase Client] App Check initialization failed. Error: ${e.message}`);
@@ -135,6 +163,6 @@ export function initializeFirebaseAppCheck() {
   }
 }
 
-// Export the instances. On the server, these will be null.
-export { app, auth, db, analytics, remoteConfig };
-
+// Export the core app, auth, and db instances.
+// Other services (analytics, remoteConfig, appCheck) are already exported as `export let ...` and will be null/undefined on server.
+export { app };
