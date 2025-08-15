@@ -55,10 +55,11 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
 
     // ONLY INITIALIZE BROWSER-SPECIFIC SERVICES WHEN IN THE BROWSER ENVIRONMENT
     if (typeof window !== 'undefined') {
-      setPersistence(auth, browserSessionPersistence); // <-- MOVED HERE!
+      // THIS IS THE KEY CHANGE: setPersistence is now inside the browser-only block
+      setPersistence(auth, browserSessionPersistence);
 
       // CORRECTED: The client SDK connects to the default Firestore instance for the project.
-      db = getFirestore(app); // <-- MOVED HERE
+      db = getFirestore(app); // This was already correctly inside
 
       analytics = getAnalytics(app);
       remoteConfig = getRemoteConfig(app);
@@ -66,7 +67,7 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
         remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour for dev
       }
 
-      enableIndexedDbPersistence(db) // <-- MOVED HERE (depends on db)
+      enableIndexedDbPersistence(db) // This was already correctly inside (depends on db)
         .then(() => console.log('[Firebase Client] Firestore offline persistence enabled.'))
         .catch((err) => {
           if (err.code === 'failed-precondition') {
