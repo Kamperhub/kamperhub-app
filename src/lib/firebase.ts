@@ -44,21 +44,22 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
 } else {
   try {
     // DEBUG LOG: Display the firebaseConfig object being used
-    console.log("DEBUG_RUNTIME_FIREBASE_CONFIG: ", firebaseConfig); 
-    
+    console.log("DEBUG_RUNTIME_FIREBASE_CONFIG: ", firebaseConfig);
+
     app = getApps().length ? getApp() : initializeApp(firebaseConfig as FirebaseOptions);
-    
+
     // DEBUG LOG: Display information about the initialized Firebase app instance
-    console.log("DEBUG_RUNTIME_FIREBASE_APP_INSTANCE:", app.name, app.options.projectId); 
-    
-    auth = getAuth(app);
-    setPersistence(auth, browserSessionPersistence);
-    
+    console.log("DEBUG_RUNTIME_FIREBASE_APP_INSTANCE:", app.name, app.options.projectId);
+
+    auth = getAuth(app); // Still initialize auth here, but its persistence is browser-only
+
     // ONLY INITIALIZE BROWSER-SPECIFIC SERVICES WHEN IN THE BROWSER ENVIRONMENT
     if (typeof window !== 'undefined') {
+      setPersistence(auth, browserSessionPersistence); // <-- MOVED HERE!
+
       // CORRECTED: The client SDK connects to the default Firestore instance for the project.
       db = getFirestore(app); // <-- MOVED HERE
-      
+
       analytics = getAnalytics(app);
       remoteConfig = getRemoteConfig(app);
       if (process.env.NEXT_PUBLIC_APP_ENV === 'development') {
@@ -81,7 +82,7 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
         // @ts-ignore
         db = {}; // Or null, depending on how your consumers handle it. Assigning empty object for consistency.
     }
-    
+
     console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}.`);
 
   } catch (e: any) {
