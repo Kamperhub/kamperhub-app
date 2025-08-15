@@ -1,5 +1,4 @@
-
-// // This component now strictly provides the UI shell for AUTHENTICATED users.
+// This component now strictly provides the UI shell for AUTHENTICATED users.
 // It is wrapped by AuthGuard in the (protected) layout.
 "use client";
 
@@ -23,9 +22,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [isNavigating, setIsNavigating] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
-
-  // TEMP FIX: Forcing build system re-evaluation (Date: 2025-08-14)
-  // console.log("AppShell: Forcing build re-evaluation for header import"); // This line can stay or go, but the above comment is key
 
   useEffect(() => {
     setIsNavigating(false);

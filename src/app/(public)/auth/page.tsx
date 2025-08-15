@@ -1,34 +1,26 @@
 // src/app/(public)/auth/page.tsx
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react'; // Keep useEffect if needed for other logic
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import StyledFirebaseAuth from 'react-firebaseui/StyledFirebaseAuth';
-import { EmailAuthProvider, GoogleAuthProvider } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+// REMOVED: import StyledFirebaseAuth from 'react-firebaseui/StyledFirebaseAuth';
+// REMOVED: import { EmailAuthProvider, GoogleAuthProvider } from 'firebase/auth'; // These are from core Firebase, but were likely only used for uiConfig. If you plan to implement them manually, re-import them when you build the forms.
+// Keep 'auth' if you plan to use it for manual sign-out or manual sign-in logic later.
+// import { auth } from '@/lib/firebase'; // Keep if used for manual auth operations.
 import { Loader2 } from 'lucide-react';
 
-const uiConfig = {
-  signInFlow: 'popup',
-  signInOptions: [
-    GoogleAuthProvider.PROVIDER_ID,
-    EmailAuthProvider.PROVIDER_ID,
-  ],
-  callbacks: {
-    signInSuccessWithAuthResult: () => false,
-  },
-};
+// REMOVED: const uiConfig = { ... }; // The entire uiConfig object is gone
 
 export default function AuthPage() {
   const { user, isAuthLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [renderUi, setRenderUi] = useState(false);
+  // REMOVED: const [renderUi, setRenderUi] = useState(false); // No longer needed for FirebaseUI rendering
 
   useEffect(() => {
-    // FirebaseUI depends on window. So we only render it on the client.
-    setRenderUi(true);
+    // REMOVED: setRenderUi(true); // No longer needed
+    // This useEffect can be repurposed or removed if it's only for renderUi
   }, []);
 
   useEffect(() => {
@@ -51,7 +43,14 @@ export default function AuthPage() {
     <div className="flex flex-col items-center justify-center py-12">
       <h1 className="text-3xl font-headline text-primary mb-2">Welcome to KamperHub</h1>
       <p className="text-muted-foreground font-body mb-8">Sign in or create an account to continue</p>
-      {renderUi && <StyledFirebaseAuth uiConfig={uiConfig} firebaseAuth={auth} />}
+      
+      {/* PLACEHOLDER: This is where your custom authentication UI will go! */}
+      <div className="p-8 border border-dashed border-gray-400 rounded-lg text-center bg-gray-50 max-w-sm w-full">
+        <p className="text-lg font-semibold text-gray-700 mb-2">Authentication Module</p>
+        <p className="text-sm text-gray-500">Your custom sign-in/sign-up forms will be built here.</p>
+        <p className="text-xs text-gray-400 mt-4">For now, this is a placeholder to ensure the app builds.</p>
+      </div>
+      {/* REMOVED: {renderUi && <StyledFirebaseAuth uiConfig={uiConfig} firebaseAuth={auth} />} */}
     </div>
   );
 }
