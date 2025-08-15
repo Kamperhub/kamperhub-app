@@ -23,8 +23,9 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { analytics } from '@/lib/firebase';
-import { setUserProperties } from 'firebase/analytics';
+import { analytics } from '@/lib/firebase'; // Keep this import as it's the analytics instance
+
+// REMOVED: import { setUserProperties } from 'firebase/analytics'; // THIS LINE IS REMOVED!
 
 interface VehicleManagerProps {
     vehicles: StoredVehicle[];
@@ -33,7 +34,8 @@ interface VehicleManagerProps {
 
 const updateAnalyticsUserProperties = (vehicles: StoredVehicle[]) => {
     if (!analytics || vehicles.length === 0) return;
-    setUserProperties(analytics, {
+    // Call setUserProperties directly on the imported analytics instance
+    analytics.setUserProperties({ // CHANGED: Now called directly on the analytics object
         primary_tow_vehicle_make: vehicles[0].make,
         primary_tow_vehicle_model: vehicles[0].model,
     });

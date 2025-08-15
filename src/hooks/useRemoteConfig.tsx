@@ -1,9 +1,9 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { remoteConfig } from '@/lib/firebase';
-import { fetchAndActivate, getString, getAll } from 'firebase/remote-config';
+// Import remoteConfig instance and the new functions from your central firebase.ts
+import { remoteConfig, fetchAndActivateRC, getStringRC, getAllRC } from '@/lib/firebase';
+// REMOVED: import { fetchAndActivate, getString, getAll } from 'firebase/remote-config'; // THIS LINE IS REMOVED!
 
 interface RemoteConfigContextType {
   isConfigReady: boolean;
@@ -18,9 +18,10 @@ export const RemoteConfigProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const activateConfig = async () => {
-      if (remoteConfig) {
+      // Ensure both remoteConfig instance AND the function are loaded
+      if (remoteConfig && fetchAndActivateRC) { // Added check for fetchAndActivateRC
         try {
-          await fetchAndActivate(remoteConfig);
+          await fetchAndActivateRC(remoteConfig); // Use the exported function
           console.log('[Remote Config] Fetched and activated successfully.');
           setIsConfigReady(true);
         } catch (error) {
@@ -29,7 +30,7 @@ export const RemoteConfigProvider = ({ children }: { children: ReactNode }) => {
           setIsConfigReady(true);
         }
       } else {
-         console.warn('[Remote Config] Remote Config not initialized, using default values.');
+         console.warn('[Remote Config] Remote Config service or fetchAndActivate function not initialized, using default values.');
          // Set ready even if not initialized, to use defaults.
          setIsConfigReady(true);
       }
@@ -38,15 +39,17 @@ export const RemoteConfigProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const getConfigString = (key: string): string => {
-    if (remoteConfig && isConfigReady) {
-      return getString(remoteConfig, key);
+    // Ensure both remoteConfig instance AND the function are loaded
+    if (remoteConfig && isConfigReady && getStringRC) { // Added check for getStringRC
+      return getStringRC(remoteConfig, key); // Use the exported function
     }
     return '';
   };
   
   const getAllConfig = (): Record<string, string> => {
-     if (remoteConfig && isConfigReady) {
-      const allValues = getAll(remoteConfig);
+     // Ensure both remoteConfig instance AND the function are loaded
+     if (remoteConfig && isConfigReady && getAllRC) { // Added check for getAllRC
+      const allValues = getAllRC(remoteConfig); // Use the exported function
       const stringValues: Record<string, string> = {};
       for (const key in allValues) {
         stringValues[key] = allValues[key].asString();

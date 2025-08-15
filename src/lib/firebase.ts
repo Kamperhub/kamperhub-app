@@ -33,6 +33,12 @@ export let analytics: import('firebase/analytics').Analytics | null = null; // T
 export let remoteConfig: import('firebase/remote-config').RemoteConfig | null = null; // Type imported dynamically
 export let appCheck: import('firebase/app-check').AppCheck | undefined; // Type imported dynamically
 
+// NEW EXPORTS for Remote Config functions
+export let fetchAndActivateRC: typeof import('firebase/remote-config')['fetchAndActivate'] | null = null;
+export let getStringRC: typeof import('firebase/remote-config')['getString'] | null = null;
+export let getAllRC: typeof import('firebase/remote-config')['getAll'] | null = null;
+
+
 export let firebaseInitializationError: string | null = null;
 
 // Declare placeholders for dynamically imported functions
@@ -40,6 +46,11 @@ let initializeAppCheckFunc: typeof import('firebase/app-check')['initializeAppCh
 let ReCaptchaEnterpriseProviderClass: typeof import('firebase/app-check')['ReCaptchaEnterpriseProvider'] | undefined;
 let getAnalyticsFunc: typeof import('firebase/analytics')['getAnalytics'] | undefined;
 let getRemoteConfigFunc: typeof import('firebase/remote-config')['getRemoteConfig'] | undefined;
+// NEW placeholders for Remote Config functions
+let fetchAndActivateRemoteConfigFunc: typeof import('firebase/remote-config')['fetchAndActivate'] | undefined;
+let getStringRemoteConfigFunc: typeof import('firebase/remote-config')['getString'] | undefined;
+let getAllRemoteConfigFunc: typeof import('firebase/remote-config')['getAll'] | undefined;
+
 
 console.log("[Firebase Client] Starting initialization...");
 
@@ -77,6 +88,9 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
         }),
         import('firebase/remote-config').then(m => {
           getRemoteConfigFunc = m.getRemoteConfig;
+          fetchAndActivateRemoteConfigFunc = m.fetchAndActivate; // NEW
+          getStringRemoteConfigFunc = m.getString;                 // NEW
+          getAllRemoteConfigFunc = m.getAll;                     // NEW
           console.log('[Firebase Client] Firebase Remote Config module loaded dynamically.');
         }),
         import('firebase/app-check').then(m => {
@@ -90,8 +104,12 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
           analytics = getAnalyticsFunc(app);
           console.log('[Firebase Client] Analytics service initialized.');
         }
-        if (app && getRemoteConfigFunc) {
+        if (app && getRemoteConfigFunc && fetchAndActivateRemoteConfigFunc && getStringRemoteConfigFunc && getAllRemoteConfigFunc) {
           remoteConfig = getRemoteConfigFunc(app);
+          fetchAndActivateRC = fetchAndActivateRemoteConfigFunc; // NEW
+          getStringRC = getStringRemoteConfigFunc;                 // NEW
+          getAllRC = getAllRemoteConfigFunc;                     // NEW
+
           if (process.env.NEXT_PUBLIC_APP_ENV === 'development') {
             // Ensure remoteConfig is not null before accessing its properties
             if (remoteConfig) remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour for dev
@@ -134,6 +152,9 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     analytics = null;
     remoteConfig = null;
     appCheck = undefined;
+    fetchAndActivateRC = null; // NEW
+    getStringRC = null;         // NEW
+    getAllRC = null;            // NEW
   }
 }
 
@@ -165,4 +186,5 @@ export function initializeFirebaseAppCheck() {
 
 // Export the core app, auth, and db instances.
 // Other services (analytics, remoteConfig, appCheck) are already exported as `export let ...` and will be null/undefined on server.
+// Remote Config functions (fetchAndActivateRC, getStringRC, getAllRC) are also exported.
 export { app };
