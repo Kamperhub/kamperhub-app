@@ -22,12 +22,14 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
+// KEY CHANGE: All Firebase instances are now initialized to null, and typed as potentially null
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
 let analytics: Analytics | null = null;
 let remoteConfig: RemoteConfig | null = null;
-let appCheck: AppCheck | undefined;
+let appCheck: import('firebase/app-check').AppCheck | undefined; // Use import type for AppCheck here
+
 export let firebaseInitializationError: string | null = null;
 
 // Declare functions for App Check, will be assigned dynamically
@@ -42,81 +44,76 @@ console.log("[Firebase Client] Starting initialization...");
 if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   firebaseInitializationError = "CRITICAL ERROR: Firebase client-side configuration is missing. Please ensure all required NEXT_PUBLIC_FIREBASE_ variables are set in your .env.local file (especially NEXT_PUBLIC_FIREBASE_API_KEY) and that you have restarted the development server. The application cannot connect to Firebase.";
   console.error(`[Firebase Client] ${firebaseInitializationError}`);
-  // @ts-ignore
-  app = {};
-  // @ts-ignore
-  auth = {};
-  // @ts-ignore
-  db = {}; // Assign empty object on error
+  // KEY CHANGE: No assignments to app, auth, db here; they remain null as per their initial declaration
 } else {
   try {
     // DEBUG LOG: Display the firebaseConfig object being used
     console.log("DEBUG_RUNTIME_FIREBASE_CONFIG: ", firebaseConfig);
 
-    app = getApps().length ? getApp() : initializeApp(firebaseConfig as FirebaseOptions);
-
-    // DEBUG LOG: Display information about the initialized Firebase app instance
-    console.log("DEBUG_RUNTIME_FIREBASE_APP_INSTANCE:", app.name, app.options.projectId);
-
-    auth = getAuth(app);
-
-    // ONLY INITIALIZE BROWSER-SPECIFIC SERVICES WHEN IN THE BROWSER ENVIRONMENT
+    // KEY CHANGE: All Firebase client SDK initialization happens ONLY if in a browser environment
     if (typeof window !== 'undefined') {
+      app = getApps().length ? getApp() : initializeApp(firebaseConfig as FirebaseOptions);
+
+      // DEBUG LOG: Display information about the initialized Firebase app instance
+      console.log("DEBUG_RUNTIME_FIREBASE_APP_INSTANCE:", app.name, app.options.projectId);
+
+      auth = getAuth(app);
+      setPersistence(auth, browserSessionPersistence); // This is now safely inside
+
+      db = getFirestore(app);
+      analytics = getAnalytics(app);
+      remoteConfig = getRemoteConfig(app);
+      if (process.env.NEXT_PUBLIC_APP_ENV === 'development') {
+        // Ensure remoteConfig is not null before accessing its properties
+        if (remoteConfig) remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour for dev
+      }
+
       // Dynamic import for App Check and other browser-specific modules
       Promise.all([
         import('firebase/app-check').then(m => {
           initializeAppCheckFunc = m.initializeAppCheck;
           ReCaptchaEnterpriseProviderClass = m.ReCaptchaEnterpriseProvider;
         }),
-        // You might want to dynamically import getFirestore, getAnalytics, getRemoteConfig here too
-        // if they ever cause issues, but typically they don't have these
-        // deep browser-only static initialization side-effects like App Check.
       ]).catch(console.error); // Catch any errors during dynamic import
 
-      setPersistence(auth, browserSessionPersistence);
-
-      db = getFirestore(app);
-
-      analytics = getAnalytics(app);
-      remoteConfig = getRemoteConfig(app);
-      if (process.env.NEXT_PUBLIC_APP_ENV === 'development') {
-        remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour for dev
+      // Firestore persistence
+      // Ensure db is not null before enabling persistence
+      if (db) {
+        enableIndexedDbPersistence(db)
+          .then(() => console.log('[Firebase Client] Firestore offline persistence enabled.'))
+          .catch((err) => {
+            if (err.code === 'failed-precondition') {
+              console.warn('[Firebase Client] Firestore offline persistence could not be enabled. This can happen if you have multiple tabs open.');
+            } else if (err.code === 'unimplemented') {
+              console.warn('[Firebase Client] Firestore offline persistence is not available in this browser.');
+            } else {
+                  console.error("[Firebase Client] Error enabling Firestore offline persistence:", err);
+            }
+          });
       }
-
-      enableIndexedDbPersistence(db)
-        .then(() => console.log('[Firebase Client] Firestore offline persistence enabled.'))
-        .catch((err) => {
-          if (err.code === 'failed-precondition') {
-            console.warn('[Firebase Client] Firestore offline persistence could not be enabled. This can happen if you have multiple tabs open.');
-          } else if (err.code === 'unimplemented') {
-            console.warn('[Firebase Client] Firestore offline persistence is not available in this browser.');
-          } else {
-                console.error("[Firebase Client] Error enabling Firestore offline persistence:", err);
-          }
-        });
-    } else {
-        // When running on the server, db should not be initialized from client SDK
-        // @ts-ignore
-        db = {};
     }
+    // If not in window environment, app, auth, db, analytics, remoteConfig remain null
+    // This is safe because server-side code shouldn't be using these client SDK instances.
 
     console.log(`[Firebase Client] Successfully initialized for project: ${firebaseConfig.projectId}.`);
 
   } catch (e: any) {
     firebaseInitializationError = `Firebase failed to initialize. Please check your Firebase project configuration and API keys. Error: ${e.message}`;
     console.error(`[Firebase Client] ${firebaseInitializationError}`, e);
-    // @ts-ignore
-    app = {};
-    // @ts-ignore
-    auth = {};
-    // @ts-ignore
-    db = {};
+    // KEY CHANGE: If an error occurs during initialization, ensure all are null
+    app = null;
+    auth = null;
+    db = null;
+    analytics = null;
+    remoteConfig = null;
+    appCheck = undefined;
   }
 }
 
 export function initializeFirebaseAppCheck() {
   // Only attempt to initialize App Check if in browser AND dynamic imports have completed successfully
-  if (typeof window !== 'undefined' && app?.name && !appCheck && initializeAppCheckFunc && ReCaptchaEnterpriseProviderClass) {
+  // Also ensure 'app' is initialized and available
+  if (typeof window !== 'undefined' && app && initializeAppCheckFunc && ReCaptchaEnterpriseProviderClass) {
     if (process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN) {
       console.log('[Firebase Client] App Check: Using debug token for local development.');
       (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN;
@@ -127,7 +124,7 @@ export function initializeFirebaseAppCheck() {
         appCheck = initializeAppCheckFunc(app, {
           provider: new ReCaptchaEnterpriseProviderClass(process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY),
           isTokenAutoRefreshEnabled: true
-        }) as AppCheckType; // Type assertion for appCheck
+        }) as AppCheckType;
         console.log('[Firebase Client] App Check initialized with reCAPTCHA Enterprise provider.');
       } catch(e: any) {
         console.error(`[Firebase Client] App Check initialization failed. Error: ${e.message}`);
@@ -138,4 +135,6 @@ export function initializeFirebaseAppCheck() {
   }
 }
 
+// Export the instances. On the server, these will be null.
 export { app, auth, db, analytics, remoteConfig };
+
