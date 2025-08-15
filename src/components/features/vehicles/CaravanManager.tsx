@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -23,8 +22,9 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import type { UserProfile } from '@/types/auth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { analytics } from '@/lib/firebase';
-import { setUserProperties } from 'firebase/analytics';
+import { analytics } from '@/lib/firebase'; // Keep this import as it's the analytics instance
+
+// REMOVED: import { setUserProperties } from 'firebase/analytics'; // THIS LINE IS REMOVED!
 
 interface CaravanManagerProps {
     caravans: StoredCaravan[];
@@ -32,6 +32,7 @@ interface CaravanManagerProps {
 }
 
 const updateAnalyticsUserProperties = (caravans: StoredCaravan[]) => {
+    // Check if analytics is initialized (it will be null on server, and non-null on client)
     if (!analytics) return;
 
     let primaryAccommodation: string = 'none';
@@ -42,7 +43,8 @@ const updateAnalyticsUserProperties = (caravans: StoredCaravan[]) => {
     
     const hasUtilityTrailer = caravans.some(c => c.type === 'Utility Trailer');
 
-    setUserProperties(analytics, {
+    // Call setUserProperties directly on the imported analytics instance
+    analytics.setUserProperties({ // CHANGED: Now called directly on the analytics object
         primary_camping_accommodation: primaryAccommodation,
         has_utility_trailer: hasUtilityTrailer.toString(),
     });
